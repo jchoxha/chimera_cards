@@ -7,12 +7,14 @@
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;700;900&family=Cinzel+Decorative:wght@700;900&family=Spectral:ital,wght@0,400;0,600;1,400&display=swap" rel="stylesheet" />
+<script src="https://cdn.jsdelivr.net/npm/iconify-icon@2/dist/iconify-icon.min.js"></script>
 <style>
   :root{
-    --gold1:#f7e7a6; --gold2:#caa033; --gold3:#8a6a18; --gold4:#e9cf6b;
+    --gold1:#f7e7a6; --gold2:#caa033; --gold3:#8a6a18; --gold4:#e9cf6b; --goldB:#d8b24a;
     --ink:#140e26; --ink2:#241a3a; --cream:#f6e7b0;
   }
   *{box-sizing:border-box;margin:0;padding:0}
+  iconify-icon{display:inline-flex;align-items:center;justify-content:center;vertical-align:middle}
   body{
     font-family:'Spectral',Georgia,serif;color:#f3ecd8;min-height:100vh;
     background:
@@ -47,9 +49,8 @@
   .lvl small{font-size:7px;line-height:1;margin-bottom:-2px;letter-spacing:.5px}
   .lvl b{font-size:15px;line-height:1}
   .elem{position:absolute;top:-8px;right:-8px;z-index:5;width:44px;height:44px;border-radius:50%;
-    display:flex;align-items:center;justify-content:center;font-size:20px;
-    border:3px solid;border-image:linear-gradient(140deg,var(--gold1),var(--gold3)) 1;border-radius:50%;
-    box-shadow:0 2px 7px #000a, inset 0 0 8px #0006}
+    display:flex;align-items:center;justify-content:center;font-size:22px;color:#fff;
+    border:3px solid var(--goldB);box-shadow:0 2px 7px #000a, inset 0 0 8px #0006}
   .elem.fire{background:radial-gradient(circle at 38% 30%,#ffe0a0,#ef5a23 50%,#7c1606)}
   .elem.stone{background:radial-gradient(circle at 38% 30%,#efe6d6,#9c7d52 50%,#4d3a22)}
   .elem em{position:absolute;bottom:-13px;font-style:normal;font-family:'Cinzel',serif;font-weight:700;font-size:8px;
@@ -60,23 +61,18 @@
     background:linear-gradient(var(--ink2),var(--ink));border:1.5px solid #c9a23a;
     font-family:'Cinzel Decorative',serif;font-weight:900;color:var(--cream);
     text-shadow:0 1px 0 #000,0 0 8px #ffcf6b55;letter-spacing:.5px;line-height:1.05}
-  .ribbon{margin:6px 10px 0;text-align:center;background:linear-gradient(#000,#1a1426);
-    border:1px solid #c9a23a;color:var(--cream);font-family:'Cinzel',serif;font-weight:700;
-    font-size:10px;letter-spacing:2px;padding:3px;border-radius:3px}
 
   /* art scene */
-  .art{position:relative;height:150px;display:flex;align-items:center;justify-content:center;font-size:74px;
+  .art{position:relative;height:150px;display:flex;align-items:center;justify-content:center;
     filter:drop-shadow(0 6px 10px #000a)}
+  .art .creature{font-size:92px}
   .art.fire{background:radial-gradient(circle at 50% 78%,#ffd27a,#ff8a3a 26%,#c23a1f 52%,#3a1126 100%)}
   .art.stone{background:radial-gradient(circle at 50% 78%,#cdbfa6,#8f7e63 30%,#564433 58%,#241a2e 100%)}
   .art .moon{position:absolute;top:14px;right:24px;width:40px;height:40px;border-radius:50%;
     background:radial-gradient(circle at 40% 40%,#fffbe9,#ffe9a8);box-shadow:0 0 26px #ffe9a8aa;opacity:.85}
-  .art .mtn{position:absolute;bottom:0;left:0;right:0;height:54px;
-    background:linear-gradient(#0000,#0006),
-      conic-gradient(from 90deg at 22% 100%,#0000 0,#0000 0);
-    clip-path:polygon(0 100%,14% 46%,28% 78%,46% 30%,62% 70%,78% 38%,100% 72%,100% 100%);
-    background-color:#2a1c3e;opacity:.55}
-  .artNote{position:absolute;bottom:3px;left:0;right:0;text-align:center;font-size:8px;color:#fff8;
+  .art .mtn{position:absolute;bottom:0;left:0;right:0;height:54px;background-color:#2a1c3e;opacity:.55;
+    clip-path:polygon(0 100%,14% 46%,28% 78%,46% 30%,62% 70%,78% 38%,100% 72%,100% 100%)}
+  .artNote{position:absolute;bottom:3px;left:0;right:0;text-align:center;font-size:8px;color:#fff9;
     letter-spacing:.5px;text-shadow:0 1px 2px #000}
 
   /* combat card */
@@ -97,18 +93,21 @@
 
   /* status chips */
   .stats{display:flex;flex-wrap:wrap;gap:4px;justify-content:center;padding:5px 8px 2px;min-height:24px}
-  .chip{font-size:10px;font-weight:600;padding:2px 6px;border-radius:20px;display:flex;align-items:center;gap:3px;
+  .chip{font-size:10px;font-weight:600;padding:2px 7px;border-radius:20px;display:flex;align-items:center;gap:3px;
     background:#1c1530;border:1px solid #4a3f63;color:#e8dcff}
+  .chip iconify-icon{font-size:13px}
   .chip.blk{border-color:#6aa3d6;color:#bfe0ff}.chip.str{border-color:#e0a85a;color:#ffdca0}
   .chip.burn{border-color:#e2693a;color:#ffc09a}.chip.pois{border-color:#7bc24a;color:#d6f0a8}
 
   .intent{position:absolute;top:46px;right:8px;z-index:5;background:#1a1020;border:1.5px solid #ffd34d;
     color:#ffd34d;font-family:'Cinzel',serif;font-weight:700;font-size:12px;padding:3px 8px;border-radius:8px;
-    box-shadow:0 0 10px #ffd34d55}
-  .match{margin:0 10px;text-align:center;font-size:10px;font-weight:700;letter-spacing:.5px}
+    display:flex;align-items:center;gap:4px;box-shadow:0 0 10px #ffd34d55}
+  .match{margin:0 10px;text-align:center;font-size:10px;font-weight:700;letter-spacing:.5px;
+    display:flex;align-items:center;justify-content:center;gap:3px}
   .match.good{color:#9af0bf}.match.bad{color:#ff9c9c}
-  .codexBtn{display:block;margin:6px auto 8px;background:#0000;border:1px solid #c9a23a88;color:#e8dcc0;
-    font-family:'Cinzel',serif;font-size:10px;letter-spacing:1px;padding:3px 12px;border-radius:7px;cursor:pointer}
+  .codexBtn{display:flex;align-items:center;gap:5px;justify-content:center;margin:6px auto 8px;background:#0000;
+    border:1px solid #c9a23a88;color:#e8dcc0;font-family:'Cinzel',serif;font-size:10px;letter-spacing:1px;
+    padding:3px 12px;border-radius:7px;cursor:pointer}
 
   /* center column between cards */
   .vs{align-self:center;font-family:'Cinzel Decorative',serif;font-weight:900;font-size:30px;color:#ffd34d;
@@ -122,24 +121,25 @@
     border:2px solid #8a6a18;border-radius:8px;padding:7px 14px;font-size:12px;line-height:1.5;
     box-shadow:0 6px 16px #0007, inset 0 0 18px #00000022}
   .log b{font-weight:600}
+  .log .rx{color:#1d6e56;font-weight:600}
 
   /* bottom dock */
-  .dock{display:flex;align-items:flex-end;gap:14px;margin-top:6px}
-  .orb{width:62px;height:62px;border-radius:50%;display:flex;flex-direction:column;align-items:center;justify-content:center;
-    background:radial-gradient(circle at 38% 30%,#cfeaff,#3f7fe6 52%,#16306e);border:3px solid;
-    border-image:linear-gradient(140deg,var(--gold1),var(--gold3)) 1;border-radius:50%;
+  .dock{display:flex;align-items:flex-end;gap:12px;margin-top:6px;flex-wrap:wrap}
+  .orb{width:60px;height:60px;border-radius:50%;display:flex;flex-direction:column;align-items:center;justify-content:center;
+    background:radial-gradient(circle at 38% 30%,#cfeaff,#3f7fe6 52%,#16306e);border:3px solid var(--goldB);
     box-shadow:0 4px 12px #000a, inset 0 0 12px #0006;font-family:'Cinzel',serif;color:#fff;text-shadow:0 1px 2px #000}
-  .orb b{font-size:18px;line-height:1}.orb small{font-size:8px;letter-spacing:1px;opacity:.85}
+  .orb b{font-size:18px;line-height:1}.orb small{font-size:8px;letter-spacing:1px;opacity:.9}
   .bench{display:flex;gap:6px}
   .benchMon{width:42px;height:50px;border-radius:8px;background:#1a1430;border:1.5px solid #5a4a2a;
-    display:flex;flex-direction:column;align-items:center;justify-content:center;font-size:18px;color:#cfc8e8;cursor:pointer}
+    display:flex;flex-direction:column;align-items:center;justify-content:center;color:#cfc8e8;cursor:pointer}
+  .benchMon iconify-icon{font-size:22px}
   .benchMon.active{border-color:#9af0bf;box-shadow:0 0 10px #2ea85c88}
   .benchMon span{font-size:8px;margin-top:1px;font-family:'Cinzel',serif}
   .endBtn{margin-left:auto;font-family:'Cinzel',serif;font-weight:700;letter-spacing:1px;font-size:14px;color:#3a2606;
-    padding:11px 22px;border:none;border-radius:12px;cursor:pointer;
+    padding:11px 20px;border:none;border-radius:12px;cursor:pointer;display:flex;align-items:center;gap:6px;
     background:linear-gradient(#ffe89a,#d6a72a);box-shadow:0 5px 0 #8a6a18,0 8px 16px #0008}
-  .consume{display:flex;gap:6px;margin-left:8px}
-  .cBtn{width:42px;height:42px;border-radius:10px;background:#1a1430;border:1.5px solid #6a5a3a;font-size:18px;
+  .consume{display:flex;gap:6px}
+  .cBtn{width:42px;height:42px;border-radius:10px;background:#1a1430;border:1.5px solid #6a5a3a;font-size:20px;color:#e6dcc0;
     display:flex;align-items:center;justify-content:center;position:relative;cursor:pointer}
   .cBtn small{position:absolute;bottom:-4px;right:-4px;background:#caa033;color:#241509;font-size:9px;font-weight:700;
     border-radius:8px;padding:0 4px;font-family:'Cinzel',serif}
@@ -152,10 +152,9 @@
   .move.played{transform:translateY(-58px) scale(1.08) rotate(-3deg)!important;z-index:10}
   .cost{position:absolute;top:-9px;left:-9px;z-index:6;width:34px;height:34px;border-radius:50%;
     display:flex;align-items:center;justify-content:center;font-family:'Cinzel',serif;font-weight:900;font-size:15px;color:#fff;
-    background:radial-gradient(circle at 38% 30%,#cfeaff,#3f7fe6 52%,#16306e);
-    border:2px solid;border-image:linear-gradient(140deg,var(--gold1),var(--gold3)) 1;border-radius:50%;
+    background:radial-gradient(circle at 38% 30%,#cfeaff,#3f7fe6 52%,#16306e);border:2px solid var(--goldB);
     box-shadow:0 2px 6px #000a;text-shadow:0 1px 2px #000}
-  .move .icon{height:48px;display:flex;align-items:center;justify-content:center;font-size:30px}
+  .move .icon{height:48px;display:flex;align-items:center;justify-content:center;font-size:30px;color:#fff}
   .move .icon.atk{background:radial-gradient(circle at 50% 60%,#ffd27a,#d23b2c 70%)}
   .move .icon.def{background:radial-gradient(circle at 50% 60%,#bfe0ff,#2e6fb0 70%)}
   .move .icon.util{background:radial-gradient(circle at 50% 60%,#d9c0ff,#6a3fb0 70%)}
@@ -164,11 +163,13 @@
   .move .mt{background:linear-gradient(#efe2bd,#dccba0);color:#3a2c12;font-size:8.5px;line-height:1.25;
     padding:4px 5px 5px;min-height:46px}
   .move .mt b{font-weight:600}
-  .playHint{text-align:center;font-family:'Cinzel',serif;font-size:10px;letter-spacing:2px;color:#9af0bf;margin-top:2px;opacity:.8}
+  .playHint{display:flex;align-items:center;justify-content:center;gap:6px;text-align:center;font-family:'Cinzel',serif;
+    font-size:10px;letter-spacing:2px;color:#9af0bf;margin-top:2px;opacity:.85}
 
   .topbar{display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;
     font-family:'Cinzel',serif;font-size:12px;letter-spacing:1px;color:#e8dcc0}
-  .topbar .pill{background:#00000055;border:1px solid #c9a23a55;padding:3px 10px;border-radius:20px}
+  .topbar .pill{background:#00000055;border:1px solid #c9a23a55;padding:3px 10px;border-radius:20px;
+    display:flex;align-items:center;gap:6px}
 </style>
 </head>
 <body>
@@ -177,7 +178,7 @@
   <div class="topbar">
     <span class="pill">Floor 3 · Dungeon of Embers</span>
     <span class="pill">Your turn</span>
-    <span class="pill">🔊</span>
+    <span class="pill"><iconify-icon icon="tabler:volume"></iconify-icon></span>
   </div>
 
   <!-- ===== STAGE: two combatants ===== -->
@@ -189,18 +190,20 @@
       <span class="gem emer bl"></span><span class="gem ruby br"></span>
       <div class="holo"></div>
       <div class="lvl"><small>LVL</small><b>4</b></div>
-      <div class="elem stone">🪨<em>STONE</em></div>
+      <div class="elem stone"><iconify-icon icon="game-icons:stone-block"></iconify-icon><em>STONE</em></div>
       <span class="sideTag you">YOU</span>
       <div class="inner">
-        <div class="art stone"><div class="moon"></div><div class="mtn"></div>🗿<div class="artNote">▣ real cards use AI-generated art here</div></div>
+        <div class="art stone"><div class="moon"></div><div class="mtn"></div>
+          <iconify-icon class="creature" icon="game-icons:golem-head" style="color:#efe6d6"></iconify-icon>
+          <div class="artNote">real cards use AI-generated art here</div></div>
         <div class="nameBan" style="font-size:14px;margin-top:7px">Pebblet</div>
         <div class="hpWrap"><div class="hpFill" style="width:74%"></div><div class="hpTxt">28 / 38</div></div>
         <div class="stats">
-          <span class="chip blk">🛡 5</span>
-          <span class="chip str">💪 2</span>
-          <span class="chip">🔗 +3</span>
+          <span class="chip blk"><iconify-icon icon="game-icons:shield"></iconify-icon> 5</span>
+          <span class="chip str"><iconify-icon icon="game-icons:biceps"></iconify-icon> 2</span>
+          <span class="chip"><iconify-icon icon="game-icons:linked-rings"></iconify-icon> +3</span>
         </div>
-        <button class="codexBtn">📖 CODEX</button>
+        <button class="codexBtn"><iconify-icon icon="game-icons:open-book"></iconify-icon> CODEX</button>
       </div>
     </div>
 
@@ -212,20 +215,22 @@
       <span class="gem emer bl"></span><span class="gem ruby br"></span>
       <div class="holo"></div>
       <div class="lvl"><small>LVL</small><b>5</b></div>
-      <div class="elem fire">🔥<em>FIRE</em></div>
+      <div class="elem fire"><iconify-icon icon="game-icons:flame"></iconify-icon><em>FIRE</em></div>
       <span class="sideTag foe">FOE</span>
-      <div class="intent">⚔ 8</div>
+      <div class="intent"><iconify-icon icon="game-icons:crossed-swords"></iconify-icon> 8</div>
       <div class="floatie" style="top:64%;left:30%">-8</div>
       <div class="inner">
-        <div class="art fire"><div class="moon"></div><div class="mtn"></div>🦁<div class="artNote">▣ real cards use AI-generated art here</div></div>
+        <div class="art fire"><div class="moon"></div><div class="mtn"></div>
+          <iconify-icon class="creature" icon="game-icons:lion" style="color:#ffd9a0"></iconify-icon>
+          <div class="artNote">real cards use AI-generated art here</div></div>
         <div class="nameBan" style="font-size:14px;margin-top:7px">Blazaur</div>
         <div class="hpWrap"><div class="hpFill low" style="width:46%"></div><div class="hpTxt">23 / 50</div></div>
-        <div class="match bad">STONE weak ▼</div>
+        <div class="match bad">STONE weak <iconify-icon icon="tabler:caret-down"></iconify-icon></div>
         <div class="stats">
-          <span class="chip burn">🔥 4</span>
-          <span class="chip pois">☣ 2</span>
+          <span class="chip burn"><iconify-icon icon="game-icons:flame"></iconify-icon> 4</span>
+          <span class="chip pois"><iconify-icon icon="game-icons:poison-bottle"></iconify-icon> 2</span>
         </div>
-        <button class="codexBtn">📖 CODEX</button>
+        <button class="codexBtn"><iconify-icon icon="game-icons:open-book"></iconify-icon> CODEX</button>
       </div>
     </div>
   </div>
@@ -233,22 +238,22 @@
   <!-- ===== LOG ===== -->
   <div class="log">
     <div><b>Pebblet</b> plays <b>Boulder Toss</b> — deals 8 to Blazaur.</div>
-    <div>✦ <b>Steam!</b> Water reaction triggers on the burning foe.</div>
+    <div class="rx">✦ Steam! Water reaction triggers on the burning foe.</div>
   </div>
 
   <!-- ===== DOCK: energy · bench · consumables · end turn ===== -->
   <div class="dock">
     <div class="orb"><b>2</b><small>/3</small><small>ENERGY</small></div>
     <div class="bench">
-      <div class="benchMon active">🗿<span>28/38</span></div>
-      <div class="benchMon">🐢<span>40/40</span></div>
-      <div class="benchMon" style="opacity:.4">💀<span>0</span></div>
+      <div class="benchMon active"><iconify-icon icon="game-icons:golem-head"></iconify-icon><span>28/38</span></div>
+      <div class="benchMon"><iconify-icon icon="game-icons:turtle"></iconify-icon><span>40/40</span></div>
+      <div class="benchMon" style="opacity:.4"><iconify-icon icon="game-icons:tombstone"></iconify-icon><span>0</span></div>
     </div>
     <div class="consume">
-      <div class="cBtn">🧪</div>
-      <div class="cBtn">💎<small>3</small></div>
+      <div class="cBtn"><iconify-icon icon="game-icons:potion-ball"></iconify-icon></div>
+      <div class="cBtn"><iconify-icon icon="game-icons:cut-diamond"></iconify-icon><small>3</small></div>
     </div>
-    <button class="endBtn">END TURN ⏭</button>
+    <button class="endBtn">END TURN <iconify-icon icon="tabler:player-track-next"></iconify-icon></button>
   </div>
 
   <!-- ===== HAND ===== -->
@@ -258,7 +263,7 @@
         <span class="gem sapph tl"></span><div class="holo"></div>
         <div class="cost">1</div>
         <div class="inner">
-          <div class="icon def">🛡️</div>
+          <div class="icon def"><iconify-icon icon="game-icons:stone-wall"></iconify-icon></div>
           <div class="mn">Stone Guard</div>
           <div class="mt">Gain <b>6 Block</b>. If you have Synergy, gain <b>+2</b> more.</div>
         </div>
@@ -267,7 +272,7 @@
         <span class="gem ruby tl"></span><div class="holo"></div>
         <div class="cost">2</div>
         <div class="inner">
-          <div class="icon atk">💥</div>
+          <div class="icon atk"><iconify-icon icon="game-icons:boulder-dash"></iconify-icon></div>
           <div class="mn">Boulder Toss</div>
           <div class="mt">Deal <b>8</b>. Apply <b>2 Vulnerable</b> to the target.</div>
         </div>
@@ -276,7 +281,7 @@
         <span class="gem ruby tl"></span><div class="holo"></div>
         <div class="cost">2</div>
         <div class="inner">
-          <div class="icon atk">☄️</div>
+          <div class="icon atk"><iconify-icon icon="game-icons:fire-punch"></iconify-icon></div>
           <div class="mn">Inferno Pounce</div>
           <div class="mt">Deal <b>5</b>. If target has <b>Burn</b>, apply <b>2 Flames</b>.</div>
         </div>
@@ -285,7 +290,7 @@
         <span class="gem emer tl"></span><div class="holo"></div>
         <div class="cost">1</div>
         <div class="inner">
-          <div class="icon util">🌀</div>
+          <div class="icon util"><iconify-icon icon="game-icons:earth-crack"></iconify-icon></div>
           <div class="mn">Tremor</div>
           <div class="mt">Draw <b>1</b>. Your next attack costs <b>1 less</b>.</div>
         </div>
@@ -294,14 +299,14 @@
         <span class="gem sapph tl"></span><div class="holo"></div>
         <div class="cost">0</div>
         <div class="inner">
-          <div class="icon util">✨</div>
+          <div class="icon util"><iconify-icon icon="game-icons:lightning-arc"></iconify-icon></div>
           <div class="mn">Spark</div>
           <div class="mt">Apply <b>1 Shock</b>. Costs nothing.</div>
         </div>
       </div>
     </div>
   </div>
-  <div class="playHint">↑ DRAG A CARD UP TO PLAY  ·  centre card shown lifted</div>
+  <div class="playHint"><iconify-icon icon="tabler:chevron-up"></iconify-icon> DRAG A CARD UP TO PLAY · CENTRE CARD SHOWN LIFTED</div>
 
 </div>
 </body>
