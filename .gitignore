@@ -11,3 +11,6 @@ dist-ssr
 .vscode/*
 !.vscode/extensions.json
 .idea
+
+# Local Claude Code settings (personal, not for the repo)
+.claude/settings.local.json
