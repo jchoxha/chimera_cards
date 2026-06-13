@@ -42,15 +42,32 @@ repo, **Settings → Pages → Build and deployment → Source: GitHub Actions**
 
 ## Project layout
 
-- `src/App.jsx` — the entire game (single component, organized into virtual
-  "modules"; search `MODULE:` to jump). Modularizing this into real files is a
-  planned refactor.
+The original single-file artifact has been split into real ES modules. Files
+import only what they use; ESLint's `no-undef` rule guards against missing
+cross-module imports (`npm run lint`).
+
 - `src/main.jsx` — React entry point.
+- `src/App.jsx` — the root `ChimeraCards` component (all state + game logic).
+- `src/version.js` — `APP_VERSION` (bump on every gameplay edit).
+- `src/utils.js` — `uid`, `shuffle`, `clamp`.
+- `src/ai/claude.js` — Anthropic API access, art + JSON generation.
+- `src/data/` — pure content: `monsters`, `moves`, `dex`, `items`,
+  `materials` (+recipes), `artifacts`, `quests`.
+- `src/game/` — derived game logic: `monster` (make/evolve/fuse),
+  `evolution` (gates), `fighter` (deck/fighter build).
+- `src/systems/` — `save`, `sfx`, `elements` (matchups/forms/lines),
+  `forge` (rarity rolls), `map` (dungeon + overworld).
+- `src/ui/` — `components.jsx` (all screens/widgets), `styles.js`
+  (`S`, `tcg`, `CSS`), `icons.jsx` (procedural + AI icon art).
 - `index.html` — page shell + optional local AI key.
+
+> The `MODULE:` banner comments from the original file are preserved inside the
+> new files as section markers. Further splitting `ui/components.jsx` into
+> per-screen files is a natural follow-up (Phase 3, the UI overhaul).
 
 ## Conventions (from the game's own golden rules)
 
-- Bump `APP_VERSION` in `src/App.jsx` on every gameplay edit.
+- Bump `APP_VERSION` in `src/version.js` on every gameplay edit.
 - Regenerate the dex on any roster change.
 - New content must be reachable from the admin/debug console.
 - UI components only read props.
