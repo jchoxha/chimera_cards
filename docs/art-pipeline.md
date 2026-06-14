@@ -1,0 +1,88 @@
+# Chimera art pipeline (Phase 3)
+
+How generated art is produced, styled, stored, and loaded. Built around the
+`claude-image-gen` MCP (Google Gemini, `create_asset` tool) once installed.
+
+## Decisions (locked 2026-06-14)
+
+- **Aesthetic:** Yu-Gi-Oh trading-card creature art × Adventure Time — the
+  game's original `ART_STYLE` (`src/ai/claude.js`). Reference: the user's
+  "Blazaur, the Ember Lion" card.
+- **Scope:** generate art for *everything* — 108 monster portraits, ~348 move
+  arts, 16 items, 20 materials, ~6–10 shared backgrounds.
+- **Frames stay CSS** (the gold/gem frame), not generated per card.
+- **Storage:** hybrid. Pre-bake + commit the fixed roster's art; generate
+  player-created (Forge/Fusion) monster art at runtime with graceful fallback.
+- **Icons vs art:** small UI/status glyphs stay vector (game-icons via
+  Iconify). Generated art is only the big art windows.
+
+## Style spec (raster, for Gemini)
+
+Adapted from `ART_STYLE`. Every prompt appends this for consistency:
+
+> Art style: Yu-Gi-Oh trading-card creature art crossed with Adventure Time.
+> Bold, dramatic, slightly heroic subject rendered with rounded, friendly
+> cartoon shapes; thick clean black outlines; flat cel-shaded color with simple
+> highlight and shadow shapes (not photoreal); large expressive characterful
+> eyes. Saturated palette keyed to the element. Painterly fantasy background
+> hinting at habitat, soft elemental glow, a few small decorative sparks/stars.
+> Centered subject filling the frame, three-quarter heroic pose.
+> **No text, no card frame, no border, no UI — only the illustration** (our
+> frame is drawn separately). Square 1:1 composition.
+
+## Prompt templates
+
+Placeholders come from the game data (`src/data/*`).
+
+- **Monster portrait** (`art/monsters/<dexNumber>-<slug>.webp`):
+  `Trading-card creature illustration of "{name}", a {element}-element monster. {lore||desc}. {STYLE}`
+- **Move art** (`art/moves/<id>.webp`):
+  `Fantasy ability-card art depicting "{name}": {text}. Dynamic {attack=impact/skill=defensive aura/power=glowing empowerment} action, {element} palette. {STYLE}`
+- **Item** (`art/items/<id>.webp`):
+  `Game item illustration of "{name}": {text}. Single object centered on a simple soft background. {STYLE}`
+- **Material** (`art/materials/<id>.webp`):
+  `Crafting-material illustration of "{name}", a {element} material. Single object, gem/ore/essence. {STYLE}`
+- **Background** (`art/bg/<element>.webp`):
+  `Wide fantasy battle backdrop for a {element} arena. No creatures, no text. {STYLE-minus-square}, 16:9.`
+
+## Post-processing
+
+Gemini returns PNGs to disk. For each asset: resize + convert to **WebP**
+(portraits/moves ~640², items/materials ~256², backgrounds ~1280×720),
+quality ~80. Target ~30–80 KB each. Write to `public/art/...`. Produce
+`public/art/manifest.json` mapping `id → file` so the UI resolves art by id.
+
+## Storage & delivery
+
+- Fixed-roster WebP committed under `public/art/`. Estimated ~500 images.
+  Monsters+items+materials+bg alone ≈ ~10 MB; all moves pushes toward ~40 MB.
+- If `public/art/` exceeds ~25–30 MB, move it to **git-LFS** and set
+  `lfs: true` on `actions/checkout` in `.github/workflows/deploy.yml` so Pages
+  serves the real files (decide at generation time, not before).
+- Lazy-load images in the UI (`loading="lazy"`) so play-time bandwidth is
+  per-card-seen, not the whole set.
+
+## Runtime layer (player-created monsters)
+
+- Forge/Fusion monsters call Gemini live when a key is present; cache the
+  result in the save. No key → fall back to the procedural game-icon
+  silhouette (already styled in the battle mockup).
+- Public Pages site (no key): built-in monsters always show baked art; player
+  creations show the fallback. Honest, no broken images.
+- Converge the in-game `generateArt` onto the same Gemini style so runtime and
+  baked art match (currently it asks Anthropic for SVG — different look).
+
+## Generation plan (phased — avoids mass-producing a rejected style)
+
+1. **Validate (≈10 images):** the Battle screen's needs — 2 monsters
+   (one stone, one fire), ~5 moves (1 per type/element mix), 1 item, 1
+   background. Drop into the mockup, lock the look with the user.
+2. **Batch by type:** monsters → items/materials → backgrounds → moves, via a
+   manifest the script emits from game data. Iterate `create_asset` per entry,
+   post-process to WebP, update the manifest.
+3. **Wire the UI** to read `manifest.json` (replaces emoji/silhouette/SVG art).
+4. **Runtime** Gemini + fallback for Forge/Fusion.
+
+## Blocked on
+
+`claude-image-gen` installed + `GEMINI_API_KEY` set + Claude Code restarted.
