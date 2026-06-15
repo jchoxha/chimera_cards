@@ -18,17 +18,27 @@ How generated art is produced, styled, stored, and loaded. Built around the
 
 ## Style spec (raster, for Gemini)
 
-Adapted from `ART_STYLE`. Every prompt appends this for consistency:
+**Locked 2026-06-15 ("Variant B").** The earlier Yu-Gi-Oh×Adventure-Time spec
+read as "too Disney" — glossy 3D rendering, generic cute TCG art, missing both
+Yu-Gi-Oh seriousness and Adventure Time charm. The chosen direction is
+**Adventure-Time-forward flat 2D**. Every prompt appends this for consistency:
 
-> Art style: Yu-Gi-Oh trading-card creature art crossed with Adventure Time.
-> Bold, dramatic, slightly heroic subject rendered with rounded, friendly
-> cartoon shapes; thick clean black outlines; flat cel-shaded color with simple
-> highlight and shadow shapes (not photoreal); large expressive characterful
-> eyes. Saturated palette keyed to the element. Painterly fantasy background
-> hinting at habitat, soft elemental glow, a few small decorative sparks/stars.
-> Centered subject filling the frame, three-quarter heroic pose.
-> **No text, no card frame, no border, no UI — only the illustration** (our
-> frame is drawn separately). Square 1:1 composition.
+> Flat 2D hand-drawn cartoon illustration in the spirit of Adventure Time /
+> Pendleton Ward: simple bold shapes, thick confident black outlines, flat matte
+> color fills, minimal shading, genuinely charming and characterful. BUT with the
+> dramatic seriousness of Yu-Gi-Oh trading-card monster art: an intense, slightly
+> menacing creature in a dynamic heroic pose, moody dramatic lighting, an epic
+> elemental backdrop. Absolutely NOT Disney, NOT Pixar, NOT 3D, NOT glossy, NOT
+> soft, NOT overly cute. Centered subject filling the frame.
+> **No text, no card frame, no border, no UI — only the illustration** (our frame
+> is drawn separately). Square 1:1 composition.
+
+> ⚠️ Known issue: even with "no border," the model sometimes adds a cream paper
+> border. Strengthen the negative cue or crop in post-processing.
+
+Generation runs through `agy` (Antigravity CLI) headlessly — see
+`scripts/agy_call.py`. Prefix prompts with "generate the following image:".
+Image gen has a long silent compute phase, so use a long idle window (≈45–60s).
 
 ## Prompt templates
 
