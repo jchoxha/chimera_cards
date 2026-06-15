@@ -10,7 +10,7 @@ OUTPUT RULES: ONLY the SVG markup. Root: <svg xmlns="http://www.w3.org/2000/svg"
     const out = await callClaude(prompt, 800);
     const m = out.match(/<svg[\s\S]*<\/svg>/);
     return m ? sanitizeSvg(m[0]) : null;
-  } catch (e) {
+  } catch {
     return null;
   }
 }

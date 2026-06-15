@@ -9,8 +9,8 @@ async function storeSet(val) {
   const json = JSON.stringify(val);
   try {
     if (typeof window !== "undefined" && window.storage) { await window.storage.set(SAVE_KEY, json); return true; }
-  } catch (e) {}
-  try { localStorage.setItem(SAVE_KEY, json); return true; } catch (e) {}
+  } catch {}
+  try { localStorage.setItem(SAVE_KEY, json); return true; } catch {}
   return false;
 }
 async function storeGet() {
@@ -19,13 +19,13 @@ async function storeGet() {
       const r = await window.storage.get(SAVE_KEY);
       if (r && r.value) return JSON.parse(r.value);
     }
-  } catch (e) {}
-  try { const j = localStorage.getItem(SAVE_KEY); if (j) return JSON.parse(j); } catch (e) {}
+  } catch {}
+  try { const j = localStorage.getItem(SAVE_KEY); if (j) return JSON.parse(j); } catch {}
   return null;
 }
 async function storeClear() {
-  try { if (typeof window !== "undefined" && window.storage) await window.storage.delete(SAVE_KEY); } catch (e) {}
-  try { localStorage.removeItem(SAVE_KEY); } catch (e) {}
+  try { if (typeof window !== "undefined" && window.storage) await window.storage.delete(SAVE_KEY); } catch {}
+  try { localStorage.removeItem(SAVE_KEY); } catch {}
 }
 
 // ╔══════════════════════════════════════════════════════════════════╗

@@ -403,7 +403,6 @@ export default function ChimeraCards() {
       }
       saveReady.current = true;
     })();
-    // eslint-disable-next-line
   }, []);
   // debounced auto-save on meaningful state changes
   useEffect(() => {
@@ -418,7 +417,6 @@ export default function ChimeraCards() {
       storeSet(d);
     }, 1500);
     return () => clearTimeout(t);
-    // eslint-disable-next-line
   }, [gold, collection, team, items, materials, eggs, stats, seen, seenItems, seenMaterials, knownRecipes, achDone]);
   function resetGame() {
     storeClear();
@@ -446,7 +444,6 @@ export default function ChimeraCards() {
     return () => {
       cancelled = true;
     };
-    // eslint-disable-next-line
   }, []);
   // ---------- Overworld ----------
   function enterOverworld() {
@@ -1456,7 +1453,7 @@ Create its NEXT evolution: same element (${m.element}), clearly more powerful, a
         flash(`${m.name} evolved into ${evolved.name}!`);
         const svg = await generateArt({ name: evolved.name, element: evolved.element, desc: evolved.desc });
         if (svg) setCollection((c) => c.map((x) => (x.uid === m.uid ? { ...x, svg } : x)));
-      } catch (e) {
+      } catch {
         flash("Evolution failed, try again.");
       }
       return;

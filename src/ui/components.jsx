@@ -1356,7 +1356,7 @@ function CheatPanel({ onGiveItem, onGiveGold, onSpawn, onGiveXP, onRevealCodex, 
           <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginBottom: 6 }}>
             <button style={S.cheatBtn} onClick={onSaveNow}>Save now</button>
             <button style={S.cheatBtn} onClick={() => setSaveText(JSON.stringify(onExport()))}>Export</button>
-            <button style={S.cheatBtn} onClick={() => { try { const ok = onImport(JSON.parse(saveText)); if (!ok) alert("Invalid save data."); } catch (e) { alert("Could not parse save data."); } }}>Import</button>
+            <button style={S.cheatBtn} onClick={() => { try { const ok = onImport(JSON.parse(saveText)); if (!ok) alert("Invalid save data."); } catch { alert("Could not parse save data."); } }}>Import</button>
             <button style={{ ...S.cheatBtn, color: "#ff8a8a", borderColor: "#ff5a4d88" }} onClick={() => { if (confirmReset) { onReset(); setConfirmReset(false); } else setConfirmReset(true); }}>{confirmReset ? "Really erase everything?" : "New Game"}</button>
             {confirmReset && <button style={S.cheatBtn} onClick={() => setConfirmReset(false)}>Keep save</button>}
           </div>
@@ -1492,7 +1492,6 @@ function Generate({ onCreated, onCancel, items, free, forced }) {
   const [phase, setPhase] = useState("describe"); // describe | spinning | result | forging
   const [rolls, setRolls] = useState(null);
   const [spin, setSpin] = useState({ rarity: "common", stages: 1, emphasis: STAT_EMPHASES[0], boon: BOONS[0] });
-  const [loading, setLoading] = useState(false);
   const [stageMsg, setStageMsg] = useState("");
   const [err, setErr] = useState(null);
 
@@ -1540,7 +1539,6 @@ function Generate({ onCreated, onCancel, items, free, forced }) {
 
   async function forge() {
     setPhase("forging");
-    setLoading(true);
     setErr(null);
     try {
       const r = rolls;
@@ -1585,7 +1583,6 @@ Scale card numbers to the rarity power level. Offense=more dmg, Defense=more blo
       setErr(`The forge sputtered: ${e.message}. Try again.`);
       setPhase("result");
     } finally {
-      setLoading(false);
       setStageMsg("");
     }
   }
@@ -1930,7 +1927,7 @@ function Battle({ battle, team, onPlay, onEnd, onPotion, onSwap, onWin, onLose, 
   const DRAG_PLAY_LIFT = 70; // px upward to trigger a play
   function startDrag(e, c, playable) {
     if (!playable) return;
-    try { e.currentTarget.setPointerCapture(e.pointerId); } catch (err) {}
+    try { e.currentTarget.setPointerCapture(e.pointerId); } catch {}
     setDrag({ cid: c.cid, card: c, sx: e.clientX, sy: e.clientY, x: e.clientX, y: e.clientY });
   }
   function moveDrag(e) {
@@ -1962,7 +1959,6 @@ function Battle({ battle, team, onPlay, onEnd, onPotion, onSwap, onWin, onLose, 
     if (af && pr.php != null && af.hp > pr.php) { spawn(`+${af.hp - pr.php}`, "#7ee787", "ally"); SFX.heal(); }
     if (battle.over && battle.over !== pr.over) { if (battle.over === "win") SFX.victory(); else SFX.defeat(); }
     prevJ.current = { ehp: battle.enemyHp, php: af ? af.hp : null, over: battle.over };
-    // eslint-disable-next-line
   }, [battle && battle.enemyHp, battle && battle.fighters[battle.activeIdx] && battle.fighters[battle.activeIdx].hp, battle && battle.over]);
   const b = battle;
   const enemyHpPct = (b.enemyHp / b.enemyMaxHp) * 100;

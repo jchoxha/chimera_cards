@@ -11,7 +11,7 @@ const SFX = {
       this._noise = new Tone.NoiseSynth({ envelope: { attack: 0.002, decay: 0.09, sustain: 0 } }).toDestination();
       this._noise.volume.value = -16;
       this._ready = true;
-    } catch (e) {}
+    } catch {}
     return this._ready;
   },
   async _notes(seq, gap = 0.09) {

@@ -291,6 +291,7 @@ const CSS = `
 .card:active { transform: scale(0.94); }
 
   * { box-sizing: border-box; }
+  body { margin: 0; padding: 0; }
   .card:hover { transform: translateY(-10px) scale(1.04); }
   .monCard:hover { transform: translateY(-3px); }
   .float { animation: float 3s ease-in-out infinite; }
