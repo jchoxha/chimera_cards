@@ -78,19 +78,21 @@ export class CombatManager {
 
   // ── Lifecycle ─────────────────────────────────────────────────────────────
 
-  /** Begin the fight: opening hand + first round of telegraphed intents. */
+  /** Begin the fight: telegraph intents, then the opening player turn. */
   startCombat() {
-    this.deck.drawOpeningHand(this.state.handSize);
-    this._syncPiles();
     this._telegraphIntents();
-    this.startPlayerTurn();
+    this.startPlayerTurn(/* opening */ true);
     return this.state;
   }
 
   // ── Draw Phase / Player Turn ────────────────────────────────────────────────
 
-  /** Draw Phase: new turn, refill energy, reset block, tick DoTs, draw a hand. */
-  startPlayerTurn() {
+  /**
+   * Draw Phase: new turn, refill energy, reset block, tick DoTs, draw a hand.
+   * On the opening turn we use drawOpeningHand() so Innate cards surface first.
+   * @param {boolean} [opening]
+   */
+  startPlayerTurn(opening = false) {
     const s = this.state;
     s.turn += 1;
     s.phase = PHASES.DRAW;
@@ -102,7 +104,8 @@ export class CombatManager {
     this._tickStartOfTurn(/* isPlayer */ true);
     if (this._checkEnd()) return s;
 
-    this.deck.draw(s.handSize);
+    if (opening) this.deck.drawOpeningHand(s.handSize);
+    else this.deck.draw(s.handSize);
     this._syncPiles();
     this._emit('draw', { hand: s.hand.slice() });
 

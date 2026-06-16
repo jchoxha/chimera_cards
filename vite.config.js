@@ -8,4 +8,14 @@ import react from "@vitejs/plugin-react";
 export default defineConfig({
   base: process.env.VITE_BASE || "/",
   plugins: [react()],
+  build: {
+    rollupOptions: {
+      // Multi-page: the React prototype (index.html) and the new engine combat
+      // demo (combat.html) are built and deployed side by side.
+      input: {
+        main: "index.html",
+        combat: "combat.html",
+      },
+    },
+  },
 });
