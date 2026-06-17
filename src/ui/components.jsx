@@ -4,6 +4,7 @@ import { SFX } from "../systems/sfx.js";
 import { askClaudeJson, generateArt } from "../ai/claude.js";
 import { ELEMENTS, ELEMENT_COLOR, ELEMENT_GLYPH, MATRIX, MULT_STRONG, MULT_WEAK, defenseMultiplier, FORMS, FORM_ORDER, monElements, monAccent, gradBorderStyle, ElementPills, formLabel, buildLines, lineOf, ELEMENT_STATUS, SELF_RESIST, REACTIONS } from "../systems/elements.jsx";
 import { itemIcon, moveIcon, IconArt } from "./icons.jsx";
+import { monsterArtUrl, monsterFaceIcon } from "../systems/art.js";
 import { UNIVERSAL_CARDS, TYPE_MOVES, SPECIAL_MOVES, MOVE_CAP } from "../data/moves.js";
 import { DEFAULT_MONSTERS } from "../data/monsters.js";
 import { CODEX_ORDER, dexNumber } from "../data/dex.js";
@@ -136,20 +137,16 @@ function Feat({ icon, t, d }) {
   );
 }
 
+// Art resolution order (NEVER an emoji): baked manifest art → runtime imageUrl
+// → legacy AI svg → element silhouette (game-icons). See systems/art.js.
 function MonsterSprite({ m, size = 64 }) {
-  if (m.svg) {
+  const url = monsterArtUrl(m);
+  if (url) {
     return (
-      <div
-        style={{
-          width: size,
-          height: size,
-          borderRadius: 12,
-          overflow: "hidden",
-          ...gradBorderStyle(m, "#0c0b16", 2),
-        }}
-        dangerouslySetInnerHTML={{
-          __html: m.svg.replace(/<svg /, `<svg style="width:100%;height:100%;display:block" `),
-        }}
+      <img
+        src={url}
+        alt={m.name}
+        style={{ width: size, height: size, objectFit: "cover", borderRadius: 12, ...gradBorderStyle(m, "#0c0b16", 2) }}
       />
     );
   }
@@ -162,6 +159,16 @@ function MonsterSprite({ m, size = 64 }) {
       />
     );
   }
+  if (m.svg) {
+    return (
+      <div
+        style={{ width: size, height: size, borderRadius: 12, overflow: "hidden", ...gradBorderStyle(m, "#0c0b16", 2) }}
+        dangerouslySetInnerHTML={{
+          __html: m.svg.replace(/<svg /, `<svg style="width:100%;height:100%;display:block" `),
+        }}
+      />
+    );
+  }
   return (
     <div
       style={{
@@ -169,26 +176,29 @@ function MonsterSprite({ m, size = 64 }) {
         height: size,
         display: "grid",
         placeItems: "center",
-        fontSize: size * 0.55,
+        fontSize: size * 0.5,
+        color: ELEMENT_COLOR[m.element] || "#cfc8e8",
         background: `radial-gradient(circle, ${ELEMENT_COLOR[m.element] || "#888"}33, transparent)`,
         borderRadius: 12,
       }}
     >
-      {m.sprite}
+      <iconify-icon icon={monsterFaceIcon(m)}></iconify-icon>
     </div>
   );
 }
 
-// Fills whatever container it's in with the best art we have:
-// a real rendered image (imageUrl) > AI SVG > emoji placeholder.
+// Fills whatever container it's in with the best art we have, same order as
+// MonsterSprite. Element silhouette is the placeholder until baked art exists.
 function MonsterArt({ m }) {
+  const url = monsterArtUrl(m);
+  if (url) {
+    return (
+      <img src={url} alt={m.name} style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} />
+    );
+  }
   if (m.imageUrl) {
     return (
-      <img
-        src={m.imageUrl}
-        alt={m.name}
-        style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }}
-      />
+      <img src={m.imageUrl} alt={m.name} style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} />
     );
   }
   if (m.svg) {
@@ -209,10 +219,11 @@ function MonsterArt({ m }) {
         display: "grid",
         placeItems: "center",
         fontSize: 90,
+        color: ELEMENT_COLOR[m.element] || "#cfc8e8",
         background: `radial-gradient(circle at 50% 38%, ${ELEMENT_COLOR[m.element] || "#888"}44, transparent 70%)`,
       }}
     >
-      {m.sprite}
+      <iconify-icon icon={monsterFaceIcon(m)}></iconify-icon>
     </div>
   );
 }
@@ -365,7 +376,7 @@ function MoveTutor({ collection, gold, items, materials, onLearnType, onLearnSpe
       </p>
       <select style={S.dexSelect} value={uid2 || ""} onChange={(e) => { setUid(e.target.value || null); setTransferIdx(null); }}>
         <option value="">Select a monster…</option>
-        {collection.map((m) => <option key={m.uid} value={m.uid}>{m.sprite} {m.name}{formLabel(m) ? ` (${FORMS[m.form].label})` : ""}</option>)}
+        {collection.map((m) => <option key={m.uid} value={m.uid}>{m.name}{formLabel(m) ? ` (${FORMS[m.form].label})` : ""}</option>)}
       </select>
       {mon && (
         <>
@@ -630,7 +641,7 @@ function Compendium({ seen, collection, seenItems }) {
                   }}
                 >
                   <div style={{ fontSize: 9, opacity: 0.55, fontWeight: 700 }}>#{String(dexNumber(t.name)).padStart(3, "0")}</div>
-                  <div style={{ fontSize: 34 }}>{known ? t.sprite : "❔"}</div>
+                  <div style={{ display: "grid", placeItems: "center", height: 48 }}>{known ? <MonsterSprite m={t} size={46} /> : <span style={{ fontSize: 34 }}>❔</span>}</div>
                   <div style={{ fontWeight: 700, fontSize: 13 }}>{known ? t.name : "???"}</div>
                   {known && (
                     <>
@@ -1063,15 +1074,31 @@ function maskKey(k) {
 // ║ MODULE: ui/admin — debug console
 // ║ UPDATE WHEN: ANY new content type (moves, materials, recipes, forms, artifacts…) gets a viewer/cheat here — this is the sync-debt hotspot
 // ╚══════════════════════════════════════════════════════════════════╝
-function CheatPanel({ onGiveItem, onGiveGold, onSpawn, onGiveXP, onRevealCodex, onLearnRecipes, onGiveMaterials, onMakeMonster, onAddMove, onMakeItem, onPaintIcon, onSaveNow, onExport, onImport, onReset, onClose, gold, items, collection, team, seen, seenItems, materials }) {
+function CheatPanel({ onGiveItem, onGiveGold, onSpawn, onGiveXP, onRevealCodex, onLearnRecipes, onGiveMaterials, onMakeMonster, onAddMove, onMakeItem, onPaintIcon, onSaveNow, onExport, onImport, onReset, onEditMonster, onDeleteMonster, onToggleTeam, onHealMonster, onStartCustomBattle, onClose, gold, items, collection, team, seen, seenItems, materials }) {
   const [mk, setMk] = useState({ name: "Testbeast", el: "pyre", el2: "", hp: 40, rarity: "uncommon", form: "regular", sprite: "🧪", desc: "A debug creature.", art: true, mvName: "Test Bolt", mvType: "attack", mvCost: 1, mvDmg: 8, mvBlock: 0, mvStatus: "", mvAmt: 2, mvTarget: "", itName: "Test Charm", itKind: "potion", itIcon: "🧿", itEffect: "potionHeal", itAmt: 10 });
   const up = (k) => (e) => setMk((o) => ({ ...o, [k]: e.target ? (e.target.type === "checkbox" ? e.target.checked : e.target.value) : e }));
-  const [tab, setTab] = useState("cheats"); // cheats | roster | systems | state
+  const [tab, setTab] = useState("cheats"); // cheats | roster | systems | state | maker | battle
   const [monQuery, setMonQuery] = useState("");
   const [expanded, setExpanded] = useState(null); // expanded roster monster
   const [keyInput, setKeyInput] = useState("");
   const [saveText, setSaveText] = useState("");
   const [confirmReset, setConfirmReset] = useState(false);
+  // --- collection editing (state tab) ---
+  const [editId, setEditId] = useState(null); // uid being edited
+  const [edit, setEdit] = useState({});
+  function openEdit(m) {
+    setEditId(m.uid);
+    setEdit({ name: m.name, el: m.element, el2: (m.elements && m.elements[1]) || "", rarity: m.rarity, form: m.form || "regular", maxHp: m.maxHp });
+  }
+  function saveEdit() {
+    const els = edit.el2 ? [edit.el, edit.el2] : [edit.el];
+    onEditMonster(editId, { name: edit.name, element: edit.el, elements: els, rarity: edit.rarity, form: edit.form, maxHp: parseInt(edit.maxHp, 10) || 1 });
+    setEditId(null);
+  }
+  // --- custom battle builder (battle tab) ---
+  const [bTeam, setBTeam] = useState(() => (team || []).slice(0, 3)); // chosen uids
+  const [bEnemies, setBEnemies] = useState([]); // ordered [{name, form}]
+  const [bPick, setBPick] = useState({ name: "", form: "regular" });
   const [keyStatus, setKeyStatus] = useState(() =>
     typeof window !== "undefined" && window.ANTHROPIC_API_KEY ? maskKey(window.ANTHROPIC_API_KEY) : null
   );
@@ -1084,6 +1111,7 @@ function CheatPanel({ onGiveItem, onGiveGold, onSpawn, onGiveXP, onRevealCodex, 
     ["systems", "⚙️ Systems"],
     ["state", "🧠 State"],
     ["maker", "🛠️ Maker"],
+    ["battle", "⚔️ Battle"],
   ];
   return (
     <div>
@@ -1149,7 +1177,7 @@ function CheatPanel({ onGiveItem, onGiveGold, onSpawn, onGiveXP, onRevealCodex, 
                 style={{ ...S.codexCard, borderColor: RARITY_COLOR[t.rarity] + "66", cursor: "pointer", color: "#e8e6f0", fontFamily: "inherit" }}
                 onClick={() => onSpawn(t)}
               >
-                <div style={{ fontSize: 30 }}>{t.sprite}</div>
+                <MonsterSprite m={t} size={38} />
                 <div style={{ fontWeight: 700, fontSize: 12 }}>{t.name}</div>
                 <div style={{ fontSize: 9, color: RARITY_COLOR[t.rarity], fontWeight: 700 }}>{t.rarity} · T{t.tier}</div>
                 <div style={{ fontSize: 9, color: "#7ee787" }}>tap to spawn</div>
@@ -1185,7 +1213,7 @@ function CheatPanel({ onGiveItem, onGiveGold, onSpawn, onGiveXP, onRevealCodex, 
                   return (
                     <div key={t.name} style={S.adminRow} onClick={() => setExpanded(open ? null : t.name)}>
                       <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                        <span style={{ fontSize: 22 }}>{t.sprite}</span>
+                        <MonsterSprite m={t} size={26} />
                         <strong style={{ fontSize: 13 }}>{t.name}</strong>
                         <span style={{ fontSize: 10 }}>{monElements(t).map((el) => <span key={el} style={{ color: ELEMENT_COLOR[el], marginRight: 3 }}>{el}</span>)}</span>
                         <span style={{ fontSize: 10, color: RARITY_COLOR[t.rarity], fontWeight: 700 }}>{t.rarity}</span>
@@ -1306,12 +1334,11 @@ function CheatPanel({ onGiveItem, onGiveGold, onSpawn, onGiveXP, onRevealCodex, 
               {I("hp", 55)}
               <select style={S.dexSelect} value={mk.rarity} onChange={up("rarity")}>{RARITY_LADDER.map((r) => <option key={r}>{r}</option>)}</select>
               <select style={S.dexSelect} value={mk.form} onChange={up("form")}>{FORM_ORDER.map((f) => <option key={f}>{f}</option>)}</select>
-              {I("sprite", 50)}
             </div>
             <div style={row}><input style={{ ...S.textarea, minHeight: 0, flex: 1 }} value={mk.desc} onChange={up("desc")} placeholder="description (drives AI art)" /></div>
             <div style={row}>
               <label style={{ fontSize: 12 }}><input type="checkbox" checked={mk.art} onChange={up("art")} /> 🎨 generate AI art (needs key outside Claude)</label>
-              <button style={S.cheatBtn} onClick={() => onMakeMonster({ name: mk.name, element: mk.el, elements: mk.el2 ? [mk.el, mk.el2] : [mk.el], hp: num(mk.hp), sprite: mk.sprite, rarity: mk.rarity, form: mk.form, desc: mk.desc, lore: mk.desc, cards: [TYPE_MOVES.find((t) => t.element === mk.el) || UNIVERSAL_CARDS[0], UNIVERSAL_CARDS[3]] }, mk.art)}>Create monster</button>
+              <button style={S.cheatBtn} onClick={() => onMakeMonster({ name: mk.name, element: mk.el, elements: mk.el2 ? [mk.el, mk.el2] : [mk.el], hp: num(mk.hp), rarity: mk.rarity, form: mk.form, desc: mk.desc, lore: mk.desc, cards: [TYPE_MOVES.find((t) => t.element === mk.el) || UNIVERSAL_CARDS[0], UNIVERSAL_CARDS[3]] }, mk.art)}>Create monster</button>
             </div>
 
             <h3 style={S.bagSub}>⚡ Move maker</h3>
@@ -1323,7 +1350,7 @@ function CheatPanel({ onGiveItem, onGiveGold, onSpawn, onGiveXP, onRevealCodex, 
               amt {I("mvAmt", 40)}
             </div>
             <div style={row}>
-              <select style={S.dexSelect} value={mk.mvTarget} onChange={up("mvTarget")}><option value="">teach to…</option>{collection.map((m) => <option key={m.uid} value={m.uid}>{m.sprite} {m.name}</option>)}</select>
+              <select style={S.dexSelect} value={mk.mvTarget} onChange={up("mvTarget")}><option value="">teach to…</option>{collection.map((m) => <option key={m.uid} value={m.uid}>{m.name}</option>)}</select>
               <label style={{ fontSize: 11 }}><input type="checkbox" checked={mk.art} onChange={up("art")} /> 🎨</label>
               <button style={S.cheatBtn} onClick={() => { if (!mk.mvTarget) return; const c = { id: `mk_${Date.now()}`, name: mk.mvName, type: mk.mvType, cost: num(mk.mvCost) }; if (num(mk.mvDmg)) c.dmg = num(mk.mvDmg); if (num(mk.mvBlock)) c.block = num(mk.mvBlock); if (mk.mvStatus === "leech") c.leech = true; else if (mk.mvStatus) c[mk.mvStatus] = num(mk.mvAmt); c.text = `${c.dmg ? `Deal ${c.dmg}. ` : ""}${c.block ? `Gain ${c.block} block. ` : ""}${mk.mvStatus ? `${mk.mvStatus} ${num(mk.mvAmt)}.` : ""}`.trim() || "Debug move."; onAddMove(mk.mvTarget, c); if (mk.art) onPaintIcon("move", c.id, c.name, c.text); }}>Create & teach</button>
             </div>
@@ -1409,24 +1436,112 @@ function CheatPanel({ onGiveItem, onGiveGold, onSpawn, onGiveXP, onRevealCodex, 
           </div>
           <div style={{ fontSize: 12 }}>Codex discovered: {seen ? seen.size : 0}/{DEFAULT_MONSTERS.length} beasts · {seenItems ? seenItems.size : 0}/{ITEMS.length} items</div>
 
-          <h3 style={S.bagSub}>Collection ({(collection || []).length})</h3>
-          {(collection || []).map((m) => (
-            <div key={m.uid} style={S.adminRow}>
-              <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
-                <span style={{ fontSize: 18 }}>{m.sprite}</span>
-                <strong style={{ fontSize: 12 }}>{m.name}</strong>
-                <span style={{ fontSize: 10, color: RARITY_COLOR[m.rarity] }}>{m.rarity}</span>
-                {(team || []).includes(m.uid) && <span style={{ fontSize: 9, color: "#7ee787", fontWeight: 700 }}>ON TEAM</span>}
-                {m.forged && <span style={{ fontSize: 9, color: "#a571ff" }}>forged {m.forgedStage}/{m.forgedStages}</span>}
-                {m.boon && <span style={{ fontSize: 9, color: "#ff7ad9" }}>✦ {m.boon.name}</span>}
+          <h3 style={S.bagSub}>Collection ({(collection || []).length}) — editable</h3>
+          <p style={{ fontSize: 11, opacity: 0.6, margin: "0 0 6px" }}>Edit any captured monster's name, typing, rarity, form, and HP; toggle it on/off your team; heal or delete it.</p>
+          {(collection || []).map((m) => {
+            const onTeam = (team || []).includes(m.uid);
+            const editing = editId === m.uid;
+            const btn = { ...S.cheatBtn, padding: "2px 8px", marginTop: 0 };
+            return (
+              <div key={m.uid} style={S.adminRow}>
+                <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
+                  <MonsterSprite m={m} size={24} />
+                  <strong style={{ fontSize: 12 }}>{m.name}</strong>
+                  <span style={{ fontSize: 10, color: RARITY_COLOR[m.rarity] }}>{m.rarity}</span>
+                  {m.form && m.form !== "regular" && <span style={{ fontSize: 9, color: "#ffd34d" }}>{FORMS[m.form].badge}{FORMS[m.form].label}</span>}
+                  {onTeam && <span style={{ fontSize: 9, color: "#7ee787", fontWeight: 700 }}>ON TEAM</span>}
+                  {m.forged && <span style={{ fontSize: 9, color: "#a571ff" }}>forged {m.forgedStage}/{m.forgedStages}</span>}
+                  {m.boon && <span style={{ fontSize: 9, color: "#ff7ad9" }}>✦ {m.boon.name}</span>}
+                  <span style={{ display: "flex", gap: 4, marginLeft: "auto" }}>
+                    <button style={btn} onClick={() => (editing ? setEditId(null) : openEdit(m))}>{editing ? "Close" : "✎ Edit"}</button>
+                    <button style={btn} onClick={() => onToggleTeam(m.uid)}>{onTeam ? "− Team" : "+ Team"}</button>
+                    <button style={btn} onClick={() => onHealMonster(m.uid)}>♥ Heal</button>
+                    <button style={{ ...btn, color: "#ff8a8a", borderColor: "#ff5a4d88" }} onClick={() => onDeleteMonster(m.uid)}>🗑</button>
+                  </span>
+                </div>
+                <div style={{ fontSize: 10, opacity: 0.65, marginTop: 2 }}>
+                  uid {m.uid} · HP {m.maxHp} · XP {m.prog ? m.prog.xp : 0} · wins {m.prog ? m.prog.wins : 0} · bosses {m.prog ? m.prog.bossKills : 0} · art: {m.svg ? "svg" : m.imageUrl ? "image" : "silhouette"}
+                </div>
+                {editing && (
+                  <div style={{ marginTop: 8, display: "flex", gap: 6, flexWrap: "wrap", alignItems: "center" }}>
+                    <input style={{ ...S.textarea, minHeight: 0, width: 120, marginBottom: 0 }} value={edit.name} onChange={(e) => setEdit((o) => ({ ...o, name: e.target.value }))} placeholder="name" />
+                    <select style={S.dexSelect} value={edit.el} onChange={(e) => setEdit((o) => ({ ...o, el: e.target.value }))}>{ELEMENTS.map((x) => <option key={x}>{x}</option>)}</select>
+                    <select style={S.dexSelect} value={edit.el2} onChange={(e) => setEdit((o) => ({ ...o, el2: e.target.value }))}><option value="">no 2nd type</option>{ELEMENTS.map((x) => <option key={x}>{x}</option>)}</select>
+                    <select style={S.dexSelect} value={edit.rarity} onChange={(e) => setEdit((o) => ({ ...o, rarity: e.target.value }))}>{RARITY_LADDER.map((r) => <option key={r}>{r}</option>)}</select>
+                    <select style={S.dexSelect} value={edit.form} onChange={(e) => setEdit((o) => ({ ...o, form: e.target.value }))}>{FORM_ORDER.map((f) => <option key={f}>{f}</option>)}</select>
+                    <span style={{ fontSize: 11 }}>HP</span>
+                    <input style={{ ...S.textarea, minHeight: 0, width: 55, marginBottom: 0 }} value={edit.maxHp} onChange={(e) => setEdit((o) => ({ ...o, maxHp: e.target.value }))} />
+                    <button style={{ ...btn, color: "#7ee787", borderColor: "#7ee78788" }} onClick={saveEdit}>Save</button>
+                  </div>
+                )}
               </div>
-              <div style={{ fontSize: 10, opacity: 0.65, marginTop: 2 }}>
-                uid {m.uid} · HP {m.maxHp} · XP {m.prog ? m.prog.xp : 0} · wins {m.prog ? m.prog.wins : 0} · bosses {m.prog ? m.prog.bossKills : 0} · art: {m.svg ? "svg" : m.imageUrl ? "image" : "emoji"}
-              </div>
-            </div>
-          ))}
+            );
+          })}
         </>
       )}
+
+      {/* ================= BATTLE (custom team vs enemy gauntlet) ================= */}
+      {tab === "battle" && (() => {
+        const toggleBTeam = (uid2) => setBTeam((t) => (t.includes(uid2) ? t.filter((x) => x !== uid2) : t.length >= 3 ? (alert("Team is full (3)."), t) : [...t, uid2]));
+        const addEnemy = () => { if (bPick.name) setBEnemies((e) => [...e, { name: bPick.name, form: bPick.form }]); };
+        const canStart = bTeam.length > 0 && bEnemies.length > 0;
+        return (
+          <>
+            <h3 style={S.bagSub}>⚔️ Custom battle</h3>
+            <p style={{ fontSize: 11, opacity: 0.6 }}>
+              Pick up to 3 of your monsters, queue any number of enemies (fought in order, HP carries between them), and fight. Sandbox only — no rewards, captures, or progress.
+            </p>
+
+            <div style={S.adminLabel}>Your team ({bTeam.length}/3) — tap to toggle</div>
+            {(collection || []).length === 0 ? <p style={{ fontSize: 11, opacity: 0.5 }}>Your collection is empty — capture or spawn a monster first.</p> : (
+              <div style={S.codexGrid}>
+                {(collection || []).map((m) => {
+                  const on = bTeam.includes(m.uid);
+                  return (
+                    <button key={m.uid} style={{ ...S.codexCard, borderColor: on ? "#7ee787" : "#3a3a4a", cursor: "pointer", color: "#e8e6f0", fontFamily: "inherit" }} onClick={() => toggleBTeam(m.uid)}>
+                      <MonsterSprite m={m} size={32} />
+                      <div style={{ fontWeight: 700, fontSize: 11 }}>{m.name}</div>
+                      <div style={{ fontSize: 9, color: RARITY_COLOR[m.rarity] }}>{m.rarity}{m.form && m.form !== "regular" ? ` · ${FORMS[m.form].label}` : ""}</div>
+                      <div style={{ fontSize: 9, color: on ? "#7ee787" : "#888" }}>{on ? "✓ in team" : "tap to add"}</div>
+                    </button>
+                  );
+                })}
+              </div>
+            )}
+
+            <div style={S.adminLabel}>Enemy roster ({bEnemies.length})</div>
+            <div style={{ display: "flex", gap: 6, flexWrap: "wrap", alignItems: "center", marginBottom: 8 }}>
+              <select style={S.dexSelect} value={bPick.name} onChange={(e) => setBPick((p) => ({ ...p, name: e.target.value }))}>
+                <option value="">pick enemy…</option>
+                {DEFAULT_MONSTERS.map((t) => <option key={t.name} value={t.name}>{t.name}</option>)}
+              </select>
+              <select style={S.dexSelect} value={bPick.form} onChange={(e) => setBPick((p) => ({ ...p, form: e.target.value }))}>{FORM_ORDER.map((f) => <option key={f}>{f}</option>)}</select>
+              <button style={{ ...S.cheatBtn, opacity: bPick.name ? 1 : 0.4 }} disabled={!bPick.name} onClick={addEnemy}>+ Add enemy</button>
+            </div>
+            {bEnemies.length > 0 && (
+              <div style={{ marginBottom: 8 }}>
+                {bEnemies.map((d, i) => {
+                  const t = DEFAULT_MONSTERS.find((x) => x.name === d.name);
+                  return (
+                    <div key={i} style={S.adminRow}>
+                      <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+                        <span style={{ opacity: 0.5, fontSize: 11 }}>{i + 1}.</span>
+                        {t ? <MonsterSprite m={t} size={24} /> : <span style={{ fontSize: 18 }}>❓</span>}
+                        <strong style={{ fontSize: 12 }}>{d.name}</strong>
+                        <span style={{ fontSize: 10, color: "#ffd34d" }}>{FORMS[d.form] ? (FORMS[d.form].label || "regular") : d.form}</span>
+                        <button style={{ ...S.cheatBtn, marginLeft: "auto", marginTop: 0, padding: "2px 8px" }} onClick={() => setBEnemies((e) => e.filter((_, j) => j !== i))}>✕</button>
+                      </div>
+                    </div>
+                  );
+                })}
+                <button style={{ ...S.cheatBtn, marginTop: 4 }} onClick={() => setBEnemies([])}>Clear roster</button>
+              </div>
+            )}
+
+            <button style={{ ...S.cheatBtn, opacity: canStart ? 1 : 0.4, color: "#7ee787", borderColor: "#7ee78788", fontWeight: 700 }} disabled={!canStart} onClick={() => onStartCustomBattle({ teamUids: bTeam, enemyDefs: bEnemies })}>▶ Start battle</button>
+          </>
+        );
+      })()}
     </div>
   );
 }
@@ -1466,7 +1581,7 @@ function StarterScreen({ onPick, onForged }) {
           if (!t) return null;
           return (
             <div key={t.name} style={{ ...S.monCard, borderColor: ELEMENT_COLOR[t.element] + "88", cursor: "pointer" }} onClick={() => onPick(t)}>
-              <div style={{ fontSize: 44 }}>{t.sprite}</div>
+              <div style={{ display: "grid", placeItems: "center", height: 56 }}><MonsterSprite m={t} size={56} /></div>
               <div style={{ fontWeight: 700, marginTop: 4 }}>{t.name}</div>
               <ElementPills m={t} />
               <div style={{ fontSize: 11, opacity: 0.7, margin: "6px 0" }}>{t.desc}</div>

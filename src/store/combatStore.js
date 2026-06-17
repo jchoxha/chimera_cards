@@ -46,9 +46,17 @@ function snapshot(cm) {
     party: cm.party.members.map((m) => ({
       id: m.id, name: m.name, hp: m.hp, maxHp: m.maxHp,
       types: m.types.map((t) => ({ ...t })),
+      element: m.types[0]?.type ?? null,
+      sprite: m.meta?.sprite ?? null,
+      form: m.form ?? 'regular',
+      rarity: m.meta?.rarity ?? 'common',
     })),
     enemies: s.enemies.map((e) => ({
       id: e.id, name: e.name, hp: e.hp, maxHp: e.maxHp, block: e.block,
+      element: e.element ?? null,
+      icon: e.icon ?? null,
+      form: e.form ?? 'regular',
+      rarity: e.rarity ?? 'common',
       intent: e.intent ? { ...e.intent } : null,
       statuses: e.statuses.map((x) => ({ ...x })),
     })),
@@ -98,6 +106,24 @@ export const useCombat = create((set, get) => ({
     const { combat } = get();
     if (!combat) return;
     combat.endPlayerTurn();
+    set((st) => ({ snap: snapshot(combat), version: st.version + 1 }));
+  },
+
+  /**
+   * Swap the active (fronting) party monster during the player's turn.
+   * In this engine block/energy/statuses/deck are shared player-side, so a
+   * switch only changes which monster's HP absorbs damage and gets regen — a
+   * free tactical swap. (Balance lever: could later cost energy or the turn.)
+   * @param {string} monsterId
+   */
+  switchActive(monsterId) {
+    const { combat } = get();
+    if (!combat) return;
+    if (combat.state.phase !== 'player') return;
+    const idx = combat.party.members.findIndex((m) => m.id === monsterId);
+    if (idx < 0) return;
+    if (!combat.party.setActive(idx)) return; // refuses fainted monsters
+    combat.state.activeIndex = combat.party.activeIndex;
     set((st) => ({ snap: snapshot(combat), version: st.version + 1 }));
   },
 

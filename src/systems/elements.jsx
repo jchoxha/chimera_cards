@@ -91,25 +91,34 @@ function defenseMultiplier(atkEl, defender) {
 // ---------- Monster FORMS ----------
 // Variant bodies of the same species: from babies (bred) up to boss-form
 // titans. Forms scale HP/Strength and are preserved through capture.
+// `art` = relative scale of the creature art on its card (size you can see).
 const FORMS = {
-  baby:    { id: "baby",    label: "Baby",  badge: "🍼", hpMult: 0.5,  str: -1, order: 0 },
-  small:   { id: "small",   label: "Small", badge: "🐾", hpMult: 0.75, str: 0,  order: 1 },
-  regular: { id: "regular", label: "",      badge: "",   hpMult: 1.0,  str: 0,  order: 2 },
-  large:   { id: "large",   label: "Large", badge: "🔺", hpMult: 1.3,  str: 1,  order: 3 },
-  elite:   { id: "elite",   label: "Elite", badge: "⭐", hpMult: 1.6,  str: 2,  order: 4 },
-  boss:    { id: "boss",    label: "Boss",  badge: "👑", hpMult: 2.0,  str: 3,  order: 5 },
+  baby:    { id: "baby",    label: "Baby",  badge: "🍼", hpMult: 0.5,  str: -1, order: 0, art: 0.72 },
+  small:   { id: "small",   label: "Small", badge: "🐾", hpMult: 0.75, str: 0,  order: 1, art: 0.86 },
+  regular: { id: "regular", label: "",      badge: "",   hpMult: 1.0,  str: 0,  order: 2, art: 1.0  },
+  large:   { id: "large",   label: "Large", badge: "🔺", hpMult: 1.3,  str: 1,  order: 3, art: 1.18 },
+  elite:   { id: "elite",   label: "Elite", badge: "⭐", hpMult: 1.6,  str: 2,  order: 4, art: 1.34 },
+  boss:    { id: "boss",    label: "Boss",  badge: "👑", hpMult: 2.0,  str: 3,  order: 5, art: 1.55 },
 };
 const FORM_ORDER = ["baby", "small", "regular", "large", "elite", "boss"];
 
+// Forms that are TERMINAL: a creature wearing one is a peak specimen of its
+// current stage and cannot evolve (prevents power double-stacking and gives
+// captures a "strong now vs. room to grow" tradeoff). See monster.evolutionTarget.
+const TERMINAL_FORMS = ["elite", "boss"];
+function formAllowsEvolution(formId) { return !TERMINAL_FORMS.includes(formId || "regular"); }
+
 // POLICY: which stages of an evolution line may wear which forms.
 // stage kinds: "first", "middle", "final", "standalone". Edit freely.
+// Elite/Boss are now allowed at ANY stage (an "Elite Cindermouse" can exist),
+// but they're TERMINAL_FORMS above, so such a creature simply can't evolve.
 const FORM_POLICY = {
   baby: ["first", "standalone"],          // babies belong to base forms (breeding)
   small: ["first", "middle", "final", "standalone"],
   regular: ["first", "middle", "final", "standalone"],
   large: ["first", "middle", "final", "standalone"],
-  elite: ["final", "standalone"],         // elite/boss bodies are end-of-line
-  boss: ["final", "standalone"],
+  elite: ["first", "middle", "final", "standalone"],
+  boss: ["first", "middle", "final", "standalone"],
 };
 function stageKind(info) {
   if (info.length === 1) return "standalone";
@@ -258,4 +267,4 @@ function findReaction(atkEl, enemyStatus) {
 
 // Icon-scale art for ITEMS and MOVES: a simple bold emblem, not a scene.
 
-export { ELEMENTS, ELEMENT_COLOR, ELEMENT_GLYPH, MATRIX, MULT_STRONG, MULT_WEAK, elementMultiplier, effectivenessLabel, defenseMultiplier, FORMS, FORM_ORDER, FORM_POLICY, stageKind, formAllowed, monElements, monAccent, monGradient, gradBorderStyle, ElementPills, formLabel, rollEnemyForm, EVOLUTION_LINES, buildLines, lineOf, ELEMENT_STATUS, ELEMENT_AFFINITY, SELF_RESIST, REACTIONS, findReaction };
+export { ELEMENTS, ELEMENT_COLOR, ELEMENT_GLYPH, MATRIX, MULT_STRONG, MULT_WEAK, elementMultiplier, effectivenessLabel, defenseMultiplier, FORMS, FORM_ORDER, FORM_POLICY, TERMINAL_FORMS, formAllowsEvolution, stageKind, formAllowed, monElements, monAccent, monGradient, gradBorderStyle, ElementPills, formLabel, rollEnemyForm, EVOLUTION_LINES, buildLines, lineOf, ELEMENT_STATUS, ELEMENT_AFFINITY, SELF_RESIST, REACTIONS, findReaction };

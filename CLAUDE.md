@@ -17,7 +17,7 @@ This repo currently holds **two codebases** that coexist:
 
 **Stack decision:** stay on **Vite + React + JS** for now (no TS migration yet);
 spec "TS interfaces" are JSDoc `@typedef`s. Renderer when we build the view = **Phaser**
-(deferred — current combat UI is plain React). See memory `chimera-engine-architecture`.
+(deferred — combat UI is React today, wearing the ornate-TCG skin below). See memory `chimera-engine-architecture`.
 
 **Done so far:**
 - **Engine Phase 1** — core in `src/engine/`: `types.js`, `GameEngine`,
@@ -28,6 +28,28 @@ spec "TS interfaces" are JSDoc `@typedef`s. Renderer when we build the view = **
   pool + enemy AI into engine shapes), `src/store/combatStore.js` (Zustand),
   `src/ui/combat/CombatScreen.jsx` (mobile combat view), `combat.html` standalone
   entry, and `api/` serverless backend (forge/fuse functional, art stubbed).
+- **Combat UI redesign** — `src/ui/combat/CombatScreen.jsx` now wears the locked
+  ornate-TCG skin (`src/ui/combat/combat.css`, ported from `public/mockup-battle.html`):
+  dynamic type×rarity card frames (`src/ui/combat/frames.js` — weighted type-hue
+  gradient + metallic rarity finish + holo sheen on rare+), element badges +
+  type-matchup line, enemy overview strip + carousel-targeting, switchable bench
+  (`combatStore.switchActive`), energy orb, fanned hand, combat log. Uses Iconify
+  (game-icons) + Cinzel/Spectral fonts via CDN in `combat.html`. Enemy archetypes gained
+  `element`/`icon`/`rarity`/`form`; adapted monsters carry `sprite`/`form`/`rarity`.
+- **Progression ruleset — no levels, size/form only.** Forms (`baby·small·regular·
+  large·elite·boss`, each with `hpMult`+Strength+`art` scale in `elements.jsx`) replace
+  levels. Cards show a size badge (base = none) and scale creature art by form. Elite &
+  Boss are allowed at *any* evolution stage but **terminal** — enforced at the source in
+  `monster.evolutionTarget` via new `formAllowsEvolution`/`TERMINAL_FORMS`. The snapshot
+  drops `level`, adds `form`+`rarity` for both party and enemies.
+- **Debug console (prototype)** — `CheatPanel` (`src/ui/components.jsx`) gained: a
+  **collection editor** (State tab — edit any captured monster's name/sprite/typing/
+  rarity/form/maxHp, toggle team membership, heal, delete) and a **⚔️ Battle tab** that
+  builds a custom fight: pick ≤3 of your monsters vs an ordered enemy *gauntlet* (the
+  single-enemy engine fights the queue in sequence, HP carrying between them; sandbox —
+  no rewards/captures/progress). Handlers live in `App.jsx` (`cheatEditMonster`,
+  `cheatDeleteMonster`, `cheatToggleTeam`, `cheatHealMonster`, `startCustomBattle`/
+  `advanceCustomBattle`, the latter hooked into `afterWin`); `CheatPanel` only reads props.
 - **Art direction** — locked "Variant B" (flat 2D Adventure-Time look); see
   `docs/art-pipeline.md`, `experiments/art-direction/`, memory `chimera-art-direction`.
 - **Art generation** — via `agy` (Antigravity CLI) headless: `scripts/agy_call.py`;
@@ -85,6 +107,12 @@ The prototype is `index.html`; the new engine combat demo is `combat.html`
 
 ## Conventions
 
+- **Continuity discipline:** update this file's "Project state" section + the memory
+  files *as each milestone completes*, and **commit per-milestone** (don't batch doc
+  updates or commits for session end). A session can be cut off at any time; keeping
+  docs+commits current means a cutoff loses at most the one in-flight change. A
+  `SessionStart` hook (`C:\Projects\Experiments\.claude\settings.json`) reminds every
+  session of this.
 - **`MODULE:` banner comments** mark virtual-module sections inside files (a holdover
   from the single-file artifact). Each banner lists its `UPDATE WHEN:` obligations —
   the cross-codebase changes that must touch that module. Search `MODULE:` to navigate;

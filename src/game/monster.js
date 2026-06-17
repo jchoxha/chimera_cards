@@ -1,6 +1,6 @@
 import { uid } from "../utils.js";
 import { DEFAULT_MONSTERS } from "../data/monsters.js";
-import { lineOf, FORMS, FORM_ORDER, formAllowed } from "../systems/elements.jsx";
+import { lineOf, FORMS, FORM_ORDER, formAllowed, formAllowsEvolution } from "../systems/elements.jsx";
 function makeMonster(template) {
   return {
     uid: uid(),
@@ -32,6 +32,8 @@ function makeMonster(template) {
 // no roster target but DO evolve if they have stages remaining; we signal
 // that with a synthetic marker the evolve flow handles via the AI.
 function evolutionTarget(m) {
+  // Elite/Boss bodies are terminal — a peak specimen of the current stage.
+  if (!formAllowsEvolution(m.form)) return null;
   if (m.forged) {
     if ((m.forgedStage || 1) < (m.forgedStages || 1)) {
       return { forged: true, name: `${m.name} (evolved)` };

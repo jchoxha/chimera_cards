@@ -1,0 +1,205 @@
+/* ╔══════════════════════════════════════════════════════════════════╗
+   ║ MODULE: ui/combat/combat.css — the ornate "TCG" battle skin.        ║
+   ║ Ported from public/mockup-battle.html (the locked redesign), wired  ║
+   ║ to live engine state by CombatScreen.jsx.                           ║
+   ║ UPDATE WHEN: the combat visual language changes. Mobile-portrait     ║
+   ║ first: enemies (strip + carousel) on top, active ally below, the     ║
+   ║ dock + fanned hand in the bottom thumb-zone.                        ║
+   ╚══════════════════════════════════════════════════════════════════╝ */
+
+:root {
+  --gold1:#f7e7a6; --gold2:#caa033; --gold3:#8a6a18; --gold4:#e9cf6b; --goldB:#d8b24a;
+  --ink:#140e26; --ink2:#241a3a; --cream:#f6e7b0;
+}
+
+.cmbt *{box-sizing:border-box;margin:0;padding:0}
+.cmbt iconify-icon{display:inline-flex;align-items:center;justify-content:center;vertical-align:middle}
+.cmbt{
+  font-family:'Spectral',Georgia,serif;color:#f3ecd8;min-height:100dvh;
+  background:
+    radial-gradient(ellipse at 50% 0%, #5a3a22 0%, #3a2516 40%, #241509 80%),
+    repeating-linear-gradient(92deg,#0000 0 38px,#00000022 38px 40px);
+  background-blend-mode:multiply;
+  display:flex;flex-direction:column;gap:8px;padding:10px 10px calc(10px + env(safe-area-inset-bottom,0px));
+  max-width:780px;margin:0 auto;overflow-x:hidden;
+}
+
+/* ---------- topbar ---------- */
+.topbar{display:flex;justify-content:space-between;align-items:center;
+  font-family:'Cinzel',serif;font-size:12px;letter-spacing:1px;color:#e8dcc0}
+.topbar .pill{background:#00000055;border:1px solid #c9a23a55;padding:3px 10px;border-radius:20px;
+  display:flex;align-items:center;gap:6px}
+
+/* ---------- card frame (the reusable atom) ----------
+   The metallic border BACKGROUND is set inline by frames.js (type×rarity).
+   Here we keep only the structure, bevel depth, and fallback color. */
+.frame{position:relative;border-radius:16px;padding:8px;
+  background:#3a2c12; /* fallback until frameStyle paints it */
+  box-shadow:0 12px 30px #000a, inset 0 0 0 1px #00000055, inset 0 0 16px #0006;}
+.frame .inner{position:relative;border-radius:9px;overflow:hidden;background:var(--ink);
+  box-shadow:inset 0 0 0 2px #2a200f, inset 0 0 22px #000a;}
+.frame.sel{outline:3px solid #ffd34d;outline-offset:2px}
+.holo{position:absolute;inset:0;border-radius:16px;pointer-events:none;mix-blend-mode:screen;opacity:.5;
+  background:linear-gradient(115deg,transparent 28%,rgba(255,255,255,.35) 43%,rgba(120,210,255,.25) 49%,rgba(255,170,225,.25) 55%,transparent 72%);
+  background-size:240% 240%;}
+/* foil rarities animate the holo sheen */
+.frame.fin-epic .holo,.frame.fin-godly .holo,.frame.fin-legendary .holo,.frame.fin-mythic .holo{
+  opacity:.7;animation:holoShift 4s linear infinite}
+@keyframes holoShift{0%{background-position:0% 0%}100%{background-position:100% 100%}}
+
+/* size badge (top-left) — replaces the old level star. base size shows none. */
+.size{position:absolute;top:-9px;left:-9px;z-index:5;min-width:30px;height:30px;padding:0 7px;
+  display:flex;align-items:center;justify-content:center;gap:3px;border-radius:15px;
+  background:linear-gradient(160deg,#241a3a,#140e26);border:1.5px solid var(--goldB);
+  color:var(--cream);font-family:'Cinzel',serif;font-weight:700;font-size:9px;letter-spacing:.5px;
+  text-transform:uppercase;box-shadow:0 2px 6px #000a}
+.size .bdg{font-size:13px}
+.elem{position:absolute;top:-8px;right:-8px;z-index:5;width:44px;height:44px;border-radius:50%;
+  display:flex;align-items:center;justify-content:center;font-size:22px;color:#fff;
+  border:3px solid var(--goldB);box-shadow:0 2px 7px #000a, inset 0 0 8px #0006}
+.elem em{position:absolute;bottom:-13px;font-style:normal;font-family:'Cinzel',serif;font-weight:700;font-size:8px;
+  letter-spacing:1px;color:var(--cream);text-shadow:0 1px 2px #000;text-transform:uppercase}
+
+/* side tag */
+.sideTag{position:absolute;top:7px;left:50%;transform:translateX(-50%);z-index:5;font-family:'Cinzel',serif;
+  font-weight:700;font-size:9px;letter-spacing:3px;padding:1px 12px;border-radius:0 0 6px 6px}
+.sideTag.you{background:#0d3d24cc;color:#9af0bf;border:1px solid #2e9c63}
+.sideTag.foe{background:#3d0d14cc;color:#ff9c9c;border:1px solid #b14040}
+
+/* name banner */
+.nameBan{position:relative;margin:7px 16px 0;padding:5px 8px 6px;text-align:center;border-radius:5px;
+  background:linear-gradient(var(--ink2),var(--ink));border:1.5px solid #c9a23a;
+  font-family:'Cinzel Decorative',serif;font-weight:900;font-size:14px;color:var(--cream);
+  text-shadow:0 1px 0 #000,0 0 8px #ffcf6b55;letter-spacing:.5px;line-height:1.05}
+
+/* art scene */
+.art{position:relative;height:156px;display:flex;align-items:center;justify-content:center;
+  filter:drop-shadow(0 6px 10px #000a);overflow:hidden}
+.art .creature{font-size:78px;line-height:1;transition:transform .2s ease}
+.art .moon{position:absolute;top:14px;right:24px;width:36px;height:36px;border-radius:50%;
+  background:radial-gradient(circle at 40% 40%,#fffbe9,#ffe9a8);box-shadow:0 0 26px #ffe9a8aa;opacity:.85}
+.art .mtn{position:absolute;bottom:0;left:0;right:0;height:48px;background-color:#2a1c3e;opacity:.55;
+  clip-path:polygon(0 100%,14% 46%,28% 78%,46% 30%,62% 70%,78% 38%,100% 72%,100% 100%)}
+.artNote{position:absolute;bottom:3px;left:0;right:0;text-align:center;font-size:8px;color:#fff9;
+  letter-spacing:.5px;text-shadow:0 1px 2px #000}
+
+/* hp bar */
+.hpWrap{margin:7px 10px 4px;position:relative;height:18px;border-radius:9px;overflow:hidden;
+  background:#160f22;box-shadow:inset 0 0 0 1.5px #c9a23a, inset 0 2px 4px #000}
+.hpFill{position:absolute;inset:0;border-radius:9px;background:linear-gradient(#8ef0a8,#2ea85c);
+  box-shadow:inset 0 6px 6px #ffffff44, inset 0 -6px 8px #00000055;transition:width .25s ease}
+.hpFill.low{background:linear-gradient(#ff8a7a,#d23b2c)}
+.hpTxt{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-family:'Cinzel',serif;
+  font-weight:700;font-size:11px;color:#fff;text-shadow:0 1px 2px #000,0 0 3px #000}
+
+/* matchup line */
+.match{margin:2px 10px 0;text-align:center;font-size:10px;font-weight:700;letter-spacing:.5px;
+  display:flex;align-items:center;justify-content:center;gap:3px;min-height:13px}
+.match.good{color:#9af0bf}.match.bad{color:#ff9c9c}
+
+/* status chips */
+.stats{display:flex;flex-wrap:wrap;gap:4px;justify-content:center;padding:5px 8px 8px;min-height:24px}
+.chip{font-size:10px;font-weight:600;padding:2px 7px;border-radius:20px;display:flex;align-items:center;gap:3px;
+  background:#1c1530;border:1px solid #4a3f63;color:#e8dcff}
+.chip iconify-icon{font-size:13px}
+.chip.blk{border-color:#6aa3d6;color:#bfe0ff}.chip.str{border-color:#e0a85a;color:#ffdca0}
+.chip.burn{border-color:#e2693a;color:#ffc09a}.chip.pois{border-color:#7bc24a;color:#d6f0a8}
+.chip.weak,.chip.vuln,.chip.frail{border-color:#b06bd6;color:#e8c0ff}
+
+/* intent badge */
+.intent{position:absolute;top:46px;right:8px;z-index:5;background:#1a1020;border:1.5px solid #ffd34d;
+  color:#ffd34d;font-family:'Cinzel',serif;font-weight:700;font-size:12px;padding:3px 8px;border-radius:8px;
+  display:flex;align-items:center;gap:4px;box-shadow:0 0 10px #ffd34d55}
+.blockBadge{position:absolute;top:46px;left:8px;z-index:5;background:#0e1c2c;border:1.5px solid #6aa3d6;
+  color:#bfe0ff;font-family:'Cinzel',serif;font-weight:700;font-size:12px;padding:3px 8px;border-radius:8px;
+  display:flex;align-items:center;gap:4px}
+
+/* ---------- enemy zone: strip + carousel ---------- */
+.enemyZone{display:flex;flex-direction:column;gap:8px}
+.enemyStrip{display:flex;gap:6px;overflow-x:auto;padding:2px;scrollbar-width:none}
+.enemyStrip::-webkit-scrollbar{display:none}
+.efoe{flex:0 0 auto;min-width:104px;background:#1a1020cc;border:1.5px solid #5a2a2a;border-radius:10px;
+  padding:5px 7px;cursor:pointer;transition:border-color .15s,transform .15s}
+.efoe.sel{border-color:#ffd34d;box-shadow:0 0 10px #ffd34d55;transform:translateY(-2px)}
+.efoe.dead{opacity:.4;filter:grayscale(1);cursor:default}
+.efoe .nm{font-family:'Cinzel',serif;font-size:10px;font-weight:700;color:#ffd9d9;display:flex;
+  align-items:center;justify-content:space-between;gap:4px;margin-bottom:3px}
+.efoe .nm .it{color:#ffd34d;display:flex;align-items:center;gap:2px;font-size:10px}
+.efoe .mini{position:relative;height:11px;border-radius:6px;overflow:hidden;background:#120b18;
+  box-shadow:inset 0 0 0 1px #5a2a2a}
+.efoe .mini i{position:absolute;inset:0;background:linear-gradient(#ff8a7a,#d23b2c);transition:width .25s}
+.efoe .dots{display:flex;gap:3px;margin-top:3px;flex-wrap:wrap;min-height:8px}
+.efoe .dot{width:7px;height:7px;border-radius:50%;background:#7a5a3a}
+.efoe .dot.burn{background:#e2693a}.efoe .dot.pois{background:#7bc24a}
+.efoe .dot.str{background:#e0a85a}.efoe .dot.weak{background:#b06bd6}
+
+.feature{display:flex;align-items:center;justify-content:center;gap:6px}
+.carouselArrow{flex:0 0 auto;width:32px;height:56px;border-radius:10px;cursor:pointer;
+  background:#1a1020cc;border:1.5px solid #c9a23a66;color:#ffd34d;font-size:20px;
+  display:flex;align-items:center;justify-content:center}
+.carouselArrow:disabled{opacity:.25;cursor:default}
+.combat{flex:1 1 0;max-width:218px;position:relative}
+
+/* ---------- log ---------- */
+.log{margin:2px auto;width:100%;max-width:560px;background:linear-gradient(#efe2bd,#d8c79a);color:#3a2c12;
+  border:2px solid #8a6a18;border-radius:8px;padding:6px 12px;font-size:11.5px;line-height:1.5;
+  box-shadow:0 6px 16px #0007, inset 0 0 18px #00000022;max-height:74px;overflow-y:auto}
+.log b{font-weight:700}
+.log .rx{color:#1d6e56;font-weight:600}
+.log .dmg{color:#a01b12;font-weight:600}
+
+/* ---------- ally zone ---------- */
+.allyZone{display:flex;justify-content:center}
+
+/* ---------- dock ---------- */
+.dock{display:flex;align-items:flex-end;gap:10px;margin-top:2px;flex-wrap:wrap}
+.orb{flex:0 0 auto;width:56px;height:56px;border-radius:50%;display:flex;flex-direction:column;align-items:center;justify-content:center;
+  background:radial-gradient(circle at 38% 30%,#cfeaff,#3f7fe6 52%,#16306e);border:3px solid var(--goldB);
+  box-shadow:0 4px 12px #000a, inset 0 0 12px #0006;font-family:'Cinzel',serif;color:#fff;text-shadow:0 1px 2px #000}
+.orb b{font-size:17px;line-height:1}.orb small{font-size:8px;letter-spacing:1px;opacity:.9}
+.bench{display:flex;gap:6px;flex-wrap:wrap}
+.benchMon{width:46px;height:54px;border-radius:8px;background:#1a1430;border:1.5px solid #5a4a2a;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;color:#cfc8e8;cursor:pointer;
+  position:relative;transition:border-color .15s,transform .15s}
+.benchMon iconify-icon{font-size:20px}
+.benchMon .em{font-size:20px;line-height:1}
+.benchMon.active{border-color:#9af0bf;box-shadow:0 0 10px #2ea85c88;cursor:default}
+.benchMon.dead{opacity:.4;filter:grayscale(1);cursor:default}
+.benchMon span{font-size:8px;margin-top:1px;font-family:'Cinzel',serif}
+.endBtn{margin-left:auto;font-family:'Cinzel',serif;font-weight:700;letter-spacing:1px;font-size:14px;color:#3a2606;
+  padding:11px 18px;border:none;border-radius:12px;cursor:pointer;display:flex;align-items:center;gap:6px;
+  background:linear-gradient(#ffe89a,#d6a72a);box-shadow:0 5px 0 #8a6a18,0 8px 16px #0008}
+.endBtn:disabled{opacity:.5;cursor:default;box-shadow:0 3px 0 #8a6a18}
+
+/* ---------- hand — fanned move cards ---------- */
+.handWrap{margin-top:6px;display:flex;justify-content:center;align-items:flex-end;min-height:188px;overflow-x:auto}
+.hand{display:flex;align-items:flex-end;padding:0 12px}
+.move{flex:0 0 auto;width:98px;margin:0 -9px;transform-origin:bottom center;
+  transition:transform .18s ease, filter .18s ease;cursor:pointer;position:relative}
+.move.unplayable{filter:grayscale(.7) brightness(.7);cursor:default}
+.move:not(.unplayable):hover,.move:not(.unplayable):focus{transform:translateY(-22px) scale(1.05) rotate(0)!important;
+  filter:drop-shadow(0 14px 22px #000b);z-index:9}
+.cost{position:absolute;top:-9px;left:-9px;z-index:6;width:32px;height:32px;border-radius:50%;
+  display:flex;align-items:center;justify-content:center;font-family:'Cinzel',serif;font-weight:900;font-size:14px;color:#fff;
+  background:radial-gradient(circle at 38% 30%,#cfeaff,#3f7fe6 52%,#16306e);border:2px solid var(--goldB);
+  box-shadow:0 2px 6px #000a;text-shadow:0 1px 2px #000}
+.move .micon{height:52px;display:flex;align-items:center;justify-content:center;font-size:30px;color:#fff}
+.move .micon.atk{background:radial-gradient(circle at 50% 60%,#ffd27a,#d23b2c 70%)}
+.move .micon.def{background:radial-gradient(circle at 50% 60%,#bfe0ff,#2e6fb0 70%)}
+.move .micon.util{background:radial-gradient(circle at 50% 60%,#d9c0ff,#6a3fb0 70%)}
+.move .mn{font-family:'Cinzel',serif;font-weight:700;font-size:10px;text-align:center;color:var(--cream);
+  padding:3px 2px 1px;letter-spacing:.3px;line-height:1.1}
+.move .mt{background:linear-gradient(#efe2bd,#dccba0);color:#3a2c12;font-size:8.5px;line-height:1.25;
+  padding:4px 5px 5px;min-height:54px}
+.move .mt b{font-weight:600}
+.playHint{display:flex;align-items:center;justify-content:center;gap:6px;text-align:center;font-family:'Cinzel',serif;
+  font-size:10px;letter-spacing:2px;color:#9af0bf;opacity:.8;min-height:14px}
+
+/* ---------- overlay (victory / defeat / reward) ---------- */
+.overlay{position:fixed;inset:0;background:#140e26ee;display:grid;place-items:center;z-index:50;padding:18px}
+.overlay .panel{text-align:center;max-width:460px;width:100%}
+.overlay h1{font-family:'Cinzel Decorative',serif;font-size:38px;margin-bottom:14px;
+  color:var(--cream);text-shadow:0 0 18px #ff8a3a,0 2px 0 #000}
+.overlay h1.lose{color:#ff9c9c;text-shadow:0 0 18px #b1404088}
+.rewardRow{display:flex;gap:10px;justify-content:center;flex-wrap:wrap;margin:14px 0}
+.rewardRow .move{margin:0;cursor:default}

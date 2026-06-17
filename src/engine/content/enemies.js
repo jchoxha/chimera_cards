@@ -15,13 +15,17 @@
  * @typedef {Object} EnemyArchetype
  * @property {string} name
  * @property {number} hp
- * @property {Intent[]} moves   Cyclic intent pattern.
+ * @property {import('../types.js').ElementType} element  Dominant element (badge + matchup).
+ * @property {string} icon          game-icons id for the creature art (e.g. 'game-icons:slime').
+ * @property {string} rarity        Drives the frame finish (common…legendary).
+ * @property {string} form          Body size: baby|small|regular|large|elite|boss.
+ * @property {Intent[]} moves       Cyclic intent pattern.
  */
 
 /** @type {Record<string, EnemyArchetype>} */
 export const ENEMY_ARCHETYPES = {
   slime: {
-    name: 'Cinder Slime', hp: 28,
+    name: 'Cinder Slime', hp: 28, element: 'pyre', icon: 'game-icons:slime', rarity: 'common', form: 'regular',
     moves: [
       { kind: 'attack', value: 7 },
       { kind: 'attack', value: 5, hits: 2 },
@@ -29,7 +33,7 @@ export const ENEMY_ARCHETYPES = {
     ],
   },
   brute: {
-    name: 'Ash Brute', hp: 46,
+    name: 'Ash Brute', hp: 46, element: 'stone', icon: 'game-icons:troll', rarity: 'uncommon', form: 'large',
     moves: [
       { kind: 'buff', value: 2 },          // gains Strength
       { kind: 'attack', value: 11 },
@@ -37,7 +41,7 @@ export const ENEMY_ARCHETYPES = {
     ],
   },
   hexer: {
-    name: 'Gloom Hexer', hp: 34,
+    name: 'Gloom Hexer', hp: 34, element: 'umbra', icon: 'game-icons:pointy-hat', rarity: 'common', form: 'regular',
     moves: [
       { kind: 'debuff', value: 1 },        // applies Weak to the player
       { kind: 'attack', value: 8 },
@@ -45,7 +49,7 @@ export const ENEMY_ARCHETYPES = {
     ],
   },
   boss: {
-    name: 'Magmaw Tyrant', hp: 120,
+    name: 'Magmaw Tyrant', hp: 120, element: 'pyre', icon: 'game-icons:dragon-head', rarity: 'legendary', form: 'boss',
     moves: [
       { kind: 'attack', value: 9, hits: 2 },
       { kind: 'buff', value: 3 },
@@ -68,6 +72,10 @@ export function makeEnemy(key) {
   return {
     id: `${key}-${_uid++}`,
     name: a.name,
+    element: a.element,
+    icon: a.icon,
+    rarity: a.rarity,
+    form: a.form,
     hp: a.hp, maxHp: a.hp,
     block: 0,
     statuses: [],

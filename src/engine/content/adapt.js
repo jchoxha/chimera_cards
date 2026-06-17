@@ -91,10 +91,11 @@ export function adaptMonster(raw) {
     id: raw.id ?? raw.name.toLowerCase().replace(/\s+/g, '-'),
     name: raw.name,
     types,
+    form: raw.form ?? 'regular',
     hp: raw.hp,
     maxHp: raw.hp,
     signatureCards: (raw.cards ?? []).map((c) => adaptCard(c, { element: dominant, rarity: raw.rarity })),
-    meta: { rarity: raw.rarity, tier: raw.tier, desc: raw.desc, source: 'roster' },
+    meta: { rarity: raw.rarity, tier: raw.tier, desc: raw.desc, sprite: raw.sprite, source: 'roster' },
   };
 }
 

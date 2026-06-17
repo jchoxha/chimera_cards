@@ -1172,6 +1172,8 @@ export default function ChimeraCards() {
 
   function afterWin() {
     saveRunHp();
+    // Custom debug battle: chain to the next queued enemy (or finish). No loot.
+    if (battle.custom) { advanceCustomBattle(); return; }
     const isWild = battle.wild;
     const isBoss = battle.isBoss;
     const isElite = activeNode && activeNode.type === "elite";
@@ -1507,6 +1509,123 @@ Create its NEXT evolution: same element (${m.element}), clearly more powerful, a
     flash("Codex fully revealed.");
   }
 
+  // ---------- debug: edit the live collection ----------
+  // Apply a partial patch to a captured monster. maxHp/form both change a
+  // monster's effective battle HP, so we resync hp and drop any carried-over
+  // run HP for that uid (a fresh maxHp applies on its next fight).
+  function cheatEditMonster(uid2, patch) {
+    setCollection((c) =>
+      c.map((m) => {
+        if (m.uid !== uid2) return m;
+        const next = { ...m, ...patch };
+        if (patch.elements && patch.elements.length) next.element = patch.elements[0];
+        if (patch.maxHp != null) {
+          next.maxHp = Math.max(1, patch.maxHp);
+          next.baseHp = next.maxHp;
+          next.hp = next.maxHp;
+        }
+        return next;
+      })
+    );
+    setRunHp((hp) => { const n = { ...hp }; delete n[uid2]; return n; });
+    flash("Monster updated.");
+  }
+  function cheatDeleteMonster(uid2) {
+    if (collection.length <= 1) { flash("Can't delete your last monster."); return; }
+    setTeam((t) => t.filter((id) => id !== uid2));
+    setCollection((c) => c.filter((m) => m.uid !== uid2));
+    flash("Monster deleted.");
+  }
+  function cheatToggleTeam(uid2) {
+    setTeam((t) => {
+      if (t.includes(uid2)) return t.filter((id) => id !== uid2);
+      if (t.length >= 3) { flash("Team is full (3)."); return t; }
+      return [...t, uid2];
+    });
+  }
+  function cheatHealMonster(uid2) {
+    setRunHp((hp) => { const n = { ...hp }; delete n[uid2]; return n; });
+    setCollection((c) => c.map((m) => (m.uid === uid2 ? { ...m, hp: m.maxHp } : m)));
+    flash("Healed to full.");
+  }
+
+  // ---------- debug: custom battle (collection team vs an enemy gauntlet) ----------
+  // The battle engine fights one enemy at a time, so a "roster" of enemies is
+  // a QUEUE: beat one and the next steps forward in the same battle (HP carries).
+  // Sandbox only: no rewards, captures, drops, or progress.
+  function buildCustomEnemy(def) {
+    const base = DEFAULT_MONSTERS.find((t) => t.name === def.name);
+    if (!base) return null;
+    const form = FORMS[def.form] ? def.form : "regular";
+    const painted = collection.find((m) => m.name === base.name && m.svg);
+    const enemy = makeMonster({
+      ...base,
+      svg: painted ? painted.svg : null,
+      form,
+      baseHp: base.hp,
+      hp: Math.round(base.hp * FORMS[form].hpMult),
+    });
+    enemy.intent = null;
+    return enemy;
+  }
+  function startCustomBattle({ teamUids, enemyDefs }) {
+    const chosen = (teamUids || []).map((id) => collection.find((m) => m.uid === id)).filter(Boolean).slice(0, 3);
+    if (chosen.length === 0) { flash("Pick at least one team monster."); return; }
+    const defs = (enemyDefs || []).filter((d) => d && d.name);
+    if (defs.length === 0) { flash("Add at least one enemy to the roster."); return; }
+    const first = buildCustomEnemy(defs[0]);
+    if (!first) { flash("Unknown enemy in roster."); return; }
+    setTeam(chosen.map((m) => m.uid));
+    setSeen((s) => { const n = new Set(s); defs.forEach((d) => n.add(d.name)); return n; });
+    setWildBattle(false);
+    const bonus = combinedBonuses(runArtifacts, items);
+    const fighters = chosen.map((m) => makeFighter(m, bonus, undefined, chosen));
+    setBattle({
+      floor: 1, isBoss: false, custom: true,
+      teamUids: chosen.map((m) => m.uid),
+      queue: defs.slice(1), queueTotal: defs.length,
+      enemy: first, enemyHp: first.maxHp, enemyMaxHp: first.maxHp, enemyBlock: 0,
+      enemyStatus: { burn: 0, weak: 0, vulnerable: 0, chill: 0, soak: 0, shock: 0, poison: 0, decay: 0 },
+      teamShield: 0, fighters, activeIdx: Math.max(0, fighters.findIndex((f) => f.hp > 0)),
+      swappedThisTurn: false, energy: 3 + bonus.energyBonus, maxEnergy: 3 + bonus.energyBonus, bonus,
+      potions: items.filter((id) => (ITEMS.find((it) => it.id === id) || {}).kind === "potion"),
+      log: [`⚔️ Custom battle — ${chosen.length} vs ${defs.length}. A ${first.name} appears!`],
+      turn: "player", over: null,
+    });
+    setScreen("battle");
+    setTimeout(() => drawHand(5 + bonus.drawBonus), 50);
+  }
+  // Called from afterWin when a custom enemy falls: send the next in the queue
+  // (carrying surviving fighters' HP straight off the current battle), or end.
+  function advanceCustomBattle() {
+    const queue = battle.queue || [];
+    if (queue.length === 0) {
+      flash("⚔️ Custom battle cleared!");
+      setBattle(null);
+      setScreen("cheat");
+      return;
+    }
+    const hpByUid = {};
+    battle.fighters.forEach((f) => (hpByUid[f.uid] = f.hp));
+    const enemy = buildCustomEnemy(queue[0]);
+    const bonus = battle.bonus;
+    const chosen = (battle.teamUids || []).map((id) => collection.find((m) => m.uid === id)).filter(Boolean);
+    const fighters = chosen.map((m) => makeFighter(m, bonus, hpByUid[m.uid], chosen));
+    const rest = queue.slice(1);
+    setBattle({
+      ...battle,
+      queue: rest,
+      enemy, enemyHp: enemy.maxHp, enemyMaxHp: enemy.maxHp, enemyBlock: 0,
+      enemyStatus: { burn: 0, weak: 0, vulnerable: 0, chill: 0, soak: 0, shock: 0, poison: 0, decay: 0 },
+      teamShield: 0, fighters, activeIdx: Math.max(0, fighters.findIndex((f) => f.hp > 0)),
+      swappedThisTurn: false, energy: 3 + bonus.energyBonus, maxEnergy: 3 + bonus.energyBonus,
+      hand: [], discard: [],
+      log: [`A ${enemy.name} steps forward! (${rest.length} more to go)`],
+      turn: "player", over: null,
+    });
+    setTimeout(() => drawHand(5 + bonus.drawBonus), 50);
+  }
+
   // ============================================================
   // RENDER
   // ============================================================
@@ -1707,6 +1826,11 @@ Create its NEXT evolution: same element (${m.element}), clearly more powerful, a
               flash(`🛠️ Created ${item.name} (granted 1).`);
             }}
             onGiveMaterials={() => { const all = {}; MATERIALS.forEach((m) => (all[m.id] = 5)); grantMaterials(all); flash("+5 of every material."); }}
+            onEditMonster={cheatEditMonster}
+            onDeleteMonster={cheatDeleteMonster}
+            onToggleTeam={cheatToggleTeam}
+            onHealMonster={cheatHealMonster}
+            onStartCustomBattle={startCustomBattle}
             onClose={() => setScreen("collection")}
             gold={gold}
             items={items}
@@ -1796,6 +1920,12 @@ Create its NEXT evolution: same element (${m.element}), clearly more powerful, a
             onSwap={swapTo}
             onWin={afterWin}
             onLose={() => {
+              if (battle && battle.custom) {
+                flash("⚔️ Custom battle lost — your team fell.");
+                setBattle(null);
+                setScreen("cheat");
+                return;
+              }
               if (wildBattle) {
                 flash("Your team fled back to safety.");
                 setWildBattle(false);
