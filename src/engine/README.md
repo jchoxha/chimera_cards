@@ -1,5 +1,15 @@
 # Engine core — Phase 1
 
+> ⚠️ **Partly superseded.** The combat model is being rebuilt to the LOCKED
+> **Active Vanguard / Peek action-economy** design — see
+> [`docs/combat-engine-spec.md`](../../docs/combat-engine-spec.md). That spec
+> overrides the turn-cycle and several constraints documented below: monsters
+> now have **exactly 1–2 types** (not ≤3), each monster carries **its own deck**
+> (no shared party deck), Team Shield is removed, the Reaction matrix is frozen,
+> and combat is **symmetrical** (`Side`/`Fighter`, both sides run energy). Read
+> the spec before editing `combat/`. The text below still describes the *current*
+> Phase 1 code until the rebuild lands.
+
 The framework-agnostic base mechanics for the creature deckbuilder. Pure game
 logic: **no React, no renderer, no network coupling.** The React app today (and
 the planned Phaser view + Zustand store + serverless backend) all sit *on top*

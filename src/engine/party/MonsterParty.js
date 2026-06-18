@@ -1,5 +1,5 @@
 // ╔══════════════════════════════════════════════════════════════════╗
-// ║ MODULE: engine/party/MonsterParty — the ≤3 monster team + 3-type    ║
+// ║ MODULE: engine/party/MonsterParty — the ≤3 monster team + 1–2 type  ║
 // ║ matrix and combined-typing weighting.                               ║
 // ║ UPDATE WHEN: party size, typing rules, or deck-assembly change.     ║
 // ╚══════════════════════════════════════════════════════════════════╝
@@ -12,11 +12,14 @@ import { combinedTypeWeights } from '../cards/rarity.js';
 /** @typedef {import('../types.js').ElementType} ElementType */
 
 export const MAX_PARTY = 3;
-export const MAX_TYPES = 3;
+// Absolute typing cap: every monster has EXACTLY 1–2 types (combat-engine-spec
+// §1.1). Was 3 in the Phase-1 "3-type matrix"; locked down to 2 in the rebuild.
+export const MAX_TYPES = 2;
 
 /**
- * Normalize a monster's typings so weights sum to 1. Accepts 1–3 entries; if
- * weights are omitted or don't sum to 1, they're treated as equal/ renormalized.
+ * Normalize a monster's typings so weights sum to 1. Accepts 1–2 entries (extras
+ * trimmed to MAX_TYPES); if weights are omitted or don't sum to 1, they're
+ * treated as equal/ renormalized.
  * @param {TypeAffinity[]} types
  * @returns {TypeAffinity[]}
  */

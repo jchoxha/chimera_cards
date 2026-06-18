@@ -4,7 +4,7 @@ A Pokémon × Slay-the-Spire prototype: capture monsters, build card-driven team
 descend dungeons, and generate/fuse monsters with AI. Vite + React 18, originally
 a single-file Claude artifact now split into ES modules.
 
-## ⚑ Project state — read this first (updated 2026-06-15)
+## ⚑ Project state — read this first (updated 2026-06-18)
 
 This repo currently holds **two codebases** that coexist:
 
@@ -19,7 +19,45 @@ This repo currently holds **two codebases** that coexist:
 spec "TS interfaces" are JSDoc `@typedef`s. Renderer when we build the view = **Phaser**
 (deferred — combat UI is React today, wearing the ornate-TCG skin below). See memory `chimera-engine-architecture`.
 
+**🔒 ACTIVE DESIGN DIRECTION (LOCKED 2026-06-18): the Vanguard/Peek rebuild.**
+The engine combat model is being rebuilt from 1-v-1 into a **symmetrical Active
+Vanguard + Bench action-economy engine** with per-monster decks, a **symmetrical
+energy economy** (`max(3, benched)` for **both** sides), escalating-cost swaps,
+per-card targeting scopes, and a limited-charge **Peek** system that scouts the
+enemy's forecasted multi-action turn. The authoritative spec is
+**`docs/combat-engine-spec.md`** — read it before touching `src/engine/combat/`.
+Key consequences that override older notes below: monsters have **exactly 1–2
+types** (not ≤3); **Team Shield is removed**; the **elemental Reaction matrix is
+frozen** for this milestone; the **+1 shared-element synergy is removed**; and
+**`combat.html` is retired** (engine validation is now via `node` smoke-tests).
+Targeting scopes use the **locked 18-token vocabulary** (consumables reuse it; the
+`fortifySlot` is a positional spatial aura addressed via `CardEffects.fortify`, not
+a scope token). **Block** is **creature-bound** — it rides mid-turn swaps and
+decays to 0 **at the start of its own side's turn** (per-side, StS-style);
+`fortifySlot` Block escapes that decay (card-defined duration). **DoTs** tick at
+the **opponent's** turn-end, **Regen** at the **carrier's own** turn-end. **Peek**
+reveals are turn-wide and persist
+even through forced re-plans (no charge refund; charges reset per combat encounter).
+**All §7 rulings locked 2026-06-18.** **Phase 1 boilerplate COMPLETE**: the
+symmetrical `Fighter`/`Side`/`PlannedAction`/`CombatState` typedefs (`types.js`),
+structural factories (`src/engine/combat/state.js`), the 18-token `TARGET_SCOPES`
+vocabulary + classifier (`src/engine/combat/scopes.js`), all validated by
+`npm run test:combat` (37 checks, structural only — **ready for turn behavior**).
+
 **Done so far:**
+- **Vanguard turn engine — Layer 1 (foundation), DONE 2026-06-18.** All §7
+  rulings locked and the turn-execution model written into spec §9 (canonical
+  loop, AI = version B / full multi-Vanguard lookahead, scope rules, play API,
+  milestone boundaries). Foundation code: `combat/deckOps.js` (per-fighter
+  draw/discard/exhaust/reshuffle on the plain Fighter shape), `combat/resolve.js`
+  (`resolveScope` 18-token→Fighters, status helpers, `computeAttackDamage`,
+  `applyCardEffects` with X-cost scaling + `fortify`), `combat/fixtures.js`
+  (hand-authored test content — not the real pool), validated by
+  `npm run test:turn` (28 checks). Effect routing locked: `strength`/`selfStatus`/
+  `energy`/`draw`/`fortify` = self; `applyStatus`/`dmg`/`block`/`heal` = scoped
+  targets; DoTs bypass Block; scopes resolve to Fighters ONLY (fortify slot via
+  `CardEffects.fortify`). **Next: Layer 2** = the manager loop (round→plan→draw→
+  play→end, per-side block decay, DoT/Regen timing, win/loss).
 - **Engine Phase 1** — core in `src/engine/`: `types.js`, `GameEngine`,
   `combat/CombatManager` (StS turn cycle + status system), `cards/CardDeck`,
   `cards/rarity.js` (adaptive Pity-Offset engine + combined-typing draft pools),
@@ -55,7 +93,9 @@ spec "TS interfaces" are JSDoc `@typedef`s. Renderer when we build the view = **
 - **Art generation** — via `agy` (Antigravity CLI) headless: `scripts/agy_call.py`;
   see memory `agy-headless-image-gen`.
 
-**Deep-dive docs:** `src/engine/README.md` (engine map + spec mapping), `api/README.md`
+**Deep-dive docs:** `docs/combat-engine-spec.md` (**LOCKED Vanguard/Peek combat
+spec — the active rebuild**), `src/engine/README.md` (engine map + spec mapping;
+Phase 1, partly superseded by the Vanguard spec), `api/README.md`
 (backend + deploy), `docs/art-pipeline.md` (art), `experiments/art-direction/README.md`.
 
 ## Commands
@@ -139,6 +179,13 @@ correct `/<repo>/` base path (`VITE_BASE`) and publishes to GitHub Pages. Both
 ## Roadmap / next steps (candidates, not yet started)
 
 The new engine is the active direction. Likely next work:
+- **Vanguard/Peek combat rebuild (LOCKED, top priority)** — implement
+  `docs/combat-engine-spec.md`: symmetrical `Side`/`Fighter` model, per-monster
+  decks, symmetrical `max(3, bench)` energy, escalating swap cost, 18-token scopes,
+  the Peek forecast/silhouette system, and forced/death swaps. **Phase 1 structural
+  boilerplate DONE + §7 fully resolved (2026-06-18)**; **next: turn behavior** over
+  the locked shells. The legacy `CombatManager` still drives the old asymmetric
+  model until the new one takes over.
 - **Wire real art** into combat via a manifest (Variant-B baked art → `public/art/`),
   using `scripts/agy_call.py`; add WebP post-processing + lazy-load.
 - **Richer combat**: more enemy archetypes + smarter intent AI; expand the status

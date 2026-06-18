@@ -22,10 +22,8 @@ const RARITY_MAP = {
 // Weight ladders for 1/2/3 typings (dominant first). ~66/33 for duals.
 const WEIGHT_LADDER = { 1: [1], 2: [0.667, 0.333], 3: [0.5, 0.3, 0.2] };
 
-// Card numeric fields that map to target-applied statuses.
+// Card numeric fields that map to target-applied (enemy) statuses.
 const TARGET_STATUS = ['burn', 'poison', 'chill', 'soak', 'shock', 'vulnerable', 'weak', 'decay'];
-// Card numeric fields that map to self-applied statuses.
-const SELF_STATUS = ['regen', 'shield'];
 
 /** @param {CardRarity} r */
 export function mapRarity(r) { return RARITY_MAP[r] ?? 'common'; }
@@ -53,18 +51,23 @@ export function adaptCard(raw, ctx = {}) {
   const effects = {};
   if (raw.dmg) effects.dmg = raw.dmg;
   if (raw.hits) effects.hits = raw.hits;
-  if (raw.block) effects.block = raw.block;
+  if (raw.block) effects.block = raw.block;          // self block (active fighter)
   if (raw.draw) effects.draw = raw.draw;
-  if (raw.energy) effects.energy = raw.energy;
-  if (raw.strength) effects.strength = raw.strength;
+  if (raw.energy) effects.energy = raw.energy;        // bonus energy this turn
+  if (raw.strength) effects.strength = raw.strength;  // self Strength (active fighter)
+  if (raw.shield) effects.shield = raw.shield;        // TEAM shield (shared, resets each turn)
+  if (raw.teamheal) effects.teamheal = raw.teamheal;  // heal whole party now
+  if (raw.regen) effects.regen = raw.regen;           // heal-over-time stacks (active)
+  if (raw.leech) effects.leech = true;                // heal active for a share of dmg dealt
 
   const applyStatus = {};
   for (const k of TARGET_STATUS) if (raw[k]) applyStatus[k] = raw[k];
   if (Object.keys(applyStatus).length) effects.applyStatus = applyStatus;
 
-  const selfStatus = {};
-  for (const k of SELF_STATUS) if (raw[k]) selfStatus[k] = raw[k];
-  if (Object.keys(selfStatus).length) effects.selfStatus = selfStatus;
+  // Legacy boolean flags → engine keyword list (preserve any explicit keywords).
+  const keywords = [...(raw.keywords ?? [])];
+  if (raw.exhaust && !keywords.includes('exhaust')) keywords.push('exhaust');
+  if (raw.retain && !keywords.includes('retain')) keywords.push('retain');
 
   return {
     id: raw.id,
@@ -75,7 +78,7 @@ export function adaptCard(raw, ctx = {}) {
     element: ctx.element ?? raw.element ?? null,
     effects,
     text: raw.text,
-    keywords: raw.keywords,
+    keywords: keywords.length ? keywords : undefined,
   };
 }
 

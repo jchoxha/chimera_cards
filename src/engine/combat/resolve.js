@@ -1,0 +1,219 @@
+// ╔══════════════════════════════════════════════════════════════════╗
+// ║ MODULE: engine/combat/resolve — scope→target resolution + the       ║
+// ║ effect engine (damage/block/heal/status) for the Vanguard model.    ║
+// ║ UPDATE WHEN: scope semantics, damage math, the live status set, or   ║
+// ║ CardEffects fields change (spec §3, §9.3).                           ║
+// ╚══════════════════════════════════════════════════════════════════╝
+//
+// Pure, manager-agnostic resolution. `resolveScope` turns one of the 18 locked
+// TargetScope tokens + an optional chosen targetId into the concrete list of
+// living Fighters an effect lands on (scopes resolve to Fighters ONLY — the
+// fortify slot is addressed separately via CardEffects.fortify, spec §9.3).
+// `applyCardEffects` then composes the per-field effects over those targets.
+// Everything takes an optional `emit` so the manager can stream CombatEvents;
+// nothing here imports a renderer or owns turn flow.
+
+import { SCOPE_TABLE } from './scopes.js';
+import { drawCards } from './deckOps.js';
+
+/** @typedef {import('../types.js').CombatState} CombatState */
+/** @typedef {import('../types.js').Side} Side */
+/** @typedef {import('../types.js').Fighter} Fighter */
+/** @typedef {import('../types.js').CardEffects} CardEffects */
+/** @typedef {import('../types.js').StatusEffect} StatusEffect */
+
+const LIVE_STATUSES = Object.freeze(['burn', 'poison', 'weak', 'vulnerable', 'strength', 'regen']);
+
+// ── Side / zone helpers ───────────────────────────────────────────────────────
+
+/** @param {Side} side @returns {Fighter[]} living members. */
+export function livingFighters(side) {
+  return side.fighters.filter((f) => f.hp > 0);
+}
+
+/** @param {Side} side @returns {Fighter|null} the active Vanguard if alive. */
+export function vanguard(side) {
+  const v = side.fighters[side.vanguardIndex];
+  return v && v.hp > 0 ? v : null;
+}
+
+/** @param {Side} side @returns {Fighter[]} living NON-Vanguard members. */
+export function benchFighters(side) {
+  return side.fighters.filter((f, i) => f.hp > 0 && i !== side.vanguardIndex);
+}
+
+/** Living candidates on one side for a given scope zone. */
+function zoneCandidates(side, zone, caster) {
+  switch (zone) {
+    case 'active': { const v = vanguard(side); return v ? [v] : []; }
+    case 'bench':  return benchFighters(side);
+    case 'self':   return caster && caster.hp > 0 ? [caster] : [];
+    case 'flex':
+    case 'whole':
+    case 'field':
+    default:       return livingFighters(side);
+  }
+}
+
+/** The side key opposite the caster's. @param {'player'|'enemy'} key */
+export function opposingKey(key) {
+  return key === 'player' ? 'enemy' : 'player';
+}
+
+/**
+ * Resolve a TargetScope token to the concrete living Fighters it reaches.
+ * @param {CombatState} state
+ * @param {'player'|'enemy'} casterKey   which Side the caster belongs to.
+ * @param {Fighter} caster
+ * @param {import('../types.js').TargetScope} scope
+ * @param {{ targetId?: string }} [opts]  required for single-selection scopes (UI/AI choice).
+ * @returns {Fighter[]}
+ */
+export function resolveScope(state, casterKey, caster, scope, { targetId } = {}) {
+  const d = SCOPE_TABLE[scope];
+  if (!d) throw new Error(`Unknown TargetScope token: ${JSON.stringify(scope)}`);
+
+  const friendly = state[casterKey];
+  const enemy = state[opposingKey(casterKey)];
+
+  let candidates;
+  switch (d.side) {
+    case 'friendly': candidates = zoneCandidates(friendly, d.zone, caster); break;
+    case 'enemy':    candidates = zoneCandidates(enemy, d.zone, caster); break;
+    case 'either':
+    case 'both':     candidates = [...zoneCandidates(friendly, d.zone, caster),
+                                   ...zoneCandidates(enemy, d.zone, caster)]; break;
+    case 'self':     candidates = caster && caster.hp > 0 ? [caster] : []; break;
+    default:         candidates = []; break;
+  }
+  if (d.excludesSelf) candidates = candidates.filter((f) => f !== caster);
+
+  if (d.selection === 'all') return candidates;
+  // single selection: honor the chosen target, else fall back to the first
+  // candidate (the Vanguard for active scopes) as the engine default.
+  if (targetId != null) {
+    const picked = candidates.find((f) => f.id === targetId);
+    return picked ? [picked] : [];
+  }
+  return candidates.length ? [candidates[0]] : [];
+}
+
+// ── Status helpers ────────────────────────────────────────────────────────────
+
+/** Default stacking discipline per status id. @param {string} id */
+export function stackingFor(id) {
+  if (id === 'strength' || id === 'burn' || id === 'poison') return 'intensity';
+  return 'duration'; // weak, vulnerable, regen, frail, …
+}
+
+/** Add/merge a status onto a fighter (amounts accumulate). @param {StatusEffect[]} list @param {StatusEffect} status */
+export function addStatus(list, status) {
+  const existing = list.find((s) => s.id === status.id);
+  if (existing) existing.amount += status.amount;
+  else list.push({ ...status });
+}
+
+/** Drop statuses that have decayed to ≤0. @param {StatusEffect[]} list */
+export function pruneStatuses(list) {
+  for (let i = list.length - 1; i >= 0; i--) if (list[i].amount <= 0) list.splice(i, 1);
+}
+
+/**
+ * StS attack math, applied PER HIT: (base + Strength), ×0.75 if attacker Weak,
+ * ×1.5 if target Vulnerable, floored, min 0 (spec §9.3).
+ * @param {number} base @param {StatusEffect[]} attacker @param {StatusEffect[]} target @returns {number}
+ */
+export function computeAttackDamage(base, attacker, target) {
+  const strength = attacker.find((s) => s.id === 'strength')?.amount ?? 0;
+  let dmg = base + strength;
+  if (attacker.some((s) => s.id === 'weak')) dmg *= 0.75;
+  if (target.some((s) => s.id === 'vulnerable')) dmg *= 1.5;
+  return Math.max(0, Math.floor(dmg));
+}
+
+// ── Primitive effects (creature-bound; block → HP, no shared pool) ─────────────
+
+/** @param {Fighter} target @param {number} amount @param {(t,p)=>void} [emit] */
+export function gainBlock(target, amount, emit) {
+  if (amount <= 0) return;
+  target.block += amount;
+  emit?.('block', { targetId: target.id, amount, total: target.block });
+}
+
+/** @param {Fighter} target @param {number} amount @param {(t,p)=>void} [emit] */
+export function applyHeal(target, amount, emit) {
+  if (amount <= 0) return;
+  const before = target.hp;
+  target.hp = Math.min(target.maxHp, target.hp + amount);
+  emit?.('heal', { targetId: target.id, amount: target.hp - before, hp: target.hp });
+}
+
+/**
+ * Deal one already-computed damage instance: Block absorbs first, remainder to HP.
+ * @param {Fighter} target @param {number} amount @param {(t,p)=>void} [emit] @param {boolean} [dot]
+ */
+export function applyDamage(target, amount, emit, dot = false) {
+  if (amount <= 0 || target.hp <= 0) return;
+  const absorbed = dot ? 0 : Math.min(target.block, amount); // DoTs bypass Block
+  target.block -= absorbed;
+  const hpLoss = amount - absorbed;
+  target.hp = Math.max(0, target.hp - hpLoss);
+  emit?.('damage', { targetId: target.id, amount, hpLoss, hp: target.hp, dot });
+  if (target.hp === 0) emit?.('death', { fighterId: target.id });
+}
+
+/** Apply a {id: amount} status map onto a fighter, ignoring inert ids. */
+function applyStatusMap(target, map, scale, emit) {
+  for (const [id, amt] of Object.entries(map)) {
+    if (!LIVE_STATUSES.includes(id)) continue; // defined-but-inert this milestone
+    addStatus(target.statuses, { id, amount: amt * scale, stacking: stackingFor(id) });
+    emit?.('status', { targetId: target.id, id, amount: amt * scale });
+  }
+}
+
+/**
+ * Apply one card/consumable's effects. Self-economy (energy/draw) and self-buffs
+ * (strength/selfStatus/fortify) land on the caster/its side; scoped fields
+ * (applyStatus → dmg → block → heal) land on the resolved targets. X-cost
+ * (cost === -1) scales scalar amounts and hit count by energy spent.
+ * @param {CombatState} state
+ * @param {'player'|'enemy'} casterKey
+ * @param {Fighter} caster
+ * @param {CardEffects} effects
+ * @param {{ targetId?: string, costPaid?: number, xCost?: boolean, rng?: ()=>number, emit?: (t,p)=>void }} [opts]
+ * @returns {Fighter[]} the resolved targets (for the caller/UI).
+ */
+export function applyCardEffects(state, casterKey, caster, effects = {}, opts = {}) {
+  const { targetId, costPaid = 0, xCost = false, rng = Math.random, emit } = opts;
+  const scale = xCost ? Math.max(1, costPaid) : 1;
+  const side = state[casterKey];
+
+  // Self economy + self buffs.
+  if (effects.energy) side.energy += effects.energy * scale;
+  if (effects.draw) drawCards(caster, effects.draw * scale, rng);
+  if (effects.strength) addStatus(caster.statuses,
+    { id: 'strength', amount: effects.strength * scale, stacking: 'intensity' });
+  if (effects.selfStatus) applyStatusMap(caster, effects.selfStatus, scale, emit);
+  if (effects.fortify) {
+    side.fortifySlot.block += (effects.fortify.block ?? 0);
+    emit?.('fortify', { side: casterKey, block: side.fortifySlot.block, duration: effects.fortify.duration });
+  }
+
+  // Scoped fields. No scope → no scoped resolution (pure self/economy card).
+  const targets = effects.scope ? resolveScope(state, casterKey, caster, effects.scope, { targetId }) : [];
+  for (const t of targets) {
+    if (effects.applyStatus) applyStatusMap(t, effects.applyStatus, scale, emit);
+    if (effects.dmg) {
+      const hits = (effects.hits ?? 1) * scale;
+      for (let i = 0; i < hits; i++) {
+        if (t.hp <= 0) break;
+        applyDamage(t, computeAttackDamage(effects.dmg, caster.statuses, t.statuses), emit);
+      }
+    }
+    if (effects.block) gainBlock(t, effects.block * scale, emit);
+    if (effects.heal) applyHeal(t, effects.heal * scale, emit);
+  }
+  return targets;
+}
+
+export { LIVE_STATUSES };
