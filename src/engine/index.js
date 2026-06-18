@@ -4,6 +4,7 @@
 export * from './types.js';
 export { GameEngine } from './GameEngine.js';
 export { CombatManager, computeAttackDamage } from './combat/CombatManager.js';
+export { VanguardManager } from './combat/VanguardManager.js';
 // Vanguard/Peek rebuild — structural shells (no turn behavior yet).
 export {
   COMBAT_DEFAULTS, createFighter, createFighterDeck, createFortifySlot,

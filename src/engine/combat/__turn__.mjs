@@ -11,6 +11,8 @@ import {
   resolveScope, applyCardEffects, computeAttackDamage,
   vanguard, benchFighters, livingFighters,
   TARGET_SCOPES,
+  VanguardManager,
+  createPlannedAction,
 } from '../index.js';
 import { sampleFighters, CARDS, makeFighter, makeCard } from './fixtures.js';
 
@@ -143,5 +145,229 @@ console.log('\nX-cost scaling:');
   ok(grunt.hp === 14, 'X-cost (3 energy) scales hits ×3: 2 dmg ×3 = 6 (20→14)');
 }
 
+console.log('\nVanguardManager (Layer 2 manager loop):');
+{
+  const f = sampleFighters();
+  const mgr = new VanguardManager({
+    playerFighters: f.player,
+    enemyFighters: f.enemy,
+    room: 'combat',
+    rarity: { offset: -0.05, ascension7: false },
+    config: { handSize: 6 },
+    rng: seq([0])
+  });
+
+  // startCombat
+  const s = mgr.startCombat();
+  ok(s.phase === 'player', 'startCombat transitions to PLAYER phase');
+  ok(s.turn === 1, 'starts on Turn 1');
+  ok(s.player.energy === 3, 'player starts with 3 energy (1 benched survivor)');
+  ok(s.enemyPlan.length === 2 && s.enemyPlan[0].silhouette === 'attack' && s.enemyPlan[1].silhouette === 'block', 'enemy plan generated with attacks and block');
+
+  // play Strike
+  const hero = vanguard(s.player);
+  const strike = hero.hand.find((c) => c.id === 'strike');
+  ok(strike != null, 'drawn hand contains Strike');
+  mgr.play('strike', { targetId: 'grunt' });
+  const grunt = vanguard(s.enemy);
+  ok(grunt.hp === 14, 'playing Strike deals 6 dmg (20→14)');
+  ok(s.player.energy === 2, 'energy spent (3→2)');
+  ok(!hero.hand.includes(strike), 'played Strike left the hand');
+
+  // apply some Block and fortify, test decays
+  hero.block = 5;
+  mgr.play('bulwark'); // Fortify 6 block duration 2
+  ok(s.player.fortifySlot.block === 6, 'Bulwark adds 6 fortify slot block');
+  ok(s.player.fortifySlot.duration === 2, 'Bulwark sets duration to 2');
+
+  // Clear enemy plan so they don't attack, to test that fortify block escapes decay
+  s.enemyPlan = [];
+
+  // Let's add DoT and Regen to test timing
+  grunt.statuses.push({ id: 'burn', amount: 3, stacking: 'intensity' });
+  hero.statuses.push({ id: 'regen', amount: 4, stacking: 'duration' });
+
+  // endTurn
+  mgr.endTurn();
+
+  ok(s.turn === 2, 'transitions to Turn 2 after round loop');
+  ok(grunt.hp === 11, 'enemy DoT (Burn) ticked at player turn-end (14→11)');
+  ok(grunt.statuses.find((x) => x.id === 'burn')?.amount === 2, 'enemy Burn decremented');
+  ok(hero.statuses.find((x) => x.id === 'regen')?.amount === 3, 'player Regen decremented');
+
+  // Block decays
+  ok(hero.block === 0, 'creature block decays to 0 at start of own turn');
+  ok(s.player.fortifySlot.block === 6, 'fortifySlot block escapes start-of-turn decay (no attack)');
+  ok(s.player.fortifySlot.duration === 1, 'fortifySlot duration decremented (2→1)');
+
+  // Now restore an enemy attack to test fortify block absorption
+  s.enemyPlan = [
+    createPlannedAction({
+      silhouette: 'attack',
+      actor: grunt.id,
+      detail: { value: 6, hits: 1, targetScope: 'friendlyActiveTarget' }
+    })
+  ];
+
+  mgr.endTurn(); // end Turn 2 -> runs Enemy Turn 2 -> starts Turn 3
+  ok(s.turn === 3, 'transitions to Turn 3');
+  ok(hero.hp === 30, 'enemy attack of 6 fully absorbed by 6 fortify block (30→30)');
+  ok(s.player.fortifySlot.block === 0, 'fortifySlot block became 0 after absorbing attack + duration hit 0');
+
+  // test death swap index update
+  grunt.hp = 1;
+  grunt.statuses = []; // clear weak/vuln
+  mgr.play('strike', { targetId: 'grunt' });
+  ok(grunt.hp === 0, 'grunt killed');
+  ok(s.enemy.vanguardIndex === 1, 'enemy vanguard Index updated to next living (1, brute) on grunt death');
+
+  // test victory/defeat check
+  const brute = s.enemy.fighters[1];
+  brute.hp = 1;
+  mgr.play('quake'); // Quake hits whole enemy side for 4, killing brute
+  ok(brute.hp === 0, 'brute killed');
+  ok(s.phase === 'victory', 'combat ends in VICTORY when all enemies die');
+}
+
+console.log('\nSwaps & Displacement (Layer 3 swaps):');
+{
+  const f = sampleFighters();
+  const windBoon = makeCard({
+    id: 'windBoon',
+    name: 'Wind Boon',
+    swapInBoon: { strength: 1, scope: 'selfOnlyTarget' }
+  });
+  const galeForce = makeCard({
+    id: 'galeForce',
+    name: 'Gale Force',
+    cost: 1,
+    effects: { displacement: { chooser: 'random' }, scope: 'enemyActiveTarget' }
+  });
+
+  f.player[1].deck.drawPile.push(windBoon);
+  f.player[0].deck.drawPile.push(galeForce);
+
+  const mgr = new VanguardManager({
+    playerFighters: f.player,
+    enemyFighters: f.enemy,
+    room: 'combat',
+    rarity: { offset: -0.05, ascension7: false },
+    config: { handSize: 6 },
+    rng: seq([0])
+  });
+
+  const s = mgr.startCombat();
+  const hero = s.player.fighters[0];
+  const medic = s.player.fighters[1];
+
+  hero.block = 8;
+  
+  ok(s.player.energy === 3, 'player starts with 3 energy');
+  ok(s.player.vanguardIndex === 0, 'player vanguard is Hero (index 0)');
+
+  const swapResult = mgr.swap(1);
+  ok(swapResult === true, 'manual swap successful');
+  ok(s.player.vanguardIndex === 1, 'vanguard updated to Medic (index 1)');
+  ok(s.player.energy === 2, 'manual swap cost 1 energy (3→2)');
+  ok(s.player.manualSwapsThisTurn === 1, 'manualSwapsThisTurn counter incremented to 1');
+
+  ok(hero.block === 8, 'Hero block (8) preserved on bench after swap');
+
+  ok(hero.hand.length === 0, 'outgoing Hero hand discarded');
+  ok(medic.hand.length > 0, 'incoming Medic hand drawn');
+
+  ok(medic.statuses.find((st) => st.id === 'strength')?.amount === 1, 'Medic swap-in boon triggered strength buff');
+
+  const swapResult2 = mgr.swap(0);
+  ok(swapResult2 === true, 'manual swap back successful');
+  ok(s.player.vanguardIndex === 0, 'vanguard updated back to Hero');
+  ok(s.player.energy === 0, 'escalating manual swap cost 2 energy (2→0)');
+  ok(s.player.manualSwapsThisTurn === 2, 'manualSwapsThisTurn counter incremented to 2');
+
+  s.player.energy = 2;
+  const grunt = s.enemy.fighters[0];
+  const brute = s.enemy.fighters[1];
+
+  ok(s.enemyPlan.length > 0 && s.enemyPlan.every((a) => a.actor === 'grunt'), 'initial enemy plan targeted at grunt');
+
+  hero.hand.push(galeForce);
+  mgr.play('galeForce', { targetId: 'grunt' });
+
+  ok(s.enemy.vanguardIndex === 1, 'enemy vanguard index displaced to brute (index 1)');
+  ok(grunt.hand.length === 0, 'outgoing grunt hand discarded');
+  ok(brute.hand.length > 0, 'incoming brute hand drawn');
+
+  ok(s.enemyPlan.length > 0 && s.enemyPlan.every((a) => a.actor === 'brute'), 'enemy plan re-planned with brute as actor');
+
+  brute.hp = 0;
+  mgr._resolveDeaths();
+
+  ok(s.enemy.vanguardIndex === 0, 'enemy vanguard index death-swapped back to grunt (index 0)');
+  ok(s.enemyPlan.length === 0, 'dead brute plans discarded');
+}
+
+console.log('\nLayer 4: Peek charges & Version-B AI Planner:');
+{
+  const f = sampleFighters();
+  const mgr = new VanguardManager({
+    playerFighters: f.player,
+    enemyFighters: f.enemy,
+    room: 'combat',
+    rarity: { offset: -0.05, ascension7: false },
+    config: { handSize: 6, peekCharges: 3 },
+    rng: seq([0])
+  });
+
+  const s = mgr.startCombat();
+  
+  // 1. Peek tests
+  ok(s.peekCharges === 3, 'starts with 3 Peek charges');
+  ok(s.enemyPlan.length > 0, 'enemy plan is generated');
+  
+  // Spend 1 Peek charge
+  const p1 = mgr.peek(0);
+  ok(p1 === true, 'peek(0) returns true');
+  ok(s.enemyPlan[0].revealed === true, 'plan[0] is revealed');
+  ok(s.peekCharges === 2, 'peek charges decremented to 2');
+
+  // Peek already revealed slot
+  const p2 = mgr.peek(0);
+  ok(p2 === false, 'peeking already revealed slot fails/returns false');
+  ok(s.peekCharges === 2, 'peek charges remains at 2');
+
+  // Spend all remaining charges
+  mgr.peek(1);
+  ok(s.peekCharges === 1, 'peek charges is 1');
+  const p3 = mgr.peek(1);
+  ok(p3 === false, 'peeking already revealed slot fails/returns false');
+  ok(s.peekCharges === 1, 'peek charges remains at 1');
+
+  // 2. AI Lethal burst prioritization
+  const hero = vanguard(s.player);
+  hero.hp = 5;
+  hero.block = 0;
+  
+  // Re-generate enemy plan
+  mgr._generateEnemyPlan();
+  
+  ok(s.enemyPlan[0].silhouette === 'attack' && s.enemyPlan[0].detail.cardId === 'strike',
+    'AI lethal burst priority selects Strike first');
+
+  // 3. AI Type Advantage manual swap check
+  hero.types = [{ type: 'flora', weight: 1.0 }];
+  hero.hp = 30; // reset health to avoid lethal
+  
+  const brute = s.enemy.fighters[1]; // benched enemy
+  brute.types = [{ type: 'pyre', weight: 1.0 }];
+  brute.hp = 28;
+
+  // Let's re-generate plan
+  mgr._generateEnemyPlan();
+
+  ok(s.enemyPlan[0].silhouette === 'swap' && s.enemyPlan[0].detail.incomingFighterId === 'brute',
+    'AI plans a swap to benched unit with type advantage');
+}
+
 console.log(`\n${pass} passed, ${fail} failed`);
 process.exit(fail ? 1 : 0);
+

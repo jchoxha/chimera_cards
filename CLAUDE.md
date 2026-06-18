@@ -45,19 +45,12 @@ vocabulary + classifier (`src/engine/combat/scopes.js`), all validated by
 `npm run test:combat` (37 checks, structural only — **ready for turn behavior**).
 
 **Done so far:**
-- **Vanguard turn engine — Layer 1 (foundation), DONE 2026-06-18.** All §7
-  rulings locked and the turn-execution model written into spec §9 (canonical
-  loop, AI = version B / full multi-Vanguard lookahead, scope rules, play API,
-  milestone boundaries). Foundation code: `combat/deckOps.js` (per-fighter
-  draw/discard/exhaust/reshuffle on the plain Fighter shape), `combat/resolve.js`
-  (`resolveScope` 18-token→Fighters, status helpers, `computeAttackDamage`,
-  `applyCardEffects` with X-cost scaling + `fortify`), `combat/fixtures.js`
-  (hand-authored test content — not the real pool), validated by
-  `npm run test:turn` (28 checks). Effect routing locked: `strength`/`selfStatus`/
-  `energy`/`draw`/`fortify` = self; `applyStatus`/`dmg`/`block`/`heal` = scoped
-  targets; DoTs bypass Block; scopes resolve to Fighters ONLY (fortify slot via
-  `CardEffects.fortify`). **Next: Layer 2** = the manager loop (round→plan→draw→
-  play→end, per-side block decay, DoT/Regen timing, win/loss).
+- **Vanguard turn engine — Layers 1, 2, 3, & 4 (swaps & AI planner), DONE 2026-06-18.** All turn cycle
+  foundations, block decay, DoT/Regen timings, manual swaps, entry boons, forced displacement, and
+  free death-swaps are complete. Layer 4 is fully implemented: player Peek charge limits,
+  Version-B AI Planner (priority rules, lookahead simulation, and element matchup swaps), and symmetric
+  card/swap execution. Validated by `npm run test:turn` (85 checks).
+
 - **Engine Phase 1** — core in `src/engine/`: `types.js`, `GameEngine`,
   `combat/CombatManager` (StS turn cycle + status system), `cards/CardDeck`,
   `cards/rarity.js` (adaptive Pity-Offset engine + combined-typing draft pools),
@@ -179,13 +172,8 @@ correct `/<repo>/` base path (`VITE_BASE`) and publishes to GitHub Pages. Both
 ## Roadmap / next steps (candidates, not yet started)
 
 The new engine is the active direction. Likely next work:
-- **Vanguard/Peek combat rebuild (LOCKED, top priority)** — implement
-  `docs/combat-engine-spec.md`: symmetrical `Side`/`Fighter` model, per-monster
-  decks, symmetrical `max(3, bench)` energy, escalating swap cost, 18-token scopes,
-  the Peek forecast/silhouette system, and forced/death swaps. **Phase 1 structural
-  boilerplate DONE + §7 fully resolved (2026-06-18)**; **next: turn behavior** over
-  the locked shells. The legacy `CombatManager` still drives the old asymmetric
-  model until the new one takes over.
+- **Wire Vanguard engine to UI & Store (Top Priority)** — Integrate the completed `VanguardManager` and symmetrical `CombatState` into the Zustand store (`src/store/combatStore.js`) and update `src/ui/combat/CombatScreen.jsx` to display the new active Vanguard, Bench, energy economy, and Peek forecast silhouettes/reveals.
+
 - **Wire real art** into combat via a manifest (Variant-B baked art → `public/art/`),
   using `scripts/agy_call.py`; add WebP post-processing + lazy-load.
 - **Richer combat**: more enemy archetypes + smarter intent AI; expand the status

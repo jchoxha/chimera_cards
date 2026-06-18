@@ -14,7 +14,7 @@
 // nothing here imports a renderer or owns turn flow.
 
 import { SCOPE_TABLE } from './scopes.js';
-import { drawCards } from './deckOps.js';
+import { drawCards, drawFreshHand, discardWholeHand } from './deckOps.js';
 
 /** @typedef {import('../types.js').CombatState} CombatState */
 /** @typedef {import('../types.js').Side} Side */
@@ -151,14 +151,39 @@ export function applyHeal(target, amount, emit) {
 /**
  * Deal one already-computed damage instance: Block absorbs first, remainder to HP.
  * @param {Fighter} target @param {number} amount @param {(t,p)=>void} [emit] @param {boolean} [dot]
+ * @param {Side} [side] Optional side to apply fortifySlot block.
  */
-export function applyDamage(target, amount, emit, dot = false) {
+export function applyDamage(target, amount, emit, dot = false, side = null) {
   if (amount <= 0 || target.hp <= 0) return;
-  const absorbed = dot ? 0 : Math.min(target.block, amount); // DoTs bypass Block
-  target.block -= absorbed;
-  const hpLoss = amount - absorbed;
+  
+  let hpLoss = amount;
+  let absorbedCreature = 0;
+  let absorbedFortify = 0;
+
+  if (!dot) {
+    // 1. Creature block absorbs first
+    absorbedCreature = Math.min(target.block, hpLoss);
+    target.block -= absorbedCreature;
+    hpLoss -= absorbedCreature;
+
+    // 2. Fortify slot block absorbs next (if target is Vanguard)
+    if (side && side.fighters[side.vanguardIndex] === target) {
+      absorbedFortify = Math.min(side.fortifySlot.block, hpLoss);
+      side.fortifySlot.block -= absorbedFortify;
+      hpLoss -= absorbedFortify;
+    }
+  }
+
   target.hp = Math.max(0, target.hp - hpLoss);
-  emit?.('damage', { targetId: target.id, amount, hpLoss, hp: target.hp, dot });
+  emit?.('damage', {
+    targetId: target.id,
+    amount,
+    hpLoss,
+    hp: target.hp,
+    dot,
+    absorbedCreature,
+    absorbedFortify
+  });
   if (target.hp === 0) emit?.('death', { fighterId: target.id });
 }
 
@@ -196,6 +221,7 @@ export function applyCardEffects(state, casterKey, caster, effects = {}, opts = 
   if (effects.selfStatus) applyStatusMap(caster, effects.selfStatus, scale, emit);
   if (effects.fortify) {
     side.fortifySlot.block += (effects.fortify.block ?? 0);
+    side.fortifySlot.duration = Math.max(side.fortifySlot.duration ?? 0, effects.fortify.duration);
     emit?.('fortify', { side: casterKey, block: side.fortifySlot.block, duration: effects.fortify.duration });
   }
 
@@ -207,11 +233,61 @@ export function applyCardEffects(state, casterKey, caster, effects = {}, opts = 
       const hits = (effects.hits ?? 1) * scale;
       for (let i = 0; i < hits; i++) {
         if (t.hp <= 0) break;
-        applyDamage(t, computeAttackDamage(effects.dmg, caster.statuses, t.statuses), emit);
+        const targetSide = state.player.fighters.includes(t) ? state.player : state.enemy;
+        applyDamage(t, computeAttackDamage(effects.dmg, caster.statuses, t.statuses), emit, false, targetSide);
       }
     }
     if (effects.block) gainBlock(t, effects.block * scale, emit);
     if (effects.heal) applyHeal(t, effects.heal * scale, emit);
+    if (effects.displacement && t.hp > 0) {
+      const targetSideKey = state.player.fighters.includes(t) ? 'player' : 'enemy';
+      const targetSide = state[targetSideKey];
+      if (targetSide.fighters[targetSide.vanguardIndex] === t) {
+        const benchIdxs = targetSide.fighters
+          .map((f, idx) => ({ f, idx }))
+          .filter((item) => item.idx !== targetSide.vanguardIndex && item.f.hp > 0)
+          .map((item) => item.idx);
+
+        if (benchIdxs.length > 0) {
+          const oldIndex = targetSide.vanguardIndex;
+          let chosenIdx;
+          if (effects.displacement.chooser === 'random') {
+            const randVal = rng();
+            chosenIdx = benchIdxs[Math.floor(randVal * benchIdxs.length)];
+          } else {
+            chosenIdx = benchIdxs[0];
+          }
+
+          discardWholeHand(t);
+          targetSide.vanguardIndex = chosenIdx;
+          const incoming = targetSide.fighters[chosenIdx];
+          drawFreshHand(incoming, targetSide.handSize, rng);
+
+          emit?.('displacement', {
+            side: targetSideKey,
+            fromIndex: oldIndex,
+            toIndex: chosenIdx,
+            chooser: effects.displacement.chooser
+          });
+
+          const allCards = [
+            ...incoming.deck.drawPile,
+            ...incoming.deck.discardPile,
+            ...incoming.deck.exhaustPile,
+            ...incoming.hand
+          ];
+          for (const card of allCards) {
+            if (card.swapInBoon) {
+              applyCardEffects(state, targetSideKey, incoming, card.swapInBoon, opts);
+            }
+          }
+
+          if (targetSideKey === 'enemy') {
+            state.enemyPlan = [];
+          }
+        }
+      }
+    }
   }
   return targets;
 }
