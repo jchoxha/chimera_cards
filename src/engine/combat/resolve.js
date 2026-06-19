@@ -89,11 +89,13 @@ export function resolveScope(state, casterKey, caster, scope, { targetId } = {})
   if (d.excludesSelf) candidates = candidates.filter((f) => f !== caster);
 
   if (d.selection === 'all') return candidates;
-  // single selection: honor the chosen target, else fall back to the first
-  // candidate (the Vanguard for active scopes) as the engine default.
+  // single selection: honor the chosen target when it's reachable by this scope.
+  // If the requested target isn't a valid candidate (e.g. an attack aimed at a
+  // back-row foe under an active-only scope), fall back to the scope's default
+  // candidate — the Vanguard for active scopes — rather than fizzling.
   if (targetId != null) {
     const picked = candidates.find((f) => f.id === targetId);
-    return picked ? [picked] : [];
+    if (picked) return [picked];
   }
   return candidates.length ? [candidates[0]] : [];
 }

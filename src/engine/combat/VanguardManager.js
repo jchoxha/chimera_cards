@@ -27,6 +27,7 @@ import {
   discardHandEndOfTurn,
   discardWholeHand
 } from './deckOps.js';
+import { draftCards, combinedTypeWeights } from '../cards/rarity.js';
 
 /** @typedef {import('../types.js').CombatState} CombatState */
 /** @typedef {import('../types.js').Fighter} Fighter */
@@ -43,11 +44,15 @@ export class VanguardManager {
    * @param {Object} [args.config]                 { energyPerTurn, handSize, peekCharges }
    * @param {(e: any) => void} [args.log]
    * @param {() => number} [args.rng]
+   * @param {(rarity: import('../types.js').CardRarity, type: string|null, rng: ()=>number) => import('../types.js').Card} [args.pickCard]
+   *        Card-database resolver for post-victory rewards (see cardPool.js). If
+   *        omitted, `generateReward` throws.
    */
-  constructor({ playerFighters, enemyFighters, room, rarity, config, log, rng = Math.random }) {
+  constructor({ playerFighters, enemyFighters, room, rarity, config, log, rng = Math.random, pickCard }) {
     this.rng = rng;
     this.config = config;
-    
+    this.pickCard = pickCard;
+
     // createCombatState sets energyRule: 'bench' for both sides
     this.state = createCombatState({
       playerFighters,
@@ -493,6 +498,24 @@ export class VanguardManager {
   }
 
   /**
+   * Spend ONE charge to reveal the enemy's ENTIRE forecasted turn at once —
+   * every planned action (including post-swap incoming Vanguard moves). A Peek
+   * scouts a whole turn, not a single move (spec §2 macro-silhouette intel).
+   * @returns {boolean} Whether a charge was spent (false if none left / nothing hidden).
+   */
+  peekAll() {
+    const s = this.state;
+    if (s.peekCharges <= 0) return false;
+    const hidden = s.enemyPlan.filter((a) => !a.revealed);
+    if (hidden.length === 0) return false;
+
+    s.peekCharges -= 1;
+    for (const action of s.enemyPlan) action.revealed = true;
+    this._emit('peek', { all: true, plan: s.enemyPlan });
+    return true;
+  }
+
+  /**
    * Swap the active Vanguard with a benched monster.
    * @param {number} benchIndex
    * @returns {boolean} Whether the swap was successful.
@@ -852,6 +875,30 @@ export class VanguardManager {
       return true;
     }
     return false;
+  }
+
+  // ── Rewards (adaptive Pity-Offset engine) ───────────────────────────────────
+
+  /**
+   * Generate a post-victory card-reward offering, advancing the pity offset.
+   * The card TYPE distribution follows the COMBINED typings of the SURVIVING
+   * player fighters (spec §2A); rarity follows the room + pity offset. Boss rooms
+   * force Rare. Requires a `pickCard` resolver supplied to the constructor.
+   * @param {number} [count]
+   * @returns {Card[]}
+   */
+  generateReward(count = 3) {
+    if (!this.pickCard) throw new Error('generateReward needs a pickCard resolver');
+    const survivors = this.state.player.fighters.filter((f) => f.hp > 0);
+    const typeWeights = combinedTypeWeights(survivors.map((f) => f.types));
+    return draftCards({
+      state: this.state.rarity,
+      room: this.state.room,
+      count,
+      typeWeights,
+      pickCard: this.pickCard,
+      rng: this.rng,
+    });
   }
 }
 

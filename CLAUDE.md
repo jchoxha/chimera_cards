@@ -45,6 +45,28 @@ vocabulary + classifier (`src/engine/combat/scopes.js`), all validated by
 `npm run test:combat` (37 checks, structural only — **ready for turn behavior**).
 
 **Done so far:**
+- **Victory reward flow restored, DONE 2026-06-19 (v3.11.0).** `VanguardManager.generateReward(count)`
+  drafts cards through the adaptive Pity-Offset engine (`cards/rarity.js`), with the card-TYPE
+  distribution weighted by the SURVIVING player fighters' combined typings (spec §2A) and a
+  `pickCard` resolver (`content/cardPool.js`) passed via the constructor. Store gained
+  `reward` state + `rollReward`; `CombatScreen.jsx` shows a landscape OPEN-REWARD → 3-card
+  overlay. Rewards are display-only (no run/deck persistence yet). Verified headless.
+- **Vanguard engine → Store → UI WIRED + landscape combat, DONE 2026-06-19 (v3.10.0).**
+  `src/store/combatStore.js` now wraps **`VanguardManager`** (not the old `GameEngine`/
+  `CombatManager`): it builds symmetrical player/enemy `Fighter[]`, publishes an
+  immutable per-render snapshot (`player`/`enemy` sides with `fighters`, `vanguardIndex`,
+  energy, `enemyPlan`, `peekCharges`), and exposes `play/swap/peekAll/endTurn` actions.
+  `src/ui/combat/CombatScreen.jsx` is **rebuilt landscape, no-scroll** (3-column arena:
+  FOES mini-list · plan/Peek bar + featured FOE/YOU cards + fanned hand · YOUR TEAM
+  mini-list + log + dock). Key fixes this milestone: (a) **Peek reveals the ENTIRE enemy
+  turn for one charge** (`VanguardManager.peekAll()`) — per-slot reveal was wrong;
+  (b) **status/block now visible on every unit** (mini-fighter pips + big-card chips/badges);
+  (c) **content bridge fix** — `engine/content/adapt.js` now assigns each adapted card a
+  `scope` (offensive→`enemyActiveTarget`, else `selfOnlyTarget`) and maps `regen`→self
+  status; without a scope the resolver skipped ALL scoped effects, so player cards did
+  nothing. `enemies.js` gained `makeEnemyFighter()` (archetype moves → a Fighter deck).
+  `resolveScope` single-target now falls back to the default candidate instead of fizzling.
+  Validated headless (Playwright) + all node smoke tests green.
 - **Vanguard turn engine — Layers 1, 2, 3, & 4 (swaps & AI planner), DONE 2026-06-18.** All turn cycle
   foundations, block decay, DoT/Regen timings, manual swaps, entry boons, forced displacement, and
   free death-swaps are complete. Layer 4 is fully implemented: player Peek charge limits,
@@ -172,7 +194,15 @@ correct `/<repo>/` base path (`VITE_BASE`) and publishes to GitHub Pages. Both
 ## Roadmap / next steps (candidates, not yet started)
 
 The new engine is the active direction. Likely next work:
-- **Wire Vanguard engine to UI & Store (Top Priority)** — Integrate the completed `VanguardManager` and symmetrical `CombatState` into the Zustand store (`src/store/combatStore.js`) and update `src/ui/combat/CombatScreen.jsx` to display the new active Vanguard, Bench, energy economy, and Peek forecast silhouettes/reveals.
+- **✅ DONE (2026-06-19) — Wire Vanguard engine to UI & Store + victory rewards.**
+  `VanguardManager` is now driven by `combatStore.js` and rendered by the landscape
+  `CombatScreen.jsx` (see "Done so far"). Victory **reward flow restored** (v3.11.0):
+  `VanguardManager.generateReward()` drafts via the Pity-Offset engine weighted by the
+  SURVIVING fighters' combined typings; store `rollReward` + a landscape reward overlay.
+  Next combat-UI candidates: animate damage/status events from the engine event stream;
+  per-card target picking for future flex/any-target cards (engine + UI both currently
+  front-target); "add reward card to a deck" (rewards are display-only — no run/deck
+  persistence layer yet).
 
 - **Wire real art** into combat via a manifest (Variant-B baked art → `public/art/`),
   using `scripts/agy_call.py`; add WebP post-processing + lazy-load.

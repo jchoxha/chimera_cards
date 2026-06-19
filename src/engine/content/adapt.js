@@ -55,14 +55,29 @@ export function adaptCard(raw, ctx = {}) {
   if (raw.draw) effects.draw = raw.draw;
   if (raw.energy) effects.energy = raw.energy;        // bonus energy this turn
   if (raw.strength) effects.strength = raw.strength;  // self Strength (active fighter)
-  if (raw.shield) effects.shield = raw.shield;        // TEAM shield (shared, resets each turn)
-  if (raw.teamheal) effects.teamheal = raw.teamheal;  // heal whole party now
-  if (raw.regen) effects.regen = raw.regen;           // heal-over-time stacks (active)
-  if (raw.leech) effects.leech = true;                // heal active for a share of dmg dealt
+  if (raw.shield) effects.shield = raw.shield;        // TEAM shield — REMOVED in Vanguard model (inert)
+  if (raw.teamheal) effects.teamheal = raw.teamheal;  // heal whole party — not in live set (inert)
+  if (raw.leech) effects.leech = true;                // lifesteal — not modeled yet (inert)
+
+  // Self heal-over-time → the live `regen` self-status (the engine ticks it at
+  // the carrier's own turn-end; spec §3.2).
+  const selfStatus = {};
+  if (raw.regen) selfStatus.regen = raw.regen;
+  if (Object.keys(selfStatus).length) effects.selfStatus = selfStatus;
 
   const applyStatus = {};
   for (const k of TARGET_STATUS) if (raw[k]) applyStatus[k] = raw[k];
   if (Object.keys(applyStatus).length) effects.applyStatus = applyStatus;
+
+  // Targeting scope. Legacy cards predate the 18-token scope system; the 1-v-1
+  // data maps cleanly to single-target Vanguard scopes. Offensive fields
+  // (damage / debuff statuses) hit the enemy Vanguard; everything else (block,
+  // self-buffs, draw/energy economy) resolves on the caster. Without a scope the
+  // engine skips ALL scoped effects (resolve.js), so this assignment is required
+  // for player cards to actually do anything.
+  effects.scope = (effects.dmg != null || effects.applyStatus != null)
+    ? 'enemyActiveTarget'
+    : 'selfOnlyTarget';
 
   // Legacy boolean flags → engine keyword list (preserve any explicit keywords).
   const keywords = [...(raw.keywords ?? [])];

@@ -1,10 +1,13 @@
 /* ╔══════════════════════════════════════════════════════════════════╗
    ║ MODULE: ui/combat/combat.css — the ornate "TCG" battle skin.        ║
-   ║ Ported from public/mockup-battle.html (the locked redesign), wired  ║
-   ║ to live engine state by CombatScreen.jsx.                           ║
-   ║ UPDATE WHEN: the combat visual language changes. Mobile-portrait     ║
-   ║ first: enemies (strip + carousel) on top, active ally below, the     ║
-   ║ dock + fanned hand in the bottom thumb-zone.                        ║
+   ║ LANDSCAPE, no-scroll. Wired to live engine state by CombatScreen.   ║
+   ║ Layout: topbar across the top, then a 3-column arena that fills the  ║
+   ║ rest of the viewport —                                              ║
+   ║   left   = FOES mini-list                                           ║
+   ║   center = enemy-plan/Peek bar · featured FOE + active YOU cards ·   ║
+   ║            fanned hand                                               ║
+   ║   right  = YOUR TEAM mini-list · log · dock (energy + end turn)      ║
+   ║ UPDATE WHEN: the combat visual language changes.                    ║
    ╚══════════════════════════════════════════════════════════════════╝ */
 
 :root {
@@ -14,192 +17,240 @@
 
 .cmbt *{box-sizing:border-box;margin:0;padding:0}
 .cmbt iconify-icon{display:inline-flex;align-items:center;justify-content:center;vertical-align:middle}
+
+/* lock the page to the viewport whenever the combat screen is mounted —
+   no scrolling behavior anywhere (landscape, fixed-frame combat). */
+html:has(.cmbt),body:has(.cmbt){height:100%;margin:0;overflow:hidden}
+#root:has(.cmbt){height:100%}
+
+/* ---------- root: full viewport, never scrolls ---------- */
 .cmbt{
-  font-family:'Spectral',Georgia,serif;color:#f3ecd8;min-height:100dvh;
+  font-family:'Spectral',Georgia,serif;color:#f3ecd8;
+  height:100%;width:100%;overflow:hidden;
   background:
     radial-gradient(ellipse at 50% 0%, #5a3a22 0%, #3a2516 40%, #241509 80%),
     repeating-linear-gradient(92deg,#0000 0 38px,#00000022 38px 40px);
   background-blend-mode:multiply;
-  display:flex;flex-direction:column;gap:8px;padding:10px 10px calc(10px + env(safe-area-inset-bottom,0px));
-  max-width:780px;margin:0 auto;overflow-x:hidden;
+  display:flex;flex-direction:column;gap:6px;
+  padding:6px 8px calc(6px + env(safe-area-inset-bottom,0px));
 }
 
 /* ---------- topbar ---------- */
-.topbar{display:flex;justify-content:space-between;align-items:center;
-  font-family:'Cinzel',serif;font-size:12px;letter-spacing:1px;color:#e8dcc0}
-.topbar .pill{background:#00000055;border:1px solid #c9a23a55;padding:3px 10px;border-radius:20px;
+.topbar{flex:0 0 auto;display:flex;justify-content:space-between;align-items:center;
+  font-family:'Cinzel',serif;font-size:11px;letter-spacing:1px;color:#e8dcc0}
+.topbar .pill{background:#00000055;border:1px solid #c9a23a55;padding:2px 10px;border-radius:20px;
   display:flex;align-items:center;gap:6px}
 
+/* ---------- arena: 3 columns filling the rest of the height ---------- */
+.arena{flex:1 1 auto;min-height:0;display:flex;gap:8px}
+.sideCol{flex:0 0 auto;width:clamp(140px,16vw,200px);display:flex;flex-direction:column;
+  gap:6px;min-height:0}
+.centerCol{flex:1 1 auto;min-width:0;min-height:0;display:flex;flex-direction:column;gap:6px}
+.colHead{flex:0 0 auto;font-family:'Cinzel',serif;font-weight:700;font-size:11px;letter-spacing:1.5px;
+  text-transform:uppercase;color:var(--gold4);display:flex;align-items:center;gap:5px;
+  padding:1px 2px 3px;border-bottom:1px solid #c9a23a44}
+.foesCol .colHead{color:#ffbcaf}
+
+/* ---------- mini-fighter (side columns; ALL statuses visible) ---------- */
+.miniList{flex:0 0 auto;display:flex;flex-direction:column;gap:5px;overflow:hidden}
+.mf{position:relative;border-radius:9px;padding:5px 7px;cursor:pointer;
+  background:#1a1020cc;border:1.5px solid #5a4a2a;transition:border-color .15s,transform .12s}
+.mf.foe{border-color:#5a2a2a;background:#1f1216cc}
+.mf.ally{border-color:#2a4a3a;background:#121f18cc}
+.mf.sel{border-color:#ffd34d;box-shadow:0 0 9px #ffd34d66;transform:translateY(-1px)}
+.mf.vanguard{box-shadow:inset 0 0 0 1px var(--gold2)}
+.mf.foe.vanguard{box-shadow:inset 0 0 0 1px #ff8a6b}
+.mf.swappable{cursor:pointer}
+.mf.swappable:hover{border-color:var(--gold1);transform:translateY(-1px)}
+.mf.dead{opacity:.4;filter:grayscale(1);cursor:default}
+.mfTop{display:flex;align-items:center;justify-content:space-between;gap:4px;margin-bottom:3px}
+.mfName{font-family:'Cinzel',serif;font-weight:700;font-size:10.5px;color:var(--cream);
+  display:flex;align-items:center;gap:3px;line-height:1.05;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.mf.foe .mfName{color:#ffd9d9}
+.mfName .vgIcon{color:var(--gold1);font-size:11px;flex:0 0 auto}
+.mfEl{font-size:15px;flex:0 0 auto}
+.mfHp{position:relative;height:13px;border-radius:7px;overflow:hidden;background:#120b18;
+  box-shadow:inset 0 0 0 1px #00000088}
+.mfHp i{position:absolute;inset:0;background:linear-gradient(#8ef0a8,#2ea85c);transition:width .25s}
+.mf.foe .mfHp i{background:linear-gradient(#ff8a7a,#d23b2c)}
+.mfHp i.low{background:linear-gradient(#ffcf7a,#e0902a)}
+.mfHp em{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;
+  font-family:'Cinzel',serif;font-weight:700;font-size:8.5px;color:#fff;text-shadow:0 1px 1px #000,0 0 2px #000}
+.mfStats{display:flex;flex-wrap:wrap;gap:3px;margin-top:4px;min-height:0}
+.mfStats.empty{display:none}
+.pip{display:flex;align-items:center;gap:2px;font-size:9px;font-weight:700;padding:1px 5px;border-radius:10px;
+  background:#1c1530;border:1px solid #4a3f63;color:#e8dcff;line-height:1.3}
+.pip iconify-icon{font-size:11px}
+.pip.blk{border-color:#6aa3d6;color:#bfe0ff}
+.pip.str{border-color:#e0a85a;color:#ffdca0}
+.pip.burn{border-color:#e2693a;color:#ffc09a}
+.pip.pois{border-color:#7bc24a;color:#d6f0a8}
+.pip.rgn{border-color:#5ad6a3;color:#bfffe0}
+.pip.weak,.pip.vuln,.pip.frail{border-color:#b06bd6;color:#e8c0ff}
+.mfSwap{position:absolute;top:-6px;right:-6px;display:flex;align-items:center;gap:1px;
+  background:var(--gold2);color:#140e26;font-family:'Cinzel',serif;font-weight:800;font-size:9px;
+  border-radius:8px;padding:1px 5px;box-shadow:0 1px 4px #000a}
+.mfSwap iconify-icon{font-size:10px}
+
+/* ---------- center: enemy plan + single whole-turn Peek ---------- */
+.peekBar{flex:0 0 auto;display:flex;align-items:center;gap:8px;padding:4px 8px;
+  background:#00000044;border:1px solid #c9a23a33;border-radius:10px}
+.peekLabel{font-family:'Cinzel',serif;font-size:10px;letter-spacing:.8px;color:var(--gold4);
+  display:flex;align-items:center;gap:4px;white-space:nowrap}
+.planSlots{flex:1 1 auto;display:flex;align-items:center;gap:6px;overflow:hidden}
+.planEmpty{color:#9a8a6a;font-size:12px}
+.planSlot{display:flex;align-items:center;gap:3px;min-width:0;padding:3px 8px;border-radius:8px;
+  border:1px solid #4a3f63;background:#1a1230;color:#c9b88a;font-size:11px;font-weight:700}
+.planSlot iconify-icon{font-size:15px}
+.planSlot.revealed{border-color:var(--gold1);background:#2a1a0a;color:var(--cream)}
+.planSlot.revealed iconify-icon{color:var(--gold1)}
+.peekBtn{flex:0 0 auto;position:relative;display:flex;align-items:center;gap:5px;
+  font-family:'Cinzel',serif;font-weight:700;font-size:11px;letter-spacing:1px;color:#3a2606;
+  padding:5px 12px;border:none;border-radius:9px;cursor:pointer;
+  background:linear-gradient(#ffe89a,#d6a72a);box-shadow:0 3px 0 #8a6a18}
+.peekBtn:disabled{opacity:.45;cursor:default;box-shadow:0 2px 0 #8a6a18}
+.peekBtn .peekCount{background:#140e26;color:var(--gold1);font-size:9px;border-radius:8px;
+  padding:0 5px;line-height:15px;min-width:15px;text-align:center}
+
+/* ---------- center: the two featured cards ---------- */
+.cardsRow{flex:1 1 auto;min-height:0;display:flex;align-items:center;justify-content:center;gap:14px}
+.vsMark{flex:0 0 auto;font-family:'Cinzel Decorative',serif;font-weight:900;font-size:20px;color:var(--gold3);
+  text-shadow:0 0 10px #000,0 1px 0 #000;opacity:.8}
+
 /* ---------- card frame (the reusable atom) ----------
-   The metallic border BACKGROUND is set inline by frames.js (type×rarity).
-   Here we keep only the structure, bevel depth, and fallback color. */
-.frame{position:relative;border-radius:16px;padding:8px;
-  background:#3a2c12; /* fallback until frameStyle paints it */
-  box-shadow:0 12px 30px #000a, inset 0 0 0 1px #00000055, inset 0 0 16px #0006;}
-.frame .inner{position:relative;border-radius:9px;overflow:hidden;background:var(--ink);
+   The metallic border BACKGROUND is set inline by frames.js (type×rarity). */
+.frame{position:relative;border-radius:14px;padding:7px;
+  background:#3a2c12;
+  box-shadow:0 10px 26px #000a, inset 0 0 0 1px #00000055, inset 0 0 16px #0006;}
+.frame .inner{position:relative;border-radius:8px;overflow:hidden;background:var(--ink);
   box-shadow:inset 0 0 0 2px #2a200f, inset 0 0 22px #000a;}
 .frame.sel{outline:3px solid #ffd34d;outline-offset:2px}
-.holo{position:absolute;inset:0;border-radius:16px;pointer-events:none;mix-blend-mode:screen;opacity:.5;
+.holo{position:absolute;inset:0;border-radius:14px;pointer-events:none;mix-blend-mode:screen;opacity:.5;
   background:linear-gradient(115deg,transparent 28%,rgba(255,255,255,.35) 43%,rgba(120,210,255,.25) 49%,rgba(255,170,225,.25) 55%,transparent 72%);
   background-size:240% 240%;}
-/* foil rarities animate the holo sheen */
 .frame.fin-epic .holo,.frame.fin-godly .holo,.frame.fin-legendary .holo,.frame.fin-mythic .holo{
   opacity:.7;animation:holoShift 4s linear infinite}
 @keyframes holoShift{0%{background-position:0% 0%}100%{background-position:100% 100%}}
 
-/* size badge (top-left) — replaces the old level star. base size shows none. */
-.size{position:absolute;top:-9px;left:-9px;z-index:5;min-width:30px;height:30px;padding:0 7px;
-  display:flex;align-items:center;justify-content:center;gap:3px;border-radius:15px;
+/* combat card sizing — compact to fit landscape without scroll */
+.combat{flex:0 0 auto;width:clamp(150px,16vw,196px);max-height:100%;position:relative}
+
+/* size badge (top-left) */
+.size{position:absolute;top:-9px;left:-9px;z-index:5;min-width:28px;height:28px;padding:0 7px;
+  display:flex;align-items:center;justify-content:center;gap:3px;border-radius:14px;
   background:linear-gradient(160deg,#241a3a,#140e26);border:1.5px solid var(--goldB);
-  color:var(--cream);font-family:'Cinzel',serif;font-weight:700;font-size:9px;letter-spacing:.5px;
+  color:var(--cream);font-family:'Cinzel',serif;font-weight:700;font-size:8.5px;letter-spacing:.5px;
   text-transform:uppercase;box-shadow:0 2px 6px #000a}
-.size .bdg{font-size:13px}
-.elem{position:absolute;top:-8px;right:-8px;z-index:5;width:44px;height:44px;border-radius:50%;
-  display:flex;align-items:center;justify-content:center;font-size:22px;color:#fff;
+.size .bdg{font-size:12px}
+.elem{position:absolute;top:-8px;right:-8px;z-index:5;width:40px;height:40px;border-radius:50%;
+  display:flex;align-items:center;justify-content:center;font-size:20px;color:#fff;
   border:3px solid var(--goldB);box-shadow:0 2px 7px #000a, inset 0 0 8px #0006}
-.elem em{position:absolute;bottom:-13px;font-style:normal;font-family:'Cinzel',serif;font-weight:700;font-size:8px;
+.elem em{position:absolute;bottom:-12px;font-style:normal;font-family:'Cinzel',serif;font-weight:700;font-size:7.5px;
   letter-spacing:1px;color:var(--cream);text-shadow:0 1px 2px #000;text-transform:uppercase}
 
 /* side tag */
-.sideTag{position:absolute;top:7px;left:50%;transform:translateX(-50%);z-index:5;font-family:'Cinzel',serif;
-  font-weight:700;font-size:9px;letter-spacing:3px;padding:1px 12px;border-radius:0 0 6px 6px}
+.sideTag{position:absolute;top:6px;left:50%;transform:translateX(-50%);z-index:5;font-family:'Cinzel',serif;
+  font-weight:700;font-size:8.5px;letter-spacing:3px;padding:1px 12px;border-radius:0 0 6px 6px}
 .sideTag.you{background:#0d3d24cc;color:#9af0bf;border:1px solid #2e9c63}
 .sideTag.foe{background:#3d0d14cc;color:#ff9c9c;border:1px solid #b14040}
 
 /* name banner */
-.nameBan{position:relative;margin:7px 16px 0;padding:5px 8px 6px;text-align:center;border-radius:5px;
+.nameBan{position:relative;margin:6px 14px 0;padding:4px 8px 5px;text-align:center;border-radius:5px;
   background:linear-gradient(var(--ink2),var(--ink));border:1.5px solid #c9a23a;
-  font-family:'Cinzel Decorative',serif;font-weight:900;font-size:14px;color:var(--cream);
+  font-family:'Cinzel Decorative',serif;font-weight:900;font-size:12.5px;color:var(--cream);
   text-shadow:0 1px 0 #000,0 0 8px #ffcf6b55;letter-spacing:.5px;line-height:1.05}
 
-/* art scene */
-.art{position:relative;height:156px;display:flex;align-items:center;justify-content:center;
+/* art scene — height scales with viewport so the whole card fits */
+.art{position:relative;height:clamp(78px,13vh,140px);display:flex;align-items:center;justify-content:center;
   filter:drop-shadow(0 6px 10px #000a);overflow:hidden}
-.art .creature{font-size:78px;line-height:1;transition:transform .2s ease}
-.art .moon{position:absolute;top:14px;right:24px;width:36px;height:36px;border-radius:50%;
+.art .creature{font-size:clamp(48px,8vh,74px);line-height:1;transition:transform .2s ease}
+.art .moon{position:absolute;top:12px;right:22px;width:32px;height:32px;border-radius:50%;
   background:radial-gradient(circle at 40% 40%,#fffbe9,#ffe9a8);box-shadow:0 0 26px #ffe9a8aa;opacity:.85}
-.art .mtn{position:absolute;bottom:0;left:0;right:0;height:48px;background-color:#2a1c3e;opacity:.55;
+.art .mtn{position:absolute;bottom:0;left:0;right:0;height:42px;background-color:#2a1c3e;opacity:.55;
   clip-path:polygon(0 100%,14% 46%,28% 78%,46% 30%,62% 70%,78% 38%,100% 72%,100% 100%)}
-.artNote{position:absolute;bottom:3px;left:0;right:0;text-align:center;font-size:8px;color:#fff9;
-  letter-spacing:.5px;text-shadow:0 1px 2px #000}
 
 /* hp bar */
-.hpWrap{margin:7px 10px 4px;position:relative;height:18px;border-radius:9px;overflow:hidden;
+.hpWrap{margin:6px 10px 4px;position:relative;height:16px;border-radius:8px;overflow:hidden;
   background:#160f22;box-shadow:inset 0 0 0 1.5px #c9a23a, inset 0 2px 4px #000}
-.hpFill{position:absolute;inset:0;border-radius:9px;background:linear-gradient(#8ef0a8,#2ea85c);
+.hpFill{position:absolute;inset:0;border-radius:8px;background:linear-gradient(#8ef0a8,#2ea85c);
   box-shadow:inset 0 6px 6px #ffffff44, inset 0 -6px 8px #00000055;transition:width .25s ease}
 .hpFill.low{background:linear-gradient(#ff8a7a,#d23b2c)}
 .hpTxt{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-family:'Cinzel',serif;
-  font-weight:700;font-size:11px;color:#fff;text-shadow:0 1px 2px #000,0 0 3px #000}
+  font-weight:700;font-size:10.5px;color:#fff;text-shadow:0 1px 2px #000,0 0 3px #000}
 
 /* matchup line */
-.match{margin:2px 10px 0;text-align:center;font-size:10px;font-weight:700;letter-spacing:.5px;
-  display:flex;align-items:center;justify-content:center;gap:3px;min-height:13px}
+.match{margin:2px 10px 0;text-align:center;font-size:9.5px;font-weight:700;letter-spacing:.5px;
+  display:flex;align-items:center;justify-content:center;gap:3px;min-height:12px}
 .match.good{color:#9af0bf}.match.bad{color:#ff9c9c}
 
-/* status chips */
-.stats{display:flex;flex-wrap:wrap;gap:4px;justify-content:center;padding:5px 8px 8px;min-height:24px}
-.chip{font-size:10px;font-weight:600;padding:2px 7px;border-radius:20px;display:flex;align-items:center;gap:3px;
+/* status chips (big cards) */
+.stats{display:flex;flex-wrap:wrap;gap:4px;justify-content:center;padding:4px 8px 6px;min-height:20px}
+.chip{font-size:9.5px;font-weight:600;padding:2px 7px;border-radius:20px;display:flex;align-items:center;gap:3px;
   background:#1c1530;border:1px solid #4a3f63;color:#e8dcff}
-.chip iconify-icon{font-size:13px}
+.chip iconify-icon{font-size:12px}
 .chip.blk{border-color:#6aa3d6;color:#bfe0ff}.chip.str{border-color:#e0a85a;color:#ffdca0}
 .chip.burn{border-color:#e2693a;color:#ffc09a}.chip.pois{border-color:#7bc24a;color:#d6f0a8}
+.chip.rgn{border-color:#5ad6a3;color:#bfffe0}
 .chip.weak,.chip.vuln,.chip.frail{border-color:#b06bd6;color:#e8c0ff}
 
-/* intent badge */
-.intent{position:absolute;top:46px;right:8px;z-index:5;background:#1a1020;border:1.5px solid #ffd34d;
-  color:#ffd34d;font-family:'Cinzel',serif;font-weight:700;font-size:12px;padding:3px 8px;border-radius:8px;
+/* intent + block badges on big cards */
+.intent{position:absolute;top:42px;right:7px;z-index:5;background:#1a1020;border:1.5px solid #ffd34d;
+  color:#ffd34d;font-family:'Cinzel',serif;font-weight:700;font-size:11px;padding:2px 7px;border-radius:8px;
   display:flex;align-items:center;gap:4px;box-shadow:0 0 10px #ffd34d55}
-.blockBadge{position:absolute;top:46px;left:8px;z-index:5;background:#0e1c2c;border:1.5px solid #6aa3d6;
-  color:#bfe0ff;font-family:'Cinzel',serif;font-weight:700;font-size:12px;padding:3px 8px;border-radius:8px;
+.blockBadge{position:absolute;top:42px;left:7px;z-index:5;background:#0e1c2c;border:1.5px solid #6aa3d6;
+  color:#bfe0ff;font-family:'Cinzel',serif;font-weight:700;font-size:11px;padding:2px 7px;border-radius:8px;
   display:flex;align-items:center;gap:4px}
 
-/* ---------- enemy zone: strip + carousel ---------- */
-.enemyZone{display:flex;flex-direction:column;gap:8px}
-.enemyStrip{display:flex;gap:6px;overflow-x:auto;padding:2px;scrollbar-width:none}
-.enemyStrip::-webkit-scrollbar{display:none}
-.efoe{flex:0 0 auto;min-width:104px;background:#1a1020cc;border:1.5px solid #5a2a2a;border-radius:10px;
-  padding:5px 7px;cursor:pointer;transition:border-color .15s,transform .15s}
-.efoe.sel{border-color:#ffd34d;box-shadow:0 0 10px #ffd34d55;transform:translateY(-2px)}
-.efoe.dead{opacity:.4;filter:grayscale(1);cursor:default}
-.efoe .nm{font-family:'Cinzel',serif;font-size:10px;font-weight:700;color:#ffd9d9;display:flex;
-  align-items:center;justify-content:space-between;gap:4px;margin-bottom:3px}
-.efoe .nm .it{color:#ffd34d;display:flex;align-items:center;gap:2px;font-size:10px}
-.efoe .mini{position:relative;height:11px;border-radius:6px;overflow:hidden;background:#120b18;
-  box-shadow:inset 0 0 0 1px #5a2a2a}
-.efoe .mini i{position:absolute;inset:0;background:linear-gradient(#ff8a7a,#d23b2c);transition:width .25s}
-.efoe .dots{display:flex;gap:3px;margin-top:3px;flex-wrap:wrap;min-height:8px}
-.efoe .dot{width:7px;height:7px;border-radius:50%;background:#7a5a3a}
-.efoe .dot.burn{background:#e2693a}.efoe .dot.pois{background:#7bc24a}
-.efoe .dot.str{background:#e0a85a}.efoe .dot.weak{background:#b06bd6}
-
-.feature{display:flex;align-items:center;justify-content:center;gap:6px}
-.carouselArrow{flex:0 0 auto;width:32px;height:56px;border-radius:10px;cursor:pointer;
-  background:#1a1020cc;border:1.5px solid #c9a23a66;color:#ffd34d;font-size:20px;
-  display:flex;align-items:center;justify-content:center}
-.carouselArrow:disabled{opacity:.25;cursor:default}
-.combat{flex:1 1 0;max-width:218px;position:relative}
-
-/* ---------- log ---------- */
-.log{margin:2px auto;width:100%;max-width:560px;background:linear-gradient(#efe2bd,#d8c79a);color:#3a2c12;
-  border:2px solid #8a6a18;border-radius:8px;padding:6px 12px;font-size:11.5px;line-height:1.5;
-  box-shadow:0 6px 16px #0007, inset 0 0 18px #00000022;max-height:74px;overflow-y:auto}
-.log b{font-weight:700}
-.log .rx{color:#1d6e56;font-weight:600}
-.log .dmg{color:#a01b12;font-weight:600}
-
-/* ---------- ally zone ---------- */
-.allyZone{display:flex;justify-content:center}
-
-/* ---------- dock ---------- */
-.dock{display:flex;align-items:flex-end;gap:10px;margin-top:2px;flex-wrap:wrap}
-.orb{flex:0 0 auto;width:56px;height:56px;border-radius:50%;display:flex;flex-direction:column;align-items:center;justify-content:center;
-  background:radial-gradient(circle at 38% 30%,#cfeaff,#3f7fe6 52%,#16306e);border:3px solid var(--goldB);
-  box-shadow:0 4px 12px #000a, inset 0 0 12px #0006;font-family:'Cinzel',serif;color:#fff;text-shadow:0 1px 2px #000}
-.orb b{font-size:17px;line-height:1}.orb small{font-size:8px;letter-spacing:1px;opacity:.9}
-.bench{display:flex;gap:6px;flex-wrap:wrap}
-.benchMon{width:46px;height:54px;border-radius:8px;background:#1a1430;border:1.5px solid #5a4a2a;
-  display:flex;flex-direction:column;align-items:center;justify-content:center;color:#cfc8e8;cursor:pointer;
-  position:relative;transition:border-color .15s,transform .15s}
-.benchMon iconify-icon{font-size:20px}
-.benchMon .em{font-size:20px;line-height:1}
-.benchMon.active{border-color:#9af0bf;box-shadow:0 0 10px #2ea85c88;cursor:default}
-.benchMon.dead{opacity:.4;filter:grayscale(1);cursor:default}
-.benchMon span{font-size:8px;margin-top:1px;font-family:'Cinzel',serif}
-.endBtn{margin-left:auto;font-family:'Cinzel',serif;font-weight:700;letter-spacing:1px;font-size:14px;color:#3a2606;
-  padding:11px 18px;border:none;border-radius:12px;cursor:pointer;display:flex;align-items:center;gap:6px;
-  background:linear-gradient(#ffe89a,#d6a72a);box-shadow:0 5px 0 #8a6a18,0 8px 16px #0008}
-.endBtn:disabled{opacity:.5;cursor:default;box-shadow:0 3px 0 #8a6a18}
-
-/* ---------- hand — fanned move cards ---------- */
-.handWrap{margin-top:6px;display:flex;justify-content:center;align-items:flex-end;min-height:188px;overflow-x:auto}
+/* ---------- center: hand (fanned move cards) ---------- */
+.handWrap{flex:0 0 auto;display:flex;justify-content:center;align-items:flex-end;
+  height:clamp(132px,22vh,176px)}
 .hand{display:flex;align-items:flex-end;padding:0 12px}
-.move{flex:0 0 auto;width:98px;margin:0 -9px;transform-origin:bottom center;
+.move{flex:0 0 auto;width:clamp(82px,9vw,100px);margin:0 -8px;transform-origin:bottom center;
   transition:transform .18s ease, filter .18s ease;cursor:pointer;position:relative}
 .move.unplayable{filter:grayscale(.7) brightness(.7);cursor:default}
-.move:not(.unplayable):hover,.move:not(.unplayable):focus{transform:translateY(-22px) scale(1.05) rotate(0)!important;
+.move:not(.unplayable):hover,.move:not(.unplayable):focus{transform:translateY(-20px) scale(1.06) rotate(0)!important;
   filter:drop-shadow(0 14px 22px #000b);z-index:9}
-.cost{position:absolute;top:-9px;left:-9px;z-index:6;width:32px;height:32px;border-radius:50%;
-  display:flex;align-items:center;justify-content:center;font-family:'Cinzel',serif;font-weight:900;font-size:14px;color:#fff;
+.cost{position:absolute;top:-9px;left:-9px;z-index:6;width:30px;height:30px;border-radius:50%;
+  display:flex;align-items:center;justify-content:center;font-family:'Cinzel',serif;font-weight:900;font-size:13px;color:#fff;
   background:radial-gradient(circle at 38% 30%,#cfeaff,#3f7fe6 52%,#16306e);border:2px solid var(--goldB);
   box-shadow:0 2px 6px #000a;text-shadow:0 1px 2px #000}
-.move .micon{height:52px;display:flex;align-items:center;justify-content:center;font-size:30px;color:#fff}
+.move .micon{height:46px;display:flex;align-items:center;justify-content:center;font-size:27px;color:#fff}
 .move .micon.atk{background:radial-gradient(circle at 50% 60%,#ffd27a,#d23b2c 70%)}
 .move .micon.def{background:radial-gradient(circle at 50% 60%,#bfe0ff,#2e6fb0 70%)}
 .move .micon.util{background:radial-gradient(circle at 50% 60%,#d9c0ff,#6a3fb0 70%)}
-.move .mn{font-family:'Cinzel',serif;font-weight:700;font-size:10px;text-align:center;color:var(--cream);
+.move .mn{font-family:'Cinzel',serif;font-weight:700;font-size:9.5px;text-align:center;color:var(--cream);
   padding:3px 2px 1px;letter-spacing:.3px;line-height:1.1}
-.move .mt{background:linear-gradient(#efe2bd,#dccba0);color:#3a2c12;font-size:8.5px;line-height:1.25;
-  padding:4px 5px 5px;min-height:54px}
+.move .mt{background:linear-gradient(#efe2bd,#dccba0);color:#3a2c12;font-size:8px;line-height:1.22;
+  padding:3px 5px 4px;min-height:42px}
 .move .mt b{font-weight:600}
-.playHint{display:flex;align-items:center;justify-content:center;gap:6px;text-align:center;font-family:'Cinzel',serif;
-  font-size:10px;letter-spacing:2px;color:#9af0bf;opacity:.8;min-height:14px}
 
-/* ---------- overlay (victory / defeat / reward) ---------- */
+/* ---------- right: log ---------- */
+.log{flex:1 1 auto;min-height:0;overflow-y:auto;background:linear-gradient(#efe2bd,#d8c79a);color:#3a2c12;
+  border:2px solid #8a6a18;border-radius:8px;padding:5px 10px;font-size:11px;line-height:1.45;
+  box-shadow:0 6px 16px #0007, inset 0 0 18px #00000022}
+.log b{font-weight:700}
+.log .rx{color:#1d6e56;font-weight:600}
+.log .dmg{color:#a01b12;font-weight:600}
+.log .pk{color:#6a4a14;font-weight:600}
+.logEmpty{opacity:.5}
+
+/* ---------- right: dock (energy orb + end turn) ---------- */
+.dock{flex:0 0 auto;display:flex;align-items:center;gap:10px}
+.orb{flex:0 0 auto;width:52px;height:52px;border-radius:50%;display:flex;flex-direction:column;align-items:center;justify-content:center;
+  background:radial-gradient(circle at 38% 30%,#cfeaff,#3f7fe6 52%,#16306e);border:3px solid var(--goldB);
+  box-shadow:0 4px 12px #000a, inset 0 0 12px #0006;font-family:'Cinzel',serif;color:#fff;text-shadow:0 1px 2px #000}
+.orb b{font-size:16px;line-height:1}.orb small{font-size:7.5px;letter-spacing:1px;opacity:.9}
+.endBtn{flex:1 1 auto;font-family:'Cinzel',serif;font-weight:700;letter-spacing:1px;font-size:13px;color:#3a2606;
+  padding:11px 14px;border:none;border-radius:12px;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px;
+  background:linear-gradient(#ffe89a,#d6a72a);box-shadow:0 5px 0 #8a6a18,0 8px 16px #0008}
+.endBtn:disabled{opacity:.5;cursor:default;box-shadow:0 3px 0 #8a6a18}
+
+/* ---------- overlay (victory / defeat) ---------- */
 .overlay{position:fixed;inset:0;background:#140e26ee;display:grid;place-items:center;z-index:50;padding:18px}
 .overlay .panel{text-align:center;max-width:460px;width:100%}
 .overlay h1{font-family:'Cinzel Decorative',serif;font-size:38px;margin-bottom:14px;
   color:var(--cream);text-shadow:0 0 18px #ff8a3a,0 2px 0 #000}
 .overlay h1.lose{color:#ff9c9c;text-shadow:0 0 18px #b1404088}
-.rewardRow{display:flex;gap:10px;justify-content:center;flex-wrap:wrap;margin:14px 0}
-.rewardRow .move{margin:0;cursor:default}
+.rewardRow{display:flex;gap:12px;justify-content:center;flex-wrap:wrap;margin:14px 0}
+.rewardRow .move{flex:0 0 auto;width:clamp(96px,11vw,120px);margin:0;cursor:default}
+.rewardRow .move .mt{min-height:48px}

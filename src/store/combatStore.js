@@ -1,137 +1,173 @@
 // ╔══════════════════════════════════════════════════════════════════╗
 // ║ MODULE: store/combatStore — Zustand bridge between the engine and   ║
-// ║ the React view.                                                     ║
+// ║ the React view. Wraps VanguardManager (symmetrical Vanguard/Peek    ║
+// ║ model) and exposes an immutable snapshot each render.               ║
 // ║ UPDATE WHEN: the UI needs more engine state, or new combat actions. ║
 // ╚══════════════════════════════════════════════════════════════════╝
 //
-// The engine mutates a CombatState in place (fast, GC-light). React needs new
+// The engine mutates CombatState in place (GC-light). React needs new
 // references to re-render, so after every action we publish an immutable
-// `snapshot` of just what the UI reads, plus a `version` tick. The engine and
-// the live CombatManager are kept off to the side (not what components read).
+// `snapshot` of what the UI reads, plus a `version` tick.
 
 import { create } from 'zustand';
-import { GameEngine } from '../engine/index.js';
+import { VanguardManager } from '../engine/combat/VanguardManager.js';
+import { createFighter } from '../engine/combat/state.js';
 import { adaptRoster } from '../engine/content/adapt.js';
 import { buildCardPool } from '../engine/content/cardPool.js';
-import { makeEnemy, basicEnemyAI } from '../engine/content/enemies.js';
+import { makeEnemyFighter } from '../engine/content/enemies.js';
 import { DEFAULT_MONSTERS } from '../data/monsters.js';
 import { TYPE_MOVES } from '../data/moves.js';
 
-// Build the content layer once at module load.
+// Build the adapted roster + reward card pool once at module load.
 const ROSTER = adaptRoster(DEFAULT_MONSTERS);
 const POOL = buildCardPool({ rawMonsters: DEFAULT_MONSTERS, typeMoves: TYPE_MOVES });
 
 const DEFAULT_PARTY = ['Cindermouse', 'Snowpup', 'Tidalith'];
 const DEFAULT_ENCOUNTER = ['slime', 'hexer'];
 
-/** Run-scoped clones so combat never mutates roster templates. */
-function cloneParty(names) {
+/** Convert an adapted Monster → Fighter (loads signatureCards as draw pile). */
+function monsterToFighter(m) {
+  const f = createFighter({
+    id: m.id,
+    name: m.name,
+    types: m.types,
+    hp: m.hp,
+    maxHp: m.maxHp,
+    meta: { ...m.meta, form: m.form },
+  });
+  f.deck.drawPile = m.signatureCards.map((c) => ({ ...c }));
+  return f;
+}
+
+/** Build player Fighter[] from party name list. */
+function buildPlayerFighters(names) {
   return names
     .map((n) => ROSTER.find((m) => m.name === n))
     .filter(Boolean)
-    .map((m) => ({ ...m, hp: m.maxHp, types: m.types.map((t) => ({ ...t })), signatureCards: m.signatureCards.map((c) => ({ ...c })) }));
+    .map(monsterToFighter);
 }
 
-/** Immutable view of CombatState for the UI. */
-function snapshot(cm) {
-  const s = cm.state;
+/** Map a single Fighter to its UI-safe shape. */
+function mapFighter(f) {
+  return {
+    id: f.id,
+    name: f.name,
+    hp: f.hp,
+    maxHp: f.maxHp,
+    block: f.block,
+    statuses: f.statuses.map((x) => ({ ...x })),
+    types: f.types.map((t) => ({ ...t })),
+    element: f.meta?.element ?? f.types[0]?.type ?? null,
+    hand: f.hand.map((c) => ({ ...c, effects: { ...c.effects } })),
+    piles: {
+      draw: f.deck.drawPile.length,
+      discard: f.deck.discardPile.length,
+      exhaust: f.deck.exhaustPile.length,
+    },
+    sprite: f.meta?.sprite ?? null,
+    form: f.meta?.form ?? 'regular',
+    rarity: f.meta?.rarity ?? 'common',
+    icon: f.meta?.icon ?? null,
+  };
+}
+
+/** Immutable snapshot of CombatState for the UI. */
+function snapshot(vm) {
+  const s = vm.state;
   return {
     phase: s.phase,
     turn: s.turn,
-    energy: s.energy,
-    energyPerTurn: s.energyPerTurn,
-    block: s.block,
-    statuses: s.statuses.map((x) => ({ ...x })),
-    activeId: cm.party.active?.id ?? null,
-    party: cm.party.members.map((m) => ({
-      id: m.id, name: m.name, hp: m.hp, maxHp: m.maxHp,
-      types: m.types.map((t) => ({ ...t })),
-      element: m.types[0]?.type ?? null,
-      sprite: m.meta?.sprite ?? null,
-      form: m.form ?? 'regular',
-      rarity: m.meta?.rarity ?? 'common',
+    peekCharges: s.peekCharges,
+    player: {
+      energy: s.player.energy,
+      energyPerTurn: s.player.energyPerTurn,
+      manualSwapsThisTurn: s.player.manualSwapsThisTurn,
+      vanguardIndex: s.player.vanguardIndex,
+      fighters: s.player.fighters.map(mapFighter),
+      fortifySlot: { block: s.player.fortifySlot.block },
+    },
+    enemy: {
+      vanguardIndex: s.enemy.vanguardIndex,
+      fighters: s.enemy.fighters.map(mapFighter),
+    },
+    enemyPlan: s.enemyPlan.map((a) => ({
+      silhouette: a.silhouette,
+      revealed: a.revealed,
+      actor: a.actor,
+      detail: a.detail ? { ...a.detail } : {},
     })),
-    enemies: s.enemies.map((e) => ({
-      id: e.id, name: e.name, hp: e.hp, maxHp: e.maxHp, block: e.block,
-      element: e.element ?? null,
-      icon: e.icon ?? null,
-      form: e.form ?? 'regular',
-      rarity: e.rarity ?? 'common',
-      intent: e.intent ? { ...e.intent } : null,
-      statuses: e.statuses.map((x) => ({ ...x })),
-    })),
-    hand: s.hand.map((c) => ({ ...c, effects: { ...c.effects } })),
-    piles: { draw: s.drawPile.length, discard: s.discardPile.length, exhaust: s.exhaustPile.length },
   };
 }
 
 export const useCombat = create((set, get) => ({
-  /** @type {GameEngine|null} */ engine: null,
-  /** @type {import('../engine/combat/CombatManager.js').CombatManager|null} */ combat: null,
+  /** @type {VanguardManager|null} */ vm: null,
+  /** Mutable events array; spread on each update for React diff. */
+  _events: null,
   snap: null,
   version: 0,
-  reward: null,
   log: [],
-
+  reward: null,
   roster: ROSTER,
 
-  /** Start a fresh demo combat. */
   startCombat({ party = DEFAULT_PARTY, encounter = DEFAULT_ENCOUNTER } = {}) {
     const events = [];
-    const engine = new GameEngine({
-      party: cloneParty(party),
-      enemyAI: basicEnemyAI,
-      pickCard: POOL.pick,
-    });
-    const combat = engine.startCombat({
-      enemies: encounter.map(makeEnemy),
+    const vm = new VanguardManager({
+      playerFighters: buildPlayerFighters(party),
+      enemyFighters: encounter.map(makeEnemyFighter),
       room: 'combat',
+      rarity: { offset: -0.05, ascension7: false },
+      pickCard: POOL.pick,
       log: (e) => events.push(e),
     });
-    set({ engine, combat, snap: snapshot(combat), version: 1, reward: null, log: events });
+    vm.startCombat();
+    set({ vm, _events: events, snap: snapshot(vm), version: 1, log: [...events], reward: null });
   },
 
-  /** Play a card from hand against an enemy (defaults to first living enemy). */
-  playCard(cardId, enemyId) {
-    const { combat } = get();
-    if (!combat) return;
-    const card = combat.state.hand.find((c) => c.id === cardId);
-    if (!card) return;
-    combat.playCard(card, { enemyId });
-    set((st) => ({ snap: snapshot(combat), version: st.version + 1 }));
+  /** Play a card from the player Vanguard's hand. */
+  play(cardId, opts = {}) {
+    const { vm, _events } = get();
+    if (!vm) return;
+    vm.play(cardId, opts);
+    set((st) => ({ snap: snapshot(vm), version: st.version + 1, log: [..._events] }));
   },
 
-  /** End the player turn (runs the enemy turn synchronously). */
+  /** Swap player Vanguard with a benched fighter by its index in fighters[]. */
+  swap(benchIndex) {
+    const { vm, _events } = get();
+    if (!vm) return;
+    vm.swap(benchIndex);
+    set((st) => ({ snap: snapshot(vm), version: st.version + 1, log: [..._events] }));
+  },
+
+  /** Spend a Peek charge to reveal a single planned action slot. */
+  peek(planIndex) {
+    const { vm, _events } = get();
+    if (!vm) return;
+    vm.peek(planIndex);
+    set((st) => ({ snap: snapshot(vm), version: st.version + 1, log: [..._events] }));
+  },
+
+  /** Spend one Peek charge to reveal the enemy's entire forecasted turn. */
+  peekAll() {
+    const { vm, _events } = get();
+    if (!vm) return;
+    vm.peekAll();
+    set((st) => ({ snap: snapshot(vm), version: st.version + 1, log: [..._events] }));
+  },
+
+  /** End the player turn (runs enemy turn synchronously). */
   endTurn() {
-    const { combat } = get();
-    if (!combat) return;
-    combat.endPlayerTurn();
-    set((st) => ({ snap: snapshot(combat), version: st.version + 1 }));
+    const { vm, _events } = get();
+    if (!vm) return;
+    vm.endTurn();
+    set((st) => ({ snap: snapshot(vm), version: st.version + 1, log: [..._events] }));
   },
 
-  /**
-   * Swap the active (fronting) party monster during the player's turn.
-   * In this engine block/energy/statuses/deck are shared player-side, so a
-   * switch only changes which monster's HP absorbs damage and gets regen — a
-   * free tactical swap. (Balance lever: could later cost energy or the turn.)
-   * @param {string} monsterId
-   */
-  switchActive(monsterId) {
-    const { combat } = get();
-    if (!combat) return;
-    if (combat.state.phase !== 'player') return;
-    const idx = combat.party.members.findIndex((m) => m.id === monsterId);
-    if (idx < 0) return;
-    if (!combat.party.setActive(idx)) return; // refuses fainted monsters
-    combat.state.activeIndex = combat.party.activeIndex;
-    set((st) => ({ snap: snapshot(combat), version: st.version + 1 }));
-  },
-
-  /** Generate the post-victory card reward. */
+  /** Roll the post-victory card reward offering. */
   rollReward(count = 3) {
-    const { combat } = get();
-    if (!combat) return;
-    const reward = combat.generateReward(count);
+    const { vm } = get();
+    if (!vm) return;
+    const reward = vm.generateReward(count).map((c) => ({ ...c, effects: { ...c.effects } }));
     set({ reward });
   },
 }));

@@ -9,7 +9,10 @@
 
 /** @typedef {import('../types.js').Enemy} Enemy */
 /** @typedef {import('../types.js').Intent} Intent */
+/** @typedef {import('../types.js').Fighter} Fighter */
 /** @typedef {import('../types.js').CombatState} CombatState */
+
+import { createFighter } from '../combat/state.js';
 
 /**
  * @typedef {Object} EnemyArchetype
@@ -98,4 +101,60 @@ export function basicEnemyAI(enemy, _state, _rng) {
   if (!moves || !moves.length) return { kind: 'attack', value: 5 };
   enemy._step = ((enemy._step ?? 0) + 1) % moves.length;
   return moves[enemy._step];
+}
+
+// ── Vanguard-model enemy factory ──────────────────────────────────────────────
+
+/** Convert an archetype Intent move to a Fighter Card. */
+function intentToCard(intent, archetype, idx) {
+  const base = {
+    id: `${archetype.name.toLowerCase().replace(/\s+/g, '-')}-m${idx}`,
+    name: intent.kind,
+    cardType: 'attack',
+    rarity: 'basic',
+    element: archetype.element,
+    keywords: [],
+    text: null,
+  };
+  switch (intent.kind) {
+    case 'attack':
+      return { ...base, cardType: 'attack', cost: 1,
+        effects: { dmg: intent.value, ...(intent.hits ? { hits: intent.hits } : {}), scope: 'enemyActiveTarget' },
+        text: `Deal ${intent.value}${intent.hits > 1 ? `×${intent.hits}` : ''}.` };
+    case 'block':
+      return { ...base, cardType: 'skill', cost: 1,
+        effects: { block: intent.value, scope: 'selfOnlyTarget' },
+        text: `Gain ${intent.value} Block.` };
+    case 'buff':
+      return { ...base, cardType: 'power', cost: 1,
+        effects: { strength: intent.value, scope: 'selfOnlyTarget' },
+        text: `Gain ${intent.value} Strength.` };
+    case 'debuff':
+      return { ...base, cardType: 'skill', cost: 1,
+        effects: { applyStatus: { weak: intent.value * 2 }, scope: 'enemyActiveTarget' },
+        text: `Apply ${intent.value * 2} Weak.` };
+    default:
+      return { ...base, cost: 1, effects: { dmg: 5, scope: 'enemyActiveTarget' }, text: 'Deal 5.' };
+  }
+}
+
+/**
+ * Build a Fighter from an enemy archetype for use with VanguardManager.
+ * Converts the cyclic move-set into a card deck the AI planner can reason about.
+ * @param {keyof typeof ENEMY_ARCHETYPES} key
+ * @returns {Fighter}
+ */
+export function makeEnemyFighter(key) {
+  const a = ENEMY_ARCHETYPES[key];
+  if (!a) throw new Error(`unknown enemy archetype: ${key}`);
+  const f = createFighter({
+    id: `${key}-${_uid++}`,
+    name: a.name,
+    types: [{ type: a.element, weight: 1 }],
+    hp: a.hp,
+    maxHp: a.hp,
+    meta: { element: a.element, icon: a.icon, rarity: a.rarity, form: a.form, source: 'archetype' },
+  });
+  f.deck.drawPile = a.moves.map((intent, i) => intentToCard(intent, a, i));
+  return f;
 }
