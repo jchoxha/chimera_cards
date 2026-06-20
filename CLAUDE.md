@@ -45,6 +45,20 @@ vocabulary + classifier (`src/engine/combat/scopes.js`), all validated by
 `npm run test:combat` (37 checks, structural only — **ready for turn behavior**).
 
 **Done so far:**
+- **Combat UX tweaks round 2, DONE 2026-06-19 (v3.13.0).** (a) **Action labels** — the
+  enemy plan slots and the enemy-vanguard intent badge now name the action type
+  ("Hidden Attack"/"Hidden Block"; multi-aspect → "Hidden Special" with an "Includes:
+  Attack, Block" line); hover tooltip + click both work and reveal exact numbers once
+  Peeked. The engine stores `detail.effects`/`cardName` on each `PlannedAction` so aspects
+  show while still hidden. (b) **Inspect any unit** — clicking a bench/active mini opens an
+  info modal: allies show their full **deck**, foes show only **observed moves** (cards seen
+  via the log; `play` events now carry `actorId`). Swappable allies get a "Switch In" button
+  (replaces the old confirm dialog). Store exposes the player deck (`mapFighter(f,true)`);
+  enemy decks stay hidden. (c) **Drag visuals** — the dragged card now follows the cursor
+  (ghost x/y updates on move). (d) **Strict targeting** — drop targets are validated against
+  the card's scope (`validTargetIds`); invalid targets glow red and a release there is
+  rejected with a toast ("X can only target the enemy vanguard") — no more silent
+  vanguard-retarget. Verified headless.
 - **Combat UX overhaul, DONE 2026-06-19 (v3.12.0).** `CombatScreen.jsx` + `combat.css`:
   (a) **fixed the landscape cutoff** — `.cmbt` itself lacked `box-sizing:border-box` (the
   `.cmbt *` reset skips the element), so `width/height:100%`+padding overflowed; reset now

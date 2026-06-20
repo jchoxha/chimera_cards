@@ -105,18 +105,20 @@ html:has(.cmbt),body:has(.cmbt){height:100%;margin:0;overflow:hidden}
 .planSlot iconify-icon{font-size:15px}
 .planSlot.revealed{border-color:var(--gold1);background:#2a1a0a;color:var(--cream)}
 .planSlot.revealed iconify-icon{color:var(--gold1)}
-/* plan slot hover tooltip — shows the action's TARGET (revealed or not) */
-.planSlot .ptip{display:none;position:absolute;top:calc(100% + 8px);left:50%;transform:translateX(-50%);
-  z-index:40;width:max-content;max-width:200px;flex-direction:column;gap:3px;
+/* action hover tooltip (plan slots + enemy intent badge) — shows the action's
+   TYPE, aspects, and TARGET (revealed or not) */
+.ptip{display:none;position:absolute;top:calc(100% + 8px);left:50%;transform:translateX(-50%);
+  z-index:60;width:max-content;max-width:220px;flex-direction:column;gap:3px;
   background:#140e26f2;border:1px solid var(--gold2);border-radius:8px;padding:7px 9px;
   font-family:'Spectral',serif;font-weight:400;font-size:11px;color:#f3ecd8;text-align:left;
-  box-shadow:0 8px 20px #000b}
-.planSlot:hover .ptip{display:flex}
-.planSlot .ptip::before{content:'';position:absolute;bottom:100%;left:50%;transform:translateX(-50%);
+  box-shadow:0 8px 20px #000b;pointer-events:none}
+.planSlot:hover .ptip,.intent:hover .ptip{display:flex}
+.ptip::before{content:'';position:absolute;bottom:100%;left:50%;transform:translateX(-50%);
   border:6px solid transparent;border-bottom-color:var(--gold2)}
-.planSlot .ptip b{font-family:'Cinzel',serif;font-weight:700;color:var(--gold4);text-transform:capitalize}
-.planSlot .ptip span{display:flex;align-items:center;gap:4px;color:#ffd9b0}
-.planSlot .ptip em{font-style:italic;color:#9a8a6a;font-size:10px}
+.ptip b{font-family:'Cinzel',serif;font-weight:700;color:var(--gold4);text-transform:capitalize}
+.ptip span{display:flex;align-items:center;gap:4px;color:#ffd9b0}
+.ptip .aspList{color:#cdbff0}
+.ptip em{font-style:italic;color:#9a8a6a;font-size:10px}
 .peekBtn{flex:0 0 auto;position:relative;display:flex;align-items:center;gap:5px;
   font-family:'Cinzel',serif;font-weight:700;font-size:11px;letter-spacing:1px;color:#3a2606;
   padding:5px 12px;border:none;border-radius:9px;cursor:pointer;
@@ -207,9 +209,10 @@ html:has(.cmbt),body:has(.cmbt){height:100%;margin:0;overflow:hidden}
 .chip.weak,.chip.vuln,.chip.frail{border-color:#b06bd6;color:#e8c0ff}
 
 /* intent + block badges on big cards */
-.intent{position:absolute;top:42px;right:7px;z-index:5;background:#1a1020;border:1.5px solid #ffd34d;
+.intent{position:absolute;top:42px;right:7px;z-index:6;background:#1a1020;border:1.5px solid #ffd34d;
   color:#ffd34d;font-family:'Cinzel',serif;font-weight:700;font-size:11px;padding:2px 7px;border-radius:8px;
-  display:flex;align-items:center;gap:4px;box-shadow:0 0 10px #ffd34d55}
+  display:flex;align-items:center;gap:4px;box-shadow:0 0 10px #ffd34d55;cursor:pointer}
+.intent:hover{background:#2a1810}
 .blockBadge{position:absolute;top:42px;left:7px;z-index:5;background:#0e1c2c;border:1.5px solid #6aa3d6;
   color:#bfe0ff;font-family:'Cinzel',serif;font-weight:700;font-size:11px;padding:2px 7px;border-radius:8px;
   display:flex;align-items:center;gap:4px}
@@ -231,6 +234,8 @@ html:has(.cmbt),body:has(.cmbt){height:100%;margin:0;overflow:hidden}
   animation:dropPulse 1.1s ease-in-out infinite}
 .dropHover{outline:3px solid #9af0bf!important;outline-offset:3px;
   box-shadow:0 0 22px #9af0bfaa, 0 10px 26px #000a!important}
+.dropInvalid{outline:3px solid #ff6b6b!important;outline-offset:3px;
+  box-shadow:0 0 20px #ff6b6b99, 0 10px 26px #000a!important}
 .mf.droppable{outline-offset:1px}
 @keyframes dropPulse{0%,100%{outline-color:#ffd34d66}50%{outline-color:#ffd34dee}}
 .dragGhost{position:fixed;z-index:120;pointer-events:none;width:96px;transform:translate(-50%,-60%);
@@ -239,6 +244,16 @@ html:has(.cmbt),body:has(.cmbt){height:100%;margin:0;overflow:hidden}
 .dragGhost .move .micon{height:42px;font-size:24px}
 .dragHint{margin-top:4px;text-align:center;font-family:'Cinzel',serif;font-size:9px;letter-spacing:.5px;
   color:#9af0bf;text-shadow:0 1px 3px #000;background:#000a;border-radius:6px;padding:2px 4px}
+.dragHint.bad{color:#ff9c9c}
+
+/* ---------- transient toast (invalid target, etc.) ---------- */
+/* pointer-events:none so it never blocks dragging the next card */
+.toast{position:fixed;left:50%;top:64px;transform:translateX(-50%);z-index:130;pointer-events:none;
+  display:flex;align-items:center;gap:7px;background:#2a0f12ee;border:1.5px solid #ff6b6b;
+  color:#ffd9d9;font-family:'Cinzel',serif;font-size:12px;padding:8px 14px;border-radius:10px;
+  box-shadow:0 8px 24px #000b;animation:toastIn .18s ease}
+.toast iconify-icon{font-size:16px;color:#ff8a8a}
+@keyframes toastIn{from{opacity:0;transform:translate(-50%,8px)}to{opacity:1;transform:translate(-50%,0)}}
 .cost{position:absolute;top:-9px;left:-9px;z-index:6;width:30px;height:30px;border-radius:50%;
   display:flex;align-items:center;justify-content:center;font-family:'Cinzel',serif;font-weight:900;font-size:13px;color:#fff;
   background:radial-gradient(circle at 38% 30%,#cfeaff,#3f7fe6 52%,#16306e);border:2px solid var(--goldB);
@@ -310,9 +325,18 @@ html:has(.cmbt),body:has(.cmbt){height:100%;margin:0;overflow:hidden}
 .infoHead{font-family:'Cinzel',serif;font-weight:700;font-size:16px;color:var(--gold4);
   display:flex;align-items:center;gap:7px;text-transform:capitalize}
 .infoHead iconify-icon{font-size:20px}
-.infoRow{font-size:12px;color:#d8cba8;margin-top:4px}
+.infoRow{font-size:12px;color:#d8cba8;margin-top:4px;display:flex;align-items:center;gap:5px}
+.infoRow.dim{color:#8a7a5a;font-style:italic}
 .infoChips{display:flex;flex-wrap:wrap;gap:5px;margin-top:8px}
 .infoCard{display:flex;flex-direction:column;align-items:center}
+.miniModal{max-width:360px;max-height:86vh;overflow-y:auto}
+.deckLabel{margin-top:12px;font-family:'Cinzel',serif;font-weight:700;font-size:12px;color:var(--gold4);
+  display:flex;align-items:center;gap:5px;border-top:1px solid #c9a23a33;padding-top:8px}
+.deckGrid{display:flex;flex-wrap:wrap;gap:7px;justify-content:center;margin-top:8px}
+.move.tiny{width:84px;cursor:pointer}
+.move.tiny .micon{height:38px;font-size:22px}
+.move.tiny .mt{min-height:36px}
+.deckGrid .move.tiny:hover{transform:translateY(-3px);transition:transform .12s}
 .miniModal.confirm .confirmRow{display:flex;gap:10px;justify-content:center;margin-top:14px}
 .miniModal.confirm .endBtn{flex:0 0 auto;padding:9px 16px;font-size:13px}
 .btnGhost{flex:0 0 auto;font-family:'Cinzel',serif;font-weight:700;font-size:13px;letter-spacing:.5px;

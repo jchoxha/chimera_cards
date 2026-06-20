@@ -1,14 +1,13 @@
 // ╔══════════════════════════════════════════════════════════════════╗
 // ║ MODULE: ui/combat/CombatScreen — the playable combat view of the    ║
 // ║ Vanguard/Peek engine, wearing the "TCG" skin (combat.css).          ║
-// ║ LANDSCAPE, no-scroll: a 3-column arena —                            ║
-// ║   left  = FOES (mini-fighters, status visible, tap to target)       ║
-// ║   center= enemy-plan/Peek bar · featured FOE + active YOU cards ·    ║
-// ║           DRAG-to-target hand                                        ║
-// ║   right = YOUR TEAM (mini-fighters, tap to swap) · log · dock        ║
-// ║ Cards are DRAGGED onto a target (highlighted on hover); swaps ask    ║
-// ║ for confirmation; the log persists, scrolls, minimizes, and every    ║
-// ║ creature/move/effect name opens an info popup.                       ║
+// ║ LANDSCAPE, no-scroll 3-column arena. Cards are DRAGGED onto a VALID  ║
+// ║ target (the dragged card follows the cursor; invalid drops are       ║
+// ║ rejected with a toast). The enemy plan + vanguard intent label each  ║
+// ║ action's TYPE ("Hidden Attack" / "Hidden Special — Attack, Block")   ║
+// ║ even before Peek. Bench/active units open an info popup (full card +  ║
+// ║ deck for allies; observed moves for foes). The log persists,         ║
+// ║ scrolls, minimizes, and every name is clickable.                     ║
 // ║ Reads ONLY the engine snapshot from combatStore.                    ║
 // ║ UPDATE WHEN: combat UX changes. Not the final Phaser view.          ║
 // ╚══════════════════════════════════════════════════════════════════╝
@@ -53,8 +52,7 @@ const STATUS_META = {
 };
 
 // Human-readable effect glossary for the click-through info popup. Timings match
-// the locked spec §3.2 (DoTs tick at the opponent's turn-end, Regen at the
-// carrier's own turn-end; Block is creature-bound and decays each of your turns).
+// the locked spec §3.2.
 const EFFECT_INFO = {
   block: { name: 'Block', icon: 'game-icons:checked-shield', desc: 'Absorbs incoming damage. Creature-bound — it rides swaps and decays to 0 at the start of its own side’s turn.' },
   strength: { name: 'Strength', icon: 'game-icons:biceps', desc: 'Adds its value to the damage of each hit this creature deals.' },
@@ -92,7 +90,6 @@ function elementBadge(el) {
   );
 }
 
-/** Full status chips (big featured cards). Clickable → effect info. */
 function StatChips({ statuses, onEffect }) {
   if (!statuses?.length) return null;
   return (
@@ -110,7 +107,6 @@ function StatChips({ statuses, onEffect }) {
   );
 }
 
-/** Compact block + status pips for the mini-fighter lists. */
 function MiniStatus({ block, statuses }) {
   const has = block > 0 || statuses?.length;
   if (!has) return <div className="mfStats empty" />;
@@ -133,7 +129,64 @@ function MiniStatus({ block, statuses }) {
   );
 }
 
-/** Derive a view label/icon from a PlannedAction (or null). */
+// ── action labelling (plan slots + enemy intent badge) ──────────────────────────
+
+const SIL_ASPECT = { attack: 'Attack', block: 'Block', buff: 'Buff', debuff: 'Debuff', swap: 'Swap' };
+
+/** The distinct gameplay ASPECTS a card/effects bundle performs. */
+function effectAspects(fx) {
+  if (!fx) return [];
+  const out = [];
+  if (fx.dmg) out.push('Attack');
+  if (fx.block) out.push('Block');
+  if (fx.fortify) out.push('Fortify');
+  if (fx.applyStatus && Object.keys(fx.applyStatus).length) out.push('Debuff');
+  if (fx.strength || fx.selfStatus) out.push('Buff');
+  if (fx.heal) out.push('Heal');
+  if (fx.draw) out.push('Draw');
+  if (fx.energy) out.push('Energy');
+  if (fx.displacement) out.push('Swap');
+  return [...new Set(out)];
+}
+
+/** Aspects of a planned action (from its effects, falling back to silhouette). */
+function actionAspects(action) {
+  const a = effectAspects(action?.detail?.effects);
+  if (a.length) return a;
+  const s = SIL_ASPECT[action?.silhouette];
+  return s ? [s] : [];
+}
+
+/** Full title: "Hidden Attack" / "Hidden Special" / "Attack" (revealed). */
+function actionTitle(action) {
+  const a = actionAspects(action);
+  const base = a.length === 0 ? 'Action' : a.length === 1 ? a[0] : 'Special';
+  return (action?.revealed ? '' : 'Hidden ') + base;
+}
+
+/** Short label for the compact badge/slot. */
+function actionShort(action) {
+  if (action?.revealed) return planActionView(action).text;
+  const a = actionAspects(action);
+  return a.length > 1 ? 'Special' : (a[0] || '?');
+}
+
+/** Exact numeric breakdown of an effects bundle (shown once revealed). */
+function describeEffectsDetailed(fx) {
+  if (!fx) return '—';
+  const parts = [];
+  if (fx.dmg) parts.push(`Deal ${fx.dmg}${fx.hits > 1 ? `×${fx.hits}` : ''}`);
+  if (fx.block) parts.push(`Block ${fx.block}`);
+  if (fx.fortify) parts.push(`Fortify ${fx.fortify.block} (${fx.fortify.duration}t)`);
+  if (fx.strength) parts.push(`+${fx.strength} Strength`);
+  for (const [k, v] of Object.entries(fx.applyStatus ?? {})) parts.push(`${v} ${EFFECT_INFO[k]?.name ?? k}`);
+  for (const [k, v] of Object.entries(fx.selfStatus ?? {})) parts.push(`${v} ${EFFECT_INFO[k]?.name ?? k}`);
+  if (fx.heal) parts.push(`Heal ${fx.heal}`);
+  if (fx.draw) parts.push(`Draw ${fx.draw}`);
+  if (fx.energy) parts.push(`+${fx.energy} Energy`);
+  return parts.join(' · ') || '—';
+}
+
 function planActionView(action) {
   if (!action) return { icon: 'game-icons:help', text: '?' };
   const icon = INTENT_ICON[action.silhouette] ?? 'game-icons:help';
@@ -149,7 +202,23 @@ function planActionView(action) {
   }
 }
 
-/** Card visual category from its mechanical effects. */
+/** Shared hover tooltip describing an action's type, aspects, target, numbers. */
+function ActionTip({ action, targetName }) {
+  const aspects = actionAspects(action);
+  return (
+    <span className="ptip">
+      <b>{actionTitle(action)}</b>
+      {aspects.length > 1 && <span className="aspList"><Icon icon="game-icons:scroll-unfurled" /> Includes: {aspects.join(', ')}</span>}
+      <span><Icon icon="game-icons:bullseye" /> {targetName}</span>
+      {action?.revealed
+        ? <em>{describeEffectsDetailed(action.detail?.effects)}</em>
+        : <em>Peek to reveal exact numbers</em>}
+    </span>
+  );
+}
+
+// ── card helpers ────────────────────────────────────────────────────────────────
+
 function cardKind(c) {
   const fx = c.effects ?? {};
   if (fx.dmg) return 'atk';
@@ -162,27 +231,29 @@ function cardIcon(c) {
   if (kind === 'def') return 'game-icons:checked-shield';
   return 'game-icons:swap-bag';
 }
-
 function describe(c) {
-  const fx = c.effects ?? {};
-  const parts = [];
-  if (fx.dmg) parts.push(`Deal ${fx.dmg}${fx.hits > 1 ? `×${fx.hits}` : ''}`);
-  if (fx.block) parts.push(`Block ${fx.block}`);
-  if (fx.draw) parts.push(`Draw ${fx.draw}`);
-  if (fx.energy) parts.push(`+${fx.energy} Energy`);
-  if (fx.strength) parts.push(`+${fx.strength} Strength`);
-  for (const [k, v] of Object.entries(fx.applyStatus ?? {})) parts.push(`${v} ${k}`);
-  for (const [k, v] of Object.entries(fx.selfStatus ?? {})) parts.push(`${v} ${k}`);
-  return parts.join(', ') || '—';
+  return describeEffectsDetailed(c.effects);
 }
 
-/** Which side a card targets when dragged (content is front/self only). */
+/** Which side a card targets (for drag validity). */
 function cardTargetSide(c) {
   const sc = c?.effects?.scope || '';
   if (/enemy/i.test(sc)) return 'enemy';
   if (/friendly|self/i.test(sc)) return 'ally';
   if (c?.effects?.dmg || c?.effects?.applyStatus) return 'enemy';
   return 'ally';
+}
+
+/** Plain-language hint about what a card can target (for the invalid-drop toast). */
+function scopeHint(c) {
+  const sc = c?.effects?.scope || '';
+  if (/enemyActive/i.test(sc)) return 'can only target the enemy vanguard';
+  if (/friendlyActive|selfOnly/i.test(sc)) return 'can only target your active vanguard';
+  if (/flexEnemy|enemyBench|piercingEnemy/i.test(sc)) return 'can target any foe';
+  if (/flexFriendly|friendlyBench|piercingFriendly/i.test(sc)) return 'can target any ally';
+  if (/anyActive/i.test(sc)) return 'can target either vanguard';
+  if (/^any/i.test(sc)) return 'can target anyone';
+  return cardTargetSide(c) === 'enemy' ? 'can only target the enemy vanguard' : 'can only target your vanguard';
 }
 
 function HpBar({ hp, maxHp }) {
@@ -195,18 +266,34 @@ function HpBar({ hp, maxHp }) {
   );
 }
 
+/** A small read-only card tile (deck / known-moves listings). */
+function MiniCard({ c, onClick }) {
+  const f = frameStyle({ element: c.element, rarity: c.rarity });
+  return (
+    <div className={`frame move tiny ${f.finish}`} style={{ background: f.background }} onClick={onClick}>
+      {f.holo && <div className="holo" />}
+      <div className="cost">{c.cost === -1 ? 'X' : c.cost === -2 ? '—' : c.cost}</div>
+      <div className="inner">
+        <div className={`micon ${cardKind(c)}`}><Icon icon={cardIcon(c)} /></div>
+        <div className="mn">{c.name}</div>
+        <div className="mt">{c.text ?? describe(c)}</div>
+      </div>
+    </div>
+  );
+}
+
 // ── mini-fighter (side columns) ─────────────────────────────────────────────────
 
-function MiniFighter({ f, side, selected, vanguard, swapCost, swappable, droppable, dropHover, onClick }) {
+function MiniFighter({ f, side, vanguard, swapCost, swappable, droppable, dropHover, dropInvalid, onClick }) {
   const dead = f.hp <= 0;
   const pct = Math.max(0, (f.hp / f.maxHp) * 100);
   return (
     <div
-      data-drop-id={droppable ? f.id : undefined}
-      data-drop-side={droppable ? side : undefined}
-      className={`mf ${side}${selected ? ' sel' : ''}${vanguard ? ' vanguard' : ''}${dead ? ' dead' : ''}${swappable ? ' swappable' : ''}${droppable ? ' droppable' : ''}${dropHover ? ' dropHover' : ''}`}
+      data-drop-id={f.id}
+      data-drop-side={side}
+      className={`mf ${side}${vanguard ? ' vanguard' : ''}${dead ? ' dead' : ''}${swappable ? ' swappable' : ''}${droppable ? ' droppable' : ''}${dropHover ? ' dropHover' : ''}${dropInvalid ? ' dropInvalid' : ''}`}
       onClick={onClick}
-      title={f.name}
+      title={`${f.name} — click for details`}
     >
       <div className="mfTop">
         <span className="mfName">
@@ -227,13 +314,13 @@ function MiniFighter({ f, side, selected, vanguard, swapCost, swappable, droppab
 
 // ── big combatant cards (center) ────────────────────────────────────────────────
 
-function AllyCard({ m, droppable, dropHover, onEffect }) {
+function AllyCard({ m, droppable, dropHover, dropInvalid, onEffect }) {
   const f = frameStyle({ types: m.types, element: m.element, rarity: m.rarity });
   return (
     <div
-      data-drop-id={droppable ? m.id : undefined}
-      data-drop-side={droppable ? 'ally' : undefined}
-      className={`frame combat ${f.finish}${droppable ? ' droppable' : ''}${dropHover ? ' dropHover' : ''}`}
+      data-drop-id={m.id}
+      data-drop-side="ally"
+      className={`frame combat ${f.finish}${droppable ? ' droppable' : ''}${dropHover ? ' dropHover' : ''}${dropInvalid ? ' dropInvalid' : ''}`}
       style={{ background: f.background }}>
       {f.holo && <div className="holo" />}
       <SizeBadge form={m.form} />
@@ -253,22 +340,26 @@ function AllyCard({ m, droppable, dropHover, onEffect }) {
   );
 }
 
-function FoeCard({ e, matchup, planActions, droppable, dropHover, onEffect }) {
-  const iv = planActionView(planActions?.[0] ?? null);
+function FoeCard({ e, matchup, planActions, planTargetName, onAction, droppable, dropHover, dropInvalid, onEffect }) {
+  const action0 = planActions?.[0] ?? null;
+  const iv = planActionView(action0);
   const f = frameStyle({ element: e.element, rarity: e.rarity });
   const scale = { transform: `scale(${artScale(e.form)})` };
   return (
     <div
-      data-drop-id={droppable ? e.id : undefined}
-      data-drop-side={droppable ? 'enemy' : undefined}
-      className={`frame combat ${f.finish}${droppable ? ' droppable' : ''}${dropHover ? ' dropHover' : ''}`}
+      data-drop-id={e.id}
+      data-drop-side="enemy"
+      className={`frame combat ${f.finish}${droppable ? ' droppable' : ''}${dropHover ? ' dropHover' : ''}${dropInvalid ? ' dropInvalid' : ''}`}
       style={{ background: f.background }}>
       {f.holo && <div className="holo" />}
       <SizeBadge form={e.form} />
       {elementBadge(e.element)}
       <span className="sideTag foe">FOE</span>
-      {e.hp > 0 && planActions?.length > 0 && (
-        <span className="intent"><Icon icon={iv.icon} /> {iv.text}</span>
+      {e.hp > 0 && action0 && (
+        <span className="intent" onClick={(ev) => { ev.stopPropagation(); onAction?.(action0); }}>
+          <Icon icon={iv.icon} /> {actionShort(action0)}
+          <ActionTip action={action0} targetName={planTargetName ? planTargetName(action0) : ''} />
+        </span>
       )}
       {e.block > 0 && <span className="blockBadge"><Icon icon="game-icons:checked-shield" /> {e.block}</span>}
       <div className="inner">
@@ -289,19 +380,14 @@ function FoeCard({ e, matchup, planActions, droppable, dropHover, onEffect }) {
 
 // ── combat log ────────────────────────────────────────────────────────────────
 
-/** A clickable creature name in the log. */
 function CrLink({ id, nameOf, onEntity }) {
-  return (
-    <button className="logEnt cr" onClick={() => onEntity({ kind: 'creature', id })}>{nameOf(id)}</button>
-  );
+  return <button className="logEnt cr" onClick={() => onEntity({ kind: 'creature', id })}>{nameOf(id)}</button>;
 }
-/** A clickable effect name in the log. */
 function FxLink({ id, onEntity }) {
   const nm = EFFECT_INFO[id]?.name ?? id;
   return <button className="logEnt fx" onClick={() => onEntity({ kind: 'effect', id })}>{nm}</button>;
 }
 
-/** Render one engine CombatEvent as a log line (or null to skip). */
 function LogLine({ ev, nameOf, onEntity }) {
   const p = ev.payload ?? {};
   switch (ev.type) {
@@ -334,81 +420,37 @@ function LogLine({ ev, nameOf, onEntity }) {
   }
 }
 
-// ── info popup (creature / card / effect) ───────────────────────────────────────
-
-function InfoModal({ info, fightersById, onClose }) {
-  if (!info) return null;
-  let body = null;
-  if (info.kind === 'effect') {
-    const e = EFFECT_INFO[info.id] || { name: info.id, icon: 'game-icons:hazard-sign', desc: 'No description.' };
-    body = (
-      <div className="infoEffect">
-        <div className="infoHead"><Icon icon={e.icon} /> {e.name}</div>
-        <p>{e.desc}</p>
-      </div>
-    );
-  } else if (info.kind === 'creature') {
-    const f = fightersById.get(info.id);
-    if (f) body = (
-      <div className="infoCreature">
-        <div className="infoHead">
-          {f.element && <Icon icon={ELEMENT_ICON[f.element]} style={{ color: ELEMENT_COLOR[f.element] }} />} {f.name}
-        </div>
-        <div className="infoRow">HP {f.hp} / {f.maxHp}{f.block > 0 ? ` · Block ${f.block}` : ''}</div>
-        <div className="infoRow">Type: {f.types.map((t) => t.type).join(' / ') || '—'}</div>
-        {f.statuses?.length > 0 && (
-          <div className="infoChips">{f.statuses.map((s) => {
-            const m = STATUS_META[s.id] || { cls: '', icon: 'game-icons:hazard-sign' };
-            return <span key={s.id} className={`chip ${m.cls}`}><Icon icon={m.icon} /> {EFFECT_INFO[s.id]?.name ?? s.id} {s.amount}</span>;
-          })}</div>
-        )}
-      </div>
-    );
-  } else if (info.kind === 'card') {
-    const c = info.card;
-    const f = frameStyle({ element: c.element, rarity: c.rarity });
-    body = (
-      <div className="infoCard">
-        <div className={`frame move ${f.finish}`} style={{ background: f.background, width: 130 }}>
-          {f.holo && <div className="holo" />}
-          <div className="cost">{c.cost === -1 ? 'X' : c.cost === -2 ? '—' : c.cost}</div>
-          <div className="inner">
-            <div className={`micon ${cardKind(c)}`}><Icon icon={cardIcon(c)} /></div>
-            <div className="mn">{c.name}</div>
-            <div className="mt">{c.text ?? describe(c)}</div>
-          </div>
-        </div>
-        <div className="infoRow" style={{ marginTop: 8 }}>{c.rarity} · {c.element || 'colorless'}</div>
-      </div>
-    );
+/** Collect the cards a given enemy has been observed playing (from the log). */
+function observedMoves(log, fighterId) {
+  const seen = new Map();
+  for (const ev of log ?? []) {
+    if (ev.type === 'play' && ev.payload?.actorId === fighterId && ev.payload?.card) {
+      seen.set(ev.payload.card.id, ev.payload.card);
+    }
   }
-  return (
-    <div className="miniModalWrap" onClick={onClose}>
-      <div className="miniModal" onClick={(e) => e.stopPropagation()}>
-        <button className="modalClose" onClick={onClose}><Icon icon="game-icons:cancel" /></button>
-        {body}
-      </div>
-    </div>
-  );
+  return [...seen.values()];
 }
 
 // ── screen ────────────────────────────────────────────────────────────────────
 
 export default function CombatScreen() {
   const { snap, log, startCombat, play, swap, peekAll, endTurn, reward, rollReward } = useCombat();
-  const [target, setTarget] = useState(null);
   const [logOpen, setLogOpen] = useState(true);
   const [info, setInfo] = useState(null);
-  const [pendingSwap, setPendingSwap] = useState(null);
-  const [drag, setDrag] = useState(null);   // { card, side, x, y, overId }
+  const [notice, setNotice] = useState(null);
+  const [drag, setDrag] = useState(null);   // { card, side, validIds:Set, x, y, overId }
   const dragRef = useRef(null);
   const logBodyRef = useRef(null);
 
   useEffect(() => { if (!snap) startCombat(); }, [snap, startCombat]);
-  // keep the log pinned to the newest entry
   useEffect(() => {
     if (logOpen && logBodyRef.current) logBodyRef.current.scrollTop = logBodyRef.current.scrollHeight;
   }, [log, logOpen]);
+  useEffect(() => {
+    if (!notice) return undefined;
+    const t = setTimeout(() => setNotice(null), 2400);
+    return () => clearTimeout(t);
+  }, [notice]);
 
   if (!snap) return <div className="cmbt">Loading…</div>;
 
@@ -416,16 +458,10 @@ export default function CombatScreen() {
   const activeMon = player.fighters[player.vanguardIndex];
   const activeEnemy = enemy.fighters[enemy.vanguardIndex];
   const allEnemies = enemy.fighters;
-
-  const living = allEnemies.filter((e) => e.hp > 0);
-  const targetId = (target && living.some((e) => e.id === target))
-    ? target
-    : (activeEnemy?.hp > 0 ? activeEnemy.id : living[0]?.id);
-  const featured = allEnemies.find((e) => e.id === targetId) || activeEnemy;
+  const featured = activeEnemy; // attacks resolve on the vanguard; feature it
 
   const isPlayerTurn = snap.phase === 'player';
   const over = snap.phase === 'victory' || snap.phase === 'defeat';
-
   const featuredPlan = featured ? enemyPlan.filter((a) => a.actor === featured.id) : [];
 
   let matchup = null;
@@ -437,6 +473,7 @@ export default function CombatScreen() {
 
   const allFighters = [...player.fighters, ...enemy.fighters];
   const fightersById = new Map(allFighters.map((f) => [f.id, f]));
+  const playerIds = new Set(player.fighters.map((f) => f.id));
   const nameOf = (id) => fightersById.get(id)?.name ?? 'Someone';
   const enemyById = new Map(enemy.fighters.map((f) => [f.id, f]));
 
@@ -444,7 +481,6 @@ export default function CombatScreen() {
   const allRevealed = enemyPlan.length > 0 && enemyPlan.every((a) => a.revealed);
   const canPeek = isPlayerTurn && peekCharges > 0 && enemyPlan.length > 0 && !allRevealed;
 
-  // What does a forecast slot target? (works whether or not it's revealed)
   function planTargetName(action) {
     switch (action.silhouette) {
       case 'attack':
@@ -456,33 +492,59 @@ export default function CombatScreen() {
     }
   }
 
-  // ── drag-to-target (pointer based; works for mouse + touch) ───────────────────
+  // valid drop-target fighter ids for a card, derived from its scope
+  function validTargetIds(card) {
+    const sc = card?.effects?.scope || '';
+    const pV = player.fighters[player.vanguardIndex];
+    const eV = enemy.fighters[enemy.vanguardIndex];
+    const livingFoes = enemy.fighters.filter((f) => f.hp > 0);
+    const livingAllies = player.fighters.filter((f) => f.hp > 0);
+    const ids = new Set();
+    const add = (f) => { if (f && f.hp > 0) ids.add(f.id); };
+    if (/enemyActive/i.test(sc)) add(eV);
+    else if (/friendlyActive|selfOnly/i.test(sc)) add(pV);
+    else if (/anyActive/i.test(sc)) { add(eV); add(pV); }
+    else if (/flexEnemy|enemyBench|piercingEnemy/i.test(sc)) livingFoes.forEach(add);
+    else if (/flexFriendly|friendlyBench|piercingFriendly/i.test(sc)) livingAllies.forEach(add);
+    else if (/^any/i.test(sc)) [...livingFoes, ...livingAllies].forEach(add);
+    else if (card?.effects?.dmg || card?.effects?.applyStatus) add(eV);
+    else add(pV);
+    return ids;
+  }
+
+  // ── drag-to-target (pointer based; the card follows the cursor) ───────────────
   function onCardPointerDown(e, card, unplayable) {
     if (!isPlayerTurn || unplayable || over) return;
     e.preventDefault();
     try { e.currentTarget.setPointerCapture(e.pointerId); } catch { /* noop */ }
-    const d = { card, side: cardTargetSide(card), x: e.clientX, y: e.clientY, overId: null };
+    const d = { card, side: cardTargetSide(card), validIds: validTargetIds(card), x: e.clientX, y: e.clientY, overId: null };
     dragRef.current = d;
-    setDrag(d);
+    setDrag({ ...d });
   }
   function onCardPointerMove(e) {
     const d = dragRef.current;
     if (!d) return;
+    d.x = e.clientX; d.y = e.clientY;
     const el = document.elementFromPoint(e.clientX, e.clientY);
     const dz = el && el.closest ? el.closest('[data-drop-id]') : null;
-    let overId = null;
-    if (dz && dz.getAttribute('data-drop-side') === d.side) overId = dz.getAttribute('data-drop-id');
-    d.overId = overId;
+    d.overId = dz ? dz.getAttribute('data-drop-id') : null;
     setDrag({ ...d });
   }
   function onCardPointerUp() {
     const d = dragRef.current;
     dragRef.current = null;
     setDrag(null);
-    if (d && d.overId) play(d.card.id, { targetId: d.overId });
+    if (!d) return;
+    if (d.overId && d.validIds.has(d.overId)) {
+      play(d.card.id, { targetId: d.overId });
+    } else if (d.overId) {
+      setNotice(`${d.card.name} ${scopeHint(d.card)}.`);
+    }
   }
 
-  const dragSide = drag?.side ?? null;
+  const validIds = drag?.validIds ?? null;
+  const isDroppable = (id) => !!validIds && validIds.has(id);
+  const isHover = (id) => drag?.overId === id;
 
   return (
     <div className="cmbt land">
@@ -503,11 +565,11 @@ export default function CombatScreen() {
                 key={e.id}
                 f={e}
                 side="enemy"
-                selected={e.id === targetId && e.hp > 0}
                 vanguard={e.id === activeEnemy?.id}
-                droppable={dragSide === 'enemy' && e.hp > 0}
-                dropHover={drag?.overId === e.id}
-                onClick={() => e.hp > 0 && setTarget(e.id)}
+                droppable={!!drag && isDroppable(e.id)}
+                dropHover={isHover(e.id) && isDroppable(e.id)}
+                dropInvalid={isHover(e.id) && !isDroppable(e.id)}
+                onClick={() => setInfo({ kind: 'creature', id: e.id })}
               />
             ))}
           </div>
@@ -515,7 +577,6 @@ export default function CombatScreen() {
 
         {/* CENTER: plan/peek · cards · hand */}
         <div className="centerCol">
-          {/* enemy plan + single whole-turn Peek */}
           <div className="peekBar">
             <span className="peekLabel"><Icon icon="game-icons:eye-target" /> Enemy plan</span>
             <div className="planSlots">
@@ -525,14 +586,11 @@ export default function CombatScreen() {
                 return (
                   <React.Fragment key={i}>
                     {i > 0 && <span className="planArrow">→</span>}
-                    <span className={`planSlot${action.revealed ? ' revealed' : ''}`}>
+                    <span className={`planSlot${action.revealed ? ' revealed' : ''}`}
+                      onClick={() => setInfo({ kind: 'action', action })}>
                       <Icon icon={iv.icon} />
-                      <small>{action.revealed ? iv.text : '???'}</small>
-                      <span className="ptip">
-                        <b>{action.revealed ? `${action.silhouette}${iv.text && iv.text !== '?' ? ` · ${iv.text}` : ''}` : 'Hidden action'}</b>
-                        <span><Icon icon="game-icons:bullseye" /> {planTargetName(action)}</span>
-                        {!action.revealed && <em>Peek to reveal numbers</em>}
-                      </span>
+                      <small>{actionShort(action)}</small>
+                      <ActionTip action={action} targetName={planTargetName(action)} />
                     </span>
                   </React.Fragment>
                 );
@@ -545,15 +603,17 @@ export default function CombatScreen() {
             </button>
           </div>
 
-          {/* the two featured cards */}
           <div className="cardsRow">
             {featured && (
               <FoeCard
                 e={featured}
-                matchup={featured.id === targetId ? matchup : null}
+                matchup={matchup}
                 planActions={featuredPlan}
-                droppable={dragSide === 'enemy' && featured.hp > 0}
-                dropHover={drag?.overId === featured.id}
+                planTargetName={planTargetName}
+                onAction={(action) => setInfo({ kind: 'action', action })}
+                droppable={!!drag && isDroppable(featured.id)}
+                dropHover={isHover(featured.id) && isDroppable(featured.id)}
+                dropInvalid={isHover(featured.id) && !isDroppable(featured.id)}
                 onEffect={(id) => setInfo({ kind: 'effect', id })}
               />
             )}
@@ -561,8 +621,9 @@ export default function CombatScreen() {
             {activeMon && (
               <AllyCard
                 m={activeMon}
-                droppable={dragSide === 'ally'}
-                dropHover={drag?.overId === activeMon.id}
+                droppable={!!drag && isDroppable(activeMon.id)}
+                dropHover={isHover(activeMon.id) && isDroppable(activeMon.id)}
+                dropInvalid={isHover(activeMon.id) && !isDroppable(activeMon.id)}
                 onEffect={(id) => setInfo({ kind: 'effect', id })}
               />
             )}
@@ -621,13 +682,15 @@ export default function CombatScreen() {
                   vanguard={active}
                   swapCost={swapCost}
                   swappable={swappable}
-                  onClick={() => swappable && setPendingSwap({ index: idx, cost: swapCost, name: m.name })}
+                  droppable={!!drag && isDroppable(m.id)}
+                  dropHover={isHover(m.id) && isDroppable(m.id)}
+                  dropInvalid={isHover(m.id) && !isDroppable(m.id)}
+                  onClick={() => setInfo({ kind: 'creature', id: m.id })}
                 />
               );
             })}
           </div>
 
-          {/* combat log: persists, scrolls, minimizes; entities clickable */}
           <div className={`logPanel${logOpen ? '' : ' closed'}`}>
             <div className="logHead" onClick={() => setLogOpen((v) => !v)}>
               <span><Icon icon="game-icons:scroll-quill" /> Combat Log</span>
@@ -656,7 +719,7 @@ export default function CombatScreen() {
         </div>
       </div>
 
-      {/* dragging ghost */}
+      {/* dragging ghost — the card follows the cursor */}
       {drag && (
         <div className="dragGhost" style={{ left: drag.x, top: drag.y }}>
           <div className={`frame move ${frameStyle({ element: drag.card.element, rarity: drag.card.rarity }).finish}`}
@@ -667,26 +730,86 @@ export default function CombatScreen() {
               <div className="mn">{drag.card.name}</div>
             </div>
           </div>
-          <div className="dragHint">{drag.overId ? 'Release to play' : `Drag onto a ${drag.side === 'enemy' ? 'foe' : 'ally'}`}</div>
-        </div>
-      )}
-
-      {/* swap confirmation */}
-      {pendingSwap && (
-        <div className="miniModalWrap" onClick={() => setPendingSwap(null)}>
-          <div className="miniModal confirm" onClick={(e) => e.stopPropagation()}>
-            <div className="infoHead"><Icon icon="game-icons:cycle" /> Switch Vanguard?</div>
-            <p>Bring in <b>{pendingSwap.name}</b> for <b>{pendingSwap.cost}</b> energy? Your current vanguard’s hand is discarded.</p>
-            <div className="confirmRow">
-              <button className="btnGhost" onClick={() => setPendingSwap(null)}>Cancel</button>
-              <button className="endBtn" onClick={() => { swap(pendingSwap.index); setPendingSwap(null); }}>Switch</button>
-            </div>
+          <div className={`dragHint${drag.overId && !validIds?.has(drag.overId) ? ' bad' : ''}`}>
+            {drag.overId
+              ? (validIds?.has(drag.overId) ? 'Release to play' : 'Invalid target')
+              : `Drag onto a ${drag.side === 'enemy' ? 'foe' : 'ally'}`}
           </div>
         </div>
       )}
 
-      {/* entity info popup */}
-      <InfoModal info={info} fightersById={fightersById} onClose={() => setInfo(null)} />
+      {/* transient notice (invalid target, etc.) */}
+      {notice && <div className="toast"><Icon icon="game-icons:cancel" /> {notice}</div>}
+
+      {/* entity / action info popup */}
+      {info && (
+        <div className="miniModalWrap" onClick={() => setInfo(null)}>
+          <div className="miniModal" onClick={(e) => e.stopPropagation()}>
+            <button className="modalClose" onClick={() => setInfo(null)}><Icon icon="game-icons:cancel" /></button>
+
+            {info.kind === 'effect' && (() => {
+              const e = EFFECT_INFO[info.id] || { name: info.id, icon: 'game-icons:hazard-sign', desc: 'No description.' };
+              return <div><div className="infoHead"><Icon icon={e.icon} /> {e.name}</div><p>{e.desc}</p></div>;
+            })()}
+
+            {info.kind === 'action' && (() => {
+              const a = info.action;
+              const aspects = actionAspects(a);
+              return (
+                <div>
+                  <div className="infoHead"><Icon icon={planActionView(a).icon} /> {actionTitle(a)}</div>
+                  <div className="infoRow"><Icon icon="game-icons:bullseye" /> Target: {planTargetName(a)}</div>
+                  {aspects.length > 1 && <div className="infoRow">Includes: {aspects.join(', ')}</div>}
+                  <p>{a.revealed ? describeEffectsDetailed(a.detail?.effects) : 'Spend a Peek charge to reveal the exact numbers of this action.'}</p>
+                </div>
+              );
+            })()}
+
+            {info.kind === 'card' && (() => {
+              const c = info.card;
+              return <div className="infoCard"><MiniCard c={c} /><div className="infoRow" style={{ marginTop: 8 }}>{c.rarity} · {c.element || 'colorless'}</div></div>;
+            })()}
+
+            {info.kind === 'creature' && (() => {
+              const f = fightersById.get(info.id);
+              if (!f) return null;
+              const isAlly = playerIds.has(f.id);
+              const idx = player.fighters.findIndex((x) => x.id === f.id);
+              const active = isAlly && idx === player.vanguardIndex;
+              const swapCost = player.manualSwapsThisTurn + 1;
+              const canSwitch = isAlly && !active && f.hp > 0 && isPlayerTurn && player.energy >= swapCost;
+              const cards = isAlly ? (f.deck ?? []) : observedMoves(log, f.id);
+              return (
+                <div className="infoCreature">
+                  <div className="infoHead">
+                    {f.element && <Icon icon={ELEMENT_ICON[f.element]} style={{ color: ELEMENT_COLOR[f.element] }} />} {f.name}
+                  </div>
+                  <div className="infoRow">HP {f.hp} / {f.maxHp}{f.block > 0 ? ` · Block ${f.block}` : ''} · {f.types.map((t) => t.type).join(' / ') || '—'}</div>
+                  {f.statuses?.length > 0 && (
+                    <div className="infoChips">{f.statuses.map((s) => {
+                      const m = STATUS_META[s.id] || { cls: '', icon: 'game-icons:hazard-sign' };
+                      return <span key={s.id} className={`chip ${m.cls}`}><Icon icon={m.icon} /> {EFFECT_INFO[s.id]?.name ?? s.id} {s.amount}</span>;
+                    })}</div>
+                  )}
+                  <div className="deckLabel">
+                    {isAlly ? <><Icon icon="game-icons:card-pickup" /> Deck ({cards.length})</>
+                      : <><Icon icon="game-icons:spy" /> Observed moves ({cards.length})</>}
+                  </div>
+                  {cards.length === 0
+                    ? <div className="infoRow dim">{isAlly ? 'No cards.' : 'No moves observed yet — they reveal as this foe plays them.'}</div>
+                    : <div className="deckGrid">{cards.map((c, i) => <MiniCard key={`${c.id}-${i}`} c={c} />)}</div>}
+                  {canSwitch && (
+                    <button className="endBtn" style={{ margin: '12px auto 0' }}
+                      onClick={() => { swap(idx); setInfo(null); }}>
+                      <Icon icon="game-icons:cycle" /> SWITCH IN · {swapCost}⚡
+                    </button>
+                  )}
+                </div>
+              );
+            })()}
+          </div>
+        </div>
+      )}
 
       {/* victory / defeat */}
       {over && (
@@ -702,20 +825,7 @@ export default function CombatScreen() {
             )}
             {reward && (
               <div className="rewardRow">
-                {reward.map((c, i) => {
-                  const f = frameStyle({ element: c.element, rarity: c.rarity });
-                  return (
-                    <div key={i} className={`frame move ${f.finish}`} style={{ background: f.background }}>
-                      {f.holo && <div className="holo" />}
-                      <div className="cost">{c.cost === -1 ? 'X' : c.cost === -2 ? '—' : c.cost}</div>
-                      <div className="inner">
-                        <div className={`micon ${cardKind(c)}`}><Icon icon={cardIcon(c)} /></div>
-                        <div className="mn">{c.name}</div>
-                        <div className="mt">{c.text ?? describe(c)}</div>
-                      </div>
-                    </div>
-                  );
-                })}
+                {reward.map((c, i) => <MiniCard key={i} c={c} />)}
               </div>
             )}
             <div><button className="endBtn" style={{ margin: '14px auto 0' }} onClick={() => startCombat()}>NEW FIGHT</button></div>

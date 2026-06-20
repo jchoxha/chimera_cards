@@ -47,8 +47,13 @@ function buildPlayerFighters(names) {
     .map(monsterToFighter);
 }
 
-/** Map a single Fighter to its UI-safe shape. */
-function mapFighter(f) {
+/**
+ * Map a single Fighter to its UI-safe shape.
+ * @param {boolean} [includeDeck]  Expose the full deck card list (player side
+ *   only — enemy decks stay hidden; the UI surfaces only enemy moves seen via
+ *   the combat log).
+ */
+function mapFighter(f, includeDeck = false) {
   return {
     id: f.id,
     name: f.name,
@@ -64,6 +69,10 @@ function mapFighter(f) {
       discard: f.deck.discardPile.length,
       exhaust: f.deck.exhaustPile.length,
     },
+    deck: includeDeck
+      ? [...f.deck.drawPile, ...f.deck.discardPile, ...f.deck.exhaustPile, ...f.hand]
+          .map((c) => ({ ...c, effects: { ...c.effects } }))
+      : null,
     sprite: f.meta?.sprite ?? null,
     form: f.meta?.form ?? 'regular',
     rarity: f.meta?.rarity ?? 'common',
@@ -83,18 +92,20 @@ function snapshot(vm) {
       energyPerTurn: s.player.energyPerTurn,
       manualSwapsThisTurn: s.player.manualSwapsThisTurn,
       vanguardIndex: s.player.vanguardIndex,
-      fighters: s.player.fighters.map(mapFighter),
+      fighters: s.player.fighters.map((f) => mapFighter(f, true)),
       fortifySlot: { block: s.player.fortifySlot.block },
     },
     enemy: {
       vanguardIndex: s.enemy.vanguardIndex,
-      fighters: s.enemy.fighters.map(mapFighter),
+      fighters: s.enemy.fighters.map((f) => mapFighter(f, false)),
     },
     enemyPlan: s.enemyPlan.map((a) => ({
       silhouette: a.silhouette,
       revealed: a.revealed,
       actor: a.actor,
-      detail: a.detail ? { ...a.detail } : {},
+      detail: a.detail
+        ? { ...a.detail, effects: a.detail.effects ? { ...a.detail.effects } : undefined }
+        : {},
     })),
   };
 }

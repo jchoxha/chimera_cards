@@ -313,7 +313,12 @@ export class VanguardManager {
         const hits = (card.effects?.hits ?? 1) * (card.cost === -1 ? Math.max(1, cost) : 1);
         const detail = {
           cardId: card.id,
-          targetScope: card.effects?.scope
+          cardName: card.name,
+          targetScope: card.effects?.scope,
+          // Full effect payload so the UI can label the action's ASPECTS even
+          // while hidden (e.g. "Hidden Special — includes Attack, Block") and
+          // show exact numbers once Peeked. The UI gates numbers by `revealed`.
+          effects: { ...card.effects },
         };
         if (card.effects?.dmg) {
           detail.value = card.effects.dmg;
@@ -454,7 +459,7 @@ export class VanguardManager {
 
     // Announce the play BEFORE its effects so the combat log reads naturally
     // ("Strike played." → "Foe takes 6 damage.").
-    this._emit('play', { card, targetId: opts.targetId ?? null });
+    this._emit('play', { card, actorId: pVanguard.id, side: 'player', targetId: opts.targetId ?? null });
 
     // Apply card effects
     applyCardEffects(s, 'player', pVanguard, card.effects, {
@@ -710,7 +715,7 @@ export class VanguardManager {
         const pVanguard = vanguard(s.player);
         const targetId = pVanguard ? pVanguard.id : null;
 
-        this._emit('play', { card, targetId });
+        this._emit('play', { card, actorId: actor.id, side: 'enemy', targetId });
 
         applyCardEffects(s, 'enemy', actor, card.effects, {
           targetId,
