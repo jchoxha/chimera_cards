@@ -45,6 +45,19 @@ vocabulary + classifier (`src/engine/combat/scopes.js`), all validated by
 `npm run test:combat` (37 checks, structural only — **ready for turn behavior**).
 
 **Done so far:**
+- **Combat UX overhaul, DONE 2026-06-19 (v3.12.0).** `CombatScreen.jsx` + `combat.css`:
+  (a) **fixed the landscape cutoff** — `.cmbt` itself lacked `box-sizing:border-box` (the
+  `.cmbt *` reset skips the element), so `width/height:100%`+padding overflowed; reset now
+  `.cmbt,.cmbt *`. (b) **Drag-to-target card play** — cards are no longer click-to-play;
+  they're dragged (pointer events + `setPointerCapture`, mouse+touch) onto a target that
+  highlights (`.droppable`/`.dropHover`); release over a valid target plays it. Target side
+  derived from the card's scope (`cardTargetSide`). (c) **Combat log rebuilt** — persistent
+  (full history, auto-scrolls), minimizable (`.logPanel`/`logHead`), and every creature /
+  move / effect name is a clickable `.logEnt` opening an `InfoModal`; damage lines now say
+  "takes N damage", and `status`/`block`/`heal` events are logged. Engine now emits `play`
+  BEFORE effects so the log reads naturally. (d) **Swap asks for confirmation** (mini-modal).
+  (e) **Enemy plan** shows `→` arrows between actions and a hover tooltip revealing each
+  action's TARGET even when unpeeked (numbers still hidden until Peek). Verified headless.
 - **Victory reward flow restored, DONE 2026-06-19 (v3.11.0).** `VanguardManager.generateReward(count)`
   drafts cards through the adaptive Pity-Offset engine (`cards/rarity.js`), with the card-TYPE
   distribution weighted by the SURVIVING player fighters' combined typings (spec §2A) and a

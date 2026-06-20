@@ -452,6 +452,10 @@ export class VanguardManager {
     if (cost > s.player.energy) return false;
     s.player.energy -= cost;
 
+    // Announce the play BEFORE its effects so the combat log reads naturally
+    // ("Strike played." → "Foe takes 6 damage.").
+    this._emit('play', { card, targetId: opts.targetId ?? null });
+
     // Apply card effects
     applyCardEffects(s, 'player', pVanguard, card.effects, {
       targetId: opts.targetId,
@@ -467,8 +471,6 @@ export class VanguardManager {
     } else {
       discardCard(pVanguard, card);
     }
-
-    this._emit('play', { card, targetId: opts.targetId ?? null });
 
     this._resolveDeaths();
 
@@ -708,6 +710,8 @@ export class VanguardManager {
         const pVanguard = vanguard(s.player);
         const targetId = pVanguard ? pVanguard.id : null;
 
+        this._emit('play', { card, targetId });
+
         applyCardEffects(s, 'enemy', actor, card.effects, {
           targetId,
           costPaid: cost,
@@ -721,8 +725,6 @@ export class VanguardManager {
         } else {
           discardCard(actor, card);
         }
-
-        this._emit('play', { card, targetId });
       }
     } else {
       if (action.silhouette === 'attack') {

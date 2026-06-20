@@ -15,7 +15,7 @@
   --ink:#140e26; --ink2:#241a3a; --cream:#f6e7b0;
 }
 
-.cmbt *{box-sizing:border-box;margin:0;padding:0}
+.cmbt,.cmbt *{box-sizing:border-box;margin:0;padding:0}
 .cmbt iconify-icon{display:inline-flex;align-items:center;justify-content:center;vertical-align:middle}
 
 /* lock the page to the viewport whenever the combat screen is mounted —
@@ -97,13 +97,26 @@ html:has(.cmbt),body:has(.cmbt){height:100%;margin:0;overflow:hidden}
   background:#00000044;border:1px solid #c9a23a33;border-radius:10px}
 .peekLabel{font-family:'Cinzel',serif;font-size:10px;letter-spacing:.8px;color:var(--gold4);
   display:flex;align-items:center;gap:4px;white-space:nowrap}
-.planSlots{flex:1 1 auto;display:flex;align-items:center;gap:6px;overflow:hidden}
+.planSlots{flex:1 1 auto;display:flex;align-items:center;gap:5px;overflow:visible}
 .planEmpty{color:#9a8a6a;font-size:12px}
-.planSlot{display:flex;align-items:center;gap:3px;min-width:0;padding:3px 8px;border-radius:8px;
-  border:1px solid #4a3f63;background:#1a1230;color:#c9b88a;font-size:11px;font-weight:700}
+.planArrow{flex:0 0 auto;color:var(--gold3);font-weight:900;font-size:14px;opacity:.85}
+.planSlot{position:relative;display:flex;align-items:center;gap:3px;min-width:0;padding:3px 8px;border-radius:8px;
+  border:1px solid #4a3f63;background:#1a1230;color:#c9b88a;font-size:11px;font-weight:700;cursor:help}
 .planSlot iconify-icon{font-size:15px}
 .planSlot.revealed{border-color:var(--gold1);background:#2a1a0a;color:var(--cream)}
 .planSlot.revealed iconify-icon{color:var(--gold1)}
+/* plan slot hover tooltip — shows the action's TARGET (revealed or not) */
+.planSlot .ptip{display:none;position:absolute;top:calc(100% + 8px);left:50%;transform:translateX(-50%);
+  z-index:40;width:max-content;max-width:200px;flex-direction:column;gap:3px;
+  background:#140e26f2;border:1px solid var(--gold2);border-radius:8px;padding:7px 9px;
+  font-family:'Spectral',serif;font-weight:400;font-size:11px;color:#f3ecd8;text-align:left;
+  box-shadow:0 8px 20px #000b}
+.planSlot:hover .ptip{display:flex}
+.planSlot .ptip::before{content:'';position:absolute;bottom:100%;left:50%;transform:translateX(-50%);
+  border:6px solid transparent;border-bottom-color:var(--gold2)}
+.planSlot .ptip b{font-family:'Cinzel',serif;font-weight:700;color:var(--gold4);text-transform:capitalize}
+.planSlot .ptip span{display:flex;align-items:center;gap:4px;color:#ffd9b0}
+.planSlot .ptip em{font-style:italic;color:#9a8a6a;font-size:10px}
 .peekBtn{flex:0 0 auto;position:relative;display:flex;align-items:center;gap:5px;
   font-family:'Cinzel',serif;font-weight:700;font-size:11px;letter-spacing:1px;color:#3a2606;
   padding:5px 12px;border:none;border-radius:9px;cursor:pointer;
@@ -206,10 +219,26 @@ html:has(.cmbt),body:has(.cmbt){height:100%;margin:0;overflow:hidden}
   height:clamp(132px,22vh,176px)}
 .hand{display:flex;align-items:flex-end;padding:0 12px}
 .move{flex:0 0 auto;width:clamp(82px,9vw,100px);margin:0 -8px;transform-origin:bottom center;
-  transition:transform .18s ease, filter .18s ease;cursor:pointer;position:relative}
+  transition:transform .18s ease, filter .18s ease;cursor:grab;position:relative;
+  touch-action:none;user-select:none;-webkit-user-select:none}
 .move.unplayable{filter:grayscale(.7) brightness(.7);cursor:default}
 .move:not(.unplayable):hover,.move:not(.unplayable):focus{transform:translateY(-20px) scale(1.06) rotate(0)!important;
   filter:drop-shadow(0 14px 22px #000b);z-index:9}
+.move.dragging{opacity:.28;filter:grayscale(.4)}
+
+/* ---------- drag-to-target ---------- */
+.droppable{outline:2px dashed #ffd34daa;outline-offset:3px;border-radius:14px;
+  animation:dropPulse 1.1s ease-in-out infinite}
+.dropHover{outline:3px solid #9af0bf!important;outline-offset:3px;
+  box-shadow:0 0 22px #9af0bfaa, 0 10px 26px #000a!important}
+.mf.droppable{outline-offset:1px}
+@keyframes dropPulse{0%,100%{outline-color:#ffd34d66}50%{outline-color:#ffd34dee}}
+.dragGhost{position:fixed;z-index:120;pointer-events:none;width:96px;transform:translate(-50%,-60%);
+  filter:drop-shadow(0 12px 20px #000c)}
+.dragGhost .move{width:96px;margin:0;cursor:grabbing}
+.dragGhost .move .micon{height:42px;font-size:24px}
+.dragHint{margin-top:4px;text-align:center;font-family:'Cinzel',serif;font-size:9px;letter-spacing:.5px;
+  color:#9af0bf;text-shadow:0 1px 3px #000;background:#000a;border-radius:6px;padding:2px 4px}
 .cost{position:absolute;top:-9px;left:-9px;z-index:6;width:30px;height:30px;border-radius:50%;
   display:flex;align-items:center;justify-content:center;font-family:'Cinzel',serif;font-weight:900;font-size:13px;color:#fff;
   background:radial-gradient(circle at 38% 30%,#cfeaff,#3f7fe6 52%,#16306e);border:2px solid var(--goldB);
@@ -224,15 +253,29 @@ html:has(.cmbt),body:has(.cmbt){height:100%;margin:0;overflow:hidden}
   padding:3px 5px 4px;min-height:42px}
 .move .mt b{font-weight:600}
 
-/* ---------- right: log ---------- */
-.log{flex:1 1 auto;min-height:0;overflow-y:auto;background:linear-gradient(#efe2bd,#d8c79a);color:#3a2c12;
-  border:2px solid #8a6a18;border-radius:8px;padding:5px 10px;font-size:11px;line-height:1.45;
-  box-shadow:0 6px 16px #0007, inset 0 0 18px #00000022}
-.log b{font-weight:700}
-.log .rx{color:#1d6e56;font-weight:600}
-.log .dmg{color:#a01b12;font-weight:600}
-.log .pk{color:#6a4a14;font-weight:600}
-.logEmpty{opacity:.5}
+/* ---------- right: combat log (persistent · scrollable · minimizable) ---------- */
+.logPanel{flex:1 1 auto;min-height:0;display:flex;flex-direction:column;
+  border:2px solid #8a6a18;border-radius:8px;overflow:hidden;box-shadow:0 6px 16px #0007}
+.logPanel.closed{flex:0 0 auto}
+.logHead{flex:0 0 auto;display:flex;align-items:center;justify-content:space-between;cursor:pointer;
+  font-family:'Cinzel',serif;font-weight:700;font-size:11px;letter-spacing:.6px;color:#3a2606;
+  padding:4px 8px;background:linear-gradient(#e9cf6b,#caa033);user-select:none}
+.logHead span{display:flex;align-items:center;gap:5px}
+.logHead iconify-icon{font-size:14px}
+.logBody{flex:1 1 auto;min-height:0;overflow-y:auto;background:linear-gradient(#efe2bd,#d8c79a);
+  color:#3a2c12;padding:5px 9px;font-size:11px;line-height:1.5}
+.logRow{padding:1px 0;border-bottom:1px solid #00000010}
+.logBody b{font-weight:700}
+.logBody .rx{color:#1d6e56;font-weight:600}
+.logBody .dmg{color:#a01b12;font-weight:600}
+.logBody .pk{color:#6a4a14;font-weight:600}
+/* clickable entity links inside the log */
+.logEnt{border:none;background:none;padding:0;font:inherit;cursor:pointer;font-weight:700;
+  text-decoration:underline;text-underline-offset:2px;text-decoration-style:dotted}
+.logEnt.cr{color:#7a3a12}
+.logEnt.mv{color:#1d5b8a}
+.logEnt.fx{color:#7a2a8a}
+.logEnt:hover{filter:brightness(1.25);text-decoration-style:solid}
 
 /* ---------- right: dock (energy orb + end turn) ---------- */
 .dock{flex:0 0 auto;display:flex;align-items:center;gap:10px}
@@ -254,3 +297,24 @@ html:has(.cmbt),body:has(.cmbt){height:100%;margin:0;overflow:hidden}
 .rewardRow{display:flex;gap:12px;justify-content:center;flex-wrap:wrap;margin:14px 0}
 .rewardRow .move{flex:0 0 auto;width:clamp(96px,11vw,120px);margin:0;cursor:default}
 .rewardRow .move .mt{min-height:48px}
+
+/* ---------- mini-modal (entity info · swap confirm) ---------- */
+.miniModalWrap{position:fixed;inset:0;background:#140e26cc;display:grid;place-items:center;z-index:80;padding:18px}
+.miniModal{position:relative;background:linear-gradient(#241a3a,#140e26);border:2px solid var(--gold2);
+  border-radius:12px;padding:16px 18px;max-width:320px;width:100%;color:#f3ecd8;
+  box-shadow:0 16px 40px #000c, inset 0 0 24px #0006;font-family:'Spectral',serif}
+.miniModal p{font-size:13px;line-height:1.5;margin:8px 0}
+.miniModal .modalClose{position:absolute;top:6px;right:6px;border:none;background:none;color:#c9a66b;
+  font-size:18px;cursor:pointer;line-height:1}
+.miniModal .modalClose:hover{color:var(--gold1)}
+.infoHead{font-family:'Cinzel',serif;font-weight:700;font-size:16px;color:var(--gold4);
+  display:flex;align-items:center;gap:7px;text-transform:capitalize}
+.infoHead iconify-icon{font-size:20px}
+.infoRow{font-size:12px;color:#d8cba8;margin-top:4px}
+.infoChips{display:flex;flex-wrap:wrap;gap:5px;margin-top:8px}
+.infoCard{display:flex;flex-direction:column;align-items:center}
+.miniModal.confirm .confirmRow{display:flex;gap:10px;justify-content:center;margin-top:14px}
+.miniModal.confirm .endBtn{flex:0 0 auto;padding:9px 16px;font-size:13px}
+.btnGhost{flex:0 0 auto;font-family:'Cinzel',serif;font-weight:700;font-size:13px;letter-spacing:.5px;
+  color:#d8cba8;background:none;border:1.5px solid #6a5a3a;border-radius:10px;padding:9px 16px;cursor:pointer}
+.btnGhost:hover{border-color:var(--gold2);color:var(--cream)}
