@@ -92,6 +92,8 @@ export class VanguardManager {
     // Reset manual swaps counter for both sides at round start
     s.player.manualSwapsThisTurn = 0;
     s.enemy.manualSwapsThisTurn = 0;
+    // Fresh turn → the forecast re-fogs until the player spends a Peek again.
+    s.peekedThisTurn = false;
 
     // Symmetrically, draw cards for enemy Vanguard before generating plan
     const eVanguard = vanguard(s.enemy);
@@ -158,8 +160,10 @@ export class VanguardManager {
       handSize: s.enemy.handSize
     };
 
-    // If calling from startRound, reset the energy for simulation
-    if (s.phase === PHASES.ENEMY_INTENT) {
+    // The plan always represents the enemy's UPCOMING turn, so simulate from a
+    // fresh next-turn resource baseline whenever we (re)plan — including the
+    // mid-player-turn re-plans triggered after each player action.
+    {
       const benchedCount = simSide.fighters.filter((f, idx) => f.hp > 0 && idx !== simSide.vanguardIndex).length;
       simSide.energy = Math.max(3, benchedCount);
       simSide.manualSwapsThisTurn = 0;
@@ -381,6 +385,10 @@ export class VanguardManager {
       }
     }
 
+    // Peek is turn-wide intel (spec §2): once the player spends a Peek this turn,
+    // every (re)generated plan stays fully revealed so adapting forecasts remain
+    // visible without re-paying.
+    if (s.peekedThisTurn) for (const a of plan) a.revealed = true;
     s.enemyPlan = plan;
     this._emit('intents', { plan: s.enemyPlan });
   }
@@ -479,11 +487,12 @@ export class VanguardManager {
 
     this._resolveDeaths();
 
-    if (s.enemyPlan.length === 0 && !this._checkEnd()) {
+    // Re-plan the enemy's upcoming turn after every player action so the forecast
+    // adapts (a battered vanguard may switch to defending/swapping; a freshly
+    // swapped-in replacement gets a real plan instead of doing nothing).
+    if (!this._checkEnd()) {
       this._generateEnemyPlan();
     }
-
-    if (this._checkEnd()) return true;
     return true;
   }
 
@@ -517,6 +526,7 @@ export class VanguardManager {
     if (hidden.length === 0) return false;
 
     s.peekCharges -= 1;
+    s.peekedThisTurn = true;
     for (const action of s.enemyPlan) action.revealed = true;
     this._emit('peek', { all: true, plan: s.enemyPlan });
     return true;
@@ -561,7 +571,10 @@ export class VanguardManager {
     this._triggerSwapInBoons('player', incoming);
 
     this._resolveDeaths();
-    this._checkEnd();
+    // A player swap is an action too — let the enemy forecast react to it.
+    if (!this._checkEnd()) {
+      this._generateEnemyPlan();
+    }
     return true;
   }
 

@@ -45,6 +45,22 @@ vocabulary + classifier (`src/engine/combat/scopes.js`), all validated by
 `npm run test:combat` (37 checks, structural only — **ready for turn behavior**).
 
 **Done so far:**
+- **Combat UX tweaks round 3, DONE 2026-06-19 (v3.14.0).** (a) **Live re-planning** —
+  `VanguardManager` now regenerates the enemy forecast after EVERY player action
+  (`play`/`swap`), so it adapts (battered vanguard → defend/swap) and a killed vanguard's
+  replacement gets a real plan instead of doing nothing. Peek is now turn-wide via
+  `state.peekedThisTurn` (set by `peekAll`, reset each round): once peeked, every
+  re-generated plan stays revealed (spec §2 intel persistence) — no re-paying as it adapts.
+  (b) **Per-monster forecast** — removed the single intent badge from the vanguard card;
+  the forecast is shown as `ActionStrip`s (icons+arrows) UNDER the vanguard card and on each
+  foe's status-bar mini, each filtered to that monster's own actions (`actor` match), so an
+  Attack→Swap→Attack turn shows Attack+Swap on the current vanguard and the 2nd Attack on the
+  incoming one. (c) **Unified info modal** — clicking any unit (mini or via a log name) shows
+  the same modal: the big monster `CardFace` + deck (allies) / observed moves (foes, from the
+  log). `CardFace` is now a shared component used by AllyCard/FoeCard/modal. (d) **Cards are
+  clickable** — a TAP on a hand card (vs a drag) opens its card-info modal; deck/reward cards
+  are clickable too. (e) **Dock pinned** — minimizing the log no longer lifts the energy/End
+  Turn dock (`margin-top:auto`). Verified headless.
 - **Combat UX tweaks round 2, DONE 2026-06-19 (v3.13.0).** (a) **Action labels** — the
   enemy plan slots and the enemy-vanguard intent badge now name the action type
   ("Hidden Attack"/"Hidden Block"; multi-aspect → "Hidden Special" with an "Includes:

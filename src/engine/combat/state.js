@@ -147,6 +147,7 @@ export function createCombatState({
     enemy: createSide({ fighters: enemyFighters, energyRule: 'bench', config: cfg }),
     enemyPlan: [],
     peekCharges: cfg.peekCharges,
+    peekedThisTurn: false,
     monstersCapturedThisFight: 0,
     room,
     rarity,
