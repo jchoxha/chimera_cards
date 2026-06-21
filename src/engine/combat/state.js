@@ -49,9 +49,11 @@ export function createFortifySlot() {
  * @param {number} [args.hp]
  * @param {number} [args.maxHp]
  * @param {Object} [args.meta]
+ * @param {Object} [args.stats]   Topic-1 stat line (multipliers); defaults to neutral.
+ * @param {string} [args.stance]  Warrior stance state; defaults to 'Balanced'.
  * @returns {Fighter}
  */
-export function createFighter({ id, name, types = [], hp = 0, maxHp = hp, meta = {} }) {
+export function createFighter({ id, name, types = [], hp = 0, maxHp = hp, meta = {}, stats, stance }) {
   return {
     id,
     name,
@@ -59,9 +61,14 @@ export function createFighter({ id, name, types = [], hp = 0, maxHp = hp, meta =
     hp,
     maxHp,
     block: 0,
+    bracedBlock: 0,   // Block that persists across turns (Brace); decays only when spent
     statuses: [],
     deck: createFighterDeck(),
     hand: [],
+    // Topic-1 stat line (multipliers centered on 1.0; speed flat 0). Neutral default.
+    stats: { might: 1, guard: 1, focus: 1, resolve: 1, speed: 0, ...(stats || {}) },
+    stance: stance ?? 'Balanced',
+    powers: [],
     meta,
   };
 }

@@ -160,6 +160,7 @@ export function applyDamage(target, amount, emit, dot = false, side = null) {
   
   let hpLoss = amount;
   let absorbedCreature = 0;
+  let absorbedBraced = 0;
   let absorbedFortify = 0;
 
   if (!dot) {
@@ -167,6 +168,13 @@ export function applyDamage(target, amount, emit, dot = false, side = null) {
     absorbedCreature = Math.min(target.block, hpLoss);
     target.block -= absorbedCreature;
     hpLoss -= absorbedCreature;
+
+    // 1b. Braced (persistent) block absorbs next — Warrior Brace, decays only when spent.
+    if (target.bracedBlock > 0) {
+      absorbedBraced = Math.min(target.bracedBlock, hpLoss);
+      target.bracedBlock -= absorbedBraced;
+      hpLoss -= absorbedBraced;
+    }
 
     // 2. Fortify slot block absorbs next (if target is Vanguard)
     if (side && side.fighters[side.vanguardIndex] === target) {
@@ -184,6 +192,7 @@ export function applyDamage(target, amount, emit, dot = false, side = null) {
     hp: target.hp,
     dot,
     absorbedCreature,
+    absorbedBraced,
     absorbedFortify
   });
   if (target.hp === 0) emit?.('death', { fighterId: target.id });

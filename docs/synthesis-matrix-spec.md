@@ -321,6 +321,82 @@ Add an `attunementsOf(f)` accessor so the combat-math sites (`resolve.js`,
 7. New statuses/reactions (§5) — incremental, data-driven.
 8. Regenerate dex; reachable from CheatPanel (golden rules).
 
+## 12. Deep-dive design log (working queue)
+
+Resolving the `DEEP EXPLORATION PENDING` areas in dependency order. Lock decisions
+here as we go (status: ⏳ queued · 🔎 in progress · ✅ locked).
+
+| # | Topic | Status | Locked decisions |
+|---|---|---|---|
+| 1 | Combat substrate & stat model (D6) | ✅ | §13: 5 stats + HP — Might(dmg)/Guard(block)/Focus(effects on others)/Resolve(buffs gained + debuff resist)/Speed(tempo); two offense/defense pairs; all damage = Might. "Resolve" locked. Minor open: F-1.1 Speed levers, F-1.3 duration. |
+| 2 | Status & keyword system (§5.1) | ⏳ | must absorb keywords surfaced during class design: **Brace** (Block doesn't decay), **Dexterity** (+flat Block, block analog of Strength) — from Warrior |
+| 3 | Attunement identity (damage feel + signature status) | ⏳ | — |
+| 4 | Biology identity (stat profiles + traits, §7.1) | ⏳ | — |
+| 5 | Class identity — **all 36, in `docs/class-design.md`** | 🔎 | Base/subclass model locked: each base = a THEME + signature mechanic; each subclass = 2 base themes + bespoke mechanic (⇒ stronger, must balance). 4 shared primitives (Field Entities/States/Delayed/Card-Gen). Bases first, then 28 hybrids. **Warrior drafted.** |
+| 6 | Reactions / cross-element depth (§5.2) | ⏳ | — |
+| 7 | Cross-axis synergies (G3) | ⏳ | — |
+| 8 | Generation algorithm (triple → monster) | ⏳ | — |
+
+## 13. Topic 1 — Combat substrate & stat model (LOCKED 2026-06-21, names pending)
+
+**Model: light stat line that BLENDS with deck + attunement.** Cards do the work; stats
+scale card output. Damage is universal (no physical/magical split). The stats form **two
+offense/defense pairs** + tempo + pool.
+
+### 13.1 The stat line (5 combat stats + HP)
+
+| Stat | Realm | Owns | Baseline |
+|---|---|---|---|
+| **HP** | — | survivability (`maxHp` pool) | — |
+| **Might** | damage · offense | **all damage dealt** | ×1.0 |
+| **Guard** | damage · defense | **Block** gained / damage mitigation | ×1.0 |
+| **Focus** | effect · offense | potency of effects this unit applies **to OTHERS** (debuffs on enemies, buffs/heals on allies) | ×1.0 |
+| **Resolve** | effect · defense | **buffs GAINED** (self) amplified **+ debuffs received resisted** | ×1.0 |
+| **Speed** | tempo | energy, swap-cost discount, **Peek** efficiency, draw | 0 |
+
+Combat stats are **multipliers centered on 1.0**, tiers **Feeble 0.7 · Low 0.85 · Average
+1.0 · High 1.2 · Elite 1.4**, spent from a **balanced body budget** (strong somewhere ⇒
+weak elsewhere). HP is a flatter pool (`base × biology HP tier × Form hpMult`). *Per-biology
+budgets = Topic 4.*
+
+> "Resolve" **locked** (2026-06-21). "Hex" was merged into Focus same day.
+
+### 13.2 The blends (synergy)
+
+1. **Focus ↔ Resolve interplay** — an effect on another unit uses the **source's Focus**,
+   adjusted by the **target's Resolve** (Resolve *amplifies* incoming buffs, *resists*
+   incoming debuffs). **Self**-targeted effects ("gain X Strength/Block/Regen", self-heal)
+   use the unit's **Resolve only** (they are "buffs gained"). So: Focus = "I project power
+   onto others"; Resolve = "what I gain and withstand." Control/support builds want Focus;
+   sturdy self-buffing bruisers want Resolve.
+2. **Stat × Deck** — every card is scaled at resolve time by its governing stat.
+3. **Stat × Class (soft affinity)** — classes lean on stats, so coherent creatures are
+   stronger (Warrior→Might/Guard, Warlock→Focus, Priest→Focus/Resolve, Rogue→Might/Speed…);
+   off-profile builds are legal but weaker. Generator matches stats to class (Topic 5/8).
+
+### 13.3 Damage & effect pipeline (ordered)
+
+```
+ATTACK, per hit:
+  base = card.dmg + Strength(attacker)
+  raw  = base × Might × matchup(§4) × weakMult(0.75 if attacker Weak)
+                                    × vulnMult(1.5 if target Vulnerable)
+  apply raw, then subtract creature Block, then fortifySlot Block;  repeat × card.hits
+
+BLOCK:            gained = round(card.block × Guard)
+EFFECT on OTHER:  potency = round(value × source.Focus × target.ResolveMod)
+                  // ResolveMod amplifies buffs / reduces debuffs (target's Resolve)
+EFFECT on SELF:   potency = round(value × self.Resolve)   // "buffs gained"
+SPEED:            handSize/energy/swap/peek per the Speed tier (F-1.1)
+```
+
+### 13.4 Sub-forks still open
+
+- **F-1.1 Speed's levers:** which of {energy, swap discount, Peek efficiency, draw}? *(rec: swap discount + Peek + hand size; leave the energy floor formula alone.)*
+- **F-1.2 Scaling shape:** multiplier ×stat *(locked rec)*.
+- **F-1.3 Duration:** Focus/Resolve scale effect **amounts/intensity + DoT ticks**, NOT debuff **duration** *(rec — avoids runaway control)*.
+- **F-1.4 Resolve name:** Resolve / Spirit / Will / Ward.
+
 ## 11. Still open (later)
 
 - **Fusion** (§6) — reopen after combat impact is proven.

@@ -69,6 +69,25 @@ migration (add `class`/`biology` to Fighter; `attunementsOf` seam already accept
 shapes) → wire `computeMatchup` into `computeAttackDamage` (first gameplay change → bump
 version) → generator (§7) → UI (§9). No gameplay wired yet (no version bump).
 
+**Class deep-dive (Topic 5) — `docs/class-design.md`.** Designing all 36 classes as full
+StS-style character builds. Each **base** = a THEME + signature mechanic; each **subclass**
+(hybrid) inherits BOTH parents' themes + a bespoke mechanic (⇒ stronger, must balance).
+Five-stat model **LOCKED** (§13): **Might**(dmg)/**Guard**(block)/**Focus**(effects on
+others)/**Resolve**(buffs gained + debuff resist)/**Speed**(tempo) + HP. **Warrior LOCKED**:
+5-point **Stance Spectrum** (Rampage→Offensive→Balanced→Defensive→Full Guard; offense side
+can't Block, defense side can't Attack; traversal distance balances the extremes) + keywords
+**Brace**/**Dexterity**; 27-card pool. Rogue (Stealth+Combo) drafted next.
+
+**Card editor + data-driven cards — `docs/card-editor.md` (FOUNDATION DONE).** Cards are now
+**data** (op-list schema `src/engine/cards/cardSpec.js`; data in `src/data/cards/*.json`) run
+through `src/engine/combat/interpret.js` (`applyCardSpec`) with Topic-1 stat scaling + the
+stance rules (`src/engine/combat/stances.js`). `createFighter` gained `stats`/`stance`/
+`bracedBlock`/`powers`; `applyDamage` absorbs braced block. Warrior's 27 cards authored in
+`src/data/cards/warrior.json`. `npm run test:cards` (19 checks). **Next: editor UI + dual
+persistence** (Vite dev-write plugin for local + GitHub-API commit for phone + localStorage/
+export fallback) **→ CombatScreen playtest integration** (fire power triggers, Brace turn
+decay). Not yet wired into the live combat UI (no version bump yet).
+
 **Done so far:**
 - **Combat UX tweaks round 3, DONE 2026-06-19 (v3.14.0).** (a) **Live re-planning** —
   `VanguardManager` now regenerates the enemy forecast after EVERY player action
