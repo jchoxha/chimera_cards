@@ -44,6 +44,24 @@ structural factories (`src/engine/combat/state.js`), the 18-token `TARGET_SCOPES
 vocabulary + classifier (`src/engine/combat/scopes.js`), all validated by
 `npm run test:combat` (37 checks, structural only — **ready for turn behavior**).
 
+**🧬 IN PROGRESS (2026-06-21): the 3-axis Synthesis Matrix.** Moving from the single
+16-element `type` axis to a **three-axis creature taxonomy** — **Class** (8 bases →
+36 named), **Biology** (9 → 45), **Attunement** (13 → 91, REPLACES the old 16
+elements). A creature carries **1–2 bases per axis** (the §1.1 "1–2 types" cap is now
+**per-axis**). All three axes drive combat matchups (layered magnitudes). The matrices
+are *naming/synthesis* tables; the goal is a **generative ruleset** that derives a full
+monster (stats/deck/AI/matchups) from a triple. **LOCKED source data** (axis bases,
+hybrid names, class→attunement legality + `synthName`/`legalAttunements`/
+`attunementComboLegal`) is in **`src/data/synthesis.js`** (generated verbatim from
+`Synthesis_Matrices.xlsx`). The full derived ruleset is **`docs/synthesis-matrix-spec.md`**
+— design **locked through §6** (1–2 bases/axis, no per-axis weights, ≥1 legal attunement,
+layered matchups Attune 1.5/.66·Biology 1.25/.8·Class 1.15/.87, attunement-only self-resist,
+cross-axis game theory, status+reaction set, biology stat profiles, class card templates +
+AI profiles). **`REVIEW` tables** (matchup grids, biology/class tables) await Jeton's
+balance tuning. **Fusion/breeding is PAUSED** until combat impact is proven. Next code:
+`matchups.js` + data-model migration (`types`→`attunement`, add `class`/`biology`) + the
+generator (§7), per §10. No gameplay wired yet (no version bump).
+
 **Done so far:**
 - **Combat UX tweaks round 3, DONE 2026-06-19 (v3.14.0).** (a) **Live re-planning** —
   `VanguardManager` now regenerates the enemy forecast after EVERY player action
