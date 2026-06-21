@@ -21,3 +21,4 @@ __pycache__/
 
 # Private design reference (StS dumps etc.) — never commit this folder
 AI context/
+.firecrawl/
