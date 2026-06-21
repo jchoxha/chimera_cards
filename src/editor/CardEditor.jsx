@@ -1,12 +1,13 @@
 // ╔══════════════════════════════════════════════════════════════════╗
-// ║ MODULE: editor/CardEditor — the in-engine card editor UI. Edits the  ║
-// ║ data-driven CardSpec (src/data/cards/*.json), persists via the dual   ║
-// ║ backend (dev-write / GitHub / export). See docs/card-editor.md.      ║
+// ║ MODULE: editor/CardEditor — the in-engine card editor UI. The effect  ║
+// ║ form is driven by engine/cards/effectRegistry metadata, so any new op  ║
+// ║ appears automatically. Persists via the dual backend. See              ║
+// ║ docs/card-editor.md.                                                  ║
 // ╚══════════════════════════════════════════════════════════════════╝
 
 import React, { useEffect, useMemo, useState } from 'react';
 import {
-  OP_TYPES, CARD_TYPES, BUFF_STATUSES, DEBUFF_STATUSES, validateCard, defaultScope,
+  EFFECT_OPS, OP_TYPES, CARD_TYPES, PASSIVES, TRIGGER_EVENTS, validateCard, defaultScope,
 } from '../engine/cards/cardSpec.js';
 import { STANCES } from '../engine/combat/stances.js';
 import { TARGET_SCOPES } from '../engine/types.js';
@@ -25,32 +26,66 @@ const BASE_FILES = Object.fromEntries(
   Object.entries(BUNDLE).map(([path, mod]) => [path.split('/').pop(), (mod.default ?? mod)]),
 );
 
-const NEW_OP_DEFAULTS = {
-  damage: { op: 'damage', value: 6 },
-  block: { op: 'block', value: 5 },
-  buff: { op: 'buff', status: 'strength', value: 1 },
-  debuff: { op: 'debuff', status: 'vulnerable', value: 2 },
-  heal: { op: 'heal', value: 5 },
-  draw: { op: 'draw', value: 1 },
-  energy: { op: 'energy', value: 1 },
-  pay: { op: 'pay', block: 0, hp: 0 },
-  stance: { op: 'stance', set: 'Balanced' },
-};
+// ── dot-path get/set (ops have shallow nesting: bonusIf.stance, shift.dir) ─────
+function getIn(obj, path) { return path.split('.').reduce((o, k) => (o == null ? undefined : o[k]), obj); }
+function setIn(obj, path, val) {
+  const keys = path.split('.');
+  const root = { ...obj };
+  let node = root;
+  for (let i = 0; i < keys.length - 1; i++) { node[keys[i]] = { ...(node[keys[i]] || {}) }; node = node[keys[i]]; }
+  const last = keys[keys.length - 1];
+  const empty = val === undefined || val === '' || (typeof val === 'number' && Number.isNaN(val));
+  if (empty) delete node[last]; else node[last] = val;
+  if (keys.length > 1 && root[keys[0]] && Object.keys(root[keys[0]]).length === 0) delete root[keys[0]];
+  return root;
+}
 
 function Field({ label, children }) {
-  return (
-    <label className="fld"><span>{label}</span>{children}</label>
-  );
+  return <label className="fld"><span>{label}</span>{children}</label>;
+}
+
+// One control for one registry field descriptor.
+function FieldControl({ field, op, onChange }) {
+  const v = getIn(op, field.path);
+  const set = (val) => onChange(setIn(op, field.path, val));
+  switch (field.type) {
+    case 'number':
+      return <input type="number" value={v ?? ''} onChange={(e) => set(e.target.value === '' ? undefined : Number(e.target.value))} />;
+    case 'bool':
+      return <input type="checkbox" checked={!!v} onChange={(e) => set(e.target.checked || undefined)} />;
+    case 'enum':
+      return (
+        <select value={v ?? ''} onChange={(e) => set(e.target.value || undefined)}>
+          {!field.options.includes('') && <option value="">(none)</option>}
+          {field.options.map((o) => <option key={o} value={o}>{o === '' ? '(static)' : o}</option>)}
+        </select>
+      );
+    case 'stance':
+      return (
+        <select value={v ?? ''} onChange={(e) => set(e.target.value || undefined)}>
+          <option value="">(none)</option>{STANCES.map((s) => <option key={s} value={s}>{s}</option>)}
+        </select>
+      );
+    case 'scope':
+      return (
+        <select value={v ?? ''} onChange={(e) => set(e.target.value || undefined)}>
+          <option value="">(default: {defaultScope(op)})</option>
+          {TARGET_SCOPES.map((s) => <option key={s} value={s}>{s}</option>)}
+        </select>
+      );
+    case 'text':
+    default:
+      return <input value={v ?? ''} onChange={(e) => set(e.target.value || undefined)} />;
+  }
 }
 
 function OpRow({ op, onChange, onRemove, onMove }) {
-  const set = (patch) => onChange({ ...op, ...patch });
-  const num = (v) => (v === '' ? undefined : Number(v));
+  const def = EFFECT_OPS[op.op];
   return (
     <div className="op">
       <div className="opHead">
-        <select value={op.op} onChange={(e) => onChange({ ...NEW_OP_DEFAULTS[e.target.value] })}>
-          {OP_TYPES.map((t) => <option key={t} value={t}>{t}</option>)}
+        <select value={op.op} onChange={(e) => onChange({ ...EFFECT_OPS[e.target.value].default })}>
+          {OP_TYPES.map((t) => <option key={t} value={t}>{t} — {EFFECT_OPS[t].label}</option>)}
         </select>
         <div className="opBtns">
           <button onClick={() => onMove(-1)} title="move up">↑</button>
@@ -59,85 +94,9 @@ function OpRow({ op, onChange, onRemove, onMove }) {
         </div>
       </div>
       <div className="opFields">
-        {(op.op === 'damage' || op.op === 'block') && (
-          <Field label="value"><input type="number" value={op.value ?? ''} onChange={(e) => set({ value: num(e.target.value) })} /></Field>
-        )}
-        {(op.op === 'damage' || op.op === 'block') && (
-          <Field label="valueFrom">
-            <select value={op.valueFrom ?? ''} onChange={(e) => set({ valueFrom: e.target.value || undefined })}>
-              <option value="">(static)</option><option value="selfBlock">selfBlock</option>
-            </select>
-          </Field>
-        )}
-        {op.op === 'damage' && (
-          <Field label="hits"><input value={op.hits ?? ''} placeholder="1 or X" onChange={(e) => set({ hits: e.target.value === '' ? undefined : (e.target.value === 'X' ? 'X' : Number(e.target.value)) })} /></Field>
-        )}
-        {(op.op === 'damage' || op.op === 'debuff' || op.op === 'heal') && (
-          <Field label="scope">
-            <select value={op.scope ?? ''} onChange={(e) => set({ scope: e.target.value || undefined })}>
-              <option value="">(default: {defaultScope(op)})</option>
-              {TARGET_SCOPES.map((s) => <option key={s} value={s}>{s}</option>)}
-            </select>
-          </Field>
-        )}
-        {(op.op === 'buff' || op.op === 'debuff') && (
-          <Field label="status">
-            <select value={op.status ?? ''} onChange={(e) => set({ status: e.target.value })}>
-              {(op.op === 'buff' ? BUFF_STATUSES : DEBUFF_STATUSES).map((s) => <option key={s} value={s}>{s}</option>)}
-            </select>
-          </Field>
-        )}
-        {(op.op === 'buff' || op.op === 'debuff' || op.op === 'heal' || op.op === 'draw' || op.op === 'energy') && (
-          <Field label="value"><input type="number" value={op.value ?? ''} onChange={(e) => set({ value: num(e.target.value) })} /></Field>
-        )}
-        {op.op === 'buff' && (
-          <Field label="temporary"><input type="checkbox" checked={!!op.temporary} onChange={(e) => set({ temporary: e.target.checked || undefined })} /></Field>
-        )}
-        {op.op === 'block' && (
-          <>
-            <Field label="brace"><input type="checkbox" checked={!!op.brace} onChange={(e) => set({ brace: e.target.checked || undefined })} /></Field>
-            <Field label="+/Dexterity"><input type="number" value={op.bonusPerDexterity ?? ''} onChange={(e) => set({ bonusPerDexterity: num(e.target.value) })} /></Field>
-          </>
-        )}
-        {op.op === 'damage' && (
-          <>
-            <Field label="bonus ×"><input type="number" value={op.bonusMult ?? ''} onChange={(e) => set({ bonusMult: num(e.target.value) })} /></Field>
-            <Field label="bonus +"><input type="number" value={op.bonusAdd ?? ''} onChange={(e) => set({ bonusAdd: num(e.target.value) })} /></Field>
-            <Field label="bonusIf HP<%">
-              <input type="number" step="0.1" value={op.bonusIf?.targetHpPctBelow ?? ''} onChange={(e) => set({ bonusIf: e.target.value === '' ? undefined : { ...op.bonusIf, targetHpPctBelow: Number(e.target.value) } })} />
-            </Field>
-            <Field label="bonusIf stance">
-              <select value={op.bonusIf?.stance ?? ''} onChange={(e) => set({ bonusIf: e.target.value ? { ...op.bonusIf, stance: e.target.value } : undefined })}>
-                <option value="">(none)</option>{STANCES.map((s) => <option key={s} value={s}>{s}</option>)}
-              </select>
-            </Field>
-          </>
-        )}
-        {op.op === 'pay' && (
-          <>
-            <Field label="block"><input type="number" value={op.block ?? ''} onChange={(e) => set({ block: num(e.target.value) })} /></Field>
-            <Field label="hp"><input type="number" value={op.hp ?? ''} onChange={(e) => set({ hp: num(e.target.value) })} /></Field>
-          </>
-        )}
-        {op.op === 'stance' && (
-          <>
-            <Field label="set">
-              <select value={op.set ?? ''} onChange={(e) => set({ set: e.target.value || undefined, shift: undefined })}>
-                <option value="">(use shift)</option>{STANCES.map((s) => <option key={s} value={s}>{s}</option>)}
-              </select>
-            </Field>
-            {!op.set && (
-              <>
-                <Field label="shift dir">
-                  <select value={op.shift?.dir ?? 'offense'} onChange={(e) => set({ shift: { dir: e.target.value, steps: op.shift?.steps ?? 1 } })}>
-                    <option value="offense">offense</option><option value="defense">defense</option>
-                  </select>
-                </Field>
-                <Field label="steps"><input type="number" value={op.shift?.steps ?? 1} onChange={(e) => set({ shift: { dir: op.shift?.dir ?? 'offense', steps: Number(e.target.value) } })} /></Field>
-              </>
-            )}
-          </>
-        )}
+        {(def?.fields ?? []).map((f) => (
+          <Field key={f.path} label={f.label}><FieldControl field={f} op={op} onChange={onChange} /></Field>
+        ))}
       </div>
     </div>
   );
@@ -154,7 +113,7 @@ function OpList({ ops, onChange }) {
   return (
     <div className="ops">
       {list.map((op, i) => <OpRow key={i} op={op} onChange={(o) => upd(i, o)} onRemove={() => rm(i)} onMove={(d) => move(i, d)} />)}
-      <button className="addOp" onClick={() => onChange([...list, { ...NEW_OP_DEFAULTS.damage }])}>+ add effect</button>
+      <button className="addOp" onClick={() => onChange([...list, { ...EFFECT_OPS.damage.default }])}>+ add effect</button>
     </div>
   );
 }
@@ -174,7 +133,6 @@ export function CardEditor() {
 
   useEffect(() => { detectDevWrite().then(setDevAvailable); }, []);
 
-  // Load working copy when the active file changes (prefer an unsaved draft).
   useEffect(() => {
     const base = files[activeFile] || { class: slug(activeFile).replace('_json', ''), version: 1, cards: [] };
     const draft = loadDraft(activeFile);
@@ -182,7 +140,6 @@ export function CardEditor() {
     setCardIdx(0);
   }, [activeFile, files]);
 
-  // Autosave the working copy to localStorage.
   useEffect(() => { if (working) saveDraft(activeFile, working); }, [working, activeFile]);
 
   const cards = working?.cards ?? [];
@@ -200,7 +157,7 @@ export function CardEditor() {
   }
   function addCard() {
     const cls = working.class || '';
-    const blank = { id: `${slug(cls) || 'card'}_new_${cards.length + 1}`, name: 'New Card', class: cls || undefined, attunement: 'Physical', type: 'attack', cost: 1, rarity: 'common', keywords: [], text: '', effects: [{ ...NEW_OP_DEFAULTS.damage }] };
+    const blank = { id: `${slug(cls) || 'card'}_new_${cards.length + 1}`, name: 'New Card', class: cls || undefined, attunement: 'Physical', type: 'attack', cost: 1, rarity: 'common', keywords: [], text: '', effects: [{ ...EFFECT_OPS.damage.default }] };
     setWorking((w) => ({ ...w, cards: [...w.cards, blank] }));
     setCardIdx(cards.length);
   }
@@ -268,7 +225,7 @@ export function CardEditor() {
         <aside className="list">
           <button className="addCard" onClick={addCard}>+ add card</button>
           {cards.map((c, i) => (
-            <div key={c.id || i} className={`li ${i === cardIdx ? 'sel' : ''}`} onClick={() => { setCardIdx(i); setRaw(false); }}>
+            <div key={c.id || i} className={`li ${i === cardIdx ? 'sel' : ''} ${validateCard(c).length ? 'bad' : ''}`} onClick={() => { setCardIdx(i); setRaw(false); }}>
               <span className={`pip ${c.type}`}>{(c.type || '?')[0].toUpperCase()}</span>
               <span className="liName">{c.name || '(unnamed)'}</span>
               <span className="liCost">{c.cost === -1 ? 'X' : c.cost}</span>
@@ -305,6 +262,7 @@ export function CardEditor() {
                     <Field label="biology"><select value={card.biology || ''} onChange={(e) => updateCard({ biology: e.target.value || undefined })}><option value="">(none)</option>{BIOLOGY_BASES.map((b) => <option key={b}>{b}</option>)}</select></Field>
                     <Field label="rarity"><select value={card.rarity || 'common'} onChange={(e) => updateCard({ rarity: e.target.value })}>{['basic', 'common', 'uncommon', 'rare'].map((r) => <option key={r}>{r}</option>)}</select></Field>
                     <Field label="keywords"><input value={(card.keywords || []).join(', ')} onChange={(e) => updateCard({ keywords: e.target.value.split(',').map((s) => s.trim()).filter(Boolean) })} /></Field>
+                    <Field label="art (key/URL)"><input value={card.art || ''} onChange={(e) => updateCard({ art: e.target.value || undefined })} /></Field>
                   </div>
                   <Field label="text"><textarea className="cardtext" value={card.text || ''} onChange={(e) => updateCard({ text: e.target.value })} /></Field>
 
@@ -313,13 +271,27 @@ export function CardEditor() {
 
                   {card.type === 'power' && (
                     <>
-                      <h3>Trigger (power)</h3>
-                      <Field label="on">
-                        <select value={card.trigger?.on || 'turnStart'} onChange={(e) => updateCard({ trigger: { on: e.target.value, effects: card.trigger?.effects || [] } })}>
-                          {['turnStart', 'turnEnd', 'onGainBlock', 'onAttack', 'passive'].map((o) => <option key={o}>{o}</option>)}
-                        </select>
-                      </Field>
-                      <OpList ops={card.trigger?.effects} onChange={(ops) => updateCard({ trigger: { on: card.trigger?.on || 'turnStart', effects: ops } })} />
+                      <h3>Power: passive &amp; trigger</h3>
+                      <div className="grid">
+                        <Field label="passive (rule-modifier)">
+                          <select value={card.passive || ''} onChange={(e) => updateCard({ passive: e.target.value || undefined })}>
+                            <option value="">(none)</option>
+                            {Object.keys(PASSIVES).map((p) => <option key={p} value={p}>{p} — {PASSIVES[p].label}</option>)}
+                          </select>
+                        </Field>
+                        <Field label="trigger on">
+                          <select value={card.trigger?.on || ''} onChange={(e) => updateCard({ trigger: e.target.value ? { on: e.target.value, effects: card.trigger?.effects || [] } : undefined })}>
+                            <option value="">(no trigger)</option>
+                            {TRIGGER_EVENTS.map((o) => <option key={o}>{o}</option>)}
+                          </select>
+                        </Field>
+                      </div>
+                      {card.trigger?.on && (
+                        <>
+                          <h4>Trigger effects (fire on {card.trigger.on})</h4>
+                          <OpList ops={card.trigger?.effects} onChange={(ops) => updateCard({ trigger: { on: card.trigger?.on || 'turnStart', effects: ops } })} />
+                        </>
+                      )}
                     </>
                   )}
                 </>

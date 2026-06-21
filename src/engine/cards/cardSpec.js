@@ -1,9 +1,21 @@
 // ╔══════════════════════════════════════════════════════════════════╗
-// ║ MODULE: engine/cards/cardSpec — the data-driven CARD SCHEMA (op-list ║
-// ║ effects) shared by the card editor, the engine interpreter, and the  ║
-// ║ (future) generator. See docs/card-editor.md.                        ║
-// ║ UPDATE WHEN: new op types / card fields / play-gates are added.      ║
+// ║ MODULE: engine/cards/cardSpec — the data-driven CARD SCHEMA + its    ║
+// ║ validator. The effect VOCABULARY (ops + their fields) and behavior    ║
+// ║ live in effectRegistry.js; this file owns the card shape + validation.║
+// ║ UPDATE WHEN: card-level fields or validation rules change.            ║
 // ╚══════════════════════════════════════════════════════════════════╝
+
+import {
+  EFFECT_OPS, OP_TYPES, CARD_TYPES, BUFF_STATUSES, DEBUFF_STATUSES,
+  PASSIVES, TRIGGER_EVENTS, defaultScope, resolveValue, condMet,
+} from './effectRegistry.js';
+
+// Re-export the vocabulary so existing importers (editor, interpreter, tests)
+// have one stable import surface.
+export {
+  EFFECT_OPS, OP_TYPES, CARD_TYPES, BUFF_STATUSES, DEBUFF_STATUSES,
+  PASSIVES, TRIGGER_EVENTS, defaultScope, resolveValue, condMet,
+};
 
 /**
  * @typedef {Object} CardSpec
@@ -11,60 +23,35 @@
  * @property {string} name
  * @property {string|null} [class]
  * @property {string|null} [biology]
- * @property {string} attunement          Always present.
+ * @property {string} attunement
  * @property {'attack'|'skill'|'power'} type
- * @property {number} cost                 Energy; -1 = X (spend-all).
+ * @property {number} cost                 -1 = X (spend-all).
  * @property {string} [rarity]
  * @property {string[]} [keywords]
  * @property {string} [text]
+ * @property {string} [art]                Art manifest key / URL (mod #69 parity; optional).
  * @property {Object} [requires]           Play-gate: { stance?, stanceSide? }.
- * @property {EffectOp[]} effects
- * @property {{ on: string, effects: EffectOp[] }} [trigger]   For powers.
+ * @property {import('./effectRegistry.js').EffectOp[]} [effects]
+ * @property {{ on: string, effects: object[] }} [trigger]   For powers.
+ * @property {string} [passive]            For powers: a PASSIVES key (rule-modifier).
  */
 
-/**
- * @typedef {Object} EffectOp
- * @property {'damage'|'block'|'buff'|'debuff'|'heal'|'draw'|'energy'|'pay'|'stance'} op
- * @property {number} [value]
- * @property {'selfBlock'} [valueFrom]     Dynamic value source.
- * @property {number|'X'} [hits]           damage: hit count ('X' = energy spent).
- * @property {string} [scope]              18-token TargetScope (default per op).
- * @property {string} [status]             buff/debuff status id.
- * @property {boolean} [temporary]         buff: lost at end of turn.
- * @property {boolean} [brace]             block: gained Block persists (Brace).
- * @property {number} [bonusPerDexterity]  block: + this × Dexterity.
- * @property {Object} [bonusIf]            damage: condition for a bonus.
- * @property {number} [bonusMult]          damage: multiply value if bonusIf.
- * @property {number} [bonusAdd]           damage: add to value if bonusIf.
- * @property {number} [hp]                 pay: HP to spend.
- * @property {string} [set]               stance: snap to this stance.
- * @property {{ dir:'offense'|'defense', steps:number }} [shift]  stance: slide.
- */
-
-export const OP_TYPES = Object.freeze([
-  'damage', 'block', 'buff', 'debuff', 'heal', 'draw', 'energy', 'pay', 'stance',
-]);
-export const CARD_TYPES = Object.freeze(['attack', 'skill', 'power']);
-export const BUFF_STATUSES = Object.freeze(['strength', 'dexterity', 'regen']);
-export const DEBUFF_STATUSES = Object.freeze(['weak', 'vulnerable', 'burn', 'poison']);
-
-/** Default target scope per op when none is specified. */
-export function defaultScope(op) {
-  switch (op.op) {
-    case 'damage':
-    case 'debuff':
-      return 'enemyActiveTarget';
-    case 'heal':
-    case 'block':
-    case 'buff':
-    default:
-      return 'selfOnlyTarget';
+function validateOpList(ops, where, errs) {
+  for (const op of ops ?? []) {
+    if (!OP_TYPES.includes(op.op)) { errs.push(`${where}: unknown op "${op.op}"`); continue; }
+    if (op.op === 'buff' && !BUFF_STATUSES.includes(op.status)) errs.push(`${where}: buff needs a status`);
+    if (op.op === 'debuff' && !DEBUFF_STATUSES.includes(op.status)) errs.push(`${where}: debuff needs a status`);
+    if (op.op === 'stance' && !op.set && !op.shift) errs.push(`${where}: stance op needs set or shift`);
+    if ((op.op === 'damage' || op.op === 'block') && op.value == null && op.valueFrom == null) {
+      errs.push(`${where}: ${op.op} needs value or valueFrom`);
+    }
   }
 }
 
 /**
- * Validate a CardSpec. Returns a list of human-readable problems ([] = valid).
- * Cheap structural validation — used by the editor and tests, not the hot path.
+ * Validate a CardSpec → list of human-readable problems ([] = valid). Crucially
+ * flags **non-functional** cards (no effects / no trigger / no passive) so no card
+ * "does nothing".
  * @param {CardSpec} c @returns {string[]}
  */
 export function validateCard(c) {
@@ -75,31 +62,23 @@ export function validateCard(c) {
   if (!c.attunement) errs.push('missing attunement');
   if (!CARD_TYPES.includes(c.type)) errs.push(`bad type: ${c.type}`);
   if (typeof c.cost !== 'number') errs.push('cost must be a number (-1 = X)');
-  if (!Array.isArray(c.effects) && !c.trigger) errs.push('needs effects[] or a trigger');
-  for (const op of c.effects ?? []) {
-    if (!OP_TYPES.includes(op.op)) { errs.push(`unknown op: ${op.op}`); continue; }
-    if (op.op === 'buff' && !BUFF_STATUSES.includes(op.status)) errs.push(`buff needs a status: ${op.status}`);
-    if (op.op === 'debuff' && !DEBUFF_STATUSES.includes(op.status)) errs.push(`debuff needs a status: ${op.status}`);
-    if (op.op === 'stance' && !op.set && !op.shift) errs.push('stance op needs set or shift');
-    if ((op.op === 'damage' || op.op === 'block') && op.value == null && op.valueFrom == null) {
-      errs.push(`${op.op} op needs value or valueFrom`);
-    }
+
+  validateOpList(c.effects, 'effects', errs);
+
+  if (c.passive && !PASSIVES[c.passive]) errs.push(`unknown passive: ${c.passive}`);
+  if (c.trigger) {
+    if (!TRIGGER_EVENTS.includes(c.trigger.on)) errs.push(`bad trigger.on: ${c.trigger.on}`);
+    validateOpList(c.trigger.effects, 'trigger', errs);
+  }
+
+  // Functional check — every card must DO something.
+  const hasEffects = Array.isArray(c.effects) && c.effects.length > 0;
+  const hasTriggerFx = !!c.trigger && Array.isArray(c.trigger.effects) && c.trigger.effects.length > 0;
+  const hasPassive = !!c.passive;
+  if (c.type === 'power') {
+    if (!hasTriggerFx && !hasPassive) errs.push('power has no trigger effects or passive — it does nothing');
+  } else if (!hasEffects) {
+    errs.push('card has no effects — it does nothing');
   }
   return errs;
-}
-
-/** Resolve an op's base numeric value (static or dynamic). @param {EffectOp} op @param {Object} ctx */
-export function resolveValue(op, ctx) {
-  if (op.valueFrom === 'selfBlock') return (ctx.caster.block ?? 0) + (ctx.caster.bracedBlock ?? 0);
-  return op.value ?? 0;
-}
-
-/** Test a `bonusIf` condition against the resolve context. @param {Object} cond @param {Object} ctx */
-export function condMet(cond, ctx) {
-  if (!cond) return false;
-  if (cond.stance != null) return ctx.caster.stance === cond.stance;
-  if (cond.targetHpPctBelow != null && ctx.target) {
-    return ctx.target.maxHp > 0 && ctx.target.hp / ctx.target.maxHp < cond.targetHpPctBelow;
-  }
-  return false;
 }

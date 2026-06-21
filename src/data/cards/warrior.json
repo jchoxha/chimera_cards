@@ -56,10 +56,10 @@
     { "id": "warrior_bloodlust", "name": "Bloodlust", "class": "Warrior", "attunement": "Physical", "type": "power", "cost": 2, "rarity": "uncommon", "text": "Start of each turn: gain 1 Strength.",
       "effects": [], "trigger": { "on": "turnStart", "effects": [ { "op": "buff", "status": "strength", "value": 1 } ] } },
     { "id": "warrior_rampart", "name": "Rampart", "class": "Warrior", "attunement": "Physical", "type": "power", "cost": 2, "rarity": "rare", "text": "Your Block always Braces.",
-      "effects": [], "trigger": { "on": "passive", "effects": [] } },
+      "effects": [], "passive": "blockAlwaysBraces" },
     { "id": "warrior_juggernaut", "name": "Juggernaut", "class": "Warrior", "attunement": "Physical", "type": "power", "cost": 2, "rarity": "rare", "text": "Whenever you gain Block, deal 3 damage to a random enemy.",
       "effects": [], "trigger": { "on": "onGainBlock", "effects": [ { "op": "damage", "value": 3, "scope": "enemyActiveTarget" } ] } },
     { "id": "warrior_endless_stamina", "name": "Endless Stamina", "class": "Warrior", "attunement": "Physical", "type": "power", "cost": 1, "rarity": "uncommon", "text": "You may shift 2 stance steps per turn.",
-      "effects": [], "trigger": { "on": "passive", "effects": [] } }
+      "effects": [], "passive": "extraStanceStep" }
   ]
 }

@@ -40,6 +40,31 @@
 3. ⏳ **Combat integration** — build a playtest deck from edited cards into `CombatScreen`
    (the live author→playtest loop); fire power triggers; wire Brace decay into the turn loop.
 
+## Effect registry (extensibility — the key to "easy to add mechanics")
+
+`src/engine/cards/effectRegistry.js` is the **single source of truth** for the effect
+vocabulary. Each op declares BOTH its engine behavior (`apply`) and its editor field
+metadata (`fields`), so **adding a new mechanic = adding one registry entry** — the
+interpreter runs it and the editor form renders it automatically (no edits to either).
+It also defines `TRIGGER_EVENTS` (turnStart/turnEnd/onGainBlock/onPlayCard/onDeath/fatal/
+passive) and `PASSIVES` (rule-modifier flags like `blockAlwaysBraces`, `extraStanceStep`).
+
+- **Triggers** fire via `fireTriggers(state, side, event)` (powers register their hook).
+- **Passives** are read via `hasPassive(fighter, id)` (e.g. block op braces if the carrier
+  has `blockAlwaysBraces`).
+- **`validateCard` flags non-functional cards** — a card with no effects / no trigger /
+  no passive is an error, surfaced in the editor (⚠ on the card row). No card "does nothing".
+
+## Parity targets from Nexus mod #69 ("Card editor and Card creator", Renovice)
+
+Our north star. Status: ✅ have · ⏳ planned.
+- ✅ Edit effects / costs / numbers on any card; create custom cards; per-class files.
+- ✅ Registry-driven effects; triggers; passive rule-modifiers; live validation.
+- ⏳ **Custom art per card** (schema has `art`; needs rendering + upload/asset pipeline).
+- ⏳ **Author custom status effects & keywords** from the editor (today the status set is
+  fixed; mod #69 lets you define new ones — make `PASSIVES`/statuses editor-authorable).
+- ⏳ Custom starting deck, "link card", foils, GIF art, target-specific-enemy knobs.
+
 ## Card schema (v0)
 
 ```jsonc

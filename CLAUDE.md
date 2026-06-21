@@ -89,9 +89,18 @@ power-trigger editor, live validation, raw-JSON escape hatch; **dual persistence
 dev-write Vite plugin (`src/dev/cardWritePlugin.js`) Save-to-disk locally + **GitHub API**
 commit (PAT in localStorage) from phone/deployed + localStorage/export fallback (backend
 auto-detected). Verified end-to-end (ping/save/path-escape/serves); build ships 3 pages
-(index/combat/editor). **Next: CombatScreen playtest integration** (deck from edited cards,
-fire power triggers, Brace turn decay) — that's the first live-UI gameplay change (version
-bump then). Not wired into the combat UI yet (no version bump).
+(index/combat/editor). **Deployed live** at `/chimera_cards/editor.html`. **Effect system
+is now registry-driven** (`src/engine/cards/effectRegistry.js`): every op declares its engine
+`apply` AND its editor `fields` in ONE place, so adding a mechanic = one registry entry (the
+interpreter + editor both pick it up). Adds `TRIGGER_EVENTS` + `fireTriggers()` and `PASSIVES`
++ `hasPassive()`; **`validateCard` flags any non-functional card** (no effects/trigger/passive)
+— surfaced as ⚠ in the editor. All Warrior powers are now functional (Bloodlust/Juggernaut =
+triggers; Rampart=`blockAlwaysBraces`, Endless Stamina=`extraStanceStep` passives).
+`npm run test:cards` now 24 checks (198 total across suites). **North star = Nexus StS2 mod
+#69 "Card editor and Card creator"** (docs/card-editor.md parity list: custom art, author
+custom statuses/keywords, etc.). **Next: CombatScreen playtest integration** (deck from edited
+cards, fire triggers in the turn loop, Brace turn decay) — first live-UI gameplay change
+(version bump then).
 
 **Done so far:**
 - **Combat UX tweaks round 3, DONE 2026-06-19 (v3.14.0).** (a) **Live re-planning** —

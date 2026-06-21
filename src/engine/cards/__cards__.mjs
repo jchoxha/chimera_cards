@@ -11,6 +11,7 @@ import { createCombatState, createFighter } from '../combat/state.js';
 import { applyCardSpec } from '../combat/interpret.js';
 import { applyDamage } from '../combat/resolve.js';
 import { validateCard } from './cardSpec.js';
+import { fireTriggers, hasPassive } from './effectRegistry.js';
 
 const WARRIOR = JSON.parse(readFileSync(new URL('../../data/cards/warrior.json', import.meta.url)));
 const byId = Object.fromEntries(WARRIOR.cards.map((c) => [c.id, c]));
@@ -130,11 +131,34 @@ console.log('Buffs scale with Resolve; debuffs with Focus:');
   ok(d.enemy.statuses.find((s) => s.id === 'vulnerable')?.amount === 4, `Sunder vulnerable × Focus 2 → 4`);
 }
 
-console.log('Powers register their trigger (not fired yet):');
+console.log('Powers register, then triggers fire & passives apply:');
 {
   const g = mk();
   const r = play(g, g.player, 'warrior_bloodlust');
   ok(r.power === true && g.player.powers.length === 1, 'Bloodlust registers as a power');
+  // turnStart trigger → +1 Strength (Resolve 1 → 1)
+  fireTriggers(g.state, 'player', 'turnStart');
+  ok(g.player.statuses.find((s) => s.id === 'strength')?.amount === 1, 'Bloodlust turnStart trigger fires → +1 Strength');
+
+  // Rampart passive: a normal Block op braces even in Balanced.
+  const p = mk();
+  play(p, p.player, 'warrior_rampart');
+  ok(hasPassive(p.player, 'blockAlwaysBraces'), 'Rampart grants blockAlwaysBraces passive');
+  play(p, p.player, 'warrior_shield_wall');
+  ok(p.player.block === 0 && p.player.bracedBlock === 8, `Rampart makes Shield Wall brace (braced ${p.player.bracedBlock})`);
+
+  // Endless Stamina passive present.
+  const e = mk();
+  play(e, e.player, 'warrior_endless_stamina');
+  ok(hasPassive(e.player, 'extraStanceStep'), 'Endless Stamina grants extraStanceStep passive');
+}
+
+console.log('Juggernaut onGainBlock trigger deals damage:');
+{
+  const g = mk();
+  play(g, g.player, 'warrior_juggernaut');
+  fireTriggers(g.state, 'player', 'onGainBlock');  // deal 3 to enemy vanguard
+  ok(g.enemy.hp === 97, `Juggernaut onGainBlock → 3 dmg (hp ${g.enemy.hp})`);
 }
 
 console.log(`\ncards: ${pass} passed, ${fail} failed`);

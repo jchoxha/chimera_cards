@@ -38,6 +38,8 @@ body { background: #16110a; }
 .li { display: flex; align-items: center; gap: 6px; padding: 6px; border-radius: 6px; cursor: pointer; }
 .li:hover { background: #20180c; }
 .li.sel { background: #2e2213; outline: 1px solid #b88a3e; }
+.li.bad { box-shadow: inset 3px 0 0 #c2553a; }
+.li.bad .liName::after { content: ' ⚠'; color: #e08a5a; }
 .li .liName { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .li .liCost { color: #e2c98a; font-weight: 700; min-width: 14px; text-align: center; }
 .li .del, .op .del { background: transparent; border: none; color: #c77; padding: 2px 6px; }
