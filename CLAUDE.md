@@ -83,10 +83,15 @@ can't Block, defense side can't Attack; traversal distance balances the extremes
 through `src/engine/combat/interpret.js` (`applyCardSpec`) with Topic-1 stat scaling + the
 stance rules (`src/engine/combat/stances.js`). `createFighter` gained `stats`/`stance`/
 `bracedBlock`/`powers`; `applyDamage` absorbs braced block. Warrior's 27 cards authored in
-`src/data/cards/warrior.json`. `npm run test:cards` (19 checks). **Next: editor UI + dual
-persistence** (Vite dev-write plugin for local + GitHub-API commit for phone + localStorage/
-export fallback) **→ CombatScreen playtest integration** (fire power triggers, Brace turn
-decay). Not yet wired into the live combat UI (no version bump yet).
+`src/data/cards/warrior.json`. `npm run test:cards` (19 checks). **Card editor DONE**
+(`editor.html` → `src/editor/`): list/add/delete cards, structured per-field + per-op form,
+power-trigger editor, live validation, raw-JSON escape hatch; **dual persistence** —
+dev-write Vite plugin (`src/dev/cardWritePlugin.js`) Save-to-disk locally + **GitHub API**
+commit (PAT in localStorage) from phone/deployed + localStorage/export fallback (backend
+auto-detected). Verified end-to-end (ping/save/path-escape/serves); build ships 3 pages
+(index/combat/editor). **Next: CombatScreen playtest integration** (deck from edited cards,
+fire power triggers, Brace turn decay) — that's the first live-UI gameplay change (version
+bump then). Not wired into the combat UI yet (no version bump).
 
 **Done so far:**
 - **Combat UX tweaks round 3, DONE 2026-06-19 (v3.14.0).** (a) **Live re-planning** —

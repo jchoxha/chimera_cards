@@ -29,7 +29,14 @@
 1. ✅ **Foundation** — schema (`cardSpec.js`) + interpreter (`interpret.js`) + stances
    (`stances.js`) + stat fields on Fighter + Warrior data (`src/data/cards/warrior.json`) +
    smoke test (`npm run test:cards`). Cards run through the engine headlessly.
-2. ⏳ **Editor UI + dual persistence** (Vite dev plugin + GitHub API + localStorage/export).
+2. ✅ **Editor UI + dual persistence** — `editor.html` → `src/editor/` (`CardEditor.jsx`):
+   list/add/delete cards, structured per-field + per-op form, power-trigger editor, live
+   `validateCard`, whole-card **raw-JSON** escape hatch, Export. Persistence
+   (`persistence.js`): **dev-write** Vite plugin (`src/dev/cardWritePlugin.js`, `apply:'serve'`,
+   excluded from build) for local Save-to-disk; **GitHub API** commit (fine-grained PAT in
+   localStorage) for phone/deployed; localStorage autosave + Export fallback. Backend
+   auto-detected. Verified: ping + save round-trip + path-escape rejection + page serves.
+   Dev URL: `/editor.html`.
 3. ⏳ **Combat integration** — build a playtest deck from edited cards into `CombatScreen`
    (the live author→playtest loop); fire power triggers; wire Brace decay into the turn loop.
 

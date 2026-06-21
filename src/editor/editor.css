@@ -1,0 +1,73 @@
+/* Card editor — utilitarian dark dev tool. Works on desktop + phone. */
+* { box-sizing: border-box; }
+body { background: #16110a; }
+.ed {
+  font: 14px/1.4 system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+  color: #e8dcc8; min-height: 100vh;
+}
+.ed input, .ed select, .ed textarea, .ed button {
+  font: inherit; color: #e8dcc8; background: #241a10; border: 1px solid #4a3a22;
+  border-radius: 6px; padding: 6px 8px;
+}
+.ed input:focus, .ed select:focus, .ed textarea:focus { outline: 1px solid #b88a3e; }
+.ed button { cursor: pointer; background: #2e2213; }
+.ed button:hover { background: #3a2c18; }
+
+.edHead {
+  display: flex; gap: 8px; align-items: center; flex-wrap: wrap;
+  padding: 8px 12px; background: #1d1509; border-bottom: 1px solid #4a3a22; position: sticky; top: 0; z-index: 5;
+}
+.edHead .grow { flex: 1; }
+.edHead .save { background: #6a4d1b; border-color: #b88a3e; font-weight: 700; }
+.edHead .save:hover { background: #846023; }
+.badge { font-size: 12px; padding: 3px 8px; border-radius: 999px; border: 1px solid; }
+.badge.ok { color: #9be29b; border-color: #3c6e3c; background: #16240f; }
+.badge.gh { color: #9fd0ff; border-color: #2f5577; background: #0f1a24; }
+.badge.warn { color: #e2c98a; border-color: #6e5a2f; background: #241f0f; }
+
+.settings { padding: 12px; background: #1d1509; border-bottom: 1px solid #4a3a22; }
+.settings p { margin: 0 0 8px; color: #c9b58e; font-size: 12px; max-width: 720px; }
+.settings .row { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 8px; }
+.statusbar { padding: 6px 12px; background: #20180c; border-bottom: 1px solid #4a3a22; font-size: 13px; }
+
+.body { display: grid; grid-template-columns: 260px 1fr; gap: 0; align-items: start; }
+@media (max-width: 720px) { .body { grid-template-columns: 1fr; } }
+
+.list { border-right: 1px solid #4a3a22; padding: 8px; min-height: calc(100vh - 50px); }
+.addCard, .addOp { width: 100%; margin-bottom: 8px; border-style: dashed; }
+.li { display: flex; align-items: center; gap: 6px; padding: 6px; border-radius: 6px; cursor: pointer; }
+.li:hover { background: #20180c; }
+.li.sel { background: #2e2213; outline: 1px solid #b88a3e; }
+.li .liName { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.li .liCost { color: #e2c98a; font-weight: 700; min-width: 14px; text-align: center; }
+.li .del, .op .del { background: transparent; border: none; color: #c77; padding: 2px 6px; }
+.pip { width: 20px; height: 20px; border-radius: 4px; display: grid; place-items: center; font-size: 11px; font-weight: 700; }
+.pip.attack { background: #5a2417; color: #ffb9a0; }
+.pip.skill { background: #1c3a4a; color: #a0d8ff; }
+.pip.power { background: #3a2a52; color: #d0b0ff; }
+.empty { color: #8a7a5e; padding: 10px; }
+
+.form { padding: 14px; }
+.formTop { display: flex; align-items: center; gap: 12px; }
+.formTop h2 { margin: 0; }
+.rawToggle { margin-left: auto; font-size: 13px; color: #c9b58e; }
+.errs { background: #2a1410; border: 1px solid #7a3a2a; border-radius: 6px; padding: 8px; margin: 8px 0; color: #ffb9a0; font-size: 13px; }
+
+.grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 10px; margin: 8px 0; }
+.fld { display: flex; flex-direction: column; gap: 3px; font-size: 12px; color: #c9b58e; }
+.fld input, .fld select, .fld textarea { width: 100%; }
+.fld small { color: #8a7a5e; }
+.idrow { display: flex; gap: 4px; }
+.idrow input { flex: 1; }
+.cardtext { min-height: 48px; resize: vertical; }
+
+.ops { display: flex; flex-direction: column; gap: 8px; }
+.op { border: 1px solid #4a3a22; border-radius: 8px; padding: 8px; background: #1c150b; }
+.opHead { display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px; }
+.opHead select { font-weight: 700; }
+.opBtns { display: flex; gap: 4px; }
+.opBtns button { padding: 2px 8px; }
+.opFields { display: grid; grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); gap: 8px; }
+
+.rawEd textarea { width: 100%; min-height: 360px; font-family: ui-monospace, Menlo, Consolas, monospace; font-size: 13px; }
+.rawEd button { margin-top: 8px; }
