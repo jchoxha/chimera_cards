@@ -55,12 +55,19 @@ hybrid names, class→attunement legality + `synthName`/`legalAttunements`/
 `attunementComboLegal`) is in **`src/data/synthesis.js`** (generated verbatim from
 `Synthesis_Matrices.xlsx`). The full derived ruleset is **`docs/synthesis-matrix-spec.md`**
 — design **locked through §6** (1–2 bases/axis, no per-axis weights, ≥1 legal attunement,
-layered matchups Attune 1.5/.66·Biology 1.25/.8·Class 1.15/.87, attunement-only self-resist,
-cross-axis game theory, status+reaction set, biology stat profiles, class card templates +
-AI profiles). **`REVIEW` tables** (matchup grids, biology/class tables) await Jeton's
-balance tuning. **Fusion/breeding is PAUSED** until combat impact is proven. Next code:
-`matchups.js` + data-model migration (`types`→`attunement`, add `class`/`biology`) + the
-generator (§7), per §10. No gameplay wired yet (no version bump).
+attunement-only self-resist, cross-axis game theory). **Combat matchups REWORKED
+2026-06-21 (Jeton):** TWO layers, BOTH keyed on attunement — (1) attunement→attunement
+(×1.5/.66) and (2) **biology→attunement constitution** (×1.25/.8: a biology is innately
+weak/resistant to certain ELEMENTS), with an **override** (a creature attuned to the
+incoming element cancels its biology weakness; self-resist applies). **Class has NO
+matchup effect.** This engine is **IMPLEMENTED + tested** in `src/engine/content/matchups.js`
+(`computeMatchup` returns a breakdown for the live UI readout; `npm run test:matchups`, 19
+checks) — relationship NUMBERS are still REVIEW/tunable. The status/reaction system (§5)
+and the generator profiles/templates (§7) are **DEEP-EXPLORATION-PENDING** — build them
+**data-driven/swappable**. **Fusion/breeding PAUSED** (§6). Next code: data-model
+migration (add `class`/`biology` to Fighter; `attunementsOf` seam already accepts both
+shapes) → wire `computeMatchup` into `computeAttackDamage` (first gameplay change → bump
+version) → generator (§7) → UI (§9). No gameplay wired yet (no version bump).
 
 **Done so far:**
 - **Combat UX tweaks round 3, DONE 2026-06-19 (v3.14.0).** (a) **Live re-planning** —

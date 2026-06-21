@@ -36,9 +36,11 @@ comes from the 1–2 underlying bases.
 | A2 | **No per-axis weights** — both bases of a hybrid are mechanically **equal**. |
 | A3 | **Form** (baby→boss) stays an orthogonal 4th axis, untouched. |
 | A4 | **At least one** attunement must be legal for the class (not all). A Rogue may be Shadow/Fire. (`attunementComboLegal`) |
-| B1 | Matchup magnitudes: **Attunement 1.50/0.66 · Biology 1.25/0.80 · Class 1.15/0.87**, product clamped **0.25–4.0**. |
-| B3 | The matchup must be **explained live in the UI** (see §10). |
+| B1 | Matchup magnitudes: **Attunement 1.50/0.66 · Biology 1.25/0.80**, product clamped **0.25–4.0**. (Class removed — see B5.) |
+| B3 | The matchup must be **explained live in the UI** (see §9). |
 | B4 | **Self-resist (0.75×) on the attunement axis only.** |
+| B5 | **Class has NO matchup effect** (2026-06-21). Both combat layers key on attunement (B6). |
+| B6 | **Biology = elemental constitution**, not a biology-vs-biology matrix: a biology is innately weak/resistant to certain *attunements*. **Override:** if the creature is itself attuned to the incoming element, its biology relationship to that element is **cancelled** (a Fire Beast isn't weak to fire); attunement self-resist applies instead. |
 | C  | **Fusion/breeding PAUSED** (§6). |
 | E1 | Rename attunement axis `types`→`attunement` (via accessor); add `class`/`biology`. |
 | E2 | Cards **always** carry an attunement; may **also** be tagged as a **class card**, **biology card**, or **class+biology** card. |
@@ -75,14 +77,29 @@ the point. Example archetypes the system should produce naturally:
 itself, leaning into ally-protection instead). The generator should *recognize* synergy
 to bias card selection, but not forbid off-archetype triples.
 
-## 4. Combat matchups (`REVIEW` — v0 relationships)
+## 4. Combat matchups — IMPLEMENTED (`src/engine/content/matchups.js`)
 
-For an attack: `total = clamp( M_attune × M_biology × M_class , 0.25 , 4.0 )`. Each axis
-multiplier uses the existing convention (B3): the attacker's **best** base vs the
-**product** across the defender's bases. Self-resist (0.75×) applies on attunement only
-(B4). Magnitudes per B1.
+> **Engine LOCKED, numbers REVIEW.** The two-layer structure, override, self-resist,
+> and clamp are implemented + smoke-tested (`npm run test:matchups`, 19 checks). The
+> relationship *tables* (§4.1, §4.2) are provisional v0 — tune freely; the engine
+> doesn't change when you edit them.
 
-### 4.1 Attunement (×1.50 strong / ×0.66 weak) — `REVIEW`
+**Two layers, BOTH keyed on attunement** (class removed, B5/B6):
+
+```
+for each attacker attunement a:
+  mAtt = product over defender attunements of pair(a, d)      // 1.5 / 0.66 / 1.0
+  if a in defender.attunements: mAtt *= 0.75                  // self-resist (B4)
+  mBio = (a in defender.attunements) ? 1                       // OVERRIDE (B6)
+       : product over defender biologies of bioVsElement(b, a) // 1.25 / 0.8 / 1.0
+  total_a = mAtt * mBio
+total = clamp( max over a of total_a , 0.25 , 4.0 )
+```
+
+The attacker takes the **best** of its attunements; the result carries a breakdown
+(attune ×, biology ×, self-resist, overridden biologies, label) for the live UI (§9/B3).
+
+### 4.1 Layer 1 — Attunement → attunement (×1.50 / ×0.66) — `REVIEW` (Jeton: "looks good")
 
 | Attunement | Strong vs | Weak vs |
 |---|---|---|
@@ -100,36 +117,38 @@ multiplier uses the existing convention (B3): the attacker's **best** base vs th
 | Void | Holy, Energy | Arcane, Mind |
 | Mind | Holy, Physical | Shadow, Arcane |
 
-### 4.2 Biology (×1.25 / ×0.80) — predator/prey & material — `REVIEW`
+### 4.2 Layer 2 — Biology → attunement constitution (×1.25 weak / ×0.80 resist) — `REVIEW` (redesigned per Jeton 2026-06-21; numbers need deep design)
 
-| Biology | Strong vs | Weak vs |
+A biology is innately **weak** to (takes more from) or **resistant** to (takes less from)
+certain incoming **elements**. Cancelled by the own-attunement override (B6). Provisional
+v0 — flavor sketch, not balanced:
+
+| Biology | Weak to | Resists |
 |---|---|---|
-| Beast | Humanoid, Aberration | Dragonkin, Mechanical |
-| Humanoid | Demon, Aberration | Dragonkin, Giant |
-| Undead | Humanoid, Beast | Mechanical, Elemental |
-| Dragonkin | Beast, Humanoid | Giant, Aberration |
-| Elemental | Mechanical, Undead | Aberration, Giant |
-| Demon | Humanoid, Undead | Elemental, Mechanical |
-| Mechanical | Beast, Demon | Elemental, Aberration |
-| Giant | Humanoid, Dragonkin | Mechanical, Aberration |
-| Aberration | Mechanical, Elemental | Humanoid, Dragonkin |
+| Beast | Fire, Mind | Physical, Nature |
+| Humanoid | Shadow, Mind | Physical |
+| Undead | Holy, Fire | Shadow, Void, Frost |
+| Dragonkin | Frost, Arcane | Fire, Physical |
+| Elemental | Void | Physical |
+| Demon | Holy | Fire, Shadow |
+| Mechanical | Energy, Water | Physical |
+| Giant | Mind, Air | Physical, Stone |
+| Aberration | Holy | Void, Arcane |
 
-### 4.3 Class (×1.15 / ×0.87) — tactical RPS — `REVIEW`
+> Some biologies also carry engine-level **immunities** via their passive trait (§7.1,
+> e.g. Mechanical=poison/bleed-immune, Undead=poison-immune) — handled in the status
+> system, not this matchup layer.
 
-Core ring: Warrior > Rogue > Mage > Warrior.
+### 4.3 Class — **no matchup effect** (removed 2026-06-21, B5)
 
-| Class | Strong vs | Weak vs |
-|---|---|---|
-| Warrior | Rogue, Ranger | Mage, Warlock |
-| Rogue | Mage, Priest | Warrior, Ranger |
-| Mage | Warrior, Engineer | Rogue, Warlock |
-| Warlock | Warrior, Mage | Priest, Ranger |
-| Priest | Warlock, Shaman | Rogue, Engineer |
-| Shaman | Engineer, Ranger | Priest, Mage |
-| Ranger | Rogue, Warlock | Warrior, Shaman |
-| Engineer | Shaman, Priest | Mage, Warrior |
+Class governs kit/AI only (§7.2/§7.3), not damage multipliers.
 
-## 5. Attunement statuses & reactions (D2 — fleshed out)
+## 5. Attunement statuses & reactions (`DEEP EXPLORATION PENDING`)
+
+> Jeton 2026-06-21: "5.1/5.2 need much deeper thought." The tables below are a v0
+> starting sketch. Treat the whole status/reaction system as **provisional and
+> data-driven** — keep the six live statuses working; add the rest as swappable data,
+> not hard-coded special cases.
 
 ### 5.1 Status vocabulary
 
@@ -194,6 +213,10 @@ Given `(class[1–2], biology[1–2], attunement[1–2])`:
 4. **AI** from the class profile (§7.3).
 5. **Matchups** derived live (§4) — no per-creature authoring.
 6. **Name/art** seeded from the hybrid names.
+
+> **`DEEP EXPLORATION PENDING` (Jeton 2026-06-21):** §7.1–7.3 are "a fantastic start"
+> but a deep area — these are **provisional**. Build the generator **data-driven** so
+> every profile/template/AI-bias table can be rewritten without touching engine code.
 
 ### 7.1 Biology stat profiles + the stat model (D3 + D6) — `REVIEW`
 
@@ -290,13 +313,13 @@ Add an `attunementsOf(f)` accessor so the combat-math sites (`resolve.js`,
 ## 10. Implementation sequence (after table review)
 
 1. `src/data/synthesis.js` — ✅ DONE (source data + `synthName`/`legalAttunements`/`attunementComboLegal`).
-2. `src/engine/content/matchups.js` — §4 grids + magnitudes + layered `computeMatchup()`; retire the two duplicate element matrices.
-3. Data-model migration (§8) — `attunementsOf` accessor; add `class`/`biology`; card tags; snapshot.
-4. Wire `computeMatchup` into `computeAttackDamage` + the AI's matchup check.
-5. Generator (§7) — biology profiles, class templates, AI profiles → `(triple) → Fighter`.
+2. `src/engine/content/matchups.js` — ✅ DONE (locked two-layer engine + override + self-resist + clamp + `attunementsOf`/`biologiesOf`/`classesOf` accessors + breakdown for the UI readout; `npm run test:matchups`, 19 checks). Relationship tables are REVIEW. Not yet wired into live damage. Still retires the duplicate element matrices once wired.
+3. Data-model migration (§8) — add `class`/`biology` to `Fighter`/`Monster`; the `attunementsOf` seam already accepts both shapes; card tags; snapshot.
+4. Wire `computeMatchup` into `computeAttackDamage` + the AI's matchup check (← first gameplay change; bump `APP_VERSION` here).
+5. Generator (§7) — biology profiles, class templates, AI profiles → `(triple) → Fighter` (data-driven; profiles provisional).
 6. UI (§9) — badges, hybrid names, live matchup readout.
-7. New statuses/reactions (§5) — incremental.
-8. Regenerate dex; bump `APP_VERSION`; reachable from CheatPanel (golden rules).
+7. New statuses/reactions (§5) — incremental, data-driven.
+8. Regenerate dex; reachable from CheatPanel (golden rules).
 
 ## 11. Still open (later)
 
