@@ -16,7 +16,8 @@
     "test:cardturn": "node src/engine/combat/__cardturn__.mjs",
     "test:playtest": "node src/store/__playtest__.mjs",
     "test:run": "node src/engine/run/__run__.mjs",
-    "test:deck": "node src/engine/deck/__budget__.mjs"
+    "test:deck": "node src/engine/deck/__budget__.mjs",
+    "test:icons": "node src/data/__icons__.mjs"
   },
   "dependencies": {
     "react": "^18.3.1",

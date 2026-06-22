@@ -7,6 +7,7 @@
 // ╚══════════════════════════════════════════════════════════════════╝
 import React, { useMemo, useState } from 'react';
 import { cardText } from '../../engine/cards/cardText.js';
+import { cardIcon } from '../../data/axisIcons.js';
 import { LOOT_RARITIES } from '../../engine/types.js';
 import {
   cardCost, deckCost, deckSize, canAdd, validateDeck, indexPool, expandDeck,
@@ -118,6 +119,9 @@ export default function DeckBuilder({ pool = [], initial = {}, budget = DEFAULT_
                       style={{ borderColor: RARITY_COLOR[card.rarity || 'common'] }}
                       title={ca.ok ? 'Add' : ca.reason} onClick={() => add(card)}>
                       <div className="dbCardTop">
+                        <span className="dbIcon" style={{ color: RARITY_COLOR[card.rarity || 'common'] }}>
+                          <iconify-icon icon={cardIcon(card)}></iconify-icon>
+                        </span>
                         <span className="dbCardName">{card.name}</span>
                         <span className="dbCardCost">{card.cost ?? 0}⚡ · {cardCost(card)}pt</span>
                       </div>
@@ -139,6 +143,7 @@ export default function DeckBuilder({ pool = [], initial = {}, budget = DEFAULT_
           {deckList.length === 0 && <p className="dbEmpty">Tap cards on the left to add them.</p>}
           {deckList.map(([card, n]) => (
             <div key={card.id} className="dbRow" style={{ borderLeftColor: RARITY_COLOR[card.rarity || 'common'] }}>
+              <span className="dbIcon sm"><iconify-icon icon={cardIcon(card)}></iconify-icon></span>
               <span className="dbRowName">{card.name}</span>
               <span className="dbRowCost">{cardCost(card)}pt</span>
               <span className="dbStepper">

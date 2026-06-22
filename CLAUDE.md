@@ -123,6 +123,20 @@ the full pool; combat "Restart" replays the built deck. Duplicates get unique `b
 (matches `starterDeck`). **Not yet wired:** open-world + Run-start drafting (reuse the component
 later); pool is the archetype file only (attunement-own cards = chunk 2).
 
+**🎨 PLACEHOLDER ART — game-icons.net (CC BY 3.0) via Iconify (v3.21.0, 2026-06-22).** Free/
+open-source stand-ins until AI art. Central manifest **`src/data/axisIcons.js`** (every id
+validated against the Iconify API): `ARCHETYPE_ICON` (8), `BIOLOGY_ICON` (9), `ATTUNEMENT_ICON`
+(13), `ATTUNEMENT_COLOR` (13 identity colors), + resolvers `cardIcon(card)` (move art: explicit
+`card.icon`/`art` override → attacks use their attunement element, else an effect-shape heuristic)
+and `creatureIcon(c)`/`creatureColor(c)` (silhouette = primary biology → attunement → archetype,
+tinted by attunement). `ART_CREDIT` = the CC-BY attribution (surface in an About screen before
+public release). `test:icons` (57, completeness over the locked axis bases). **Rendered:**
+DeckBuilder tiles + deck rows; CombatScreen creature silhouettes + card icons now resolve from the
+new axes (`elementBadge`/`cardIcon`/`CardFace`/`MiniFighter` prefer `ATTUNEMENT_*`/`creatureIcon`,
+legacy 16-element `ELEMENT_ICON` kept as fallback for the old roster/`combat.html`). AI art later
+swaps in via the existing `systems/art.js` + `artManifest.json` baked pipeline. **Not done:**
+editor.html doesn't load Iconify (editor uses its own custom-art `<img>`); real creature portraits.
+
 **Archetype deep-dive (Topic 5) — `docs/archetype-design.md`.** Designing all 36
 **archetypes** (the taxonomy's "Class" axis — *we call them archetypes, not classes*; code
 axis still literally `class`) as full StS-style character builds. Each **base** = a THEME +

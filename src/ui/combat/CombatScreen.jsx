@@ -16,6 +16,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import { useCombat } from '../../store/combatStore.js';
 import { elementMultiplier, ELEMENT_COLOR, FORMS } from '../../systems/elements.jsx';
 import { frameStyle } from './frames.js';
+import { creatureIcon, creatureColor, cardIcon as axisCardIcon, ATTUNEMENT_ICON, ATTUNEMENT_COLOR } from '../../data/axisIcons.js';
 import { cardText, linkifySegments, KEYWORD_GLOSSARY } from '../../engine/cards/cardText.js';
 import './combat.css';
 
@@ -101,10 +102,10 @@ function artScale(form) { return FORMS[form]?.art ?? 1; }
 
 function elementBadge(el) {
   if (!el) return null;
-  const color = ELEMENT_COLOR[el] || '#c9a66b';
+  const color = ATTUNEMENT_COLOR[el] || ELEMENT_COLOR[el] || '#c9a66b';
   return (
     <div className="elem" style={{ background: `radial-gradient(circle at 38% 30%, #fff6, ${color} 55%, #0006)` }}>
-      <Icon icon={ELEMENT_ICON[el] || 'game-icons:rosa-shield'} />
+      <Icon icon={ATTUNEMENT_ICON[el] || ELEMENT_ICON[el] || 'game-icons:rosa-shield'} />
       <em>{el}</em>
     </div>
   );
@@ -283,6 +284,7 @@ function cardKind(c) {
   return 'util';
 }
 function cardIcon(c) {
+  if (c.attunement) return axisCardIcon(c);            // new taxonomy: element/effect-based art
   const kind = cardKind(c);
   if (kind === 'atk') return ELEMENT_ICON[c.element] || 'game-icons:sword-clash';
   if (kind === 'def') return 'game-icons:checked-shield';
@@ -370,7 +372,9 @@ function CardFace({ f, side, matchup, onEffect, extraClass = '', dataId, dataSid
         <div className="art">
           <div className="moon" /><div className="mtn" />
           {f.icon ? <Icon className="creature" icon={f.icon} style={scale} />
-            : <span className="creature" style={scale}>{f.sprite || (isFoe ? '👾' : '✶')}</span>}
+            : (f.axes && (f.axes.biology || f.axes.attunement || f.axes.class))
+              ? <Icon className="creature" icon={creatureIcon({ biology: f.axes.biology, attunement: f.axes.attunement, class: f.axes.class, types: f.types })} style={{ ...scale, color: creatureColor({ attunement: f.axes.attunement, types: f.types }) }} />
+              : <span className="creature" style={scale}>{f.sprite || (isFoe ? '👾' : '✶')}</span>}
         </div>
         <div className="nameBan">{f.name}{f.hp <= 0 ? ' 💀' : ''}</div>
         <HpBar hp={f.hp} maxHp={f.maxHp} />
@@ -411,7 +415,9 @@ function MiniFighter({ f, side, vanguard, swapCost, swappable, droppable, dropHo
           {vanguard && <Icon icon="game-icons:star-formation" className="vgIcon" />}
           {f.name}
         </span>
-        {f.element && <Icon className="mfEl" icon={ELEMENT_ICON[f.element]} style={{ color: ELEMENT_COLOR[f.element] }} />}
+        {(f.axes && (f.axes.attunement || f.axes.biology))
+          ? <Icon className="mfEl" icon={creatureIcon({ biology: f.axes.biology, attunement: f.axes.attunement, types: f.types })} style={{ color: creatureColor({ attunement: f.axes.attunement, types: f.types }) }} />
+          : (f.element && ELEMENT_ICON[f.element]) ? <Icon className="mfEl" icon={ELEMENT_ICON[f.element]} style={{ color: ELEMENT_COLOR[f.element] }} /> : null}
       </div>
       <div className="mfHp">
         <i className={pct <= 35 ? 'low' : ''} style={{ width: `${pct}%` }} />

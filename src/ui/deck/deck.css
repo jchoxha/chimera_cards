@@ -45,8 +45,10 @@
 .dbCard:hover { transform: translateY(-2px); background: #221c3c; }
 .dbCard.inDeck { box-shadow: 0 0 0 1px #6ad29a inset; }
 .dbCard.blocked { opacity: .5; }
-.dbCardTop { display: flex; justify-content: space-between; align-items: baseline; gap: 6px; }
-.dbCardName { font-weight: 600; font-size: 13px; }
+.dbCardTop { display: flex; align-items: center; gap: 6px; }
+.dbIcon { display: inline-flex; font-size: 20px; line-height: 1; flex: none; }
+.dbIcon.sm { font-size: 15px; }
+.dbCardName { font-weight: 600; font-size: 13px; flex: 1; }
 .dbCardCost { font-size: 10px; color: #b6f; white-space: nowrap; }
 .dbCardText { font-size: 11px; color: #c3bcdf; line-height: 1.3; min-height: 28px; }
 .dbCardFoot { display: flex; justify-content: space-between; font-size: 10px; color: #8b83ad; }
