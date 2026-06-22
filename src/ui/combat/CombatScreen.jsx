@@ -378,6 +378,7 @@ function CardFace({ f, side, matchup, onEffect, extraClass = '', dataId, dataSid
         <div className="art">
           <div className="moon" /><div className="mtn" />
           {(() => {
+            if (f.portrait) return <img className="creature artImg gen" src={f.portrait} style={scale} alt="" />;
             const bio = f.axes?.biology;
             const art = bio ? creatureArt({ id: f.id, biology: bio }) : null;
             if (art) return <img className="creature artImg" src={art} style={scale} alt="" />;

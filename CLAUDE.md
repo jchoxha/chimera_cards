@@ -155,6 +155,17 @@ remain game-icons. AI Variant-B art replaces all of this via `systems/art.js`. *
 no-biology playtest hero still shows its attunement icon (creature art needs a biology); CC-BY-SA
 share-alike + the CC0/CC-BY credits must appear in an About screen before public release.
 
+**🤖 AI ART PIPELINE VALIDATED (v3.23.0, 2026-06-22).** Trialed the `agy` (Antigravity CLI)
+headless pipeline (`scripts/agy_call.py`, docs/art-pipeline.md) end-to-end: generated a **Variant-B
+portrait for the Target Dummy** in ~22s (env: agy.exe 1.0.8, Python 3.13, pywinpty). Output saved to
+**`public/art/gen/training-dummy.png`** (downscaled 1024²→384², ~282 KB via System.Drawing). Wired
+as a Fighter **portrait**: `buildDummy` sets `meta.portrait` (= `${BASE}art/gen/...`), `mapFighter`
+exposes `portrait`, and `CardFace` renders it (a smooth `.gen` `<img>`, highest priority over
+creatureArt/icon). Confirms the pipeline works in this env → the path to replacing ALL pixel/icon
+placeholders with generated Variant-B art. Prompt = "generate the following image and save it as a
+PNG at <path>: …{Variant-B style block}". Next when batching: a manifest-driven gen loop +
+WebP post-processing (art-pipeline.md §Generation plan).
+
 **Archetype deep-dive (Topic 5) — `docs/archetype-design.md`.** Designing all 36
 **archetypes** (the taxonomy's "Class" axis — *we call them archetypes, not classes*; code
 axis still literally `class`) as full StS-style character builds. Each **base** = a THEME +

@@ -23,6 +23,9 @@ import { TYPE_MOVES } from '../data/moves.js';
 const ROSTER = adaptRoster(DEFAULT_MONSTERS);
 const POOL = buildCardPool({ rawMonsters: DEFAULT_MONSTERS, typeMoves: TYPE_MOVES });
 
+// GH-Pages base path so /art/ resolves when deployed.
+const ART_BASE = (import.meta.env && import.meta.env.BASE_URL) || '/';
+
 const DEFAULT_PARTY = ['Cindermouse', 'Snowpup', 'Tidalith'];
 const DEFAULT_ENCOUNTER = ['slime', 'hexer'];
 
@@ -72,6 +75,8 @@ function buildDummy({ hp = 200, name = 'Target Dummy', attunement, biology } = {
   });
   if (attunement?.length) f.attunement = attunement;
   if (biology?.length) f.biology = biology;
+  // AI-generated (Variant-B) portrait — trial of the agy art pipeline.
+  f.meta = { ...f.meta, portrait: `${ART_BASE}art/gen/training-dummy.png` };
   return f;
 }
 
@@ -116,6 +121,7 @@ function mapFighter(f, includeDeck = false) {
     form: f.meta?.form ?? 'regular',
     rarity: f.meta?.rarity ?? 'common',
     icon: f.meta?.icon ?? null,
+    portrait: f.meta?.portrait ?? null,   // AI-generated creature art URL (overrides icon/silhouette)
   };
 }
 
