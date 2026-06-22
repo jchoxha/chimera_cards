@@ -63,9 +63,16 @@ function buildCardFighter({ id, name, attunement, biology, klass, cards = [], st
   return f;
 }
 
-/** A no-axis target dummy with lots of HP — does nothing on its turn (empty deck). */
-function buildDummy({ hp = 200, name = 'Target Dummy' } = {}) {
-  return createFighter({ id: 'dummy', name, hp, maxHp: hp });
+/** A target dummy with lots of HP — does nothing on its turn (empty deck). Optional
+ * attunement/biology so playtests can exercise the matchup layer (defender axes). */
+function buildDummy({ hp = 200, name = 'Target Dummy', attunement, biology } = {}) {
+  const f = createFighter({
+    id: 'dummy', name, hp, maxHp: hp,
+    types: attunement?.length ? attunement.map((a) => ({ type: a, weight: 1 })) : [],
+  });
+  if (attunement?.length) f.attunement = attunement;
+  if (biology?.length) f.biology = biology;
+  return f;
 }
 
 /**
@@ -171,12 +178,12 @@ export const useCombat = create((set, get) => ({
    * (defaults to a no-axis target dummy with lots of HP). Feeds the editor's
    * author→playtest loop. `playerCards` are CardSpec objects (e.g. warrior.json).
    */
-  startPlaytest({ playerCards = [], playerName = 'Warrior', stats, attunement, biology, klass, enemyHp = 200, enemyName } = {}) {
+  startPlaytest({ playerCards = [], playerName = 'Warrior', stats, attunement, biology, klass, enemyHp = 200, enemyName, enemyAttunement, enemyBiology } = {}) {
     const events = [];
     const player = buildCardFighter({ id: 'player', name: playerName, attunement, biology, klass, cards: playerCards, stats });
     const vm = new VanguardManager({
       playerFighters: [player],
-      enemyFighters: [buildDummy({ hp: enemyHp, name: enemyName })],
+      enemyFighters: [buildDummy({ hp: enemyHp, name: enemyName, attunement: enemyAttunement, biology: enemyBiology })],
       room: 'combat',
       rarity: { offset: -0.05, ascension7: false },
       pickCard: POOL.pick,

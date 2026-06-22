@@ -12,6 +12,7 @@ import { CardEditor } from '../editor/CardEditor.jsx';
 import CombatScreen from '../ui/combat/CombatScreen.jsx';
 import RunScreen from '../ui/run/RunScreen.jsx';
 import { loadDraft } from '../editor/persistence.js';
+import { ATTUNEMENT_BASES, BIOLOGY_BASES, legalAttunements } from '../data/synthesis.js';
 import './app.css';
 
 // Bundled card files (the editor saves drafts on top of these in localStorage).
@@ -25,17 +26,34 @@ export default function App() {
   const [view, setView] = useState('menu');
   const [deckFile, setDeckFile] = useState(FILE_NAMES[0] || 'warrior.json');
   const [enemyHp, setEnemyHp] = useState(200);
+  // Attunement playtest controls: your creature's attunement (drives imbue) + the
+  // dummy's attunement/biology (drives the matchup layer). See v3.19.0 attunements.
+  const [att1, setAtt1] = useState('Physical');
+  const [att2, setAtt2] = useState('');
+  const [dummyAtt, setDummyAtt] = useState('');
+  const [dummyBio, setDummyBio] = useState('');
+
+  // The class of the selected deck → which primary attunements are legal (a combo is
+  // legal if its FIRST base is legal; the 2nd may be anything — synthesis.js A4).
+  const deckClass = (loadDraft(deckFile) || FILES[deckFile] || {}).class;
+  const legalPrimary = deckClass ? legalAttunements([deckClass]) : ATTUNEMENT_BASES;
+
+  function heroAttunement() {
+    const a = [att1, att2].filter(Boolean).filter((v, i, arr) => arr.indexOf(v) === i);
+    return a.length ? a : ['Physical'];
+  }
 
   function launchCombat() {
     // Prefer the editor's unsaved draft so you playtest exactly what you're tuning.
     const file = loadDraft(deckFile) || FILES[deckFile] || { cards: [] };
     const cards = (file.cards || []).filter((c) => c.type !== 'curse' && c.type !== 'status');
-    const attunement = [cards.find((c) => c.attunement)?.attunement || 'Physical'];
     useCombat.getState().startPlaytest({
       playerCards: cards,
       playerName: file.class || 'Hero',
       klass: file.class ? [file.class] : undefined,
-      attunement,
+      attunement: heroAttunement(),
+      enemyAttunement: dummyAtt ? [dummyAtt] : undefined,
+      enemyBiology: dummyBio ? [dummyBio] : undefined,
       enemyHp: Number(enemyHp) || 200,
     });
     setView('combat');
@@ -80,6 +98,29 @@ export default function App() {
               {FILE_NAMES.map((f) => <option key={f} value={f}>{f.replace('.json', '')}</option>)}
             </select>
           </label>
+          <label>Your attunement
+            <select value={att1} onChange={(e) => setAtt1(e.target.value)}>
+              {legalPrimary.map((a) => <option key={a} value={a}>{a}</option>)}
+            </select>
+          </label>
+          <label>+ 2nd (optional)
+            <select value={att2} onChange={(e) => setAtt2(e.target.value)}>
+              <option value="">(none)</option>
+              {ATTUNEMENT_BASES.map((a) => <option key={a} value={a}>{a}</option>)}
+            </select>
+          </label>
+          <label>Dummy attunement
+            <select value={dummyAtt} onChange={(e) => setDummyAtt(e.target.value)}>
+              <option value="">(none)</option>
+              {ATTUNEMENT_BASES.map((a) => <option key={a} value={a}>{a}</option>)}
+            </select>
+          </label>
+          <label>Dummy biology
+            <select value={dummyBio} onChange={(e) => setDummyBio(e.target.value)}>
+              <option value="">(none)</option>
+              {BIOLOGY_BASES.map((b) => <option key={b} value={b}>{b}</option>)}
+            </select>
+          </label>
           <label>Target Dummy HP
             <input type="number" min="1" value={enemyHp} onChange={(e) => setEnemyHp(e.target.value)} />
           </label>
@@ -99,7 +140,8 @@ export default function App() {
         </div>
 
         <p className="menuHint">
-          Forge cards (autosaves as you go), then playtest that exact deck against a no-axis Target Dummy.
+          Forge cards (autosaves as you go), then playtest that exact deck. Set your attunement
+          (a 2nd one drives Imbue, e.g. Fire→Burn) and give the dummy an attunement/biology to see matchups.
         </p>
       </div>
     </div>
