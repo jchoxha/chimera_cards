@@ -44,6 +44,7 @@ export function createRunState({ party = [], seed = Date.now(), map = null } = {
     gold: 0,
     relics: [],
     potions: [],
+    pendingReward: null, // cards offered after a victory, awaiting choose/skip
     map,
     position: map?.start ?? null,
     floor: 0,

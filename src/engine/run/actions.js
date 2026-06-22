@@ -25,10 +25,20 @@ export const ACTIONS = {
     const m = member(s, memberId); if (!m) return;
     const i = m.deck.findIndex((c) => c.id === cardId); if (i !== -1) m.deck.splice(i, 1);
   },
+  /** Upgrade a card via an explicit `patch`, else the card's own `upgrade` payload. */
   upgradeCard: (s, { memberId, cardId, patch }) => {
     const m = member(s, memberId); if (!m) return;
-    const c = m.deck.find((x) => x.id === cardId); if (c) Object.assign(c, patch, { upgraded: true });
+    const c = m.deck.find((x) => x.id === cardId); if (!c || c.upgraded) return;
+    const up = patch ?? c.upgrade;
+    if (up) Object.assign(c, up);
+    c.upgraded = true;
+    if (!c.name.endsWith('+')) c.name = `${c.name}+`;
   },
+
+  // ── card rewards (offered after a victory; choose adds to a deck, or skip) ──
+  offerReward: (s, { cards = [], rngState }) => { s.pendingReward = cards; if (rngState != null) s.rngState = rngState; },
+  chooseReward: (s, { memberId, card }) => { const m = member(s, memberId); if (m && card) m.deck.push({ ...card }); s.pendingReward = null; },
+  skipReward: (s) => { s.pendingReward = null; },
 
   // ── party / health ──
   healParty: (s, { amount, pct }) => {

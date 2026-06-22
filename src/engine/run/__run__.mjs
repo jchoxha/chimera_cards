@@ -143,5 +143,37 @@ console.log('Defeat folds back as a lost run:');
   ok(rm.state.party[0].hp === 0 && rm.state.status === 'lost', 'defeat → party HP 0, run lost');
 }
 
+console.log('Card reward → deck (offer / choose / skip):');
+{
+  const rm = new RunManager(createRun({ party: baseParty, seed: 2, floors: 6 }));
+  const offered = [
+    { id: 'cleave', name: 'Cleave', type: 'attack', cost: 1, attunement: 'Physical', effects: [{ op: 'damage', value: 8 }] },
+    { id: 'guard', name: 'Guard', type: 'skill', cost: 1, attunement: 'Physical', effects: [{ op: 'block', value: 5 }] },
+  ];
+  rm.dispatch('offerReward', { cards: offered, rngState: 12345 });
+  ok(rm.state.pendingReward.length === 2 && rm.state.rngState === 12345, 'offerReward stores offer + advances rng');
+  rm.dispatch('chooseReward', { memberId: 'war', card: offered[0] });
+  ok(rm.state.party[0].deck.some((c) => c.id === 'cleave') && rm.state.pendingReward === null, 'chosen card added; offer cleared');
+
+  rm.dispatch('offerReward', { cards: offered });
+  rm.dispatch('skipReward');
+  ok(rm.state.pendingReward === null && rm.state.party[0].deck.filter((c) => c.id === 'guard').length === 0, 'skip clears offer, adds nothing');
+}
+
+console.log('Card upgrade (explicit patch + the card\'s own upgrade payload):');
+{
+  const rm = new RunManager(createRun({
+    party: [{ id: 'war', name: 'W', attunement: ['Physical'], maxHp: 60, deck: [
+      { id: 'strike', name: 'Strike', type: 'attack', cost: 1, attunement: 'Physical', effects: [{ op: 'damage', value: 6 }], upgrade: { effects: [{ op: 'damage', value: 9 }] } },
+    ] }],
+    seed: 1, floors: 6,
+  }));
+  rm.dispatch('upgradeCard', { memberId: 'war', cardId: 'strike' }); // uses the card's own `upgrade`
+  const c = rm.state.party[0].deck[0];
+  ok(c.upgraded === true && c.effects[0].value === 9 && c.name === 'Strike+', 'upgrade applied own payload + renamed to Strike+');
+  rm.dispatch('upgradeCard', { memberId: 'war', cardId: 'strike' });
+  ok(rm.state.party[0].deck[0].name === 'Strike+', 'already-upgraded card is not upgraded twice');
+}
+
 console.log(`\nrun: ${pass} passed, ${fail} failed`);
 process.exit(fail ? 1 : 0);
