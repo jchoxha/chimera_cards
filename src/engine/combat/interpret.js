@@ -8,7 +8,7 @@
 
 import { addStatus } from './resolve.js';
 import { canAttack, strengthOnAttack, dexterityOnSkill, stanceSide } from './stances.js';
-import { applyOp, fireTriggers } from '../cards/effectRegistry.js';
+import { applyOp, fireTriggers, parseDuration } from '../cards/effectRegistry.js';
 
 export { fireTriggers };
 
@@ -43,7 +43,10 @@ export function applyCardSpec(state, casterKey, caster, card, opts = {}) {
   // Powers: register the trigger + passive (fired/read by the turn loop / engine).
   if (card.type === 'power') {
     caster.powers = caster.powers ?? [];
-    caster.powers.push({ id: card.id, trigger: card.trigger ?? null, passive: card.passive ?? null, attunement: card.attunement });
+    caster.powers.push({
+      source: card.id, on: card.trigger?.on ?? null, effects: card.trigger?.effects ?? [],
+      duration: null, passive: card.passive ?? null, attunement: card.attunement,
+    });
     return { ok: true, power: true };
   }
 
@@ -57,6 +60,17 @@ export function applyCardSpec(state, casterKey, caster, card, opts = {}) {
   };
 
   for (const op of card.effects ?? []) {
+    // An op with a non-`onPlay` trigger REGISTERS to fire on that future event
+    // (for `duration` carrier-turns) instead of resolving now.
+    if (op.trigger && op.trigger !== 'onPlay') {
+      const { trigger, duration, ...rest } = op;
+      caster.powers = caster.powers ?? [];
+      caster.powers.push({
+        source: card.id, on: trigger, effects: [rest], duration: parseDuration(duration),
+        passive: null, attunement: card.attunement,
+      });
+      continue;
+    }
     applyOp(op, env);
     if (illegal) return { ok: false, reason: 'an effect was illegal in current stance' };
   }

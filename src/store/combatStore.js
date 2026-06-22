@@ -94,7 +94,7 @@ function mapFighter(f, includeDeck = false) {
     stance: f.stance ?? null,
     stats: f.stats ? { ...f.stats } : null,
     axes: { class: f.class ?? null, biology: f.biology ?? null, attunement: f.attunement ?? null },
-    powers: (f.powers ?? []).map((p) => ({ id: p.id, passive: p.passive ?? null })),
+    powers: (f.powers ?? []).map((p) => ({ id: p.source ?? p.id, on: p.on ?? null, passive: p.passive ?? null })),
     hand: f.hand.map(cloneCard),
     piles: {
       draw: f.deck.drawPile.length,

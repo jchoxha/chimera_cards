@@ -29,11 +29,14 @@ import {
 } from './deckOps.js';
 import { draftCards, combinedTypeWeights } from '../cards/rarity.js';
 import { applyCardSpec } from './interpret.js';
-import { fireTriggers } from '../cards/effectRegistry.js';
+import { fireTriggers, tickTriggerDurations } from '../cards/effectRegistry.js';
 import { canAttack, stanceSide } from './stances.js';
 
 /** A data-driven CardSpec uses an op-LIST in `effects` (legacy cards use a flat object). */
 const isCardSpec = (card) => Array.isArray(card.effects) || card.type === 'power';
+
+/** Total living HP on a side (for damage-dealt/taken trigger detection). */
+const sideHp = (side) => side.fighters.reduce((n, f) => n + Math.max(0, f.hp), 0);
 
 /** @typedef {import('../types.js').CombatState} CombatState */
 /** @typedef {import('../types.js').Fighter} Fighter */
@@ -73,6 +76,11 @@ export class VanguardManager {
   /** @param {string} type @param {any} [payload] */
   _emit(type, payload) {
     this.state.log?.({ type, payload });
+  }
+
+  /** Fire registered triggered effects on a side for an event (turnStart, onCardPlayed, …). */
+  _fire(sideKey, event) {
+    fireTriggers(this.state, sideKey, event, { emit: this._emit.bind(this), rng: this.rng });
   }
 
   // ── Lifecycle ─────────────────────────────────────────────────────────────
@@ -445,7 +453,8 @@ export class VanguardManager {
     }
 
     // Fire player powers that hook the start of the turn (e.g. Bloodlust → +Strength).
-    fireTriggers(s, 'player', 'turnStart', { emit: this._emit.bind(this), rng: this.rng });
+    this._fire('player', 'turnStart');
+    this._fire('player', 'onDraw');
 
     s.phase = PHASES.PLAYER;
     this._emit('phase', { phase: PHASES.PLAYER });
@@ -483,6 +492,11 @@ export class VanguardManager {
     if (cost > s.player.energy) return false;
     s.player.energy -= cost;
 
+    // Capture deltas for damage/block trigger detection.
+    const enemyHpBefore = sideHp(s.enemy);
+    const playerHpBefore = sideHp(s.player);
+    const blockBefore = pVanguard.block + (pVanguard.bracedBlock ?? 0);
+
     // Announce the play BEFORE its effects so the combat log reads naturally
     // ("Strike played." → "Foe takes 6 damage.").
     this._emit('play', { card, actorId: pVanguard.id, side: 'player', targetId: opts.targetId ?? null });
@@ -514,9 +528,17 @@ export class VanguardManager {
       }
     }
 
+    // Fire play-related triggered effects (player side), then resolve deaths.
+    this._fire('player', 'onEnergySpent');
+    this._fire('player', 'onCardPlayed');
+    if ((pVanguard.block + (pVanguard.bracedBlock ?? 0)) > blockBefore) this._fire('player', 'onGainBlock');
+    if (sideHp(s.enemy) < enemyHpBefore) this._fire('player', 'onDamageDealt');
+    if (sideHp(s.player) < playerHpBefore) this._fire('player', 'onDamageTaken');
+
     // Move card from hand: powers + Exhaust cards leave the deck, else discard.
     if (card.type === 'power' || card.keywords?.includes('exhaust')) {
       exhaustCard(pVanguard, card);
+      this._fire('player', 'onExhaust');
     } else {
       discardCard(pVanguard, card);
     }
@@ -635,13 +657,16 @@ export class VanguardManager {
     this._emit('phase', { phase: PHASES.DISCARD });
 
     // Fire player powers that hook the end of the turn.
-    fireTriggers(s, 'player', 'turnEnd', { emit: this._emit.bind(this), rng: this.rng });
+    this._fire('player', 'turnEnd');
 
     const pVanguard = vanguard(s.player);
     if (pVanguard) {
       const result = discardHandEndOfTurn(pVanguard);
       this._emit('discard', result);
+      this._fire('player', 'onDiscard');
     }
+    // Expire turn-bound triggered effects on the player side.
+    for (const f of s.player.fighters) tickTriggerDurations(f);
 
     // Tick enemy DoTs (at end of player's turn)
     this._tickStatuses('enemy', 'dots');
@@ -695,7 +720,7 @@ export class VanguardManager {
     s.enemy.energy = s.enemy.energyPerTurn;
 
     // Fire enemy powers that hook the start of the turn.
-    fireTriggers(s, 'enemy', 'turnStart', { emit: this._emit.bind(this), rng: this.rng });
+    this._fire('enemy', 'turnStart');
 
     // 2. Execute telegraphed telegraphed actions sequentially
     for (const action of s.enemyPlan) {
@@ -706,7 +731,8 @@ export class VanguardManager {
 
     // ENEMY END
     // Fire enemy powers that hook the end of the turn.
-    fireTriggers(s, 'enemy', 'turnEnd', { emit: this._emit.bind(this), rng: this.rng });
+    this._fire('enemy', 'turnEnd');
+    for (const f of s.enemy.fighters) tickTriggerDurations(f);
 
     // Tick player DoTs (at end of enemy's turn)
     this._tickStatuses('player', 'dots');
@@ -788,6 +814,7 @@ export class VanguardManager {
         } else {
           discardCard(actor, card);
         }
+        this._fire('enemy', 'onCardPlayed');
       }
     } else {
       if (action.silhouette === 'attack') {
@@ -870,6 +897,8 @@ export class VanguardManager {
     const pVanguard = pSide.fighters[pSide.vanguardIndex];
     if (pVanguard && pVanguard.hp <= 0) {
       emit('death', { fighterId: pVanguard.id });
+      this._fire('player', 'onDeath');   // dying side's own death hooks
+      this._fire('enemy', 'fatal');      // killer side's fatal hooks
       discardWholeHand(pVanguard);
       const nextIdx = pSide.fighters.findIndex((f) => f.hp > 0);
       if (nextIdx !== -1) {
@@ -887,6 +916,8 @@ export class VanguardManager {
     const eVanguard = eSide.fighters[eSide.vanguardIndex];
     if (eVanguard && eVanguard.hp <= 0) {
       emit('death', { fighterId: eVanguard.id });
+      this._fire('enemy', 'onDeath');
+      this._fire('player', 'fatal');
       discardWholeHand(eVanguard);
       // Remove any queued actions for this dead Vanguard
       s.enemyPlan = s.enemyPlan.filter((a) => a.actor !== eVanguard.id);

@@ -24,10 +24,27 @@ export const KEYWORDS = Object.freeze(['exhaust', 'ethereal', 'retain', 'innate'
 /** Card types that may legitimately have no effect (inert/unplayable by design). */
 export const INERT_OK_TYPES = Object.freeze(['curse', 'status']);
 
-/** Trigger events a power can hook (fired by the turn loop / engine). */
+/**
+ * Trigger events ANY effect (or power) can hook, fired by the turn loop / engine
+ * (modelled on mod #69's After* hooks). `onPlay` = immediate (the default for a
+ * card's own effects). `passive` = a rule-modifier, not a fired event.
+ */
 export const TRIGGER_EVENTS = Object.freeze([
-  'turnStart', 'turnEnd', 'onGainBlock', 'onPlayCard', 'onDeath', 'fatal', 'passive',
+  'onPlay', 'turnStart', 'turnEnd', 'onGainBlock', 'onDamageDealt', 'onDamageTaken',
+  'onCardPlayed', 'onDraw', 'onDiscard', 'onExhaust', 'onEnergySpent', 'onDeath', 'fatal', 'passive',
 ]);
+
+/** Editor duration presets (effects registered by a non-immediate trigger). */
+export const DURATIONS = Object.freeze(['thisCombat', 'thisTurn']);
+
+/** Normalize a duration descriptor → number of carrier turns, or null = permanent. */
+export function parseDuration(d) {
+  if (d == null || d === 'thisCombat') return null;
+  if (d === 'thisTurn') return 1;
+  if (typeof d === 'number') return d;
+  if (d.kind === 'turns') return d.n ?? 1;
+  return null;
+}
 
 /**
  * Passive rule-modifiers — flags a power grants while in play that change the
@@ -234,9 +251,10 @@ export function applyOp(op, env) {
 }
 
 /**
- * Fire all powers on a side that hook `event` (turnStart / onGainBlock / …).
- * Runs each trigger's effect op-list. Discrete passives (PASSIVES) are read
- * separately via `hasPassive`, not fired here.
+ * Fire all registered triggered effects on a side that hook `event`. Entries are
+ * uniform: { on, effects[], duration, passive, attunement, source } — produced by
+ * power cards (card.trigger/passive) AND by any effect op carrying a non-`onPlay`
+ * trigger. Discrete passives are read separately via `hasPassive`, not fired here.
  * @param {import('../types.js').CombatState} state
  * @param {'player'|'enemy'} sideKey
  * @param {string} event
@@ -246,10 +264,19 @@ export function fireTriggers(state, sideKey, event, { emit, rng = Math.random } 
   const side = state[sideKey];
   for (const f of side.fighters) {
     if (f.hp <= 0) continue;
-    for (const power of f.powers ?? []) {
-      if (power.trigger?.on !== event) continue;
-      const env = { state, casterKey: sideKey, caster: f, card: { attunement: power.attunement }, side, scale: 1, costPaid: 0, opts: {}, emit, rng, target: null, setIllegal: () => {} };
-      for (const op of power.trigger.effects ?? []) applyOp(op, env);
+    for (const entry of f.powers ?? []) {
+      if (entry.on !== event) continue;
+      const env = { state, casterKey: sideKey, caster: f, card: { attunement: entry.attunement }, side, scale: 1, costPaid: 0, opts: {}, emit, rng, target: null, setIllegal: () => {} };
+      for (const op of entry.effects ?? []) applyOp(op, env);
     }
   }
+}
+
+/** Decrement turn-bound triggered effects on a fighter; drop expired ones. */
+export function tickTriggerDurations(fighter) {
+  if (!fighter.powers) return;
+  fighter.powers = fighter.powers.filter((e) => {
+    if (typeof e.duration === 'number') { e.duration -= 1; return e.duration > 0; }
+    return true; // null = permanent (powers, thisCombat)
+  });
 }

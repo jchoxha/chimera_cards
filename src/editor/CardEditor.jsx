@@ -7,8 +7,11 @@
 
 import React, { useEffect, useMemo, useState } from 'react';
 import {
-  EFFECT_OPS, OP_TYPES, CARD_TYPES, PASSIVES, TRIGGER_EVENTS, KEYWORDS, validateCard, defaultScope,
+  EFFECT_OPS, OP_TYPES, CARD_TYPES, PASSIVES, TRIGGER_EVENTS, DURATIONS, KEYWORDS, validateCard, defaultScope,
 } from '../engine/cards/cardSpec.js';
+
+// Trigger options shown per effect op (onPlay = immediate; 'passive' is power-only).
+const OP_TRIGGERS = ['onPlay', ...TRIGGER_EVENTS.filter((e) => e !== 'onPlay' && e !== 'passive')];
 import { STANCES } from '../engine/combat/stances.js';
 import { TARGET_SCOPES } from '../engine/types.js';
 import { ATTUNEMENT_BASES, CLASS_BASES, BIOLOGY_BASES } from '../data/synthesis.js';
@@ -97,6 +100,19 @@ function OpRow({ op, onChange, onRemove, onMove }) {
         {(def?.fields ?? []).map((f) => (
           <Field key={f.path} label={f.label}><FieldControl field={f} op={op} onChange={onChange} /></Field>
         ))}
+        <Field label="fires">
+          <select value={op.trigger || 'onPlay'} onChange={(e) => onChange(setIn(op, 'trigger', e.target.value === 'onPlay' ? undefined : e.target.value))}>
+            {OP_TRIGGERS.map((t) => <option key={t} value={t}>{t}</option>)}
+          </select>
+        </Field>
+        {op.trigger && op.trigger !== 'onPlay' && (
+          <Field label="duration">
+            <select value={typeof op.duration === 'string' ? op.duration : (op.duration ? 'turns' : 'thisCombat')}
+              onChange={(e) => onChange(setIn(op, 'duration', e.target.value === 'thisCombat' ? undefined : e.target.value))}>
+              {DURATIONS.map((d) => <option key={d} value={d}>{d}</option>)}
+            </select>
+          </Field>
+        )}
       </div>
     </div>
   );

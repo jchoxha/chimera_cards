@@ -11,7 +11,7 @@ import { createCombatState, createFighter } from '../combat/state.js';
 import { applyCardSpec } from '../combat/interpret.js';
 import { applyDamage } from '../combat/resolve.js';
 import { validateCard } from './cardSpec.js';
-import { fireTriggers, hasPassive } from './effectRegistry.js';
+import { fireTriggers, hasPassive, tickTriggerDurations } from './effectRegistry.js';
 
 const WARRIOR = JSON.parse(readFileSync(new URL('../../data/cards/warrior.json', import.meta.url)));
 const byId = Object.fromEntries(WARRIOR.cards.map((c) => [c.id, c]));
@@ -168,6 +168,26 @@ console.log('Juggernaut onGainBlock trigger deals damage:');
   play(g, g.player, 'warrior_juggernaut');
   fireTriggers(g.state, 'player', 'onGainBlock');  // deal 3 to enemy vanguard
   ok(g.enemy.hp === 97, `Juggernaut onGainBlock → 3 dmg (hp ${g.enemy.hp})`);
+}
+
+console.log('Per-effect trigger: a non-onPlay op registers and fires on its event:');
+{
+  const g = mk();
+  const c = { id: 'reg', name: 'Reg', attunement: 'Physical', type: 'skill', cost: 1, effects: [{ op: 'damage', value: 4, trigger: 'turnStart' }] };
+  applyCardSpec(g.state, 'player', g.player, c);
+  ok(g.player.powers.length === 1 && g.enemy.hp === 100, 'op with trigger registers (does NOT fire on play)');
+  fireTriggers(g.state, 'player', 'turnStart');
+  ok(g.enemy.hp === 96, 'registered op fires on turnStart → 4 dmg');
+}
+
+console.log('Per-effect duration: a thisTurn-triggered op expires after one tick:');
+{
+  const g = mk();
+  const c = { id: 'reg2', name: 'Reg2', attunement: 'Physical', type: 'skill', cost: 1, effects: [{ op: 'damage', value: 3, trigger: 'onCardPlayed', duration: 'thisTurn' }] };
+  applyCardSpec(g.state, 'player', g.player, c);
+  ok(g.player.powers.length === 1, 'registered with a duration');
+  tickTriggerDurations(g.player);
+  ok(g.player.powers.length === 0, 'thisTurn (1-turn) duration expired after one tick');
 }
 
 console.log(`\ncards: ${pass} passed, ${fail} failed`);

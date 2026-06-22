@@ -7,14 +7,14 @@
 
 import {
   EFFECT_OPS, OP_TYPES, CARD_TYPES, BUFF_STATUSES, DEBUFF_STATUSES,
-  PASSIVES, TRIGGER_EVENTS, KEYWORDS, INERT_OK_TYPES, defaultScope, resolveValue, condMet,
+  PASSIVES, TRIGGER_EVENTS, DURATIONS, KEYWORDS, INERT_OK_TYPES, defaultScope, resolveValue, condMet,
 } from './effectRegistry.js';
 
 // Re-export the vocabulary so existing importers (editor, interpreter, tests)
 // have one stable import surface.
 export {
   EFFECT_OPS, OP_TYPES, CARD_TYPES, BUFF_STATUSES, DEBUFF_STATUSES,
-  PASSIVES, TRIGGER_EVENTS, KEYWORDS, INERT_OK_TYPES, defaultScope, resolveValue, condMet,
+  PASSIVES, TRIGGER_EVENTS, DURATIONS, KEYWORDS, INERT_OK_TYPES, defaultScope, resolveValue, condMet,
 };
 
 /**
