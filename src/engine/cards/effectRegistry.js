@@ -7,9 +7,9 @@
 // ║ UPDATE WHEN: a new effect op / trigger event / passive is added.      ║
 // ╚══════════════════════════════════════════════════════════════════╝
 
-import { resolveScope, addStatus, gainBlock, applyHeal, applyDamage } from '../combat/resolve.js';
+import { resolveScope, addStatus, stackingFor, gainBlock, applyHeal, applyDamage } from '../combat/resolve.js';
 import { drawCards } from '../combat/deckOps.js';
-import { computeMatchup } from '../content/matchups.js';
+import { computeMatchup, imbueStatusesFor, attunementsOf } from '../content/matchups.js';
 import { canAttack, canBlock, bracesBlock, shiftStance, setStance } from '../combat/stances.js';
 
 // ── Vocabulary ────────────────────────────────────────────────────────────────
@@ -174,13 +174,28 @@ export const EFFECT_OPS = {
       if (!canAttack(stanceOf(env.caster))) { env.setIllegal(); return; }
       const targets = resolveScope(env.state, env.casterKey, env.caster, op.scope ?? defaultScope(op), { targetId: env.opts.targetId });
       const hits = op.hits === 'X' ? Math.max(1, env.costPaid) : (op.hits ?? 1);
+      // Imbue: a flagged card also inflicts the CASTER's attunement signature status
+      // (creature's attunement, not the card's element). `imbue: true` → 1 stack;
+      // `imbue: N` → N. Supports dual attunement; non-live attunements add nothing.
+      const imbues = env.card?.imbue ? imbueStatusesFor(attunementsOf(env.caster)) : [];
+      const imbueAmt = typeof env.card?.imbue === 'number' ? env.card.imbue : 1;
+      let connected = false;
       for (const t of targets) {
         env.target = t;
         let v = effectiveValue(op, env);
         if (op.bonusIf && condMet(op.bonusIf, env)) { if (op.bonusMult) v *= op.bonusMult; if (op.bonusAdd) v += op.bonusAdd; }
         const matchup = matchupOf(env.card?.attunement, t);
         const ts = sideOf(env.state, t);
-        for (let i = 0; i < hits; i++) { if (t.hp <= 0) break; applyDamage(t, scaledDamage(v, env.caster, t, matchup), env.emit, false, ts); }
+        for (let i = 0; i < hits; i++) { if (t.hp <= 0) break; applyDamage(t, scaledDamage(v, env.caster, t, matchup), env.emit, false, ts); connected = true; }
+        if (t.hp > 0) for (const im of imbues) if (im.target === 'enemy') {
+          addStatus(t.statuses, { id: im.id, amount: imbueAmt, stacking: stackingFor(im.id) });
+          env.emit?.('status', { targetId: t.id, id: im.id, amount: imbueAmt });
+        }
+      }
+      // Self-imbue (e.g. Holy→Regen) lands once if the attack connected.
+      if (connected) for (const im of imbues) if (im.target === 'self') {
+        addStatus(env.caster.statuses, { id: im.id, amount: imbueAmt, stacking: stackingFor(im.id) });
+        env.emit?.('status', { targetId: env.caster.id, id: im.id, amount: imbueAmt });
       }
     },
   },

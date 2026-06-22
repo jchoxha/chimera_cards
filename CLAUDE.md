@@ -89,6 +89,24 @@ First gameplay change of the synthesis direction → version bumped. **Next:** S
 `generateDeck` + `starter:true` flags + rework `starterDeck()`; Step 3 = open-world budget
 deckbuilder (ships with capture mode). All suites green (test:run 49, test:engine 20, etc.).
 
+**⚔️ ATTUNEMENTS WIRED INTO COMBAT — chunk 1 (v3.19.0, 2026-06-22).** A creature's
+attunement now shapes its kit (Jeton's model): (1) **every card carries an explicit damage
+element** (`card.attunement`) shown in the auto-text ("Deal 6 **Physical** damage" via
+`cardText.describeCard`); the matchup (`effectRegistry.matchupOf`) keys on the **card's**
+element (the card states its damage type). (2) **`imbue` rider** — a card flagged `imbue:N`
+(true→1) ALSO inflicts the **CASTER creature's** attunement signature status (not the card's
+element): the `ATTUNEMENT_STATUS` map in `content/matchups.js` (`imbueStatusesFor`, supports
+1–2 attunements) → Fire=Burn · Frost=Weak · Nature=Poison · Shadow=Vulnerable (enemy) ·
+Holy=Regen (self); the other 8 attunements are mapped but **inert until their status is built**
+(§5.1). Wired in the data-driven damage op (`effectRegistry.EFFECT_OPS.damage`); 6 vanilla
+Warrior attacks marked `imbue:1` (Strike/Cleave/Pommel/Whirlwind/Rampage Slam/Earthshaker) so
+an off-Physical Warrior's strikes gain a status. Editor has an `imbue` field; `validateCard`
+checks it; **Imbue** added to the keyword glossary. `test:cardturn` 15 (+5). **Attunement
+LEGALITY already correct** (`synthesis.attunementComboLegal`: an archetype accepts any combo
+containing ≥1 legal base, e.g. Warrior + Physical+Fire — plus the universals Energy/Mind/Void).
+**Chunk 2 (next): attunement variant access + the attunement-own card pools** (each attunement
+contributes standalone cards to a creature's potential pool — §14.3 signature sub-pool).
+
 **Archetype deep-dive (Topic 5) — `docs/archetype-design.md`.** Designing all 36
 **archetypes** (the taxonomy's "Class" axis — *we call them archetypes, not classes*; code
 axis still literally `class`) as full StS-style character builds. Each **base** = a THEME +

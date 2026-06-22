@@ -459,6 +459,18 @@ Two mechanisms, **both** used:
   cards across the creature's *full potential pool* — pure status-appliers, reaction
   primers (Soak), the element's marquee effects. Only attuned creatures roll these.
 
+> **Refined model + chunk-1 IMPLEMENTED (v3.19.0, Jeton 2026-06-22).** (a) Every card
+> carries an **explicit damage element** (`card.attunement`), shown in the auto-text
+> ("Deal 6 Physical damage"); the **attack matchup keys on the card's element** (the card
+> states its damage type) — `effectRegistry.matchupOf`. (b) Cards are **backend-marked
+> `imbue:N`** to ALSO inflict the **creature's** attunement signature status (not the
+> card's element) — the `ATTUNEMENT_STATUS` map + `imbueStatusesFor` in
+> `content/matchups.js` (Fire→Burn, Frost→Weak, Nature→Poison, Shadow→Vulnerable, Holy→Regen
+> live; 8 others mapped-but-inert until §5.1 builds them). Supports 1–2 attunements. (c) A
+> creature's attunement also grants **access to archetype-card variants of other
+> attunements**, and each attunement has **its own standalone cards** in the potential pool
+> — **chunk 2, NOT yet built** (needs the generator's pool step, §14.1).
+
 ### 14.4 Biology → deck (LOCKED)
 
 - **Passive trait** — free, non-card (§7.1: Undying, Lifesteal, Construct…).

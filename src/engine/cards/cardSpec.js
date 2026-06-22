@@ -66,6 +66,7 @@ export function validateCard(c) {
   if (typeof c.cost !== 'number') errs.push('cost must be a number (-1 = X)');
   for (const kw of c.keywords ?? []) if (!KEYWORDS.includes(kw)) errs.push(`unknown keyword: ${kw}`);
   if (c.replayCount != null && (typeof c.replayCount !== 'number' || c.replayCount < 0)) errs.push('replayCount must be a number ≥ 0');
+  if (c.imbue != null && c.imbue !== true && (typeof c.imbue !== 'number' || c.imbue < 0)) errs.push('imbue must be true or a number ≥ 0');
 
   validateOpList(c.effects, 'effects', errs);
 

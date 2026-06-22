@@ -66,6 +66,45 @@ export const BIOLOGY_ATTUNEMENT = Object.freeze({
   Aberration: { weak: ['Holy'],              resist: ['Void', 'Arcane'] },
 });
 
+// ── Attunement signature statuses (spec §5.1) — the "imbue" rider ─────────────
+// A card flagged `imbue` inflicts the CASTER creature's attunement signature
+// status (in addition to its explicit damage element, which drives the matchup).
+//   • target 'enemy' → a debuff on the hit target; 'self' → a buff on the caster.
+//   • live → implemented in the engine today (the 6 LIVE_STATUSES + cleanse via
+//     regen). Non-live attunements imbue NOTHING for now (element-only) until
+//     their status is built (§5.1) — the map is the single place to flip them on.
+export const ATTUNEMENT_STATUS = Object.freeze({
+  Physical: { id: 'bleed',      target: 'enemy', live: false },
+  Fire:     { id: 'burn',       target: 'enemy', live: true  },
+  Frost:    { id: 'weak',       target: 'enemy', live: true  },  // "chill"
+  Nature:   { id: 'poison',     target: 'enemy', live: true  },
+  Shadow:   { id: 'vulnerable', target: 'enemy', live: true  },
+  Holy:     { id: 'regen',      target: 'self',  live: true  },
+  Water:    { id: 'soak',       target: 'enemy', live: false },
+  Air:      { id: 'expose',     target: 'enemy', live: false },
+  Energy:   { id: 'shock',      target: 'enemy', live: false },
+  Stone:    { id: 'fortify',    target: 'self',  live: false },
+  Arcane:   { id: 'amplify',    target: 'self',  live: false },
+  Void:     { id: 'decay',      target: 'enemy', live: false },
+  Mind:     { id: 'confuse',    target: 'enemy', live: false },
+});
+
+/**
+ * The LIVE imbue statuses for a creature's attunement set (1–2 bases). One entry
+ * per attunement whose signature status is implemented; others contribute nothing
+ * yet (their element still drives the matchup). Supports dual attunement.
+ * @param {string[]} attunements
+ * @returns {{ id:string, target:'enemy'|'self' }[]}
+ */
+export function imbueStatusesFor(attunements) {
+  const out = [];
+  for (const a of attunements ?? []) {
+    const s = ATTUNEMENT_STATUS[a];
+    if (s && s.live) out.push({ id: s.id, target: s.target });
+  }
+  return out;
+}
+
 // ── Axis accessors (migration seam, spec §8/E1) ──────────────────────────────
 // Read the new 3-axis fields, falling back to the legacy `types` attunement shape
 // so this works before AND after the data-model migration.

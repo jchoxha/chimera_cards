@@ -99,5 +99,48 @@ console.log('Conditional op gated by live event-history counters:');
   ok(foe.hp === start - 5, 'conditional fires once the counter threshold is met');
 }
 
+console.log('Attunement imbue: a flagged attack adds the CASTER attunement signature status:');
+{
+  const { vm, foe } = setup();
+  const p = vm.state.player.fighters[vm.state.player.vanguardIndex];
+  p.attunement = ['Physical', 'Fire'];           // dual: Fire live (Burn); Physical bleed inert
+  p.hand = ['warrior_strike'].map(card);          // warrior_strike carries imbue:1
+  vm.state.player.energy = 5;
+  const before = foe.hp;
+  vm.play('warrior_strike');
+  ok(foe.hp === before - 6, `imbued Strike still deals its Physical 6 (foe ${before}→${foe.hp})`);
+  ok((foe.statuses.find((s) => s.id === 'burn')?.amount ?? 0) === 1, 'Fire attunement imbued 1 Burn onto the target');
+}
+
+console.log('Pure-Physical imbue is inert (Bleed not live); Holy self-imbue buffs the caster:');
+{
+  const { vm, foe } = setup();
+  const p = vm.state.player.fighters[vm.state.player.vanguardIndex];
+  p.attunement = ['Physical'];
+  p.hand = ['warrior_strike'].map(card);
+  vm.state.player.energy = 5;
+  vm.play('warrior_strike');
+  ok((foe.statuses.find((s) => s.id === 'burn')?.amount ?? 0) === 0, 'Physical imbue adds no live status');
+  p.attunement = ['Holy'];                         // Holy → self Regen
+  p.statuses = p.statuses.filter((s) => s.id !== 'regen');
+  p.hand = ['warrior_strike'].map(card);
+  vm.state.player.energy = 5;
+  vm.play('warrior_strike');
+  ok((p.statuses.find((s) => s.id === 'regen')?.amount ?? 0) === 1, 'Holy attunement self-imbued 1 Regen on the caster');
+}
+
+console.log('Matchup multiplier keys on the card damage element:');
+{
+  const { vm, foe } = setup();
+  const p = vm.state.player.fighters[vm.state.player.vanguardIndex];
+  foe.attunement = ['Frost'];                      // Fire is strong vs Frost (×1.5)
+  const fireCard = { id: 'fbolt', name: 'Firebolt', attunement: 'Fire', type: 'attack', cost: 1, effects: [{ op: 'damage', value: 6, scope: 'enemyActiveTarget' }] };
+  p.hand = [fireCard];
+  vm.state.player.energy = 5;
+  const before = foe.hp;
+  vm.play('fbolt');
+  ok(foe.hp === before - 9, `Fire→Frost ×1.5 → 6 becomes 9 (foe ${before}→${foe.hp})`);
+}
+
 console.log(`\ncardturn: ${pass} passed, ${fail} failed`);
 process.exit(fail ? 1 : 0);

@@ -6,6 +6,7 @@
     {
       "id": "warrior_strike",
       "name": "Strike",
+      "imbue": 1,
       "class": "Warrior",
       "attunement": "Physical",
       "type": "attack",
@@ -54,6 +55,7 @@
     {
       "id": "warrior_cleave",
       "name": "Cleave",
+      "imbue": 1,
       "class": "Warrior",
       "attunement": "Physical",
       "type": "attack",
@@ -78,6 +80,7 @@
     {
       "id": "warrior_pommel_strike",
       "name": "Pommel Strike",
+      "imbue": 1,
       "class": "Warrior",
       "attunement": "Physical",
       "type": "attack",
@@ -208,6 +211,7 @@
     {
       "id": "warrior_earthshaker",
       "name": "Earthshaker",
+      "imbue": 1,
       "class": "Warrior",
       "attunement": "Physical",
       "type": "attack",
@@ -234,6 +238,7 @@
     {
       "id": "warrior_whirlwind",
       "name": "Whirlwind",
+      "imbue": 1,
       "class": "Warrior",
       "attunement": "Physical",
       "type": "attack",
@@ -260,6 +265,7 @@
     {
       "id": "warrior_rampage_slam",
       "name": "Rampage Slam",
+      "imbue": 1,
       "class": "Warrior",
       "attunement": "Physical",
       "type": "attack",

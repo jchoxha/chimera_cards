@@ -37,11 +37,13 @@ function scopePhrase(op) {
 function scalePhrase(sb) { return ` (+${sb.per ?? 1} per ${EVENT_LABEL[sb.event] || sb.event} this ${win(sb.window)})`; }
 function conditionPhrase(c) { return `If ${EVENT_LABEL[c.event] || c.event} is ${c.verb} ${c.threshold} this ${win(c.window)}, `; }
 
-/** Human phrase for a single effect op (no trailing period). */
-export function opPhrase(op) {
+/** Human phrase for a single effect op (no trailing period). `ctx.element` = the
+ * card's damage element, shown explicitly on damage ("Deal 6 Physical damage"). */
+export function opPhrase(op, ctx = {}) {
+  const el = ctx.element ? `${ctx.element} ` : '';
   switch (op.op) {
     case 'damage': {
-      const base = op.valueFrom === 'selfBlock' ? 'damage equal to your Block' : `${op.value ?? 0} damage`;
+      const base = op.valueFrom === 'selfBlock' ? `${el}damage equal to your Block` : `${op.value ?? 0} ${el}damage`;
       const hits = op.hits === 'X' ? ' X times' : (op.hits > 1 ? ` ${op.hits} times` : '');
       let s = `Deal ${base}${hits}${scopePhrase(op)}`;
       if (op.scaleBy) s += scalePhrase(op.scaleBy);
@@ -76,8 +78,8 @@ export function opPhrase(op) {
   }
 }
 
-function clausePhrase(op) {
-  let p = opPhrase(op);
+function clausePhrase(op, ctx = {}) {
+  let p = opPhrase(op, ctx);
   if (!p) return '';
   if (op.trigger && op.trigger !== 'onPlay') p = (TRIGGER_PHRASE[op.trigger] || `On ${op.trigger}, `) + lc(p);
   else if (op.condition) p = conditionPhrase(op.condition) + lc(p);
@@ -87,15 +89,17 @@ function clausePhrase(op) {
 /** Build the full card description from its effects + power trigger/passive + keywords. */
 export function describeCard(card) {
   if (!card) return '';
-  const clauses = (card.effects || []).map(clausePhrase).filter(Boolean);
+  const ctx = { element: card.attunement };
+  const clauses = (card.effects || []).map((o) => clausePhrase(o, ctx)).filter(Boolean);
   let text = clauses.join('. ');
   if (text) text += '.';
 
   if (card.type === 'power' && card.trigger?.effects?.length) {
-    const inner = card.trigger.effects.map((o) => lc(opPhrase(o))).filter(Boolean).join(', ');
+    const inner = card.trigger.effects.map((o) => lc(opPhrase(o, ctx))).filter(Boolean).join(', ');
     text += ` ${(TRIGGER_PHRASE[card.trigger.on] || `On ${card.trigger.on}, `)}${inner}.`;
   }
   if (card.passive) text += ` ${PASSIVE_LABEL[card.passive] || card.passive}.`;
+  if (card.imbue) text += ' Imbue.';
   for (const kw of card.keywords || []) if (kw !== 'unplayable') text += ` ${cap(kw)}.`;
   return text.trim();
 }
@@ -111,6 +115,7 @@ const PASSIVE_LABEL = { blockAlwaysBraces: 'Your Block always Braces' };
 export const KEYWORD_GLOSSARY = {
   Block: 'Temporary HP shield; absorbs damage, then clears at the start of your turn.',
   Brace: 'Affected Block does NOT decay between turns — it persists until spent.',
+  Imbue: "This card also inflicts your creature's attunement signature status (e.g. Fire→Burn, Nature→Poison, Shadow→Vulnerable). Pure-element attunements add nothing yet.",
   Strength: 'Increases the damage of each attack by its amount.',
   Dexterity: 'Increases the Block gained by Block effects by its amount.',
   Vulnerable: 'This unit takes +50% damage from attacks.',

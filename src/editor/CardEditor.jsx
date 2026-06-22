@@ -375,6 +375,7 @@ export function CardEditor({ onMenu } = {}) {
                     <Field label="rarity"><select value={card.rarity || 'common'} onChange={(e) => updateCard({ rarity: e.target.value })}>{RARITIES.map((r) => <option key={r}>{r}</option>)}</select></Field>
                     <Field label="replay count"><input type="number" value={card.replayCount ?? ''} onChange={(e) => updateCard({ replayCount: e.target.value === '' ? undefined : Number(e.target.value) })} /></Field>
                     <Field label="art (key/URL)"><input value={card.art || ''} onChange={(e) => updateCard({ art: e.target.value || undefined })} /></Field>
+                    <Field label="imbue (attune status stacks)"><input type="number" min="0" value={card.imbue ?? ''} placeholder="0 = off" onChange={(e) => updateCard({ imbue: e.target.value === '' || Number(e.target.value) === 0 ? undefined : Number(e.target.value) })} /></Field>
                   </div>
                   <Field label="keywords">
                     <div className="kwrow">
