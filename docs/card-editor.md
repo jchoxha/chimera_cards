@@ -55,15 +55,64 @@ passive) and `PASSIVES` (rule-modifier flags like `blockAlwaysBraces`, `extraSta
 - **`validateCard` flags non-functional cards** — a card with no effects / no trigger /
   no passive is an error, surfaced in the editor (⚠ on the card row). No card "does nothing".
 
-## Parity targets from Nexus mod #69 ("Card editor and Card creator", Renovice)
+## Parity with Nexus mod #69 ("Card editor and Card creator", Renovice)
 
-Our north star. Status: ✅ have · ⏳ planned.
-- ✅ Edit effects / costs / numbers on any card; create custom cards; per-class files.
-- ✅ Registry-driven effects; triggers; passive rule-modifiers; live validation.
-- ⏳ **Custom art per card** (schema has `art`; needs rendering + upload/asset pipeline).
-- ⏳ **Author custom status effects & keywords** from the editor (today the status set is
-  fixed; mod #69 lets you define new ones — make `PASSIVES`/statuses editor-authorable).
-- ⏳ Custom starting deck, "link card", foils, GIF art, target-specific-enemy knobs.
+Reviewed the shipped README + the `.pck` (it embeds the mod's C# source). Goal:
+**match its functionality first, then expand** with our 3-axis / Vanguard systems.
+Its core philosophy (README design note) = ours: *every knob that can vary gets its
+own dropdown/field so users compose behaviour without code.* So this is mostly
+**widening the effect schema + editor controls**, not re-architecting.
+
+### Feature parity matrix
+
+| Mod #69 feature | Ours today | Gap to close |
+|---|---|---|
+| Edit cost / type / numbers on any card | ✅ | — |
+| **Star cost** (2nd resource) + true X-cost | energy + X (`-1`) | `starCost` — **decision: do we add a 2nd resource?** (StS2-specific; our model is energy + Vanguard) |
+| **Replay count** | — | add `replayCount` (+ keyword) |
+| Keywords (Exhaust/Ethereal/Retain/Innate/Unplayable) | free-text `keywords[]` | proper **keyword set** (checkboxes) + replay |
+| Numbers as **dynamic vars** | `value` / `valueFrom:selfBlock` | generalize → named `dynamicVars` referenced by effects |
+| Enchantment / Affliction + amount | `buff` / `debuff` ops | (naming alignment optional; mechanics ✅) |
+| **Extra Effects: trigger / target / timing / duration** per effect | per-op `scope` (target ✅, our 18-token scope ⊇ their TargetType); triggers only on powers | add per-effect **trigger**, **duration/timing** knobs to ANY op |
+| **Scaling** (per-effect, by play/draw/discard/exhaust/create history) | — | add `scaleBy:{event,window,filter,pile,per}` |
+| **Conditional effects** (event verb, threshold, card-type filter, time window, pile) | `bonusIf:{stance,targetHpPctBelow}` (narrow) | generalize → multi-variable `condition` (gates firing or adds bonus) |
+| Card types incl. **Curse / Status / Quest** | attack/skill/power | add Curse + Status (Quest later) |
+| **Presets**: save/load/delete + **Revert to Vanilla** | per-file save (disk/GitHub) + bundled base | add named presets + per-card/file revert-to-bundled |
+| **Creator**: custom cards + custom art from disk | add card ✅; `art` field exists | render art + upload/asset pipeline |
+| Hotkey / localization / GIF / foils | n/a (web) / later | low priority |
+
+### Effect schema v1 (the parity target — every knob a field)
+
+Each effect op gains optional orthogonal wrappers (default = immediate / unconditional):
+```jsonc
+{ "op": "damage", "value": 6, "scope": "enemyActiveTarget",   // (what + target — have)
+  "trigger": "onPlay",            // onPlay|turnStart|turnEnd|onGainBlock|onDamageDealt|
+                                  // onDamageTaken|onDraw|onDiscard|onExhaust|onCardPlayed|
+                                  // onEnergySpent|onDeath|fatal  (+ everyN, expireOnPlayed)
+  "duration": { "kind": "turns", "n": 2 },        // thisTurn|thisCombat|turns:N|untilPlayed
+  "scaleBy": { "event": "cardsPlayed", "window": "thisTurn", "filter": { "cardType": "attack" }, "pile": null, "per": 2 },
+  "condition": { "event": "cardsPlayed", "verb": ">=", "threshold": 3, "window": "thisTurn", "filter": {}, "pile": null } }
+```
+Trigger events are modelled on the mod's hooks (AfterCardPlayed/Drawn/Discarded/Exhausted/
+Retained, AfterBlockGained, AfterDamageGiven/Received, AfterEnergySpent, AfterPlayerTurnStart,
+After-Death/Fatal). Our `effectRegistry` already pairs `apply`+`fields`; these wrappers become
+shared fields rendered on every op (a "trigger / condition / scaling" sub-panel).
+
+### Recommended build order (parity)
+
+1. **Keyword set + replay + card types (Curse/Status)** — small, high value, unblocks content.
+2. **Per-effect `trigger` + `duration`** generalized to any op (extend `fireTriggers` to all
+   the events; today only turnStart/turnEnd/onGainBlock exist).
+3. **Multi-variable `condition`** (replaces `bonusIf`; gates firing or grants bonus).
+4. **`scaleBy` history scaling** (needs per-turn/combat event counters on the combat state).
+5. **Presets + revert-to-vanilla** in the editor.
+6. **Custom art** render + upload.
+7. *(Decision)* **Star / 2nd resource** — only if we want it; otherwise skip (not in our model).
+
+### Editor work implied
+Keyword checkboxes + replay field; a per-effect trigger/condition/scaling sub-panel (driven by
+new shared field metadata); preset save/load/revert UI; art upload + preview. All sit on the
+existing registry-metadata-driven form.
 
 ## Card schema (v0)
 
