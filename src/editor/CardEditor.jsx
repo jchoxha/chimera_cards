@@ -404,6 +404,16 @@ export function CardEditor({ onMenu } = {}) {
                   <h3>Effects</h3>
                   <OpList ops={card.effects} onChange={(ops) => updateCard({ effects: ops })} />
 
+                  <h3>Upgrade (+) <small style={{ color: '#8a7a5e', fontWeight: 400 }}>— applied at campfires / on upgraded copies</small></h3>
+                  <div className="grid">
+                    <Field label="upgrade cost (optional)">
+                      <input type="number" value={card.upgrade?.cost ?? ''} placeholder="(unchanged)"
+                        onChange={(e) => updateCard({ upgrade: { ...(card.upgrade || {}), cost: e.target.value === '' ? undefined : Number(e.target.value) } })} />
+                    </Field>
+                    {card.upgrade && <button style={{ alignSelf: 'end' }} onClick={() => updateCard({ upgrade: undefined })}>clear upgrade</button>}
+                  </div>
+                  <OpList ops={card.upgrade?.effects} onChange={(ops) => updateCard({ upgrade: { ...(card.upgrade || {}), effects: ops } })} />
+
                   {card.type === 'power' && (
                     <>
                       <h3>Power: passive &amp; trigger</h3>

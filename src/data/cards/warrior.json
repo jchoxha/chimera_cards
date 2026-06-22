@@ -3,63 +3,744 @@
   "version": 1,
   "note": "Authored from docs/class-design.md §5. Numbers provisional. Edited via the card editor; the engine runs these through src/engine/combat/interpret.js.",
   "cards": [
-    { "id": "warrior_strike", "name": "Strike", "class": "Warrior", "attunement": "Physical", "type": "attack", "cost": 1, "rarity": "basic", "text": "Deal 6 damage.",
-      "effects": [ { "op": "damage", "value": 6 } ] },
-    { "id": "warrior_guard", "name": "Guard", "class": "Warrior", "attunement": "Physical", "type": "skill", "cost": 1, "rarity": "basic", "text": "Gain 5 Block.",
-      "effects": [ { "op": "block", "value": 5 } ] },
-
-    { "id": "warrior_cleave", "name": "Cleave", "class": "Warrior", "attunement": "Physical", "type": "attack", "cost": 1, "rarity": "common", "text": "Deal 8 damage.",
-      "effects": [ { "op": "damage", "value": 8 } ] },
-    { "id": "warrior_pommel_strike", "name": "Pommel Strike", "class": "Warrior", "attunement": "Physical", "type": "attack", "cost": 1, "rarity": "common", "text": "Deal 7 damage; draw 1.",
-      "effects": [ { "op": "damage", "value": 7 }, { "op": "draw", "value": 1 } ] },
-    { "id": "warrior_reckless_swing", "name": "Reckless Swing", "class": "Warrior", "attunement": "Physical", "type": "attack", "cost": 1, "rarity": "common", "text": "Deal 13 damage; lose 4 Block (then HP).",
-      "effects": [ { "op": "damage", "value": 13 }, { "op": "pay", "block": 4 } ] },
-    { "id": "warrior_execute", "name": "Execute", "class": "Warrior", "attunement": "Physical", "type": "attack", "cost": 2, "rarity": "uncommon", "text": "Deal 10 damage; double vs a target under 50% HP.",
-      "effects": [ { "op": "damage", "value": 10, "bonusIf": { "targetHpPctBelow": 0.5 }, "bonusMult": 2 } ] },
-    { "id": "warrior_sunder", "name": "Sunder", "class": "Warrior", "attunement": "Physical", "type": "attack", "cost": 2, "rarity": "uncommon", "text": "Deal 8 damage; apply 2 Vulnerable.",
-      "effects": [ { "op": "damage", "value": 8 }, { "op": "debuff", "status": "vulnerable", "value": 2 } ] },
-    { "id": "warrior_earthshaker", "name": "Earthshaker", "class": "Warrior", "attunement": "Physical", "type": "attack", "cost": 2, "rarity": "uncommon", "text": "Deal 6 damage to all enemies.",
-      "effects": [ { "op": "damage", "value": 6, "scope": "wholeEnemySide" } ] },
-    { "id": "warrior_whirlwind", "name": "Whirlwind", "class": "Warrior", "attunement": "Physical", "type": "attack", "cost": -1, "rarity": "uncommon", "text": "Deal 5 damage X times.",
-      "effects": [ { "op": "damage", "value": 5, "hits": "X" } ] },
-    { "id": "warrior_rampage_slam", "name": "Rampage Slam", "class": "Warrior", "attunement": "Physical", "type": "attack", "cost": 2, "rarity": "uncommon", "text": "Deal 14 damage; +6 if in Rampage.",
-      "effects": [ { "op": "damage", "value": 14, "bonusIf": { "stance": "Rampage" }, "bonusAdd": 6 } ] },
-
-    { "id": "warrior_crushing_weight", "name": "Crushing Weight", "class": "Warrior", "attunement": "Physical", "type": "attack", "cost": 1, "rarity": "rare", "text": "Deal damage equal to your current Block.",
-      "effects": [ { "op": "damage", "valueFrom": "selfBlock" } ] },
-
-    { "id": "warrior_shield_wall", "name": "Shield Wall", "class": "Warrior", "attunement": "Physical", "type": "skill", "cost": 1, "rarity": "common", "text": "Gain 8 Block.",
-      "effects": [ { "op": "block", "value": 8 } ] },
-    { "id": "warrior_bulwark", "name": "Bulwark", "class": "Warrior", "attunement": "Physical", "type": "skill", "cost": 2, "rarity": "uncommon", "text": "Gain 10 Block; it gains Brace.",
-      "effects": [ { "op": "block", "value": 10, "brace": true } ] },
-    { "id": "warrior_iron_will", "name": "Iron Will", "class": "Warrior", "attunement": "Physical", "type": "skill", "cost": 1, "rarity": "common", "text": "Gain 2 Dexterity.",
-      "effects": [ { "op": "buff", "status": "dexterity", "value": 2 } ] },
-    { "id": "warrior_second_wind", "name": "Second Wind", "class": "Warrior", "attunement": "Physical", "type": "skill", "cost": 1, "rarity": "uncommon", "text": "Gain Block equal to 4 + 2x Dexterity.",
-      "effects": [ { "op": "block", "value": 4, "bonusPerDexterity": 1 } ] },
-
-    { "id": "warrior_advance", "name": "Advance", "class": "Warrior", "attunement": "Physical", "type": "skill", "cost": 0, "rarity": "common", "text": "Shift 1 step toward offense; gain 1 energy.",
-      "effects": [ { "op": "stance", "shift": { "dir": "offense", "steps": 1 } }, { "op": "energy", "value": 1 } ] },
-    { "id": "warrior_brace_up", "name": "Brace Up", "class": "Warrior", "attunement": "Physical", "type": "skill", "cost": 0, "rarity": "common", "text": "Shift 1 step toward defense; gain 4 Block.",
-      "effects": [ { "op": "stance", "shift": { "dir": "defense", "steps": 1 } }, { "op": "block", "value": 4 } ] },
-    { "id": "warrior_berserk", "name": "Berserk", "class": "Warrior", "attunement": "Physical", "type": "skill", "cost": 1, "rarity": "uncommon", "text": "Snap to Rampage; draw 1.",
-      "effects": [ { "op": "stance", "set": "Rampage" }, { "op": "draw", "value": 1 } ] },
-    { "id": "warrior_fortify", "name": "Fortify", "class": "Warrior", "attunement": "Physical", "type": "skill", "cost": 1, "rarity": "uncommon", "text": "Snap to Full Guard; gain 6 Block (Braced).",
-      "effects": [ { "op": "stance", "set": "Full Guard" }, { "op": "block", "value": 6, "brace": true } ] },
-
-    { "id": "warrior_war_cry", "name": "War Cry", "class": "Warrior", "attunement": "Physical", "type": "skill", "cost": 1, "rarity": "common", "text": "Gain 2 Strength.",
-      "effects": [ { "op": "buff", "status": "strength", "value": 2 } ] },
-    { "id": "warrior_flex", "name": "Flex", "class": "Warrior", "attunement": "Physical", "type": "skill", "cost": 0, "rarity": "common", "keywords": ["exhaust"], "text": "Gain 3 Strength. Exhaust.",
-      "effects": [ { "op": "buff", "status": "strength", "value": 3 } ] },
-    { "id": "warrior_battle_trance", "name": "Battle Trance", "class": "Warrior", "attunement": "Physical", "type": "skill", "cost": 0, "rarity": "uncommon", "text": "Draw 2.",
-      "effects": [ { "op": "draw", "value": 2 } ] },
-
-    { "id": "warrior_bloodlust", "name": "Bloodlust", "class": "Warrior", "attunement": "Physical", "type": "power", "cost": 2, "rarity": "uncommon", "text": "Start of each turn: gain 1 Strength.",
-      "effects": [], "trigger": { "on": "turnStart", "effects": [ { "op": "buff", "status": "strength", "value": 1 } ] } },
-    { "id": "warrior_rampart", "name": "Rampart", "class": "Warrior", "attunement": "Physical", "type": "power", "cost": 2, "rarity": "rare", "text": "Your Block always Braces.",
-      "effects": [], "passive": "blockAlwaysBraces" },
-    { "id": "warrior_juggernaut", "name": "Juggernaut", "class": "Warrior", "attunement": "Physical", "type": "power", "cost": 2, "rarity": "rare", "text": "Whenever you gain Block, deal 3 damage to a random enemy.",
-      "effects": [], "trigger": { "on": "onGainBlock", "effects": [ { "op": "damage", "value": 3, "scope": "enemyActiveTarget" } ] } },
-    { "id": "warrior_endless_stamina", "name": "Endless Stamina", "class": "Warrior", "attunement": "Physical", "type": "power", "cost": 1, "rarity": "uncommon", "text": "At the start of each turn, gain 1 energy.",
-      "effects": [], "trigger": { "on": "turnStart", "effects": [ { "op": "energy", "value": 1 } ] } }
+    {
+      "id": "warrior_strike",
+      "name": "Strike",
+      "class": "Warrior",
+      "attunement": "Physical",
+      "type": "attack",
+      "cost": 1,
+      "rarity": "basic",
+      "text": "Deal 6 damage.",
+      "effects": [
+        {
+          "op": "damage",
+          "value": 6
+        }
+      ],
+      "upgrade": {
+        "effects": [
+          {
+            "op": "damage",
+            "value": 9
+          }
+        ]
+      }
+    },
+    {
+      "id": "warrior_guard",
+      "name": "Guard",
+      "class": "Warrior",
+      "attunement": "Physical",
+      "type": "skill",
+      "cost": 1,
+      "rarity": "basic",
+      "text": "Gain 5 Block.",
+      "effects": [
+        {
+          "op": "block",
+          "value": 5
+        }
+      ],
+      "upgrade": {
+        "effects": [
+          {
+            "op": "block",
+            "value": 8
+          }
+        ]
+      }
+    },
+    {
+      "id": "warrior_cleave",
+      "name": "Cleave",
+      "class": "Warrior",
+      "attunement": "Physical",
+      "type": "attack",
+      "cost": 1,
+      "rarity": "common",
+      "text": "Deal 8 damage.",
+      "effects": [
+        {
+          "op": "damage",
+          "value": 8
+        }
+      ],
+      "upgrade": {
+        "effects": [
+          {
+            "op": "damage",
+            "value": 11
+          }
+        ]
+      }
+    },
+    {
+      "id": "warrior_pommel_strike",
+      "name": "Pommel Strike",
+      "class": "Warrior",
+      "attunement": "Physical",
+      "type": "attack",
+      "cost": 1,
+      "rarity": "common",
+      "text": "Deal 7 damage; draw 1.",
+      "effects": [
+        {
+          "op": "damage",
+          "value": 7
+        },
+        {
+          "op": "draw",
+          "value": 1
+        }
+      ],
+      "upgrade": {
+        "effects": [
+          {
+            "op": "damage",
+            "value": 10
+          },
+          {
+            "op": "draw",
+            "value": 1
+          }
+        ]
+      }
+    },
+    {
+      "id": "warrior_reckless_swing",
+      "name": "Reckless Swing",
+      "class": "Warrior",
+      "attunement": "Physical",
+      "type": "attack",
+      "cost": 1,
+      "rarity": "common",
+      "text": "Deal 13 damage; lose 4 Block (then HP).",
+      "effects": [
+        {
+          "op": "damage",
+          "value": 13
+        },
+        {
+          "op": "pay",
+          "block": 4
+        }
+      ],
+      "upgrade": {
+        "effects": [
+          {
+            "op": "damage",
+            "value": 17
+          },
+          {
+            "op": "pay",
+            "block": 4
+          }
+        ]
+      }
+    },
+    {
+      "id": "warrior_execute",
+      "name": "Execute",
+      "class": "Warrior",
+      "attunement": "Physical",
+      "type": "attack",
+      "cost": 2,
+      "rarity": "uncommon",
+      "text": "Deal 10 damage; double vs a target under 50% HP.",
+      "effects": [
+        {
+          "op": "damage",
+          "value": 10,
+          "bonusIf": {
+            "targetHpPctBelow": 0.5
+          },
+          "bonusMult": 2
+        }
+      ],
+      "upgrade": {
+        "effects": [
+          {
+            "op": "damage",
+            "value": 14,
+            "bonusIf": {
+              "targetHpPctBelow": 0.5
+            },
+            "bonusMult": 2
+          }
+        ]
+      }
+    },
+    {
+      "id": "warrior_sunder",
+      "name": "Sunder",
+      "class": "Warrior",
+      "attunement": "Physical",
+      "type": "attack",
+      "cost": 2,
+      "rarity": "uncommon",
+      "text": "Deal 8 damage; apply 2 Vulnerable.",
+      "effects": [
+        {
+          "op": "damage",
+          "value": 8
+        },
+        {
+          "op": "debuff",
+          "status": "vulnerable",
+          "value": 2
+        }
+      ],
+      "upgrade": {
+        "effects": [
+          {
+            "op": "damage",
+            "value": 11
+          },
+          {
+            "op": "debuff",
+            "status": "vulnerable",
+            "value": 3
+          }
+        ]
+      }
+    },
+    {
+      "id": "warrior_earthshaker",
+      "name": "Earthshaker",
+      "class": "Warrior",
+      "attunement": "Physical",
+      "type": "attack",
+      "cost": 2,
+      "rarity": "uncommon",
+      "text": "Deal 6 damage to all enemies.",
+      "effects": [
+        {
+          "op": "damage",
+          "value": 6,
+          "scope": "wholeEnemySide"
+        }
+      ],
+      "upgrade": {
+        "effects": [
+          {
+            "op": "damage",
+            "value": 9,
+            "scope": "wholeEnemySide"
+          }
+        ]
+      }
+    },
+    {
+      "id": "warrior_whirlwind",
+      "name": "Whirlwind",
+      "class": "Warrior",
+      "attunement": "Physical",
+      "type": "attack",
+      "cost": -1,
+      "rarity": "uncommon",
+      "text": "Deal 5 damage X times.",
+      "effects": [
+        {
+          "op": "damage",
+          "value": 5,
+          "hits": "X"
+        }
+      ],
+      "upgrade": {
+        "effects": [
+          {
+            "op": "damage",
+            "value": 7,
+            "hits": "X"
+          }
+        ]
+      }
+    },
+    {
+      "id": "warrior_rampage_slam",
+      "name": "Rampage Slam",
+      "class": "Warrior",
+      "attunement": "Physical",
+      "type": "attack",
+      "cost": 2,
+      "rarity": "uncommon",
+      "text": "Deal 14 damage; +6 if in Rampage.",
+      "effects": [
+        {
+          "op": "damage",
+          "value": 14,
+          "bonusIf": {
+            "stance": "Rampage"
+          },
+          "bonusAdd": 6
+        }
+      ],
+      "upgrade": {
+        "effects": [
+          {
+            "op": "damage",
+            "value": 18,
+            "bonusIf": {
+              "stance": "Rampage"
+            },
+            "bonusAdd": 8
+          }
+        ]
+      }
+    },
+    {
+      "id": "warrior_crushing_weight",
+      "name": "Crushing Weight",
+      "class": "Warrior",
+      "attunement": "Physical",
+      "type": "attack",
+      "cost": 1,
+      "rarity": "rare",
+      "text": "Deal damage equal to your current Block.",
+      "effects": [
+        {
+          "op": "damage",
+          "valueFrom": "selfBlock"
+        }
+      ],
+      "upgrade": {
+        "cost": 0,
+        "effects": [
+          {
+            "op": "damage",
+            "valueFrom": "selfBlock"
+          }
+        ]
+      }
+    },
+    {
+      "id": "warrior_shield_wall",
+      "name": "Shield Wall",
+      "class": "Warrior",
+      "attunement": "Physical",
+      "type": "skill",
+      "cost": 1,
+      "rarity": "common",
+      "text": "Gain 8 Block.",
+      "effects": [
+        {
+          "op": "block",
+          "value": 8
+        }
+      ],
+      "upgrade": {
+        "effects": [
+          {
+            "op": "block",
+            "value": 11
+          }
+        ]
+      }
+    },
+    {
+      "id": "warrior_bulwark",
+      "name": "Bulwark",
+      "class": "Warrior",
+      "attunement": "Physical",
+      "type": "skill",
+      "cost": 2,
+      "rarity": "uncommon",
+      "text": "Gain 10 Block; it gains Brace.",
+      "effects": [
+        {
+          "op": "block",
+          "value": 10,
+          "brace": true
+        }
+      ],
+      "upgrade": {
+        "effects": [
+          {
+            "op": "block",
+            "value": 13,
+            "brace": true
+          }
+        ]
+      }
+    },
+    {
+      "id": "warrior_iron_will",
+      "name": "Iron Will",
+      "class": "Warrior",
+      "attunement": "Physical",
+      "type": "skill",
+      "cost": 1,
+      "rarity": "common",
+      "text": "Gain 2 Dexterity.",
+      "effects": [
+        {
+          "op": "buff",
+          "status": "dexterity",
+          "value": 2
+        }
+      ],
+      "upgrade": {
+        "effects": [
+          {
+            "op": "buff",
+            "status": "dexterity",
+            "value": 3
+          }
+        ]
+      }
+    },
+    {
+      "id": "warrior_second_wind",
+      "name": "Second Wind",
+      "class": "Warrior",
+      "attunement": "Physical",
+      "type": "skill",
+      "cost": 1,
+      "rarity": "uncommon",
+      "text": "Gain Block equal to 4 + 2x Dexterity.",
+      "effects": [
+        {
+          "op": "block",
+          "value": 4,
+          "bonusPerDexterity": 1
+        }
+      ],
+      "upgrade": {
+        "effects": [
+          {
+            "op": "block",
+            "value": 6,
+            "bonusPerDexterity": 1
+          }
+        ]
+      }
+    },
+    {
+      "id": "warrior_advance",
+      "name": "Advance",
+      "class": "Warrior",
+      "attunement": "Physical",
+      "type": "skill",
+      "cost": 0,
+      "rarity": "common",
+      "text": "Shift 1 step toward offense; gain 1 energy.",
+      "effects": [
+        {
+          "op": "stance",
+          "shift": {
+            "dir": "offense",
+            "steps": 1
+          }
+        },
+        {
+          "op": "energy",
+          "value": 1
+        }
+      ],
+      "upgrade": {
+        "effects": [
+          {
+            "op": "stance",
+            "shift": {
+              "dir": "offense",
+              "steps": 1
+            }
+          },
+          {
+            "op": "energy",
+            "value": 2
+          }
+        ]
+      }
+    },
+    {
+      "id": "warrior_brace_up",
+      "name": "Brace Up",
+      "class": "Warrior",
+      "attunement": "Physical",
+      "type": "skill",
+      "cost": 0,
+      "rarity": "common",
+      "text": "Shift 1 step toward defense; gain 4 Block.",
+      "effects": [
+        {
+          "op": "stance",
+          "shift": {
+            "dir": "defense",
+            "steps": 1
+          }
+        },
+        {
+          "op": "block",
+          "value": 4
+        }
+      ],
+      "upgrade": {
+        "effects": [
+          {
+            "op": "stance",
+            "shift": {
+              "dir": "defense",
+              "steps": 1
+            }
+          },
+          {
+            "op": "block",
+            "value": 7
+          }
+        ]
+      }
+    },
+    {
+      "id": "warrior_berserk",
+      "name": "Berserk",
+      "class": "Warrior",
+      "attunement": "Physical",
+      "type": "skill",
+      "cost": 1,
+      "rarity": "uncommon",
+      "text": "Snap to Rampage; draw 1.",
+      "effects": [
+        {
+          "op": "stance",
+          "set": "Rampage"
+        },
+        {
+          "op": "draw",
+          "value": 1
+        }
+      ],
+      "upgrade": {
+        "cost": 0,
+        "effects": [
+          {
+            "op": "stance",
+            "set": "Rampage"
+          },
+          {
+            "op": "draw",
+            "value": 1
+          }
+        ]
+      }
+    },
+    {
+      "id": "warrior_fortify",
+      "name": "Fortify",
+      "class": "Warrior",
+      "attunement": "Physical",
+      "type": "skill",
+      "cost": 1,
+      "rarity": "uncommon",
+      "text": "Snap to Full Guard; gain 6 Block (Braced).",
+      "effects": [
+        {
+          "op": "stance",
+          "set": "Full Guard"
+        },
+        {
+          "op": "block",
+          "value": 6,
+          "brace": true
+        }
+      ],
+      "upgrade": {
+        "effects": [
+          {
+            "op": "stance",
+            "set": "Full Guard"
+          },
+          {
+            "op": "block",
+            "value": 9,
+            "brace": true
+          }
+        ]
+      }
+    },
+    {
+      "id": "warrior_war_cry",
+      "name": "War Cry",
+      "class": "Warrior",
+      "attunement": "Physical",
+      "type": "skill",
+      "cost": 1,
+      "rarity": "common",
+      "text": "Gain 2 Strength.",
+      "effects": [
+        {
+          "op": "buff",
+          "status": "strength",
+          "value": 2
+        }
+      ],
+      "upgrade": {
+        "effects": [
+          {
+            "op": "buff",
+            "status": "strength",
+            "value": 3
+          }
+        ]
+      }
+    },
+    {
+      "id": "warrior_flex",
+      "name": "Flex",
+      "class": "Warrior",
+      "attunement": "Physical",
+      "type": "skill",
+      "cost": 0,
+      "rarity": "common",
+      "keywords": [
+        "exhaust"
+      ],
+      "text": "Gain 3 Strength. Exhaust.",
+      "effects": [
+        {
+          "op": "buff",
+          "status": "strength",
+          "value": 3
+        }
+      ],
+      "upgrade": {
+        "effects": [
+          {
+            "op": "buff",
+            "status": "strength",
+            "value": 4
+          }
+        ]
+      }
+    },
+    {
+      "id": "warrior_battle_trance",
+      "name": "Battle Trance",
+      "class": "Warrior",
+      "attunement": "Physical",
+      "type": "skill",
+      "cost": 0,
+      "rarity": "uncommon",
+      "text": "Draw 2.",
+      "effects": [
+        {
+          "op": "draw",
+          "value": 2
+        }
+      ],
+      "upgrade": {
+        "effects": [
+          {
+            "op": "draw",
+            "value": 3
+          }
+        ]
+      }
+    },
+    {
+      "id": "warrior_bloodlust",
+      "name": "Bloodlust",
+      "class": "Warrior",
+      "attunement": "Physical",
+      "type": "power",
+      "cost": 2,
+      "rarity": "uncommon",
+      "text": "Start of each turn: gain 1 Strength.",
+      "effects": [],
+      "trigger": {
+        "on": "turnStart",
+        "effects": [
+          {
+            "op": "buff",
+            "status": "strength",
+            "value": 1
+          }
+        ]
+      },
+      "upgrade": {
+        "trigger": {
+          "on": "turnStart",
+          "effects": [
+            {
+              "op": "buff",
+              "status": "strength",
+              "value": 2
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "warrior_rampart",
+      "name": "Rampart",
+      "class": "Warrior",
+      "attunement": "Physical",
+      "type": "power",
+      "cost": 2,
+      "rarity": "rare",
+      "text": "Your Block always Braces.",
+      "effects": [],
+      "passive": "blockAlwaysBraces",
+      "upgrade": {
+        "cost": 1
+      }
+    },
+    {
+      "id": "warrior_juggernaut",
+      "name": "Juggernaut",
+      "class": "Warrior",
+      "attunement": "Physical",
+      "type": "power",
+      "cost": 2,
+      "rarity": "rare",
+      "text": "Whenever you gain Block, deal 3 damage to a random enemy.",
+      "effects": [],
+      "trigger": {
+        "on": "onGainBlock",
+        "effects": [
+          {
+            "op": "damage",
+            "value": 3,
+            "scope": "enemyActiveTarget"
+          }
+        ]
+      },
+      "upgrade": {
+        "trigger": {
+          "on": "onGainBlock",
+          "effects": [
+            {
+              "op": "damage",
+              "value": 5,
+              "scope": "enemyActiveTarget"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "warrior_endless_stamina",
+      "name": "Endless Stamina",
+      "class": "Warrior",
+      "attunement": "Physical",
+      "type": "power",
+      "cost": 1,
+      "rarity": "uncommon",
+      "text": "At the start of each turn, gain 1 energy.",
+      "effects": [],
+      "trigger": {
+        "on": "turnStart",
+        "effects": [
+          {
+            "op": "energy",
+            "value": 1
+          }
+        ]
+      },
+      "upgrade": {
+        "cost": 0
+      }
+    }
   ]
 }
