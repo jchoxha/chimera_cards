@@ -19,6 +19,7 @@ import { ATTUNEMENT_BASES, CLASS_BASES, BIOLOGY_BASES } from '../data/synthesis.
 import {
   detectDevWrite, persist, loadDraft, saveDraft, clearDraft,
   loadGitHubSettings, saveGitHubSettings, downloadJSON,
+  listPresets, savePreset, loadPreset, deletePreset,
 } from './persistence.js';
 
 const clone = (o) => JSON.parse(JSON.stringify(o));
@@ -178,8 +179,11 @@ export function CardEditor() {
   const [gh, setGh] = useState(loadGitHubSettings);
   const [showSettings, setShowSettings] = useState(false);
   const [status, setStatus] = useState('');
+  const [presets, setPresets] = useState(() => listPresets(activeFile));
+  const [presetSel, setPresetSel] = useState('');
 
   useEffect(() => { detectDevWrite().then(setDevAvailable); }, []);
+  useEffect(() => { setPresets(listPresets(activeFile)); setPresetSel(''); }, [activeFile]);
 
   useEffect(() => {
     const base = files[activeFile] || { class: slug(activeFile).replace('_json', ''), version: 1, cards: [] };
@@ -235,6 +239,38 @@ export function CardEditor() {
     setActiveFile(fn);
   }
 
+  // ── Presets + revert-to-vanilla ──
+  function doSavePreset() {
+    const name = prompt('Preset name:', presetSel || 'My preset');
+    if (!name) return;
+    savePreset(activeFile, name, working);
+    setPresets(listPresets(activeFile)); setPresetSel(name);
+    setStatus(`✓ saved preset "${name}"`);
+  }
+  function doLoadPreset() {
+    if (!presetSel) return;
+    const obj = loadPreset(activeFile, presetSel);
+    if (obj) { setWorking(clone(obj)); setCardIdx(0); setStatus(`loaded preset "${presetSel}"`); }
+  }
+  function doDeletePreset() {
+    if (!presetSel || !confirm(`Delete preset "${presetSel}"?`)) return;
+    deletePreset(activeFile, presetSel); setPresets(listPresets(activeFile)); setPresetSel('');
+    setStatus('preset deleted');
+  }
+  function revertFile() {
+    if (!confirm('Revert ALL cards in this file to the bundled (vanilla) version? Discards unsaved edits.')) return;
+    const base = BASE_FILES[activeFile];
+    if (!base) { setStatus('no bundled version for this file'); return; }
+    setWorking(clone(base)); clearDraft(activeFile); setCardIdx(0);
+    setStatus('reverted file to vanilla');
+  }
+  function revertCard() {
+    const base = (BASE_FILES[activeFile]?.cards || []).find((c) => c.id === card.id);
+    if (!base) { setStatus('no bundled version for this card'); return; }
+    setWorking((w) => ({ ...w, cards: w.cards.map((c, i) => (i === cardIdx ? clone(base) : c)) }));
+    setStatus(`reverted "${base.name}" to vanilla`);
+  }
+
   const backend = devAvailable ? 'dev-write (disk)' : gh.token ? 'GitHub commit' : 'download / localStorage';
 
   if (!working) return <div className="ed"><p style={{ padding: 20 }}>Loading…</p></div>;
@@ -253,6 +289,20 @@ export function CardEditor() {
         <button onClick={() => setShowSettings((s) => !s)}>⚙ GitHub</button>
         <button className="save" onClick={doSave}>Save</button>
       </header>
+
+      <div className="toolbar2">
+        <span className="t2label">Presets:</span>
+        <select value={presetSel} onChange={(e) => setPresetSel(e.target.value)}>
+          <option value="">(select)</option>
+          {presets.map((p) => <option key={p} value={p}>{p}</option>)}
+        </select>
+        <button onClick={doLoadPreset} disabled={!presetSel}>Load</button>
+        <button onClick={doSavePreset}>Save preset</button>
+        <button onClick={doDeletePreset} disabled={!presetSel}>Delete</button>
+        <span className="grow" />
+        <button onClick={revertCard}>⟲ Revert card</button>
+        <button onClick={revertFile}>⟲ Revert file → vanilla</button>
+      </div>
 
       {showSettings && (
         <div className="settings">

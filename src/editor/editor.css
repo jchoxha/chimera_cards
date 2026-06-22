@@ -25,6 +25,11 @@ body { background: #16110a; }
 .badge.gh { color: #9fd0ff; border-color: #2f5577; background: #0f1a24; }
 .badge.warn { color: #e2c98a; border-color: #6e5a2f; background: #241f0f; }
 
+.toolbar2 { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; padding: 6px 12px; background: #1a1308; border-bottom: 1px solid #3a2c18; }
+.toolbar2 .t2label { color: #c9b58e; font-size: 13px; }
+.toolbar2 .grow { flex: 1; }
+.toolbar2 button:disabled { opacity: 0.4; cursor: default; }
+
 .settings { padding: 12px; background: #1d1509; border-bottom: 1px solid #4a3a22; }
 .settings p { margin: 0 0 8px; color: #c9b58e; font-size: 12px; max-width: 720px; }
 .settings .row { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 8px; }

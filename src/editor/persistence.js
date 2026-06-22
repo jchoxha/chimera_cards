@@ -19,6 +19,22 @@ export function clearDraft(file) {
   try { localStorage.removeItem(LS_DRAFT(file)); } catch { /* noop */ }
 }
 
+// ── Named presets (per file) ──────────────────────────────────────────────────
+const LS_PRESETS = (file) => `chimera:cardeditor:presets:${file}`;
+function readPresetMap(file) {
+  try { return JSON.parse(localStorage.getItem(LS_PRESETS(file)) || '{}'); } catch { return {}; }
+}
+export function listPresets(file) { return Object.keys(readPresetMap(file)).sort(); }
+export function savePreset(file, name, obj) {
+  const map = readPresetMap(file); map[name] = obj;
+  try { localStorage.setItem(LS_PRESETS(file), JSON.stringify(map)); } catch { /* quota */ }
+}
+export function loadPreset(file, name) { return readPresetMap(file)[name] ?? null; }
+export function deletePreset(file, name) {
+  const map = readPresetMap(file); delete map[name];
+  try { localStorage.setItem(LS_PRESETS(file), JSON.stringify(map)); } catch { /* noop */ }
+}
+
 // ── GitHub settings ───────────────────────────────────────────────────────────
 export function loadGitHubSettings() {
   try {
