@@ -179,8 +179,27 @@ Warrior gets Physical cards; pick Fire 2nd → Fire cards appear). cardArt alrea
 apply + show as **pips** (cardText `STATUS_LABEL`, CombatScreen `STATUS_META`/`EFFECT_INFO`), but
 they stay **INERT (no tick)** until the §5 status system. `test:attunecards` (170 checks: every
 attunement has a valid, correctly-tagged pool). **Not done:** the §14.3 "variant access" half
-(archetype cards re-skinned to OTHER attunements); making the 6 inert statuses live (§5); run
-starter still archetype-only (attunement cards come via the builder).
+(archetype cards re-skinned to OTHER attunements); run starter still archetype-only (attunement
+cards come via the builder).
+
+**⚡ ATTUNEMENT STATUSES NOW LIVE — §5.1 (v3.25.0, 2026-06-22).** The 6 inert signature statuses
+(+ Amplify) now have real behavior, so all 13 attunements bite. Locked designs (Jeton):
+**Bleed** (Physical) — DoT (HP=stacks at opponent turn-end, decays 1) **+ grows +1 each time the
+carrier is hit** (multi-hit ramp); **Decay** (Void) — DoT that also strips **Block=stacks**/turn;
+**Expose** (Air) — next hit ignores **all** Block, consumed per hit; **Amplify** (Arcane, self) —
+next attack ×1.5, consumed; **Shock** (Energy) — carrier loses `stacks` energy at its own turn
+start (symmetric); **Confuse** (Mind) — per attack, consume 1 → ~33% fizzle, else ~50% retarget to
+a random unit; **Soak** (Water) — next attack vs target **+25% per stack** then clears (stack →
+devastating blow; the full reaction matrix expands it later). Hooks: DoTs (Bleed/Decay) in
+`VanguardManager._tickStatuses` dots; Shock in `_applyShock` at both turn starts; Expose in
+`resolve.applyDamage` (block-bypass); Soak/Amplify/Confuse/Bleed-grow in `effectRegistry`
+`EFFECT_OPS.damage`. `stackingFor` + `LIVE_STATUSES` updated (new statuses = intensity, no turn
+countdown); `debuff` op uses `stackingFor`. Combat tooltips (`EFFECT_INFO`) describe the live
+behavior. `test:statuses` (16). **Caveats:** these resolve in the **CardSpec/effectRegistry** path
+(player + data-driven enemies); the **legacy `applyCardEffects`** path (old roster enemies) doesn't
+grow Bleed / apply Soak/Confuse yet. Shock's effect on the **enemy AI** is limited (the planner
+doesn't re-check energy). Next attunement work: §5.2 **reactions** (Soak is the universal primer),
+then §14.3 variant access.
 
 **Archetype deep-dive (Topic 5) — `docs/archetype-design.md`.** Designing all 36
 **archetypes** (the taxonomy's "Class" axis — *we call them archetypes, not classes*; code

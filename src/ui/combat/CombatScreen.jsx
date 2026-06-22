@@ -89,13 +89,13 @@ const EFFECT_INFO = {
   poison: { name: 'Poison', icon: 'game-icons:poison-bottle', desc: 'Loses HP equal to its stacks at the end of the opponent’s turn, then decays by 1. Bypasses Block.' },
   regen: { name: 'Regen', icon: 'game-icons:health-normal', desc: 'Heals HP equal to its stacks at the end of the carrier’s own turn, then decays by 1.' },
   chill: { name: 'Chill', icon: 'game-icons:snowflake-1', desc: 'A frost affliction (not yet active this milestone).' },
-  soak: { name: 'Soak', icon: 'game-icons:water-drop', desc: 'A water affliction (not yet active this milestone).' },
-  shock: { name: 'Shock', icon: 'game-icons:lightning-arc', desc: 'A charge affliction (not yet active this milestone).' },
-  decay: { name: 'Decay', icon: 'game-icons:skull-crossed-bones', desc: 'A void affliction (not yet active this milestone).' },
-  bleed: { name: 'Bleed', icon: 'game-icons:drop', desc: 'A physical affliction (not yet active this milestone).' },
-  expose: { name: 'Expose', icon: 'game-icons:cracked-shield', desc: 'An air affliction (not yet active this milestone).' },
-  confuse: { name: 'Confuse', icon: 'game-icons:brain', desc: 'A mind affliction (not yet active this milestone).' },
-  amplify: { name: 'Amplify', icon: 'game-icons:magic-swirl', desc: 'An arcane self-buff (not yet active this milestone).' },
+  soak: { name: 'Soak', icon: 'game-icons:water-drop', desc: 'The next attack against this unit deals +25% per Soak stack, then Soak clears. Stack it up for a devastating blow.' },
+  shock: { name: 'Shock', icon: 'game-icons:lightning-arc', desc: 'At the start of its turn, this unit loses energy equal to its Shock, then Shock clears.' },
+  decay: { name: 'Decay', icon: 'game-icons:skull-crossed-bones', desc: 'Loses HP AND Block equal to its stacks at turn-end, then decays by 1. Bypasses Block.' },
+  bleed: { name: 'Bleed', icon: 'game-icons:drop', desc: 'Loses HP equal to its stacks at turn-end (decays 1); deepens by +1 each time this unit is hit.' },
+  expose: { name: 'Expose', icon: 'game-icons:cracked-shield', desc: 'The next hit against this unit ignores ALL Block; one Expose consumed per hit.' },
+  confuse: { name: 'Confuse', icon: 'game-icons:brain', desc: 'This unit’s next attack is unreliable — it may fizzle, or strike a random target. Consumed per attack.' },
+  amplify: { name: 'Amplify', icon: 'game-icons:magic-swirl', desc: 'This unit’s next attack deals +50%, then Amplify clears.' },
 };
 
 function Icon({ icon, ...rest }) {

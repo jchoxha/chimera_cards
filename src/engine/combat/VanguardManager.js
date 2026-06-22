@@ -463,6 +463,7 @@ export class VanguardManager {
     const benchedCount = benchFighters(s.player).length;
     s.player.energyPerTurn = Math.max(3, benchedCount);
     s.player.energy = s.player.energyPerTurn;
+    this._applyShock('player'); // Shock drains energy at turn start
 
     // 4. Draw cards (reset the per-turn counters at the start of the player's turn).
     this._resetTurnCounters('player');
@@ -771,6 +772,7 @@ export class VanguardManager {
     const benchedCount = benchFighters(s.enemy).length;
     s.enemy.energyPerTurn = Math.max(3, benchedCount);
     s.enemy.energy = s.enemy.energyPerTurn;
+    this._applyShock('enemy'); // Shock drains energy at turn start
 
     // Fire enemy powers that hook the start of the turn.
     this._resetTurnCounters('enemy');
@@ -903,6 +905,24 @@ export class VanguardManager {
    * @param {'player'|'enemy'} sideKey
    * @param {'dots'|'regen'|'duration'} type
    */
+  /**
+   * Shock (Energy): the side's Vanguard loses `stacks` energy at its own turn start,
+   * then Shock clears. Symmetric — affects whichever side carries it.
+   * @param {'player'|'enemy'} sideKey
+   */
+  _applyShock(sideKey) {
+    const side = this.state[sideKey];
+    const v = side.fighters[side.vanguardIndex];
+    if (!v || v.hp <= 0) return;
+    const st = v.statuses.find((s) => s.id === 'shock');
+    if (st && st.amount > 0) {
+      side.energy = Math.max(0, side.energy - st.amount);
+      st.amount = 0;
+      this._emit('status', { targetId: v.id, id: 'shock', amount: 0 });
+      pruneStatuses(v.statuses);
+    }
+  }
+
   _tickStatuses(sideKey, type) {
     const side = this.state[sideKey];
     const emit = this._emit.bind(this);
@@ -911,15 +931,20 @@ export class VanguardManager {
       if (f.hp <= 0) continue;
 
       if (type === 'dots') {
-        // Burn & Poison tick
-        for (const id of ['burn', 'poison']) {
+        // Burn, Poison & Bleed tick (DoTs bypass Block); each decays by 1.
+        for (const id of ['burn', 'poison', 'bleed']) {
           const st = f.statuses.find((x) => x.id === id);
           if (st && st.amount > 0) {
-            const amount = st.amount;
-            // DoTs bypass Block
-            applyDamage(f, amount, emit, true);
+            applyDamage(f, st.amount, emit, true);
             st.amount -= 1;
           }
+        }
+        // Decay (Void): lose HP AND Block equal to stacks, then decay by 1.
+        const dec = f.statuses.find((x) => x.id === 'decay');
+        if (dec && dec.amount > 0) {
+          applyDamage(f, dec.amount, emit, true);
+          if (f.block > 0) f.block = Math.max(0, f.block - dec.amount);
+          dec.amount -= 1;
         }
       } else if (type === 'regen') {
         const st = f.statuses.find((x) => x.id === 'regen');

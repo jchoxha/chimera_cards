@@ -178,26 +178,55 @@ export const EFFECT_OPS = {
     ],
     apply(op, env) {
       if (!canAttack(stanceOf(env.caster))) { env.setIllegal(); return; }
-      const targets = resolveScope(env.state, env.casterKey, env.caster, op.scope ?? defaultScope(op), { targetId: env.opts.targetId });
+      const rng = env.rng || Math.random;
+      let targets = resolveScope(env.state, env.casterKey, env.caster, op.scope ?? defaultScope(op), { targetId: env.opts.targetId });
       const hits = op.hits === 'X' ? Math.max(1, env.costPaid) : (op.hits ?? 1);
-      // Imbue: a flagged card also inflicts the CASTER's attunement signature status
-      // (creature's attunement, not the card's element). `imbue: true` → 1 stack;
-      // `imbue: N` → N. Supports dual attunement; non-live attunements add nothing.
+
+      // Confuse (Mind): the carrier's attack is unreliable — consume 1 Confuse, then
+      // ~33% it fizzles entirely, else ~50% it strikes a RANDOM unit on the target side.
+      const confuseSt = env.caster.statuses.find((s) => s.id === 'confuse');
+      if (confuseSt && confuseSt.amount > 0 && targets.length) {
+        confuseSt.amount -= 1;
+        env.emit?.('status', { targetId: env.caster.id, id: 'confuse', amount: confuseSt.amount });
+        if (rng() < 0.34) { env.emit?.('fizzle', { actorId: env.caster.id, cardId: env.card?.id }); targets = []; }
+        else if (rng() < 0.5) {
+          const pool = sideOf(env.state, targets[0]).fighters.filter((f) => f.hp > 0);
+          if (pool.length) targets = [pool[Math.floor(rng() * pool.length)]];
+        }
+      }
+
+      // Amplify (Arcane, self): the next attack deals +50%, cleared after this card.
+      const ampSt = env.caster.statuses.find((s) => s.id === 'amplify');
+      const ampMult = ampSt && ampSt.amount > 0 ? 1.5 : 1;
+
       const imbues = env.card?.imbue ? imbueStatusesFor(attunementsOf(env.caster)) : [];
       const imbueAmt = typeof env.card?.imbue === 'number' ? env.card.imbue : 1;
       let connected = false;
+
       for (const t of targets) {
         env.target = t;
         let v = effectiveValue(op, env);
         if (op.bonusIf && condMet(op.bonusIf, env)) { if (op.bonusMult) v *= op.bonusMult; if (op.bonusAdd) v += op.bonusAdd; }
-        const matchup = matchupOf(env.card?.attunement, t);
+        // Soak (Water): the next attack vs this target deals +25% per stack, then clears.
+        const soakSt = t.statuses.find((s) => s.id === 'soak');
+        const soakMult = soakSt && soakSt.amount > 0 ? 1 + 0.25 * soakSt.amount : 1;
+        const mult = matchupOf(env.card?.attunement, t) * ampMult * soakMult;
         const ts = sideOf(env.state, t);
-        for (let i = 0; i < hits; i++) { if (t.hp <= 0) break; applyDamage(t, scaledDamage(v, env.caster, t, matchup), env.emit, false, ts); connected = true; }
+        for (let i = 0; i < hits; i++) {
+          if (t.hp <= 0) break;
+          applyDamage(t, scaledDamage(v, env.caster, t, mult), env.emit, false, ts);
+          connected = true;
+          // Bleed (Physical): each hit on a bleeding target deepens the wound (+1).
+          const bl = t.statuses.find((s) => s.id === 'bleed');
+          if (bl && bl.amount > 0) { bl.amount += 1; env.emit?.('status', { targetId: t.id, id: 'bleed', amount: bl.amount }); }
+        }
+        if (soakSt && soakSt.amount > 0) { soakSt.amount = 0; env.emit?.('status', { targetId: t.id, id: 'soak', amount: 0 }); }
         if (t.hp > 0) for (const im of imbues) if (im.target === 'enemy') {
           addStatus(t.statuses, { id: im.id, amount: imbueAmt, stacking: stackingFor(im.id) });
           env.emit?.('status', { targetId: t.id, id: im.id, amount: imbueAmt });
         }
       }
+      if (connected && ampSt && ampSt.amount > 0) { ampSt.amount = 0; env.emit?.('status', { targetId: env.caster.id, id: 'amplify', amount: 0 }); }
       // Self-imbue (e.g. Holy→Regen) lands once if the attack connected.
       if (connected) for (const im of imbues) if (im.target === 'self') {
         addStatus(env.caster.statuses, { id: im.id, amount: imbueAmt, stacking: stackingFor(im.id) });
@@ -248,7 +277,7 @@ export const EFFECT_OPS = {
       for (const t of targets) {
         const amt = r0(effectiveValue(op, env) * statOf(env.caster, 'focus') / statOf(t, 'resolve') * env.scale);
         if (amt <= 0) continue;
-        addStatus(t.statuses, { id: op.status, amount: amt, stacking: op.status === 'burn' || op.status === 'poison' ? 'intensity' : 'duration' });
+        addStatus(t.statuses, { id: op.status, amount: amt, stacking: stackingFor(op.status) });
         env.emit?.('status', { targetId: t.id, id: op.status, amount: amt });
       }
     },

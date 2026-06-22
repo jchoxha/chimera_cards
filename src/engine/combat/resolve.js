@@ -22,7 +22,12 @@ import { drawCards, drawFreshHand, discardWholeHand } from './deckOps.js';
 /** @typedef {import('../types.js').CardEffects} CardEffects */
 /** @typedef {import('../types.js').StatusEffect} StatusEffect */
 
-const LIVE_STATUSES = Object.freeze(['burn', 'poison', 'weak', 'vulnerable', 'strength', 'regen']);
+const LIVE_STATUSES = Object.freeze([
+  'burn', 'poison', 'weak', 'vulnerable', 'strength', 'regen',
+  // Attunement signature statuses (now live): Physical/Void DoTs, consumed-on-use
+  // modifiers, and the Arcane self-buff. (Soak/Shock handled in their own hooks.)
+  'bleed', 'decay', 'soak', 'shock', 'expose', 'confuse', 'amplify',
+]);
 
 // ── Side / zone helpers ───────────────────────────────────────────────────────
 
@@ -103,9 +108,13 @@ export function resolveScope(state, casterKey, caster, scope, { targetId } = {})
 // ── Status helpers ────────────────────────────────────────────────────────────
 
 /** Default stacking discipline per status id. @param {string} id */
+const INTENSITY_STATUSES = new Set([
+  'strength', 'burn', 'poison',
+  // consumed-on-use / DoT counters — NOT turn-countdown debuffs
+  'bleed', 'decay', 'soak', 'shock', 'expose', 'confuse', 'amplify',
+]);
 export function stackingFor(id) {
-  if (id === 'strength' || id === 'burn' || id === 'poison') return 'intensity';
-  return 'duration'; // weak, vulnerable, regen, frail, …
+  return INTENSITY_STATUSES.has(id) ? 'intensity' : 'duration'; // weak, vulnerable, regen, frail → duration
 }
 
 /** Add/merge a status onto a fighter (amounts accumulate). @param {StatusEffect[]} list @param {StatusEffect} status */
@@ -163,7 +172,11 @@ export function applyDamage(target, amount, emit, dot = false, side = null) {
   let absorbedBraced = 0;
   let absorbedFortify = 0;
 
-  if (!dot) {
+  // Expose (Air): the next hit ignores ALL Block layers; consume one stack.
+  const exposeSt = !dot && target.statuses.find((s) => s.id === 'expose');
+  const exposed = exposeSt && exposeSt.amount > 0;
+
+  if (!dot && !exposed) {
     // 1. Creature block absorbs first
     absorbedCreature = Math.min(target.block, hpLoss);
     target.block -= absorbedCreature;
@@ -182,6 +195,9 @@ export function applyDamage(target, amount, emit, dot = false, side = null) {
       side.fortifySlot.block -= absorbedFortify;
       hpLoss -= absorbedFortify;
     }
+  } else if (exposed) {
+    exposeSt.amount -= 1; // ignored all Block this hit
+    emit?.('status', { targetId: target.id, id: 'expose', amount: exposeSt.amount });
   }
 
   target.hp = Math.max(0, target.hp - hpLoss);
