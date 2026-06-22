@@ -7,7 +7,7 @@
 
 import React, { useEffect, useMemo, useState } from 'react';
 import {
-  EFFECT_OPS, OP_TYPES, CARD_TYPES, PASSIVES, TRIGGER_EVENTS, validateCard, defaultScope,
+  EFFECT_OPS, OP_TYPES, CARD_TYPES, PASSIVES, TRIGGER_EVENTS, KEYWORDS, validateCard, defaultScope,
 } from '../engine/cards/cardSpec.js';
 import { STANCES } from '../engine/combat/stances.js';
 import { TARGET_SCOPES } from '../engine/types.js';
@@ -261,9 +261,22 @@ export function CardEditor() {
                     <Field label="class"><select value={card.class || ''} onChange={(e) => updateCard({ class: e.target.value || undefined })}><option value="">(none)</option>{CLASS_BASES.map((c) => <option key={c}>{c}</option>)}</select></Field>
                     <Field label="biology"><select value={card.biology || ''} onChange={(e) => updateCard({ biology: e.target.value || undefined })}><option value="">(none)</option>{BIOLOGY_BASES.map((b) => <option key={b}>{b}</option>)}</select></Field>
                     <Field label="rarity"><select value={card.rarity || 'common'} onChange={(e) => updateCard({ rarity: e.target.value })}>{['basic', 'common', 'uncommon', 'rare'].map((r) => <option key={r}>{r}</option>)}</select></Field>
-                    <Field label="keywords"><input value={(card.keywords || []).join(', ')} onChange={(e) => updateCard({ keywords: e.target.value.split(',').map((s) => s.trim()).filter(Boolean) })} /></Field>
+                    <Field label="replay count"><input type="number" value={card.replayCount ?? ''} onChange={(e) => updateCard({ replayCount: e.target.value === '' ? undefined : Number(e.target.value) })} /></Field>
                     <Field label="art (key/URL)"><input value={card.art || ''} onChange={(e) => updateCard({ art: e.target.value || undefined })} /></Field>
                   </div>
+                  <Field label="keywords">
+                    <div className="kwrow">
+                      {KEYWORDS.map((kw) => (
+                        <label key={kw} className="kw">
+                          <input type="checkbox" checked={(card.keywords || []).includes(kw)} onChange={(e) => {
+                            const set = new Set(card.keywords || []);
+                            if (e.target.checked) set.add(kw); else set.delete(kw);
+                            updateCard({ keywords: [...set] });
+                          }} /> {kw}
+                        </label>
+                      ))}
+                    </div>
+                  </Field>
                   <Field label="text"><textarea className="cardtext" value={card.text || ''} onChange={(e) => updateCard({ text: e.target.value })} /></Field>
 
                   <h3>Effects</h3>

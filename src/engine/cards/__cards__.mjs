@@ -33,6 +33,15 @@ console.log('Schema: every Warrior card validates:');
   ok(bad.length === 0, bad.length ? bad.join('; ') : `all ${WARRIOR.cards.length} cards valid`);
 }
 
+console.log('Keyword / replay / card-type validation:');
+{
+  ok(validateCard({ id: 'k', name: 'K', attunement: 'Physical', type: 'skill', cost: 1, keywords: ['retain', 'exhaust'], effects: [{ op: 'block', value: 5 }] }).length === 0, 'known keywords accepted');
+  ok(validateCard({ id: 'k', name: 'K', attunement: 'Physical', type: 'skill', cost: 1, keywords: ['bogus'], effects: [{ op: 'block', value: 5 }] }).some((e) => e.includes('keyword')), 'unknown keyword flagged');
+  ok(validateCard({ id: 'k', name: 'K', attunement: 'Physical', type: 'attack', cost: 1, replayCount: -1, effects: [{ op: 'damage', value: 6 }] }).some((e) => e.includes('replayCount')), 'negative replayCount flagged');
+  ok(validateCard({ id: 'curse_daze', name: 'Daze', attunement: 'Physical', type: 'curse', cost: -2, keywords: ['ethereal', 'unplayable'], effects: [] }).length === 0, 'inert Curse (no effects) is allowed');
+  ok(validateCard({ id: 'x', name: 'X', attunement: 'Physical', type: 'skill', cost: 1, effects: [] }).some((e) => e.includes('does nothing')), 'non-Curse with no effects still flagged');
+}
+
 console.log('Might scales damage:');
 {
   const g = mk({ might: 1.5 });

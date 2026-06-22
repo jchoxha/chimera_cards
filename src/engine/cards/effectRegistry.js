@@ -13,9 +13,16 @@ import { computeMatchup } from '../content/matchups.js';
 import { canAttack, canBlock, bracesBlock, shiftStance, setStance } from '../combat/stances.js';
 
 // ── Vocabulary ────────────────────────────────────────────────────────────────
-export const CARD_TYPES = Object.freeze(['attack', 'skill', 'power']);
+export const CARD_TYPES = Object.freeze(['attack', 'skill', 'power', 'curse', 'status']);
 export const BUFF_STATUSES = Object.freeze(['strength', 'dexterity', 'regen']);
 export const DEBUFF_STATUSES = Object.freeze(['weak', 'vulnerable', 'burn', 'poison']);
+
+/** Card keywords with runtime behavior (mod #69 parity). Engine support:
+ *  exhaust/unplayable (play), ethereal/retain/innate (deckOps), replay (replayCount). */
+export const KEYWORDS = Object.freeze(['exhaust', 'ethereal', 'retain', 'innate', 'unplayable']);
+
+/** Card types that may legitimately have no effect (inert/unplayable by design). */
+export const INERT_OK_TYPES = Object.freeze(['curse', 'status']);
 
 /** Trigger events a power can hook (fired by the turn loop / engine). */
 export const TRIGGER_EVENTS = Object.freeze([

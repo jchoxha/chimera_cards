@@ -7,14 +7,14 @@
 
 import {
   EFFECT_OPS, OP_TYPES, CARD_TYPES, BUFF_STATUSES, DEBUFF_STATUSES,
-  PASSIVES, TRIGGER_EVENTS, defaultScope, resolveValue, condMet,
+  PASSIVES, TRIGGER_EVENTS, KEYWORDS, INERT_OK_TYPES, defaultScope, resolveValue, condMet,
 } from './effectRegistry.js';
 
 // Re-export the vocabulary so existing importers (editor, interpreter, tests)
 // have one stable import surface.
 export {
   EFFECT_OPS, OP_TYPES, CARD_TYPES, BUFF_STATUSES, DEBUFF_STATUSES,
-  PASSIVES, TRIGGER_EVENTS, defaultScope, resolveValue, condMet,
+  PASSIVES, TRIGGER_EVENTS, KEYWORDS, INERT_OK_TYPES, defaultScope, resolveValue, condMet,
 };
 
 /**
@@ -62,6 +62,8 @@ export function validateCard(c) {
   if (!c.attunement) errs.push('missing attunement');
   if (!CARD_TYPES.includes(c.type)) errs.push(`bad type: ${c.type}`);
   if (typeof c.cost !== 'number') errs.push('cost must be a number (-1 = X)');
+  for (const kw of c.keywords ?? []) if (!KEYWORDS.includes(kw)) errs.push(`unknown keyword: ${kw}`);
+  if (c.replayCount != null && (typeof c.replayCount !== 'number' || c.replayCount < 0)) errs.push('replayCount must be a number ≥ 0');
 
   validateOpList(c.effects, 'effects', errs);
 
@@ -71,13 +73,13 @@ export function validateCard(c) {
     validateOpList(c.trigger.effects, 'trigger', errs);
   }
 
-  // Functional check — every card must DO something.
+  // Functional check — every card must DO something (Curse/Status may be inert).
   const hasEffects = Array.isArray(c.effects) && c.effects.length > 0;
   const hasTriggerFx = !!c.trigger && Array.isArray(c.trigger.effects) && c.trigger.effects.length > 0;
   const hasPassive = !!c.passive;
   if (c.type === 'power') {
     if (!hasTriggerFx && !hasPassive) errs.push('power has no trigger effects or passive — it does nothing');
-  } else if (!hasEffects) {
+  } else if (!hasEffects && !INERT_OK_TYPES.includes(c.type)) {
     errs.push('card has no effects — it does nothing');
   }
   return errs;

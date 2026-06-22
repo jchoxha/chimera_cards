@@ -503,6 +503,17 @@ export class VanguardManager {
       });
     }
 
+    // Replay: re-run the card's effects N extra times for free (StS2 Replay).
+    const replays = card.type === 'power' ? 0 : Math.max(0, card.replayCount ?? 0);
+    for (let r = 0; r < replays; r++) {
+      this._emit('replay', { card, actorId: pVanguard.id, n: r + 1 });
+      if (isCardSpec(card)) {
+        applyCardSpec(s, 'player', pVanguard, card, { targetId: opts.targetId, costPaid: 0, rng: this.rng, emit: this._emit.bind(this) });
+      } else {
+        applyCardEffects(s, 'player', pVanguard, card.effects, { targetId: opts.targetId, costPaid: 0, xCost: false, rng: this.rng, emit: this._emit.bind(this) });
+      }
+    }
+
     // Move card from hand: powers + Exhaust cards leave the deck, else discard.
     if (card.type === 'power' || card.keywords?.includes('exhaust')) {
       exhaustCard(pVanguard, card);

@@ -64,6 +64,17 @@ console.log('Power registers + exhausts; turnStart trigger fires next turn:');
   ok(vm.state.player.fighters[0].hp > 0, 'player survived the cycle (idle enemy)');
 }
 
+console.log('Replay count re-runs the card effects for free:');
+{
+  const { vm, foe } = setup();
+  const p = vm.state.player.fighters[vm.state.player.vanguardIndex];
+  p.hand = [{ ...card('warrior_strike'), id: 'replay_strike', replayCount: 1 }]; // plays twice
+  vm.state.player.energy = 5;
+  const before = foe.hp;
+  vm.play('replay_strike');
+  ok(foe.hp === before - 12, `Replay 1 → Strike hits twice (6×2=12; ${before}→${foe.hp})`);
+}
+
 console.log('Illegal stance play is rejected without cost:');
 {
   const { vm, p } = setup();

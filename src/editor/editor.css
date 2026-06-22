@@ -59,6 +59,8 @@ body { background: #16110a; }
 .fld { display: flex; flex-direction: column; gap: 3px; font-size: 12px; color: #c9b58e; }
 .fld input, .fld select, .fld textarea { width: 100%; }
 .fld small { color: #8a7a5e; }
+.kwrow { display: flex; gap: 12px; flex-wrap: wrap; padding: 4px 0; }
+.kw { display: inline-flex; align-items: center; gap: 4px; color: #c9b58e; font-size: 13px; }
 .idrow { display: flex; gap: 4px; }
 .idrow input { flex: 1; }
 .cardtext { min-height: 48px; resize: vertical; }
