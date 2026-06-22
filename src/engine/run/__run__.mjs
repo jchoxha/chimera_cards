@@ -5,6 +5,8 @@ import { createRunState, createRun } from './state.js';
 import { RunManager } from './RunManager.js';
 import { makeRng, hashSeed } from './rng.js';
 import { reachableFrom, currentNode } from './map.js';
+import { partyToFighters, startRunCombat, combatOutcome } from './combatBridge.js';
+import { createFighter } from '../combat/state.js';
 
 let pass = 0, fail = 0;
 const ok = (c, m) => (c ? (pass++, console.log('  ✓', m)) : (fail++, console.error('  ✗', m)));
@@ -100,6 +102,45 @@ console.log('Navigation: travel only to reachable nodes, marks visited:');
   ok(rm.state.position === next && currentNode(rm.state).visited, 'traveled to the next node, marked visited');
   rm.undo();
   ok(rm.state.position === start, 'undo returns to the previous node');
+}
+
+console.log('Combat bridge: build fighters from the run party + fold the result back:');
+{
+  const rm = new RunManager(createRun({
+    party: [
+      { id: 'war', name: 'Warrior', attunement: ['Physical'], maxHp: 60, stats: { might: 1, guard: 1, focus: 1, resolve: 1, speed: 0 },
+        deck: [{ id: 'strike', name: 'Strike', type: 'attack', cost: 1, attunement: 'Physical', effects: [{ op: 'damage', value: 6 }] }] },
+      { id: 'mage', name: 'Mage', attunement: ['Fire'], maxHp: 40, deck: [{ id: 'bolt', name: 'Bolt', type: 'attack', cost: 1, attunement: 'Fire', effects: [{ op: 'damage', value: 5 }] }] },
+    ],
+    seed: 9, floors: 6,
+  }));
+  rm.state.party[0].hp = 45; // simulate prior damage carried in
+
+  const fighters = partyToFighters(rm.state.party);
+  ok(fighters.length === 2 && fighters[0].deck.drawPile.length === 1, 'fighters built from party w/ their decks');
+  ok(fighters[0].hp === 45 && fighters[0].stats.might === 1 && fighters[0].attunement[0] === 'Physical', 'carries HP/stats/attunement');
+
+  const foe = createFighter({ id: 'foe', name: 'Dummy', hp: 40, maxHp: 40 });
+  const vm = startRunCombat(rm.state, [foe]);
+  ok(vm.state.phase === 'player', 'combat started in player phase');
+
+  // Simulate combat ending: damage the warrior, kill the mage, player wins.
+  vm.state.player.fighters[0].hp = 38;
+  vm.state.player.fighters[1].hp = 0;
+  vm.state.phase = 'victory';
+  const out = combatOutcome(vm);
+  ok(out.won === true && out.hpById.war === 38 && out.hpById.mage === 0, 'outcome reports win + per-member HP');
+
+  rm.dispatch('applyCombatResult', out);
+  ok(rm.state.party[0].hp === 38 && rm.state.party[1].hp === 0, 'HP folded back into the run party');
+  ok(rm.state.status === 'active', 'win keeps the run active');
+}
+
+console.log('Defeat folds back as a lost run:');
+{
+  const rm = new RunManager(createRun({ party: baseParty, seed: 3, floors: 6 }));
+  rm.dispatch('applyCombatResult', { won: false, hpById: { war: 0 } });
+  ok(rm.state.party[0].hp === 0 && rm.state.status === 'lost', 'defeat → party HP 0, run lost');
 }
 
 console.log(`\nrun: ${pass} passed, ${fail} failed`);
