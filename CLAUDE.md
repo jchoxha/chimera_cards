@@ -98,9 +98,16 @@ interpreter + editor both pick it up). Adds `TRIGGER_EVENTS` + `fireTriggers()` 
 triggers; Rampart=`blockAlwaysBraces`, Endless Stamina=`extraStanceStep` passives).
 `npm run test:cards` now 24 checks (198 total across suites). **North star = Nexus StS2 mod
 #69 "Card editor and Card creator"** (docs/card-editor.md parity list: custom art, author
-custom statuses/keywords, etc.). **Next: CombatScreen playtest integration** (deck from edited
-cards, fire triggers in the turn loop, Brace turn decay) — first live-UI gameplay change
-(version bump then).
+custom statuses/keywords, etc.). **Card system now WIRED INTO THE TURN ENGINE**:
+`VanguardManager.play` routes data-driven CardSpec cards through `applyCardSpec` (legacy flat
+cards still use `applyCardEffects`), rejects illegal stance plays without cost, exhausts powers,
+and **fires power triggers in the turn loop** (player/enemy turnStart+turnEnd via `fireTriggers`;
+Brace already persists since block-decay only zeroes `f.block`). Validated headless by
+`npm run test:cardturn` (7 checks — full Warrior turn: stat-scaled damage, Rampage 2×, Bloodlust
+turnStart firing across the cycle, illegal-play rejection). **205 checks across suites.** **Next:
+the playtest UI** — build a deck from edited cards into a combat view (in-editor "Playtest" button
+or a minimal harness) for the live author→playtest loop; then onGainBlock triggers + the
+extraStanceStep passive in the turn loop. That live-UI step is the first APP_VERSION bump.
 
 **Done so far:**
 - **Combat UX tweaks round 3, DONE 2026-06-19 (v3.14.0).** (a) **Live re-planning** —

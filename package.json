@@ -12,7 +12,8 @@
     "test:combat": "node src/engine/combat/__smoke__.mjs",
     "test:turn": "node src/engine/combat/__turn__.mjs",
     "test:matchups": "node src/engine/content/__matchups__.mjs",
-    "test:cards": "node src/engine/cards/__cards__.mjs"
+    "test:cards": "node src/engine/cards/__cards__.mjs",
+    "test:cardturn": "node src/engine/combat/__cardturn__.mjs"
   },
   "dependencies": {
     "react": "^18.3.1",

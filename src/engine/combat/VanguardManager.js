@@ -28,6 +28,12 @@ import {
   discardWholeHand
 } from './deckOps.js';
 import { draftCards, combinedTypeWeights } from '../cards/rarity.js';
+import { applyCardSpec } from './interpret.js';
+import { fireTriggers } from '../cards/effectRegistry.js';
+import { canAttack, stanceSide } from './stances.js';
+
+/** A data-driven CardSpec uses an op-LIST in `effects` (legacy cards use a flat object). */
+const isCardSpec = (card) => Array.isArray(card.effects) || card.type === 'power';
 
 /** @typedef {import('../types.js').CombatState} CombatState */
 /** @typedef {import('../types.js').Fighter} Fighter */
@@ -438,6 +444,9 @@ export class VanguardManager {
       this._emit('draw', { hand: pVanguard.hand.slice() });
     }
 
+    // Fire player powers that hook the start of the turn (e.g. Bloodlust → +Strength).
+    fireTriggers(s, 'player', 'turnStart', { emit: this._emit.bind(this), rng: this.rng });
+
     s.phase = PHASES.PLAYER;
     this._emit('phase', { phase: PHASES.PLAYER });
   }
@@ -461,6 +470,15 @@ export class VanguardManager {
     if (!card) return false;
     if (card.keywords?.includes('unplayable') || card.cost === -2) return false;
 
+    // Stance / play-gate pre-check for data-driven cards, so an illegal play
+    // (e.g. an Attack while in a defense stance) is rejected without cost.
+    if (isCardSpec(card)) {
+      const stance = pVanguard.stance ?? 'Balanced';
+      if (card.type === 'attack' && !canAttack(stance)) return false;
+      if (card.requires?.stance && stance !== card.requires.stance) return false;
+      if (card.requires?.stanceSide && stanceSide(stance) !== card.requires.stanceSide) return false;
+    }
+
     const cost = card.cost === -1 ? s.player.energy : card.cost;
     if (cost > s.player.energy) return false;
     s.player.energy -= cost;
@@ -469,17 +487,24 @@ export class VanguardManager {
     // ("Strike played." → "Foe takes 6 damage.").
     this._emit('play', { card, actorId: pVanguard.id, side: 'player', targetId: opts.targetId ?? null });
 
-    // Apply card effects
-    applyCardEffects(s, 'player', pVanguard, card.effects, {
-      targetId: opts.targetId,
-      costPaid: cost,
-      xCost: card.cost === -1,
-      rng: this.rng,
-      emit: this._emit.bind(this)
-    });
+    // Apply card effects — data-driven CardSpec via the interpreter, else legacy.
+    if (isCardSpec(card)) {
+      const res = applyCardSpec(s, 'player', pVanguard, card, {
+        targetId: opts.targetId, costPaid: cost, rng: this.rng, emit: this._emit.bind(this),
+      });
+      if (!res.ok) { s.player.energy += cost; return false; } // shouldn't hit (pre-checked)
+    } else {
+      applyCardEffects(s, 'player', pVanguard, card.effects, {
+        targetId: opts.targetId,
+        costPaid: cost,
+        xCost: card.cost === -1,
+        rng: this.rng,
+        emit: this._emit.bind(this)
+      });
+    }
 
-    // Move card from hand: Exhaust if exhaustible, else discard
-    if (card.keywords?.includes('exhaust')) {
+    // Move card from hand: powers + Exhaust cards leave the deck, else discard.
+    if (card.type === 'power' || card.keywords?.includes('exhaust')) {
       exhaustCard(pVanguard, card);
     } else {
       discardCard(pVanguard, card);
@@ -598,6 +623,9 @@ export class VanguardManager {
     s.phase = PHASES.DISCARD;
     this._emit('phase', { phase: PHASES.DISCARD });
 
+    // Fire player powers that hook the end of the turn.
+    fireTriggers(s, 'player', 'turnEnd', { emit: this._emit.bind(this), rng: this.rng });
+
     const pVanguard = vanguard(s.player);
     if (pVanguard) {
       const result = discardHandEndOfTurn(pVanguard);
@@ -655,6 +683,9 @@ export class VanguardManager {
     s.enemy.energyPerTurn = Math.max(3, benchedCount);
     s.enemy.energy = s.enemy.energyPerTurn;
 
+    // Fire enemy powers that hook the start of the turn.
+    fireTriggers(s, 'enemy', 'turnStart', { emit: this._emit.bind(this), rng: this.rng });
+
     // 2. Execute telegraphed telegraphed actions sequentially
     for (const action of s.enemyPlan) {
       this.executeEnemyAction(action);
@@ -663,6 +694,9 @@ export class VanguardManager {
     }
 
     // ENEMY END
+    // Fire enemy powers that hook the end of the turn.
+    fireTriggers(s, 'enemy', 'turnEnd', { emit: this._emit.bind(this), rng: this.rng });
+
     // Tick player DoTs (at end of enemy's turn)
     this._tickStatuses('player', 'dots');
     // Tick enemy Regen (at end of carrier's own turn)
