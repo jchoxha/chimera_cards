@@ -137,6 +137,24 @@ legacy 16-element `ELEMENT_ICON` kept as fallback for the old roster/`combat.htm
 swaps in via the existing `systems/art.js` + `artManifest.json` baked pipeline. **Not done:**
 editor.html doesn't load Iconify (editor uses its own custom-art `<img>`); real creature portraits.
 
+**🖼 ILLUSTRATED CARD/CREATURE ART — bundled CC0/CC-BY pixel art (v3.22.0, 2026-06-22).** Jeton
+wanted *actual* TCG-style art, not symbols. Free painterly art isn't bundleable (it ships as
+100MB+ zips), so we use **pixel-art** placeholders (Jeton's pick) until the AI pass. Bundled in
+`public/art/` (~422 files, attribution in `public/art/CREDITS.txt`): **`items/`** = "496 Pixel
+Art Icons" by 7Soul1 (**CC0**) — `S_Fire*/S_Ice*/S_Poison*/S_Shadow*/S_Holy*/S_Thunder*/…`
+spell art per element + `W_Sword*/W_Dagger*/W_Bow*/W_Staff*/…` weapons + `P_Medicine*` potions +
+`S_Buff*` + armor; **`beings/`** = CodeSpree "84 RPG Beings" (**CC BY-SA 4.0**) creatures. Manifest
+**`src/data/placeholderArt.json`** (generated filename lists); resolvers **`src/data/artPool.js`**
+— `cardArt(card)` maps **moves by category** (damage→element spell or archetype weapon · block→armor ·
+heal→potion · buff→S_Buff · power→tome · draw→scroll; deterministic variant per card id) and
+`creatureArt(creature)` maps **by biology keywords** (else any being), gated on the creature having
+a biology. **Rendered as `<img>` (pixelated)** in DeckBuilder tiles/rows + CombatScreen move cards
+(`MoveArt`) + the creature face (`CardFace`), each **falling back to the axis icon** if no art.
+`test:art` (19, manifest category coverage). The axis ICONS (archetype/biology/attunement symbols)
+remain game-icons. AI Variant-B art replaces all of this via `systems/art.js`. **Caveat:** the
+no-biology playtest hero still shows its attunement icon (creature art needs a biology); CC-BY-SA
+share-alike + the CC0/CC-BY credits must appear in an About screen before public release.
+
 **Archetype deep-dive (Topic 5) — `docs/archetype-design.md`.** Designing all 36
 **archetypes** (the taxonomy's "Class" axis — *we call them archetypes, not classes*; code
 axis still literally `class`) as full StS-style character builds. Each **base** = a THEME +

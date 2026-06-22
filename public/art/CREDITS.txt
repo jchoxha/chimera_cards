@@ -1,0 +1,14 @@
+Placeholder art (TEMPORARY — to be replaced by AI-generated Variant-B art).
+
+Creatures — public/art/beings/
+  "84 Free RPG Beings and Monsters" by CodeSpree — CC BY-SA 4.0
+  https://opengameart.org/content/84-free-rpg-beings-and-monsters
+  (pack: https://codespree.itch.io/rpg-beings). A few beings are based on
+  game-icons.net icons by Lorc / Delapouite — CC BY 3.0.
+
+Items / spells / weapons — public/art/items/
+  "496 Pixel Art Icons for Medieval/Fantasy RPG" by Henrique Lazarini (7Soul1) — CC0 (public domain)
+  https://opengameart.org/content/496-pixel-art-icons-for-medievalfantasy-rpg
+
+Axis symbols (archetype/biology/attunement) use game-icons.net via Iconify — CC BY 3.0
+(see src/data/axisIcons.js / ART_CREDIT).

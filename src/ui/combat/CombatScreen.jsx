@@ -17,6 +17,7 @@ import { useCombat } from '../../store/combatStore.js';
 import { elementMultiplier, ELEMENT_COLOR, FORMS } from '../../systems/elements.jsx';
 import { frameStyle } from './frames.js';
 import { creatureIcon, creatureColor, cardIcon as axisCardIcon, ATTUNEMENT_ICON, ATTUNEMENT_COLOR } from '../../data/axisIcons.js';
+import { cardArt, creatureArt } from '../../data/artPool.js';
 import { cardText, linkifySegments, KEYWORD_GLOSSARY } from '../../engine/cards/cardText.js';
 import './combat.css';
 
@@ -283,6 +284,11 @@ function cardKind(c) {
   if (fx.block) return 'def';
   return 'util';
 }
+// Move art: a bundled pixel illustration (artPool) if available, else the icon.
+function MoveArt({ c }) {
+  const art = cardArt(c);
+  return art ? <img className="artImg" src={art} alt="" /> : <Icon icon={cardIcon(c)} />;
+}
 function cardIcon(c) {
   if (c.attunement) return axisCardIcon(c);            // new taxonomy: element/effect-based art
   const kind = cardKind(c);
@@ -343,7 +349,7 @@ function MiniCard({ c, onClick }) {
       {f.holo && <div className="holo" />}
       <div className="cost">{c.cost === -1 ? 'X' : c.cost === -2 ? '—' : c.cost}</div>
       <div className="inner">
-        <div className={`micon ${cardKind(c)}`}><Icon icon={cardIcon(c)} /></div>
+        <div className={`micon ${cardKind(c)}`}><MoveArt c={c} /></div>
         <div className="mn">{c.name}</div>
         <div className="mt">{describe(c)}</div>
       </div>
@@ -371,10 +377,16 @@ function CardFace({ f, side, matchup, onEffect, extraClass = '', dataId, dataSid
       <div className="inner">
         <div className="art">
           <div className="moon" /><div className="mtn" />
-          {f.icon ? <Icon className="creature" icon={f.icon} style={scale} />
-            : (f.axes && (f.axes.biology || f.axes.attunement || f.axes.class))
-              ? <Icon className="creature" icon={creatureIcon({ biology: f.axes.biology, attunement: f.axes.attunement, class: f.axes.class, types: f.types })} style={{ ...scale, color: creatureColor({ attunement: f.axes.attunement, types: f.types }) }} />
-              : <span className="creature" style={scale}>{f.sprite || (isFoe ? '👾' : '✶')}</span>}
+          {(() => {
+            const bio = f.axes?.biology;
+            const art = bio ? creatureArt({ id: f.id, biology: bio }) : null;
+            if (art) return <img className="creature artImg" src={art} style={scale} alt="" />;
+            if (f.icon) return <Icon className="creature" icon={f.icon} style={scale} />;
+            if (f.axes && (f.axes.biology || f.axes.attunement || f.axes.class)) {
+              return <Icon className="creature" icon={creatureIcon({ biology: f.axes.biology, attunement: f.axes.attunement, class: f.axes.class, types: f.types })} style={{ ...scale, color: creatureColor({ attunement: f.axes.attunement, types: f.types }) }} />;
+            }
+            return <span className="creature" style={scale}>{f.sprite || (isFoe ? '👾' : '✶')}</span>;
+          })()}
         </div>
         <div className="nameBan">{f.name}{f.hp <= 0 ? ' 💀' : ''}</div>
         <HpBar hp={f.hp} maxHp={f.maxHp} />
@@ -713,7 +725,7 @@ export default function CombatScreen({ onMenu, onRestart, embedded } = {}) {
                     {f.holo && <div className="holo" />}
                     <div className="cost">{c.cost === -1 ? 'X' : c.cost === -2 ? '—' : c.cost}</div>
                     <div className="inner">
-                      <div className={`micon ${cardKind(c)}`}><Icon icon={cardIcon(c)} /></div>
+                      <div className={`micon ${cardKind(c)}`}><MoveArt c={c} /></div>
                       <div className="mn">{c.name}</div>
                       <div className="mt">{describe(c)}</div>
                     </div>

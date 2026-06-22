@@ -48,6 +48,8 @@
 .dbCardTop { display: flex; align-items: center; gap: 6px; }
 .dbIcon { display: inline-flex; font-size: 20px; line-height: 1; flex: none; }
 .dbIcon.sm { font-size: 15px; }
+.dbArt { width: 26px; height: 26px; flex: none; image-rendering: pixelated; object-fit: contain; }
+.dbArt.sm { width: 18px; height: 18px; }
 .dbCardName { font-weight: 600; font-size: 13px; flex: 1; }
 .dbCardCost { font-size: 10px; color: #b6f; white-space: nowrap; }
 .dbCardText { font-size: 11px; color: #c3bcdf; line-height: 1.3; min-height: 28px; }
