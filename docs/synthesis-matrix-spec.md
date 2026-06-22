@@ -499,6 +499,14 @@ Open-world play is **free-form deck construction** from owned cards, balanced by
 - Card acquisition (drops/forge) is **rarity-weighted** using the monster ladder roll
   (14.7). (Exact budget formula = REVIEW; this is the locked *mechanism*.)
 
+> **IMPLEMENTED as a reusable builder (v3.20.0).** `src/engine/deck/budget.js` is the pure
+> budget engine (counts map + `RARITY_POINTS` cost + budget/per-card/size caps + sandbox;
+> `budgetForTier` gives the per-rarity open-world cap — REVIEW numbers). `src/ui/deck/
+> DeckBuilder.jsx` is the framework-agnostic UI (props `{pool, budget, onConfirm, onCancel}`).
+> **Wired into the playtest flow now**; the SAME component/engine will drive open-world
+> deckbuilding (pool = owned cards, `budget = budgetForTier(creature)`) and pre-dungeon
+> drafting (pool = a drafted offer) — not yet wired. `test:deck` (20 checks).
+
 ### 14.7 Card rarity UNIFIED onto the 7-tier monster ladder (LOCKED)
 
 Cards drop the StS 4-tier scale and adopt the **prototype monster ladder**

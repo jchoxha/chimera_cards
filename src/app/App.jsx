@@ -11,6 +11,7 @@ import { starterDeck } from '../engine/run/state.js';
 import { CardEditor } from '../editor/CardEditor.jsx';
 import CombatScreen from '../ui/combat/CombatScreen.jsx';
 import RunScreen from '../ui/run/RunScreen.jsx';
+import DeckBuilder from '../ui/deck/DeckBuilder.jsx';
 import { loadDraft } from '../editor/persistence.js';
 import { ATTUNEMENT_BASES, BIOLOGY_BASES, legalAttunements } from '../data/synthesis.js';
 import './app.css';
@@ -32,10 +33,12 @@ export default function App() {
   const [att2, setAtt2] = useState('');
   const [dummyAtt, setDummyAtt] = useState('');
   const [dummyBio, setDummyBio] = useState('');
+  const [lastDeck, setLastDeck] = useState(null); // remembered deck → "Restart" replays it
 
   // The class of the selected deck → which primary attunements are legal (a combo is
   // legal if its FIRST base is legal; the 2nd may be anything — synthesis.js A4).
-  const deckClass = (loadDraft(deckFile) || FILES[deckFile] || {}).class;
+  const currentFile = loadDraft(deckFile) || FILES[deckFile] || {};
+  const deckClass = currentFile.class;
   const legalPrimary = deckClass ? legalAttunements([deckClass]) : ATTUNEMENT_BASES;
 
   function heroAttunement() {
@@ -43,10 +46,17 @@ export default function App() {
     return a.length ? a : ['Physical'];
   }
 
-  function launchCombat() {
-    // Prefer the editor's unsaved draft so you playtest exactly what you're tuning.
+  /** The selected file's playable cards = the DeckBuilder's pool. */
+  function poolForFile() {
     const file = loadDraft(deckFile) || FILES[deckFile] || { cards: [] };
-    const cards = (file.cards || []).filter((c) => c.type !== 'curse' && c.type !== 'status');
+    return (file.cards || []).filter((c) => c.type !== 'curse' && c.type !== 'status');
+  }
+
+  /** Launch a playtest. `deck` = a built CardSpec[]; omitted → the full pool (quick fight). */
+  function launchCombat(deck) {
+    const file = loadDraft(deckFile) || FILES[deckFile] || { cards: [] };
+    const cards = (deck && deck.length) ? deck : poolForFile();
+    setLastDeck(cards);
     useCombat.getState().startPlaytest({
       playerCards: cards,
       playerName: file.class || 'Hero',
@@ -78,8 +88,17 @@ export default function App() {
   function continueRun() { if (useRun.getState().loadSaved()) setView('run'); }
 
   if (view === 'editor') return <CardEditor onMenu={() => setView('menu')} />;
-  if (view === 'combat') return <CombatScreen onMenu={() => setView('menu')} onRestart={launchCombat} />;
+  if (view === 'combat') return <CombatScreen onMenu={() => setView('menu')} onRestart={() => launchCombat(lastDeck)} />;
   if (view === 'run') return <RunScreen onMenu={() => setView('menu')} />;
+  if (view === 'deckbuild') return (
+    <DeckBuilder
+      pool={poolForFile()}
+      title={`Build a ${deckClass || 'Hero'} deck`}
+      subtitle={`${heroAttunement().join(' / ')}  ·  vs ${dummyAtt || dummyBio ? [dummyAtt, dummyBio].filter(Boolean).join(' ') : 'no-axis'} dummy (${Number(enemyHp) || 200} HP)`}
+      onConfirm={(deck) => launchCombat(deck)}
+      onCancel={() => setView('menu')}
+    />
+  );
 
   return (
     <div className="menu">
@@ -124,9 +143,15 @@ export default function App() {
           <label>Target Dummy HP
             <input type="number" min="1" value={enemyHp} onChange={(e) => setEnemyHp(e.target.value)} />
           </label>
-          <button className="menuBtn" onClick={launchCombat} disabled={!FILE_NAMES.length}>
-            Enter the Proving Pit
-          </button>
+          <div className="menuRow">
+            <button className="menuBtn big" onClick={() => setView('deckbuild')} disabled={!FILE_NAMES.length}>
+              🛠 Build a Deck
+            </button>
+            <button className="menuBtn" onClick={() => launchCombat()} disabled={!FILE_NAMES.length}
+              title="Skip the builder and fight with the whole card pool">
+              Quick Fight (full pool)
+            </button>
+          </div>
         </div>
 
         <div className="menuSetup">
@@ -140,8 +165,9 @@ export default function App() {
         </div>
 
         <p className="menuHint">
-          Forge cards (autosaves as you go), then playtest that exact deck. Set your attunement
-          (a 2nd one drives Imbue, e.g. Fire→Burn) and give the dummy an attunement/biology to see matchups.
+          Forge cards (autosaves as you go), then <b>Build a Deck</b> (rarity-weighted budget) or
+          Quick Fight the full pool. Set your attunement (a 2nd one drives Imbue, e.g. Fire→Burn) and
+          give the dummy an attunement/biology to see matchups.
         </p>
       </div>
     </div>

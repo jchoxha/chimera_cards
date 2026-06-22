@@ -107,6 +107,22 @@ containing ≥1 legal base, e.g. Warrior + Physical+Fire — plus the universals
 **Chunk 2 (next): attunement variant access + the attunement-own card pools** (each attunement
 contributes standalone cards to a creature's potential pool — §14.3 signature sub-pool).
 
+**🛠 DECK BUILDER — the §14.6 rarity-weighted builder (v3.20.0, 2026-06-22).** A reusable,
+framework-agnostic foundation for playtest decks, **open-world deckbuilding, and pre-dungeon
+drafting** (Jeton: "large build that sets up the framework"). Pure logic in
+**`src/engine/deck/budget.js`** (`cardCost`/`deckCost`/`canAdd`/`validateDeck`/`expandDeck`/
+`deckToCounts`/`budgetForTier`; `test:deck` 20): a deck is a counts map `{baseId: copies}`;
+**cost = Σ rarity points** (`RARITY_POINTS`, basic 0…godly 7); constraints = **budget cap +
+per-card cap (4) + min/max size**, with a **sandbox** bypass (min-size always enforced so combat
+can draw). UI: **`src/ui/deck/DeckBuilder.jsx`** (+ `deck.css`) — pool grouped by rarity (cost +
+auto-text per card), your-deck steppers, a live budget meter, editable cap, sandbox toggle;
+props `{pool, budget, onConfirm(deck), onCancel}` so open-world/drafting reuse it by passing a
+different pool/budget. **Wired into playtest** (`src/app/App.jsx`): **🛠 Build a Deck** opens the
+builder (pool = the selected archetype file) → "Fight with this deck"; **Quick Fight** still uses
+the full pool; combat "Restart" replays the built deck. Duplicates get unique `baseId#n` ids
+(matches `starterDeck`). **Not yet wired:** open-world + Run-start drafting (reuse the component
+later); pool is the archetype file only (attunement-own cards = chunk 2).
+
 **Archetype deep-dive (Topic 5) — `docs/archetype-design.md`.** Designing all 36
 **archetypes** (the taxonomy's "Class" axis — *we call them archetypes, not classes*; code
 axis still literally `class`) as full StS-style character builds. Each **base** = a THEME +
