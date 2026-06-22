@@ -48,8 +48,8 @@
 
     { "id": "warrior_war_cry", "name": "War Cry", "class": "Warrior", "attunement": "Physical", "type": "skill", "cost": 1, "rarity": "common", "text": "Gain 2 Strength.",
       "effects": [ { "op": "buff", "status": "strength", "value": 2 } ] },
-    { "id": "warrior_flex", "name": "Flex", "class": "Warrior", "attunement": "Physical", "type": "skill", "cost": 0, "rarity": "common", "text": "Gain 3 Strength this turn only.",
-      "effects": [ { "op": "buff", "status": "strength", "value": 3, "temporary": true } ] },
+    { "id": "warrior_flex", "name": "Flex", "class": "Warrior", "attunement": "Physical", "type": "skill", "cost": 0, "rarity": "common", "keywords": ["exhaust"], "text": "Gain 3 Strength. Exhaust.",
+      "effects": [ { "op": "buff", "status": "strength", "value": 3 } ] },
     { "id": "warrior_battle_trance", "name": "Battle Trance", "class": "Warrior", "attunement": "Physical", "type": "skill", "cost": 0, "rarity": "uncommon", "text": "Draw 2.",
       "effects": [ { "op": "draw", "value": 2 } ] },
 
@@ -59,7 +59,7 @@
       "effects": [], "passive": "blockAlwaysBraces" },
     { "id": "warrior_juggernaut", "name": "Juggernaut", "class": "Warrior", "attunement": "Physical", "type": "power", "cost": 2, "rarity": "rare", "text": "Whenever you gain Block, deal 3 damage to a random enemy.",
       "effects": [], "trigger": { "on": "onGainBlock", "effects": [ { "op": "damage", "value": 3, "scope": "enemyActiveTarget" } ] } },
-    { "id": "warrior_endless_stamina", "name": "Endless Stamina", "class": "Warrior", "attunement": "Physical", "type": "power", "cost": 1, "rarity": "uncommon", "text": "You may shift 2 stance steps per turn.",
-      "effects": [], "passive": "extraStanceStep" }
+    { "id": "warrior_endless_stamina", "name": "Endless Stamina", "class": "Warrior", "attunement": "Physical", "type": "power", "cost": 1, "rarity": "uncommon", "text": "At the start of each turn, gain 1 energy.",
+      "effects": [], "trigger": { "on": "turnStart", "effects": [ { "op": "energy", "value": 1 } ] } }
   ]
 }

@@ -1,7 +1,7 @@
 // Smoke test for the run-layer spine: state + ActionManager (queue + undo) +
 // seeded RNG + save/load. Run: node src/engine/run/__run__.mjs  (npm run test:run)
 
-import { createRunState, createRun } from './state.js';
+import { createRunState, createRun, starterDeck } from './state.js';
 import { RunManager } from './RunManager.js';
 import { makeRng, hashSeed } from './rng.js';
 import { reachableFrom, currentNode } from './map.js';
@@ -85,7 +85,7 @@ console.log('Act map generates deterministically (linear, boss last):');
   const a = createRun({ party: baseParty, seed: 'spire', floors: 10 });
   const b = createRun({ party: baseParty, seed: 'spire', floors: 10 });
   ok(a.map.nodes.length === 10, 'act has 10 floors');
-  ok(a.map.nodes[0].type === 'combat' && a.map.nodes[9].type === 'boss' && a.map.nodes[8].type === 'rest', 'opens on combat, rest then boss at the end');
+  ok(a.map.nodes[0].type === 'start' && a.map.nodes[1].type === 'combat' && a.map.nodes[9].type === 'boss' && a.map.nodes[8].type === 'rest', 'start → combat … rest → boss');
   ok(a.map.nodes.map((n) => n.type).join() === b.map.nodes.map((n) => n.type).join(), 'same seed → identical act');
   const c = createRun({ party: baseParty, seed: 'other', floors: 10 });
   ok(a.map.nodes.map((n) => n.type).join() !== c.map.nodes.map((n) => n.type).join(), 'different seed → different act');
@@ -211,6 +211,22 @@ console.log('Potions resolve in combat via useConsumable:');
   const v = vm.state.player.fighters[vm.state.player.vanguardIndex];
   vm.useConsumable(POTIONS[2]); // Block Potion → 12 block
   ok(v.block === 12, 'Block Potion gave 12 Block');
+}
+
+console.log('Starter deck is capped at 10 with unique instance ids:');
+{
+  const pool = [
+    { id: 'strike', name: 'Strike', rarity: 'basic', type: 'attack', cost: 1, attunement: 'Physical', effects: [{ op: 'damage', value: 6 }] },
+    { id: 'guard', name: 'Guard', rarity: 'basic', type: 'skill', cost: 1, attunement: 'Physical', effects: [{ op: 'block', value: 5 }] },
+    { id: 'cleave', name: 'Cleave', rarity: 'common', type: 'attack', cost: 1, attunement: 'Physical', effects: [{ op: 'damage', value: 8 }] },
+    { id: 'pommel', name: 'Pommel', rarity: 'common', type: 'attack', cost: 1, attunement: 'Physical', effects: [{ op: 'damage', value: 7 }] },
+    { id: 'rare1', name: 'Rare', rarity: 'rare', type: 'attack', cost: 2, attunement: 'Physical', effects: [{ op: 'damage', value: 20 }] },
+  ];
+  const deck = starterDeck(pool, 10);
+  ok(deck.length === 10, `starter deck capped at 10 (got ${deck.length})`);
+  ok(deck.filter((c) => c.id.startsWith('strike#')).length === 4, '4 copies of each basic (Strike)');
+  ok(new Set(deck.map((c) => c.id)).size === 10, 'all 10 instance ids are unique');
+  ok(!deck.some((c) => c.id.startsWith('rare')), 'rares excluded from the starter');
 }
 
 console.log(`\nrun: ${pass} passed, ${fail} failed`);

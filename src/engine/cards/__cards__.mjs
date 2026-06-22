@@ -156,10 +156,12 @@ console.log('Powers register, then triggers fire & passives apply:');
   play(p, p.player, 'warrior_shield_wall');
   ok(p.player.block === 0 && p.player.bracedBlock === 8, `Rampart makes Shield Wall brace (braced ${p.player.bracedBlock})`);
 
-  // Endless Stamina passive present.
+  // Endless Stamina now grants +1 energy at the start of each turn.
   const e = mk();
+  const eBefore = e.state.player.energy;
   play(e, e.player, 'warrior_endless_stamina');
-  ok(hasPassive(e.player, 'extraStanceStep'), 'Endless Stamina grants extraStanceStep passive');
+  fireTriggers(e.state, 'player', 'turnStart');
+  ok(e.state.player.energy === eBefore + 1, 'Endless Stamina turnStart → +1 energy');
 }
 
 console.log('Juggernaut onGainBlock trigger deals damage:');

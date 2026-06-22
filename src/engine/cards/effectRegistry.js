@@ -53,7 +53,6 @@ export function parseDuration(d) {
  */
 export const PASSIVES = Object.freeze({
   blockAlwaysBraces: { label: 'Block always Braces', note: 'gained Block never decays' },
-  extraStanceStep: { label: 'Extra stance step', note: 'may shift 2 stance steps per turn' },
 });
 
 // ── Small helpers (shared by handlers; kept here to avoid import cycles) ────────

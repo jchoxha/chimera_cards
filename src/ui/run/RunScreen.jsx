@@ -14,7 +14,7 @@ import { makeRng } from '../../engine/run/rng.js';
 import { RELICS, POTIONS, EVENTS } from '../../engine/run/content.js';
 import './run.css';
 
-const NODE_ICON = { combat: '⚔', elite: '☠', boss: '👑', rest: '🔥', shop: '🛒', treasure: '💎', event: '❓' };
+const NODE_ICON = { start: '🚪', combat: '⚔', elite: '☠', boss: '👑', rest: '🔥', shop: '🛒', treasure: '💎', event: '❓' };
 const roomRng = (s) => makeRng((s.rngState ^ (s.floor * 0x9e3779b1)) >>> 0);
 
 function PartyBar({ snap }) {

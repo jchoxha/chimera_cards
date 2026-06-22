@@ -5,7 +5,7 @@
 // ║ UPDATE WHEN: node types, the act layout, or distribution change.     ║
 // ╚══════════════════════════════════════════════════════════════════╝
 
-export const NODE_TYPES = Object.freeze(['combat', 'elite', 'event', 'rest', 'shop', 'treasure', 'boss']);
+export const NODE_TYPES = Object.freeze(['start', 'combat', 'elite', 'event', 'rest', 'shop', 'treasure', 'boss']);
 
 /** Pick an interior (non-first/non-boss) node type, seeded + position-aware. */
 function interiorType(rng, floor, floors) {
@@ -31,11 +31,12 @@ export function generateAct(rng, { floors = 10, act = 1 } = {}) {
   const edges = [];
   for (let f = 0; f < floors; f++) {
     let type;
-    if (f === 0) type = 'combat';                 // act opens on a fight
+    if (f === 0) type = 'start';                  // you begin HERE (not a room)
+    else if (f === 1) type = 'combat';            // the act opens on a fight
     else if (f === floors - 1) type = 'boss';
     else if (f === floors - 2) type = 'rest';     // a campfire before the boss
     else type = interiorType(rng, f, floors);
-    nodes.push({ id: id(f), type, floor: f, act, visited: false });
+    nodes.push({ id: id(f), type, floor: f, act, visited: f === 0 });
     if (f > 0) edges.push([id(f - 1), id(f)]);
   }
   return { act, floors, nodes, edges, start: nodes[0].id, bossId: nodes[floors - 1].id };

@@ -67,6 +67,25 @@ export function createRun({ party = [], seed = Date.now(), floors = 10 } = {}) {
   return state;
 }
 
+/**
+ * Build a StS-style STARTER deck (≤ max) from a class's card pool: each `basic`
+ * card duplicated, then filled with the first commons, capped. Duplicate copies
+ * get unique instance ids (id#n) so combat/UI track them individually. More cards
+ * come from rewards.
+ * @param {import('../cards/cardSpec.js').CardSpec[]} cards  the class pool
+ * @param {number} [max]
+ */
+export function starterDeck(cards, max = 10) {
+  const basics = cards.filter((c) => c.rarity === 'basic');
+  const commons = cards.filter((c) => c.rarity === 'common');
+  const deck = [];
+  let n = 0;
+  const add = (c) => { if (deck.length < max) deck.push({ ...c, id: `${c.id}#${n++}` }); };
+  for (const b of basics) for (let i = 0; i < 4; i++) add(b); // 4 copies of each basic
+  for (const c of commons) add(c);                             // fill with commons
+  return deck.slice(0, max);
+}
+
 /** Total living party members. */
 export function livingParty(state) {
   return state.party.filter((p) => p.hp > 0);

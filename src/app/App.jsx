@@ -7,6 +7,7 @@
 import React, { useState } from 'react';
 import { useCombat } from '../store/combatStore.js';
 import { useRun } from '../store/runStore.js';
+import { starterDeck } from '../engine/run/state.js';
 import { CardEditor } from '../editor/CardEditor.jsx';
 import CombatScreen from '../ui/combat/CombatScreen.jsx';
 import RunScreen from '../ui/run/RunScreen.jsx';
@@ -50,7 +51,8 @@ export default function App() {
     const { file, cards, attunement } = deckFromFile();
     const party = [{
       id: 'hero', name: file.class || 'Hero', class: file.class ? [file.class] : undefined,
-      attunement, stats: { might: 1, guard: 1, focus: 1, resolve: 1, speed: 0 }, maxHp: 60, deck: cards,
+      attunement, stats: { might: 1, guard: 1, focus: 1, resolve: 1, speed: 0 }, maxHp: 60,
+      deck: starterDeck(cards, 10), // ≤10-card starter; more from rewards
     }];
     useRun.getState().startRun({ party, seed: Date.now() });
     setView('run');
