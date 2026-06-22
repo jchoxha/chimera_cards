@@ -97,7 +97,19 @@ the turn loop (`fireTriggers`/`_fire`, `tickTriggerDurations`); (3) multi-variab
 gate (`{event,verb,threshold,window,cardType}`) backed by per-turn/combat **event counters**
 on each side; (4) `scaleBy` history scaling via `effectiveValue`; (5) editor presets +
 revert-to-vanilla; (6) custom art library + upload + preview. Star/2nd-resource skipped
-(not in our model). `test:cards` 36, `test:cardturn` 10 — **227 checks across suites.** **Effect system
+(not in our model). `test:cards` 36, `test:cardturn` 10 — **227 checks across suites.**
+
+**UNIFIED APP SHELL + playable combat, DONE 2026-06-21 (v3.15.0).** New 4th page
+**`app.html`** → `src/app/` (`App.jsx` main menu) connects the **Card Forge** (CardEditor)
+and the **Proving Pit** (CombatScreen) — menu → editor / playtest. Playtest builds a deck
+from the chosen class file (prefers the editor's live localStorage **draft** so you play
+exactly what you're tuning), vs a configurable no-axis **Target Dummy**, via
+`combatStore.startPlaytest`. **CombatScreen is now CardSpec-tolerant** (`isSpec`/`cardScope`
+helpers: card text via `c.text`, kind/target-side/valid-targets/scope-hint all handle the
+op-list shape; `frameStyle` already tolerates a missing element). CombatScreen gained
+`onMenu`/`onRestart` props (Menu button + restart-playtest); auto-starts the default encounter
+only as the standalone `combat.html` demo. `CardEditor` gained an optional `onMenu` button.
+Build ships 4 pages; lint + dev-server module-compile verified. **Effect system
 is now registry-driven** (`src/engine/cards/effectRegistry.js`): every op declares its engine
 `apply` AND its editor `fields` in ONE place, so adding a mechanic = one registry entry (the
 interpreter + editor both pick it up). Adds `TRIGGER_EVENTS` + `fireTriggers()` and `PASSIVES`

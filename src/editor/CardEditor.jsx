@@ -168,7 +168,7 @@ function OpList({ ops, onChange }) {
   );
 }
 
-export function CardEditor() {
+export function CardEditor({ onMenu } = {}) {
   const [files, setFiles] = useState(() => clone(BASE_FILES));
   const [activeFile, setActiveFile] = useState(() => Object.keys(BASE_FILES)[0] || 'warrior.json');
   const [working, setWorking] = useState(null);
@@ -290,6 +290,7 @@ export function CardEditor() {
   return (
     <div className="ed">
       <header className="edHead">
+        {onMenu && <button onClick={onMenu} title="Back to menu">≡ Menu</button>}
         <strong>🃏 Chimera Card Editor</strong>
         <select value={activeFile} onChange={(e) => setActiveFile(e.target.value)}>
           {Object.keys(files).map((f) => <option key={f} value={f}>{f}</option>)}

@@ -233,7 +233,25 @@ function ActionStrip({ actions, targetNameOf, onAction, size = '', tip = false }
 
 // ── card helpers ────────────────────────────────────────────────────────────────
 
+// These helpers are tolerant of BOTH the legacy flat-effects shape and the
+// data-driven CardSpec op-list (Array effects + type/text/attunement).
+const isSpec = (c) => Array.isArray(c?.effects);
+
+/** Effective target scope of a card (both shapes). */
+function cardScope(c) {
+  if (isSpec(c)) {
+    const op = c.effects.find((o) => o.scope) || c.effects.find((o) => o.op === 'damage' || o.op === 'debuff');
+    return op?.scope || (op ? 'enemyActiveTarget' : 'selfOnlyTarget');
+  }
+  return c?.effects?.scope || '';
+}
+
 function cardKind(c) {
+  if (isSpec(c)) {
+    if (c.effects.some((o) => o.op === 'damage')) return 'atk';
+    if (c.effects.some((o) => o.op === 'block')) return 'def';
+    return 'util';
+  }
   const fx = c.effects ?? {};
   if (fx.dmg) return 'atk';
   if (fx.block) return 'def';
@@ -245,18 +263,19 @@ function cardIcon(c) {
   if (kind === 'def') return 'game-icons:checked-shield';
   return 'game-icons:swap-bag';
 }
-function describe(c) { return describeEffectsDetailed(c.effects); }
+function describe(c) { return isSpec(c) ? (c.text || '') : describeEffectsDetailed(c.effects); }
 
 function cardTargetSide(c) {
-  const sc = c?.effects?.scope || '';
+  const sc = cardScope(c);
   if (/enemy/i.test(sc)) return 'enemy';
   if (/friendly|self/i.test(sc)) return 'ally';
+  if (isSpec(c)) return c.effects.some((o) => o.op === 'damage' || o.op === 'debuff') ? 'enemy' : 'ally';
   if (c?.effects?.dmg || c?.effects?.applyStatus) return 'enemy';
   return 'ally';
 }
 
 function scopeHint(c) {
-  const sc = c?.effects?.scope || '';
+  const sc = cardScope(c);
   if (/enemyActive/i.test(sc)) return 'can only target the enemy vanguard';
   if (/friendlyActive|selfOnly/i.test(sc)) return 'can only target your active vanguard';
   if (/flexEnemy|enemyBench|piercingEnemy/i.test(sc)) return 'can target any foe';
@@ -423,7 +442,7 @@ function observedMoves(log, fighterId) {
 
 const DRAG_THRESHOLD = 6; // px the pointer must move before a tap becomes a drag
 
-export default function CombatScreen() {
+export default function CombatScreen({ onMenu, onRestart } = {}) {
   const { snap, log, startCombat, play, swap, peekAll, endTurn, reward, rollReward } = useCombat();
   const [logOpen, setLogOpen] = useState(true);
   const [info, setInfo] = useState(null);
@@ -432,7 +451,8 @@ export default function CombatScreen() {
   const dragRef = useRef(null);
   const logBodyRef = useRef(null);
 
-  useEffect(() => { if (!snap) startCombat(); }, [snap, startCombat]);
+  // Auto-start only the standalone demo (no host shell driving setup like the app menu).
+  useEffect(() => { if (!snap && !onMenu) startCombat(); }, [snap, startCombat, onMenu]);
   useEffect(() => {
     if (logOpen && logBodyRef.current) logBodyRef.current.scrollTop = logBodyRef.current.scrollHeight;
   }, [log, logOpen]);
@@ -485,7 +505,7 @@ export default function CombatScreen() {
   const openCard = (card) => setInfo({ kind: 'card', card });
 
   function validTargetIds(card) {
-    const sc = card?.effects?.scope || '';
+    const sc = cardScope(card);
     const pV = player.fighters[player.vanguardIndex];
     const eV = enemy.fighters[enemy.vanguardIndex];
     const livingFoes = enemy.fighters.filter((f) => f.hp > 0);
@@ -498,7 +518,7 @@ export default function CombatScreen() {
     else if (/flexEnemy|enemyBench|piercingEnemy/i.test(sc)) livingFoes.forEach(add);
     else if (/flexFriendly|friendlyBench|piercingFriendly/i.test(sc)) livingAllies.forEach(add);
     else if (/^any/i.test(sc)) [...livingFoes, ...livingAllies].forEach(add);
-    else if (card?.effects?.dmg || card?.effects?.applyStatus) add(eV);
+    else if (cardTargetSide(card) === 'enemy') add(eV);
     else add(pV);
     return ids;
   }
@@ -546,6 +566,7 @@ export default function CombatScreen() {
   return (
     <div className="cmbt land">
       <div className="topbar">
+        {onMenu && <button className="pill menuPill" onClick={onMenu} title="Back to menu"><Icon icon="game-icons:hamburger-menu" /> Menu</button>}
         <span className="pill"><Icon icon="game-icons:dungeon-gate" /> The Proving Pit</span>
         <span className="pill">{over ? (snap.phase === 'victory' ? 'Victory' : 'Defeat') : isPlayerTurn ? 'Your turn' : 'Enemy turn'}</span>
         <span className="pill">Turn {snap.turn}</span>
@@ -817,7 +838,10 @@ export default function CombatScreen() {
                 {reward.map((c, i) => <MiniCard key={i} c={c} onClick={openCard} />)}
               </div>
             )}
-            <div><button className="endBtn" style={{ margin: '14px auto 0' }} onClick={() => startCombat()}>NEW FIGHT</button></div>
+            <div style={{ display: 'flex', gap: 10, justifyContent: 'center', marginTop: 14 }}>
+              <button className="endBtn" onClick={() => (onRestart ? onRestart() : startCombat())}>NEW FIGHT</button>
+              {onMenu && <button className="endBtn" onClick={onMenu}>MENU</button>}
+            </div>
           </div>
         </div>
       )}

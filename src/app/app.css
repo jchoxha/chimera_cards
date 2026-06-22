@@ -1,0 +1,37 @@
+/* Main-menu shell connecting the Forge (editor) and the Pit (combat). */
+.menu {
+  min-height: 100vh; display: grid; place-items: center; padding: 24px;
+  background: radial-gradient(120% 90% at 50% 0%, #2a1d0c 0%, #16110a 60%, #0c0905 100%);
+  font: 16px/1.5 'Spectral', Georgia, serif; color: #e8dcc8;
+}
+.menuCard {
+  width: min(440px, 94vw); background: #1d1509; border: 1px solid #4a3a22;
+  border-radius: 16px; padding: 28px 24px; text-align: center;
+  box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+}
+.menuTitle {
+  font-family: 'Cinzel Decorative', 'Cinzel', serif; font-weight: 900; letter-spacing: 4px;
+  font-size: 44px; margin: 0; color: #f0c84a; text-shadow: 0 2px 0 #000, 0 0 24px rgba(240,200,74,0.25);
+}
+.menuSub { margin: 2px 0 22px; color: #c9b58e; font-style: italic; }
+.menuBtn {
+  display: block; width: 100%; padding: 12px 16px; margin: 8px 0; cursor: pointer;
+  font: 600 16px 'Cinzel', serif; color: #e8dcc8; background: #2e2213;
+  border: 1px solid #6a4d1b; border-radius: 10px;
+}
+.menuBtn:hover { background: #3a2c18; border-color: #b88a3e; }
+.menuBtn:disabled { opacity: 0.4; cursor: default; }
+.menuBtn.big { font-size: 18px; padding: 16px; background: #5a3f16; border-color: #b88a3e; }
+.menuBtn.big:hover { background: #6f4f1d; }
+.menuSetup {
+  margin: 18px 0 6px; padding: 16px; border: 1px solid #3a2c18; border-radius: 12px; background: #16110a;
+}
+.menuSetup h3 { margin: 0 0 12px; font-family: 'Cinzel', serif; color: #e2c98a; }
+.menuSetup label { display: flex; justify-content: space-between; align-items: center; gap: 10px; margin: 8px 0; font-size: 14px; color: #c9b58e; }
+.menuSetup select, .menuSetup input {
+  font: inherit; font-size: 14px; color: #e8dcc8; background: #241a10; border: 1px solid #4a3a22;
+  border-radius: 6px; padding: 6px 8px; min-width: 140px;
+}
+.menuHint { margin: 16px 0 0; font-size: 12px; color: #8a7a5e; line-height: 1.4; }
+.cmbt .menuPill { cursor: pointer; border: 1px solid #6a4d1b; }
+.cmbt .menuPill:hover { background: #3a2c18; }

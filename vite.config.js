@@ -17,6 +17,7 @@ export default defineConfig({
         main: "index.html",
         combat: "combat.html",
         editor: "editor.html",
+        app: "app.html",
       },
     },
   },
