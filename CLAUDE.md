@@ -99,6 +99,21 @@ on each side; (4) `scaleBy` history scaling via `effectiveValue`; (5) editor pre
 revert-to-vanilla; (6) custom art library + upload + preview. Star/2nd-resource skipped
 (not in our model). `test:cards` 36, `test:cardturn` 10 — **227 checks across suites.**
 
+**ROGUELIKE POLISH PASS, DONE 2026-06-22 (v3.17.0).** (a) **Card upgrades are real** —
+all 26 Warrior cards define an `upgrade` payload (`src/data/cards/warrior.json`); campfire
+upgrade applies it + renames `Name+`; editor has an **Upgrade (+) panel**. (b) **Auto card
+text** — `src/engine/cards/cardText.js` `describeCard()` generates a card's description from
+its op-list (triggers/conditions/scaling/keywords); `cardText()` prefers derived text (manual
+`text` is an optional override); `KEYWORD_GLOSSARY` + `linkifySegments()`. CombatScreen card
+modal is larger with **clickable keyword chips**; editor shows live auto-text. (c) **Stance +
+powers are status pips** — `extraPips(f)` renders the Warrior Stance (per-stance icon) and
+registered powers (Bloodlust/Rampart…) as persistent pips; braced Block shows distinctly;
+Dexterity added to status meta/glossary. (d) **First run combat fixed** — added a `start` node
+at floor 0 (combat is floor 1; was unplayable when start==first combat). (e) **Endless Stamina**
+→ +1 energy/turn (extraStanceStep was meaningless; stances shift via cards), **Flex** → +3
+Strength + Exhaust ("this turn only" was unenforced). (f) **Starter deck ≤10** (`starterDeck()`:
+4× each basic + commons, unique instance ids; rest from rewards). `test:run` 49, `test:cards` 36.
+
 **RUN / META LAYER — playable roguelike loop, DONE 2026-06-21 (v3.16.0).** Gap-checked vs
 Slay the Web (`docs/run-layer-gap.md`): our combat was deeper, but the run layer was missing.
 Built `src/engine/run/` — **action-queue + undo** architecture (Slay-the-Web style): `state.js`
