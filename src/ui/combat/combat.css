@@ -357,3 +357,21 @@ html:has(.cmbt),body:has(.cmbt){height:100%;margin:0;overflow:hidden}
 .btnGhost{flex:0 0 auto;font-family:'Cinzel',serif;font-weight:700;font-size:13px;letter-spacing:.5px;
   color:#d8cba8;background:none;border:1.5px solid #6a5a3a;border-radius:10px;padding:9px 16px;cursor:pointer}
 .btnGhost:hover{border-color:var(--gold2);color:var(--cream)}
+
+/* ── Card info modal (larger, auto-text, clickable keywords) ── */
+.miniModal:has(.cardDetail){ max-width:480px; width:min(480px,90vw); }
+.cardDetail{ min-width:min(420px,84vw); }
+.cardDetail .cdHead{ display:flex; align-items:center; gap:10px; }
+.cardDetail .cdCost{ width:30px; height:30px; border-radius:50%; display:grid; place-items:center; font-weight:800;
+  background:#5a3f16; border:2px solid var(--gold2,#b88a3e); }
+.cardDetail .cdName{ font-family:'Cinzel',serif; font-size:21px; font-weight:800; }
+.cardDetail .cdType{ margin-left:auto; text-transform:uppercase; font-size:11px; letter-spacing:1px; opacity:.75; }
+.cardDetail .cdType.atk{ color:#ffb9a0; } .cardDetail .cdType.def{ color:#a0d8ff; } .cardDetail .cdType.util{ color:#d0b0ff; }
+.cardDetail .cdMeta{ color:#c9b58e; font-size:12px; margin:4px 0 12px; text-transform:capitalize; }
+.cardDetail .linkedText{ font-size:16px; line-height:1.65; }
+.cardDetail .cdHint{ color:#8a7a5e; font-size:11px; margin-top:10px; }
+.kw{ background:rgba(240,200,74,.16); border:1px solid #b88a3e; color:#f0c84a; border-radius:5px;
+  padding:0 5px; margin:0 1px; cursor:pointer; font:inherit; }
+.kw:hover{ background:rgba(240,200,74,.32); }
+.kwDef{ margin-top:12px; padding:10px 12px; background:#1c150b; border:1px solid #4a3a22; border-radius:8px; font-size:14px; }
+.kwDef b{ color:#f0c84a; display:block; margin-bottom:3px; }

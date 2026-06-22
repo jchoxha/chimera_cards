@@ -13,6 +13,7 @@ import {
 
 // Trigger options shown per effect op (onPlay = immediate; 'passive' is power-only).
 const OP_TRIGGERS = ['onPlay', ...TRIGGER_EVENTS.filter((e) => e !== 'onPlay' && e !== 'passive')];
+import { describeCard } from '../engine/cards/cardText.js';
 import { STANCES } from '../engine/combat/stances.js';
 import { TARGET_SCOPES } from '../engine/types.js';
 import { ATTUNEMENT_BASES, CLASS_BASES, BIOLOGY_BASES } from '../data/synthesis.js';
@@ -388,7 +389,8 @@ export function CardEditor({ onMenu } = {}) {
                       ))}
                     </div>
                   </Field>
-                  <Field label="text"><textarea className="cardtext" value={card.text || ''} onChange={(e) => updateCard({ text: e.target.value })} /></Field>
+                  <Field label="auto text (shown in-game)"><div className="autoText">{describeCard(card) || '(define effects to generate text)'}</div></Field>
+                  <Field label="text override (optional)"><textarea className="cardtext" value={card.text || ''} placeholder="(leave blank — the auto text above is used)" onChange={(e) => updateCard({ text: e.target.value || undefined })} /></Field>
 
                   <div className="artRow">
                     <Field label="art library">

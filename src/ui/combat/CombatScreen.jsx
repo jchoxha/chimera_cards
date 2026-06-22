@@ -16,6 +16,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import { useCombat } from '../../store/combatStore.js';
 import { elementMultiplier, ELEMENT_COLOR, FORMS } from '../../systems/elements.jsx';
 import { frameStyle } from './frames.js';
+import { cardText, linkifySegments, KEYWORD_GLOSSARY } from '../../engine/cards/cardText.js';
 import './combat.css';
 
 const ELEMENT_ICON = {
@@ -263,7 +264,20 @@ function cardIcon(c) {
   if (kind === 'def') return 'game-icons:checked-shield';
   return 'game-icons:swap-bag';
 }
-function describe(c) { return isSpec(c) ? (c.text || '') : describeEffectsDetailed(c.effects); }
+// Card description: auto-generated from the op-list for CardSpec cards (cardText),
+// else the legacy effect describer.
+function describe(c) { return isSpec(c) ? cardText(c) : describeEffectsDetailed(c.effects); }
+
+/** Render text with glossary keywords as clickable chips. */
+function LinkedText({ text, onKeyword }) {
+  return (
+    <p className="linkedText">
+      {linkifySegments(text).map((seg, i) => (seg.term
+        ? <button key={i} className="kw" onClick={() => onKeyword(seg.term)}>{seg.text}</button>
+        : <span key={i}>{seg.text}</span>))}
+    </p>
+  );
+}
 
 function cardTargetSide(c) {
   const sc = cardScope(c);
@@ -305,7 +319,7 @@ function MiniCard({ c, onClick }) {
       <div className="inner">
         <div className={`micon ${cardKind(c)}`}><Icon icon={cardIcon(c)} /></div>
         <div className="mn">{c.name}</div>
-        <div className="mt">{c.text ?? describe(c)}</div>
+        <div className="mt">{describe(c)}</div>
       </div>
     </div>
   );
@@ -446,6 +460,7 @@ export default function CombatScreen({ onMenu, onRestart, embedded } = {}) {
   const { snap, log, startCombat, play, swap, peekAll, endTurn, reward, rollReward } = useCombat();
   const [logOpen, setLogOpen] = useState(true);
   const [info, setInfo] = useState(null);
+  const [kwTerm, setKwTerm] = useState(null);  // glossary keyword selected inside the card modal
   const [notice, setNotice] = useState(null);
   const [drag, setDrag] = useState(null);   // { card, side, validIds, x, y, overId, moved }
   const dragRef = useRef(null);
@@ -453,6 +468,7 @@ export default function CombatScreen({ onMenu, onRestart, embedded } = {}) {
 
   // Auto-start only the standalone demo (no host shell driving setup like the app menu).
   useEffect(() => { if (!snap && !onMenu) startCombat(); }, [snap, startCombat, onMenu]);
+  useEffect(() => { setKwTerm(null); }, [info]);  // reset keyword popup when the modal target changes
   useEffect(() => {
     if (logOpen && logBodyRef.current) logBodyRef.current.scrollTop = logBodyRef.current.scrollHeight;
   }, [log, logOpen]);
@@ -669,7 +685,7 @@ export default function CombatScreen({ onMenu, onRestart, embedded } = {}) {
                     <div className="inner">
                       <div className={`micon ${cardKind(c)}`}><Icon icon={cardIcon(c)} /></div>
                       <div className="mn">{c.name}</div>
-                      <div className="mt">{c.text ?? describe(c)}</div>
+                      <div className="mt">{describe(c)}</div>
                     </div>
                   </div>
                 );
@@ -784,7 +800,20 @@ export default function CombatScreen({ onMenu, onRestart, embedded } = {}) {
 
             {info.kind === 'card' && (() => {
               const c = info.card;
-              return <div className="infoCard"><MiniCard c={c} /><div className="infoRow" style={{ marginTop: 8 }}>{c.rarity} · {c.element || 'colorless'}</div></div>;
+              const att = isSpec(c) ? (Array.isArray(c.attunement) ? c.attunement.join('/') : c.attunement) : c.element;
+              return (
+                <div className="cardDetail">
+                  <div className="cdHead">
+                    <span className="cdCost">{c.cost === -1 ? 'X' : c.cost === -2 ? '—' : c.cost}</span>
+                    <span className="cdName">{c.name}</span>
+                    <span className={`cdType ${cardKind(c)}`}>{c.type || ''}</span>
+                  </div>
+                  <div className="cdMeta">{c.rarity || 'common'} · {att || 'colorless'}{c.upgraded ? ' · upgraded' : ''}</div>
+                  <LinkedText text={describe(c)} onKeyword={setKwTerm} />
+                  {kwTerm && <div className="kwDef"><b>{kwTerm}</b><span>{KEYWORD_GLOSSARY[kwTerm]}</span></div>}
+                  <p className="cdHint">Tap a highlighted keyword for its meaning.</p>
+                </div>
+              );
             })()}
 
             {info.kind === 'creature' && (() => {
