@@ -37,8 +37,29 @@ const INTENT_ICON = {
   unknown: 'game-icons:help',
 };
 
+const STANCE_ICON = {
+  Rampage: 'game-icons:enrage', Offensive: 'game-icons:sword-brandish', Balanced: 'game-icons:balance',
+  Defensive: 'game-icons:shield', 'Full Guard': 'game-icons:fortress',
+};
+const powerLabel = (id) => id.replace(/^[a-z]+_/, '').replace(/[-_]/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
+
+/** Stance + registered powers, rendered as their own persistent pips (they ARE statuses). */
+function extraPips(f) {
+  if (!f) return [];
+  const out = [];
+  const isWarrior = (f.axes?.class || f.class || []).includes?.('Warrior');
+  if (f.stance && (f.stance !== 'Balanced' || isWarrior)) {
+    out.push({ key: 'stance', cls: 'stance', icon: STANCE_ICON[f.stance] || 'game-icons:sword-brandish', label: `Stance: ${f.stance}`, text: f.stance });
+  }
+  for (const p of f.powers || []) {
+    out.push({ key: `pw-${p.id}`, cls: 'power', icon: 'game-icons:fist', label: powerLabel(p.id) });
+  }
+  return out;
+}
+
 const STATUS_META = {
   strength: { cls: 'str', icon: 'game-icons:biceps' },
+  dexterity: { cls: 'str', icon: 'game-icons:gloves' },
   weak: { cls: 'weak', icon: 'game-icons:broken-shield' },
   vulnerable: { cls: 'vuln', icon: 'game-icons:cracked-shield' },
   frail: { cls: 'frail', icon: 'game-icons:shield-bash' },
@@ -54,6 +75,7 @@ const STATUS_META = {
 const EFFECT_INFO = {
   block: { name: 'Block', icon: 'game-icons:checked-shield', desc: 'Absorbs incoming damage. Creature-bound — it rides swaps and decays to 0 at the start of its own side’s turn.' },
   strength: { name: 'Strength', icon: 'game-icons:biceps', desc: 'Adds its value to the damage of each hit this creature deals.' },
+  dexterity: { name: 'Dexterity', icon: 'game-icons:gloves', desc: 'Adds its value to the Block gained by Block effects.' },
   weak: { name: 'Weak', icon: 'game-icons:broken-shield', desc: 'Deals 25% less attack damage. Counts down by 1 each turn.' },
   vulnerable: { name: 'Vulnerable', icon: 'game-icons:cracked-shield', desc: 'Takes 50% more attack damage. Counts down by 1 each turn.' },
   frail: { name: 'Frail', icon: 'game-icons:shield-bash', desc: 'Gains 25% less Block. Counts down by 1 each turn.' },
@@ -88,8 +110,10 @@ function elementBadge(el) {
   );
 }
 
-function StatChips({ statuses, onEffect }) {
-  if (!statuses?.length) return null;
+function StatChips({ f, onEffect }) {
+  const statuses = f?.statuses ?? [];
+  const extras = extraPips(f);
+  if (!statuses.length && !extras.length) return null;
   return (
     <>
       {statuses.map((s) => {
@@ -101,28 +125,28 @@ function StatChips({ statuses, onEffect }) {
           </span>
         );
       })}
+      {extras.map((x) => (
+        <span key={x.key} className={`chip ${x.cls}`} title={x.label}><Icon icon={x.icon} /> {x.text || ''}</span>
+      ))}
     </>
   );
 }
 
-function MiniStatus({ block, statuses }) {
-  const has = block > 0 || statuses?.length;
-  if (!has) return <div className="mfStats empty" />;
+function MiniStatus({ f }) {
+  const block = f?.block ?? 0;
+  const braced = f?.bracedBlock ?? 0;
+  const statuses = f?.statuses ?? [];
+  const extras = extraPips(f);
+  if (!block && !braced && !statuses.length && !extras.length) return <div className="mfStats empty" />;
   return (
     <div className="mfStats">
-      {block > 0 && (
-        <span className="pip blk" title={`Block ${block}`}>
-          <Icon icon="game-icons:checked-shield" /> {block}
-        </span>
-      )}
-      {(statuses ?? []).map((s) => {
+      {block > 0 && <span className="pip blk" title={`Block ${block}`}><Icon icon="game-icons:checked-shield" /> {block}</span>}
+      {braced > 0 && <span className="pip blk" title={`Braced Block ${braced} (persists)`}><Icon icon="game-icons:fortress" /> {braced}</span>}
+      {statuses.map((s) => {
         const m = STATUS_META[s.id] || { cls: '', icon: 'game-icons:hazard-sign' };
-        return (
-          <span key={s.id} className={`pip ${m.cls}`} title={`${s.id} ${s.amount}`}>
-            <Icon icon={m.icon} /> {s.amount}
-          </span>
-        );
+        return <span key={s.id} className={`pip ${m.cls}`} title={`${s.id} ${s.amount}`}><Icon icon={m.icon} /> {s.amount}</span>;
       })}
+      {extras.map((x) => <span key={x.key} className={`pip ${x.cls}`} title={x.label}><Icon icon={x.icon} />{x.text ? ` ${x.text}` : ''}</span>)}
     </div>
   );
 }
@@ -353,7 +377,7 @@ function CardFace({ f, side, matchup, onEffect, extraClass = '', dataId, dataSid
         {matchup && <div className={`match ${matchup.good ? 'good' : 'bad'}`}>
           <Icon icon={matchup.good ? 'tabler:caret-up-filled' : 'tabler:caret-down-filled'} /> {matchup.label}
         </div>}
-        <div className="stats"><StatChips statuses={f.statuses} onEffect={onEffect} /></div>
+        <div className="stats"><StatChips f={f} onEffect={onEffect} /></div>
       </div>
     </div>
   );
@@ -393,7 +417,7 @@ function MiniFighter({ f, side, vanguard, swapCost, swappable, droppable, dropHo
         <i className={pct <= 35 ? 'low' : ''} style={{ width: `${pct}%` }} />
         <em>{f.hp}/{f.maxHp}</em>
       </div>
-      <MiniStatus block={f.block} statuses={f.statuses} />
+      <MiniStatus f={f} />
       {planActions?.length > 0 && <ActionStrip actions={planActions} onAction={onAction} size="mini" />}
       {swappable && <span className="mfSwap"><Icon icon="game-icons:cycle" /> {swapCost}</span>}
     </div>

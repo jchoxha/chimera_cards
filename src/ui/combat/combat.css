@@ -375,3 +375,7 @@ html:has(.cmbt),body:has(.cmbt){height:100%;margin:0;overflow:hidden}
 .kw:hover{ background:rgba(240,200,74,.32); }
 .kwDef{ margin-top:12px; padding:10px 12px; background:#1c150b; border:1px solid #4a3a22; border-radius:8px; font-size:14px; }
 .kwDef b{ color:#f0c84a; display:block; margin-bottom:3px; }
+
+/* stance + power pips (they are statuses too) */
+.chip.stance,.pip.stance{ color:#f0c84a; border-color:#b88a3e; background:rgba(240,200,74,.12); }
+.chip.power,.pip.power{ color:#d0b0ff; border-color:#6a4d8a; background:rgba(160,120,220,.12); }
