@@ -335,7 +335,7 @@ here as we go (status: ⏳ queued · 🔎 in progress · ✅ locked).
 | 5 | Class identity — **all 36, in `docs/class-design.md`** | 🔎 | Base/subclass model locked: each base = a THEME + signature mechanic; each subclass = 2 base themes + bespoke mechanic (⇒ stronger, must balance). 4 shared primitives (Field Entities/States/Delayed/Card-Gen). Bases first, then 28 hybrids. **Warrior drafted.** |
 | 6 | Reactions / cross-element depth (§5.2) | ⏳ | — |
 | 7 | Cross-axis synergies (G3) | ⏳ | — |
-| 8 | Generation algorithm (triple → monster) | ⏳ | — |
+| 8 | Generation algorithm (triple → monster) | 🔎 | §14: **deck recipe locked** — starter = 4 Strike + 4 Defend (shared, class-reworded) + 2–4 class-signature starters; one `generateDeck(triple,{mode})` serves dungeon (`starter`→grow) AND open-world (`full`+rarity-budget deckbuilding). **Card rarity unified onto the 7-tier monster ladder** (common…godly + `basic`). |
 
 ## 13. Topic 1 — Combat substrate & stat model (LOCKED 2026-06-21, names pending)
 
@@ -396,6 +396,117 @@ SPEED:            handSize/energy/swap/peek per the Speed tier (F-1.1)
 - **F-1.2 Scaling shape:** multiplier ×stat *(locked rec)*.
 - **F-1.3 Duration:** Focus/Resolve scale effect **amounts/intensity + DoT ticks**, NOT debuff **duration** *(rec — avoids runaway control)*.
 - **F-1.4 Resolve name:** Resolve / Spirit / Will / Ward.
+
+## 14. Deck generation & rarity unification (LOCKED 2026-06-22, Jeton)
+
+The §7 generator's **deck step**, plus how the three axes compose a deck and how decks
+stay balanced across all classes in **both** contexts (dungeon + open world).
+
+### 14.0 The three planes of axis interaction (the answer to "how axes interact")
+
+Each axis has ONE job in deck-building, so they multiply instead of overlapping:
+
+| Axis | Job | Plane it meets the others on |
+|---|---|---|
+| **Class** | the **shape** — card archetypes, keyword engine, AI, stat lean | — |
+| **Attunement** | the **fill** — damage element + signature status on cards | **Card content** (Class × Attunement) |
+| **Biology** | the **body** — stat vector + passive trait + a few trait cards | **Stat affinity** (Class × Biology) |
+
+1. **Stat affinity (Class × Biology).** Classes lean on stats (Warrior→Might/Guard);
+   biologies bias the stat vector (Giant→HP/Guard, Beast→Power/Tempo). Aligned ⇒
+   naturally strong (Giant Warrior = tank); clashing ⇒ legal but weaker (§13.2.3).
+2. **Card content (Class × Attunement).** Class picks a card's *shape*; attunement
+   picks its *element + status*. Same shape reads differently as Fire vs Shadow.
+3. **Emergent combos (all three).** class **keyword** × attunement **status** × biology
+   **constitution/passive** = the §3 archetypes for free (Rogue·Combo × Nature·Poison ×
+   Beast·multi-hit = stacking-poison tempo).
+
+### 14.1 A creature's **potential pool** (what draws sample from)
+
+```
+potentialPool(triple) =
+    classPool(class)              // the bulk; re-skinned by attunement (14.3)
+  ∪ attunementSignatures(attun)   // 4–6 attunement-defining cards (14.3)
+  ∪ biologyCards(biology)         // 0–2 trait cards (14.4); passive is FREE, non-card
+```
+
+The **starter** is a fixed slice of this pool; **rewards** (dungeon) and **open-world
+deckbuilding** sample the rest of it.
+
+### 14.2 Starter deck recipe (LOCKED) — `generateDeck(triple, {mode:'starter'})`
+
+Every class starts with the **same skeleton**, so balance + role coverage are guaranteed,
+but class identity is present from turn 1:
+
+- **4 × Strike + 4 × Defend** — the *same mechanical* basic attack/block for every class,
+  optionally **reworded/renamed per class** (Warrior "Strike/Guard", Mage "Bolt/Ward",
+  Rogue "Dagger/Dodge"). `basic` rarity; **attunement-skinned** (a Fire creature's Strike
+  deals fire + a little Burn). Never appear in loot.
+- **+ 2–4 class-signature starter cards** — establish the class keyword from the first
+  turn (Warrior: a stance-shifter + a Brace card). Marked in the class pool (a
+  `starter:true` flag designating the starter subset).
+- ⇒ **~10–12 card starter**, deliberately thin, with tons of progression headroom.
+
+`starterDeck()` (`src/engine/run/state.js`) changes from "4× each basic + first commons"
+to this recipe (read `starter:true` cards instead of generic commons).
+
+### 14.3 Attunement → cards (LOCKED)
+
+Two mechanisms, **both** used:
+- **Re-skin** class cards *where appropriate*: attacks/DoTs/utility inherit the creature's
+  element and apply its signature status (§5.1). Most of the deck.
+- **Signature sub-pool**: a **meaningful set (≈4–6, not 1–2)** of attunement-defining
+  cards across the creature's *full potential pool* — pure status-appliers, reaction
+  primers (Soak), the element's marquee effects. Only attuned creatures roll these.
+
+### 14.4 Biology → deck (LOCKED)
+
+- **Passive trait** — free, non-card (§7.1: Undying, Lifesteal, Construct…).
+- **0–2 trait cards** — Dragonkin *Breath* (AoE), Undead drain, etc.
+- **Stat vector** biases output of every card it draws (§13.2).
+
+### 14.5 Two contexts, ONE generator
+
+`generateDeck(triple, { mode, form, rarity })` serves both; only fullness differs:
+
+- **`mode:'starter'` (dungeon entry):** the 14.2 recipe → grow via rewards drafted from
+  the creature's own potential pool, weighted by its triple, through the (extended)
+  Pity-Offset engine (`rarity.js`). The StS arc.
+- **`mode:'full'` (open world / capture):** a complete, immediately-playable deck **built
+  by free deckbuilding against a rarity-weighted budget** (14.6), tuned to the creature's
+  Form/monster-rarity. Any two captured monsters at the same tier are balanced regardless
+  of triple, because the **budget**, not a fixed list, enforces it.
+
+### 14.6 Open-world deckbuilding = rarity-weighted budget (LOCKED direction)
+
+Open-world play is **free-form deck construction** from owned cards, balanced by a budget:
+- Each card costs **deck points by rarity** (`basic` 0 · common 1 · uncommon 2 · rare 3 ·
+  epic 4 · mythic 5 · legendary 6 · godly 7 — numbers REVIEW).
+- A monster's **budget scales with its monster-rarity + Form** → higher-tier monsters run
+  bigger / higher-rarity decks; you compose freely within budget.
+- Card acquisition (drops/forge) is **rarity-weighted** using the monster ladder roll
+  (14.7). (Exact budget formula = REVIEW; this is the locked *mechanism*.)
+
+### 14.7 Card rarity UNIFIED onto the 7-tier monster ladder (LOCKED)
+
+Cards drop the StS 4-tier scale and adopt the **prototype monster ladder**
+(`src/systems/forge.js`): **`basic`** (starters — free, non-loot) **+
+`common · uncommon · rare · epic · mythic · legendary · godly`**.
+
+- **Frames** reuse the monster-rarity palette (`forge.js` RARITY_COLORS:
+  common=white · uncommon=green · rare=blue · epic=purple · mythic=red · legendary=orange
+  · godly=special).
+- **Reward engine** (`rarity.js`) extends from binary rare/non-rare to a **weighted roll
+  across the full ladder per room** (combat skews low; elite/shop higher; boss top),
+  keeping the pity-offset concept (escalating chance at the *top* tiers).
+- **Migration touchpoints:** `engine/types.js` `CardRarity`, `engine/cards/rarity.js`,
+  `ui/combat/frames.js`, `cardSpec.validateCard`, and re-tiering the Warrior pool
+  (`src/data/cards/warrior.json` — e.g. Juggernaut/Rampart → epic). Editor rarity dropdown.
+
+> **Build order (when we code §14):** (1) unify rarity ladder + frames + reward roll
+> (no gameplay change → no version bump until wired); (2) `generateDeck` + `starter:true`
+> flags + rework `starterDeck()`; (3) the open-world budget deckbuilder (later, with the
+> capture mode). Items (1)–(2) are the next concrete code step toward the generator (§7).
 
 ## 11. Still open (later)
 
