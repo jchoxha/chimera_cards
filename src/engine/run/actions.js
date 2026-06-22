@@ -50,7 +50,7 @@ export const ACTIONS = {
     for (const p of s.party) {
       if (p.hp <= 0) continue;
       const heal = pct != null ? Math.round(p.maxHp * pct) : (amount ?? 0);
-      p.hp = Math.min(p.maxHp, p.hp + heal);
+      p.hp = Math.max(0, Math.min(p.maxHp, p.hp + heal));
     }
   },
   healMember: (s, { memberId, amount = 0 }) => { const m = member(s, memberId); if (m && m.hp > 0) m.hp = Math.min(m.maxHp, m.hp + amount); },

@@ -15,6 +15,7 @@ import { createFighter } from '../engine/combat/state.js';
 import { adaptRoster } from '../engine/content/adapt.js';
 import { buildCardPool } from '../engine/content/cardPool.js';
 import { makeEnemyFighter } from '../engine/content/enemies.js';
+import { partyToFighters, applyRelics } from '../engine/run/combatBridge.js';
 import { DEFAULT_MONSTERS } from '../data/monsters.js';
 import { TYPE_MOVES } from '../data/moves.js';
 
@@ -183,6 +184,33 @@ export const useCombat = create((set, get) => ({
     });
     vm.startCombat();
     set({ vm, _events: events, snap: snapshot(vm), version: 1, log: [...events], reward: null });
+  },
+
+  /**
+   * Start a RUN fight: the run party (per-monster decks/stats/HP) vs node enemies,
+   * with the run's relics injected at combat start. Used by the run layer.
+   */
+  startRunFight({ party = [], enemyFighters = [], relics = [] } = {}) {
+    const events = [];
+    const vm = new VanguardManager({
+      playerFighters: partyToFighters(party),
+      enemyFighters,
+      room: 'combat',
+      rarity: { offset: -0.05, ascension7: false },
+      pickCard: POOL.pick,
+      log: (e) => events.push(e),
+    });
+    vm.startCombat();
+    applyRelics(vm, relics);
+    set({ vm, _events: events, snap: snapshot(vm), version: 1, log: [...events], reward: null });
+  },
+
+  /** Use a potion (consumable) during combat. */
+  useConsumable(potion, opts = {}) {
+    const { vm, _events } = get();
+    if (!vm) return;
+    vm.useConsumable(potion, opts);
+    set((st) => ({ snap: snapshot(vm), version: st.version + 1, log: [..._events] }));
   },
 
   /** Play a card from the player Vanguard's hand. */

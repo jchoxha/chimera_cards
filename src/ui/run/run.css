@@ -1,0 +1,55 @@
+/* Run/meta layer UI — map, party bar, rooms. Dark, utilitarian, matches the app shell. */
+.runWrap {
+  min-height: 100vh; padding: 16px; box-sizing: border-box;
+  background: radial-gradient(120% 90% at 50% 0%, #221704 0%, #16110a 60%, #0c0905 100%);
+  color: #e8dcc8; font: 15px/1.5 'Spectral', Georgia, serif;
+}
+.runWrap h1, .runWrap h2 { font-family: 'Cinzel', serif; color: #f0c84a; }
+.runWrap h1.lose { color: #e0633a; }
+.runHead { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.runBtn { font: 600 15px 'Cinzel', serif; color: #e8dcc8; background: #2e2213; border: 1px solid #6a4d1b; border-radius: 8px; padding: 10px 14px; cursor: pointer; }
+.runBtn:hover { background: #3a2c18; border-color: #b88a3e; }
+.runBtn.small { padding: 6px 10px; font-size: 13px; }
+.runBtn:disabled { opacity: 0.4; cursor: default; }
+
+.runBar { display: flex; gap: 14px; align-items: center; flex-wrap: wrap; padding: 10px 0; border-bottom: 1px solid #3a2c18; margin-bottom: 12px; }
+.pStat { min-width: 130px; font-size: 13px; }
+.pStat.dead { opacity: 0.45; }
+.pStat .pHp { height: 7px; border-radius: 4px; background: #3a1c14; overflow: hidden; margin-top: 3px; }
+.pStat .pHp > div { height: 100%; background: linear-gradient(90deg, #c2553a, #e8a13a); }
+.runGold { color: #f0c84a; font-weight: 700; }
+.runRelics span, .runPotions span { font-size: 16px; margin-right: 2px; }
+
+.actMap { display: flex; flex-direction: column; gap: 6px; max-width: 520px; margin: 10px auto; }
+.mapNode {
+  display: flex; align-items: center; gap: 10px; padding: 10px 14px; border-radius: 10px;
+  background: #1c150b; border: 1px solid #3a2c18; opacity: 0.55;
+}
+.mapNode .nIcon { font-size: 20px; width: 26px; text-align: center; }
+.mapNode .nType { text-transform: capitalize; letter-spacing: 1px; }
+.mapNode .nGo { margin-left: auto; color: #9be29b; }
+.mapNode.visited { opacity: 0.4; }
+.mapNode.current { border-color: #b88a3e; opacity: 1; background: #2e2213; }
+.mapNode.next { opacity: 1; cursor: pointer; border-color: #6a8a3e; box-shadow: 0 0 0 1px #4a6a2a inset; }
+.mapNode.next:hover { background: #243018; }
+.mapNode.boss { border-color: #a23; }
+
+.roomCol { display: flex; flex-direction: column; gap: 10px; max-width: 520px; margin: 12px auto; }
+.upgradeList { display: flex; flex-direction: column; gap: 6px; }
+.cardChip, .shopItem {
+  text-align: left; background: #1c150b; border: 1px solid #4a3a22; border-radius: 8px; padding: 8px 10px;
+  color: #e8dcc8; cursor: pointer; font: inherit;
+}
+.cardChip:hover, .shopItem:hover:not(:disabled) { background: #2a2012; border-color: #b88a3e; }
+.shopItem:disabled { opacity: 0.4; cursor: default; }
+.ccTop { display: flex; gap: 8px; align-items: center; }
+.ccCost { background: #5a3f16; border: 1px solid #b88a3e; border-radius: 50%; width: 22px; height: 22px; display: inline-grid; place-items: center; font-weight: 700; }
+.ccText { color: #c9b58e; font-size: 12px; }
+.rewardCards { display: flex; gap: 12px; flex-wrap: wrap; margin: 12px 0; }
+.rewardCards .cardChip { width: 180px; }
+.relicCard { background: #1c150b; border: 1px solid #b88a3e; border-radius: 10px; padding: 12px; max-width: 360px; }
+.eventText { max-width: 520px; color: #c9b58e; }
+.runHint { color: #8a7a5e; font-size: 13px; text-align: center; }
+.over { display: grid; place-items: center; text-align: center; }
+
+.runCombat { position: relative; }

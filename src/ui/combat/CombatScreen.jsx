@@ -442,7 +442,7 @@ function observedMoves(log, fighterId) {
 
 const DRAG_THRESHOLD = 6; // px the pointer must move before a tap becomes a drag
 
-export default function CombatScreen({ onMenu, onRestart } = {}) {
+export default function CombatScreen({ onMenu, onRestart, embedded } = {}) {
   const { snap, log, startCombat, play, swap, peekAll, endTurn, reward, rollReward } = useCombat();
   const [logOpen, setLogOpen] = useState(true);
   const [info, setInfo] = useState(null);
@@ -821,8 +821,8 @@ export default function CombatScreen({ onMenu, onRestart } = {}) {
         </div>
       )}
 
-      {/* victory / defeat */}
-      {over && (
+      {/* victory / defeat — suppressed when embedded (the run host owns end-of-fight) */}
+      {over && !embedded && (
         <div className="overlay">
           <div className="panel">
             <h1 className={snap.phase === 'defeat' ? 'lose' : ''}>

@@ -12,6 +12,28 @@ export const RELICS = Object.freeze([
   { id: 'whetstone', name: 'Whetstone', rarity: 'common', cost: 70, text: 'Whenever you gain Block, deal 2 to the enemy Vanguard.', passive: null, onGainBlock: true }, // sample; wiring TBD
 ]);
 
+/**
+ * Events: a prompt + choices. Each choice resolves to a list of run-action
+ * descriptors ({ type, ...props }) the orchestrator dispatches in order.
+ */
+export const EVENTS = Object.freeze([
+  {
+    id: 'wounded_traveler', name: 'Wounded Traveler', text: 'A hurt wanderer offers gold for aid, or a fight for a relic.',
+    choices: [
+      { text: 'Heal them (lose 6 HP, gain 40 gold)', actions: [{ type: 'healParty', amount: -6 }, { type: 'gainGold', amount: 40 }] },
+      { text: 'Rob them (gain 60 gold)', actions: [{ type: 'gainGold', amount: 60 }] },
+      { text: 'Leave', actions: [] },
+    ],
+  },
+  {
+    id: 'ancient_forge', name: 'Ancient Forge', text: 'A dormant forge hums. You could temper a weapon or scavenge parts.',
+    choices: [
+      { text: 'Temper (heal 25% HP)', actions: [{ type: 'healParty', pct: 0.25 }] },
+      { text: 'Scavenge (gain 50 gold)', actions: [{ type: 'gainGold', amount: 50 }] },
+    ],
+  },
+]);
+
 export const POTIONS = Object.freeze([
   { id: 'heal_draught', name: 'Healing Draught', rarity: 'common', cost: 40, text: 'Heal 15 HP.', effects: [{ op: 'heal', value: 15, scope: 'selfOnlyTarget' }] },
   { id: 'fire_flask', name: 'Fire Flask', rarity: 'common', cost: 45, text: 'Deal 12 to the enemy Vanguard.', effects: [{ op: 'damage', value: 12, scope: 'enemyActiveTarget' }] },

@@ -6,8 +6,10 @@
 // ╚══════════════════════════════════════════════════════════════════╝
 import React, { useState } from 'react';
 import { useCombat } from '../store/combatStore.js';
+import { useRun } from '../store/runStore.js';
 import { CardEditor } from '../editor/CardEditor.jsx';
 import CombatScreen from '../ui/combat/CombatScreen.jsx';
+import RunScreen from '../ui/run/RunScreen.jsx';
 import { loadDraft } from '../editor/persistence.js';
 import './app.css';
 
@@ -38,8 +40,26 @@ export default function App() {
     setView('combat');
   }
 
+  function deckFromFile() {
+    const file = loadDraft(deckFile) || FILES[deckFile] || { cards: [] };
+    const cards = (file.cards || []).filter((c) => c.type !== 'curse' && c.type !== 'status');
+    const attunement = [cards.find((c) => c.attunement)?.attunement || 'Physical'];
+    return { file, cards, attunement };
+  }
+  function launchRun() {
+    const { file, cards, attunement } = deckFromFile();
+    const party = [{
+      id: 'hero', name: file.class || 'Hero', class: file.class ? [file.class] : undefined,
+      attunement, stats: { might: 1, guard: 1, focus: 1, resolve: 1, speed: 0 }, maxHp: 60, deck: cards,
+    }];
+    useRun.getState().startRun({ party, seed: Date.now() });
+    setView('run');
+  }
+  function continueRun() { if (useRun.getState().loadSaved()) setView('run'); }
+
   if (view === 'editor') return <CardEditor onMenu={() => setView('menu')} />;
   if (view === 'combat') return <CombatScreen onMenu={() => setView('menu')} onRestart={launchCombat} />;
+  if (view === 'run') return <RunScreen onMenu={() => setView('menu')} />;
 
   return (
     <div className="menu">
@@ -64,6 +84,16 @@ export default function App() {
           <button className="menuBtn" onClick={launchCombat} disabled={!FILE_NAMES.length}>
             Enter the Proving Pit
           </button>
+        </div>
+
+        <div className="menuSetup">
+          <h3>🗺 Roguelike Run</h3>
+          <button className="menuBtn big" onClick={launchRun} disabled={!FILE_NAMES.length}>
+            Begin a Run — {deckFile.replace('.json', '')}
+          </button>
+          {useRun.getState().hasSave() && (
+            <button className="menuBtn" onClick={continueRun}>Continue Saved Run</button>
+          )}
         </div>
 
         <p className="menuHint">
