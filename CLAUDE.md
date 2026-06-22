@@ -89,7 +89,15 @@ power-trigger editor, live validation, raw-JSON escape hatch; **dual persistence
 dev-write Vite plugin (`src/dev/cardWritePlugin.js`) Save-to-disk locally + **GitHub API**
 commit (PAT in localStorage) from phone/deployed + localStorage/export fallback (backend
 auto-detected). Verified end-to-end (ping/save/path-escape/serves); build ships 3 pages
-(index/combat/editor). **Deployed live** at `/chimera_cards/editor.html`. **Effect system
+(index/combat/editor). **Deployed live** at `/chimera_cards/editor.html`.
+**MOD #69 PARITY COMPLETE (2026-06-21):** reviewed the mod's README + decompiled `.pck`;
+matched its functionality (see `docs/card-editor.md` matrix). Shipped: (1) keyword set +
+Replay + Curse/Status types; (2) per-effect `trigger` + `duration` on ANY op, fired across
+the turn loop (`fireTriggers`/`_fire`, `tickTriggerDurations`); (3) multi-variable `condition`
+gate (`{event,verb,threshold,window,cardType}`) backed by per-turn/combat **event counters**
+on each side; (4) `scaleBy` history scaling via `effectiveValue`; (5) editor presets +
+revert-to-vanilla; (6) custom art library + upload + preview. Star/2nd-resource skipped
+(not in our model). `test:cards` 36, `test:cardturn` 10 — **227 checks across suites.** **Effect system
 is now registry-driven** (`src/engine/cards/effectRegistry.js`): every op declares its engine
 `apply` AND its editor `fields` in ONE place, so adding a mechanic = one registry entry (the
 interpreter + editor both pick it up). Adds `TRIGGER_EVENTS` + `fireTriggers()` and `PASSIVES`

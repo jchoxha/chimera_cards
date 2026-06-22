@@ -98,16 +98,25 @@ Retained, AfterBlockGained, AfterDamageGiven/Received, AfterEnergySpent, AfterPl
 After-Death/Fatal). Our `effectRegistry` already pairs `apply`+`fields`; these wrappers become
 shared fields rendered on every op (a "trigger / condition / scaling" sub-panel).
 
-### Recommended build order (parity)
+### Parity build — ✅ COMPLETE (2026-06-21)
 
-1. **Keyword set + replay + card types (Curse/Status)** — small, high value, unblocks content.
-2. **Per-effect `trigger` + `duration`** generalized to any op (extend `fireTriggers` to all
-   the events; today only turnStart/turnEnd/onGainBlock exist).
-3. **Multi-variable `condition`** (replaces `bonusIf`; gates firing or grants bonus).
-4. **`scaleBy` history scaling** (needs per-turn/combat event counters on the combat state).
-5. **Presets + revert-to-vanilla** in the editor.
-6. **Custom art** render + upload.
-7. *(Decision)* **Star / 2nd resource** — only if we want it; otherwise skip (not in our model).
+1. ✅ **Keyword set + replay + card types (Curse/Status)** — `KEYWORDS` checkboxes,
+   `replayCount` (engine + field), `curse`/`status` types (inert-allowed).
+2. ✅ **Per-effect `trigger` + `duration`** on any op — full `TRIGGER_EVENTS` set fired
+   throughout the turn loop (`_fire` points); `parseDuration`/`tickTriggerDurations`.
+3. ✅ **Multi-variable `condition`** — `{event,verb,threshold,window,cardType}` gate via
+   `condMet`/`applyOp`, backed by per-turn/combat event counters on each side.
+4. ✅ **`scaleBy` history scaling** — `effectiveValue` adds `per × counter` to every numeric op.
+5. ✅ **Presets + revert-to-vanilla** — named presets (localStorage) + revert card/file to bundled.
+6. ✅ **Custom art** — browser art library (`lib:<name>`) + upload + preview; `resolveArt`.
+7. ⏭️ *(Skipped by decision)* **Star / 2nd resource** — not in our model; revisit if wanted.
+
+Tests: `test:cards` 36, `test:cardturn` 10 (+ all other suites) = 227 checks green.
+
+> **Engine-fit notes:** all knobs are editable + validated; the engine honors them where our
+> Vanguard model supports it. A few `TRIGGER_EVENTS` (onDraw/onDiscard/onExhaust/onEnergySpent)
+> have emit-points but limited content using them yet. Art uploaded to the browser library is
+> device-local until a committed `public/art/` asset pipeline exists (a later expansion).
 
 ### Editor work implied
 Keyword checkboxes + replay field; a per-effect trigger/condition/scaling sub-panel (driven by
