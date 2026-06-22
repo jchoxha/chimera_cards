@@ -15,9 +15,14 @@ export const ACTIONS = {
   spendGold: (s, { amount = 0 }) => { if (s.gold >= amount) s.gold -= amount; },
 
   // ── inventory ──
-  addRelic: (s, { relic }) => { if (relic) s.relics.push(relic); },
+  addRelic: (s, { relic }) => { if (relic && !s.relics.some((r) => r.id === relic.id)) s.relics.push(relic); },
   addPotion: (s, { potion }) => { if (potion) s.potions.push(potion); },
   usePotion: (s, { index }) => { if (index >= 0 && index < s.potions.length) s.potions.splice(index, 1); },
+
+  // ── shop (atomic gold check + grant) ──
+  buyCard: (s, { memberId, card, cost = 0 }) => { if (s.gold >= cost && card) { s.gold -= cost; const m = member(s, memberId); if (m) m.deck.push({ ...card }); } },
+  buyRelic: (s, { relic, cost = 0 }) => { if (s.gold >= cost && relic && !s.relics.some((r) => r.id === relic.id)) { s.gold -= cost; s.relics.push(relic); } },
+  buyPotion: (s, { potion, cost = 0 }) => { if (s.gold >= cost && potion) { s.gold -= cost; s.potions.push(potion); } },
 
   // ── deck building ──
   addCardToDeck: (s, { memberId, card }) => { const m = member(s, memberId); if (m && card) m.deck.push({ ...card }); },

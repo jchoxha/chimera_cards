@@ -7,6 +7,7 @@ import { makeRng, hashSeed } from './rng.js';
 import { reachableFrom, currentNode } from './map.js';
 import { partyToFighters, startRunCombat, combatOutcome } from './combatBridge.js';
 import { createFighter } from '../combat/state.js';
+import { RELICS, POTIONS } from './content.js';
 
 let pass = 0, fail = 0;
 const ok = (c, m) => (c ? (pass++, console.log('  ✓', m)) : (fail++, console.error('  ✗', m)));
@@ -173,6 +174,43 @@ console.log('Card upgrade (explicit patch + the card\'s own upgrade payload):');
   ok(c.upgraded === true && c.effects[0].value === 9 && c.name === 'Strike+', 'upgrade applied own payload + renamed to Strike+');
   rm.dispatch('upgradeCard', { memberId: 'war', cardId: 'strike' });
   ok(rm.state.party[0].deck[0].name === 'Strike+', 'already-upgraded card is not upgraded twice');
+}
+
+console.log('Shop: buy actions gate on gold (atomic):');
+{
+  const rm = new RunManager(createRun({ party: baseParty, seed: 4, floors: 6 }));
+  rm.dispatch('gainGold', { amount: 100 });
+  rm.dispatch('buyRelic', { relic: RELICS[0], cost: 60 });
+  ok(rm.state.gold === 40 && rm.state.relics.length === 1, 'buyRelic spent 60, relic added');
+  rm.dispatch('buyRelic', { relic: RELICS[1], cost: 90 }); // can't afford
+  ok(rm.state.gold === 40 && rm.state.relics.length === 1, 'unaffordable buy is a no-op');
+  rm.dispatch('buyPotion', { potion: POTIONS[0], cost: 40 });
+  ok(rm.state.gold === 0 && rm.state.potions.length === 1, 'buyPotion spent 40');
+  rm.dispatch('buyRelic', { relic: RELICS[0], cost: 0 }); // duplicate relic
+  ok(rm.state.relics.length === 1, 'duplicate relic not added');
+}
+
+console.log('Relics inject onCombatStart effects onto the Vanguard:');
+{
+  const rm = new RunManager(createRun({ party: baseParty, seed: 4, floors: 6 }));
+  rm.dispatch('addRelic', { relic: RELICS[0] }); // Iron Brand → +6 Block
+  rm.dispatch('addRelic', { relic: RELICS[1] }); // War Totem → +2 Strength
+  const foe = createFighter({ id: 'foe', name: 'Dummy', hp: 40, maxHp: 40 });
+  const vm = startRunCombat(rm.state, [foe]);
+  const v = vm.state.player.fighters[vm.state.player.vanguardIndex];
+  ok(v.block === 6, `Iron Brand → 6 Block at combat start (got ${v.block})`);
+  ok(v.statuses.find((x) => x.id === 'strength')?.amount === 2, 'War Totem → 2 Strength at combat start');
+}
+
+console.log('Potions resolve in combat via useConsumable:');
+{
+  const rm = new RunManager(createRun({ party: baseParty, seed: 4, floors: 6 }));
+  const foe = createFighter({ id: 'foe', name: 'Dummy', hp: 40, maxHp: 40 });
+  const vm = startRunCombat(rm.state, [foe]);
+  ok(vm.useConsumable(POTIONS[1]) === true && vm.state.enemy.fighters[0].hp === 28, 'Fire Flask dealt 12 to the foe');
+  const v = vm.state.player.fighters[vm.state.player.vanguardIndex];
+  vm.useConsumable(POTIONS[2]); // Block Potion → 12 block
+  ok(v.block === 12, 'Block Potion gave 12 Block');
 }
 
 console.log(`\nrun: ${pass} passed, ${fail} failed`);

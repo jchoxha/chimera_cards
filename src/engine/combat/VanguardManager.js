@@ -675,11 +675,25 @@ export class VanguardManager {
   }
 
   /**
-   * Use a consumable item.
-   * Stubbed for Layer 2. Returns false.
+   * Use a consumable (potion): run its effect op-list on the player Vanguard via
+   * the card interpreter. Potions are type 'skill' (no stance gate on the card),
+   * usable on the player's turn. Returns whether it resolved.
+   * @param {{ id?:string, name?:string, attunement?:string, effects:object[] }} potion
+   * @param {{ targetId?: string }} [opts]
    */
-  useConsumable(itemId, opts = {}) {
-    return false;
+  useConsumable(potion, opts = {}) {
+    const s = this.state;
+    if (s.phase !== PHASES.PLAYER || !potion?.effects) return false;
+    const v = vanguard(s.player);
+    if (!v) return false;
+    this._emit('play', { card: { name: potion.name ?? 'Potion', ...potion }, actorId: v.id, side: 'player', potion: true });
+    applyCardSpec(s, 'player', v, {
+      id: potion.id ?? 'potion', name: potion.name ?? 'Potion', type: 'skill', cost: 0,
+      attunement: potion.attunement ?? 'Physical', effects: potion.effects,
+    }, { targetId: opts.targetId, rng: this.rng, emit: this._emit.bind(this) });
+    this._resolveDeaths();
+    if (!this._checkEnd()) this._generateEnemyPlan();
+    return true;
   }
 
   /**

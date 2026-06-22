@@ -8,6 +8,7 @@
 
 import { createFighter } from '../combat/state.js';
 import { VanguardManager } from '../combat/VanguardManager.js';
+import { applyCardSpec } from '../combat/interpret.js';
 import { makeRng } from './rng.js';
 
 /** Build combat Fighters from the LIVING run party (carrying current HP + deck + stats + axes). */
@@ -48,7 +49,26 @@ export function startRunCombat(runState, enemyFighters, { room = 'combat' } = {}
     rng: () => combatRng.next(),
   });
   vm.startCombat();
+  applyRelics(vm, runState.relics);
   return vm;
+}
+
+/**
+ * Inject the run's relics into a started combat. A relic with `onCombatStart`
+ * (an effect op-list) runs it on the player Vanguard; one with `passive` registers
+ * that passive on the Vanguard. (Reuses the card effect system — relics are just
+ * run-long effect sources. Side-global relics are a later refinement.)
+ */
+export function applyRelics(vm, relics = []) {
+  const s = vm.state;
+  const v = s.player.fighters[s.player.vanguardIndex];
+  if (!v) return;
+  for (const relic of relics) {
+    if (relic.passive) { v.powers = v.powers ?? []; v.powers.push({ source: relic.id, on: null, effects: [], duration: null, passive: relic.passive, attunement: null }); }
+    if (Array.isArray(relic.onCombatStart) && relic.onCombatStart.length) {
+      applyCardSpec(s, 'player', v, { id: relic.id, name: relic.name, type: 'skill', cost: 0, attunement: 'Physical', effects: relic.onCombatStart }, { emit: vm._emit.bind(vm), rng: vm.rng });
+    }
+  }
 }
 
 /** Read a finished combat's outcome for fold-back. */
