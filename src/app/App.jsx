@@ -14,6 +14,7 @@ import RunScreen from '../ui/run/RunScreen.jsx';
 import DeckBuilder from '../ui/deck/DeckBuilder.jsx';
 import { loadDraft } from '../editor/persistence.js';
 import { ATTUNEMENT_BASES, BIOLOGY_BASES, legalAttunements } from '../data/synthesis.js';
+import { attunementCards } from '../engine/cards/attunementPool.js';
 import './app.css';
 
 // Bundled card files (the editor saves drafts on top of these in localStorage).
@@ -46,10 +47,12 @@ export default function App() {
     return a.length ? a : ['Physical'];
   }
 
-  /** The selected file's playable cards = the DeckBuilder's pool. */
+  /** The selected file's playable cards + the chosen attunement's own cards (§14.3)
+   *  = the creature's full potential pool (the DeckBuilder's pool / Quick Fight deck). */
   function poolForFile() {
     const file = loadDraft(deckFile) || FILES[deckFile] || { cards: [] };
-    return (file.cards || []).filter((c) => c.type !== 'curse' && c.type !== 'status');
+    const cards = (file.cards || []).filter((c) => c.type !== 'curse' && c.type !== 'status');
+    return [...cards, ...attunementCards(heroAttunement())];
   }
 
   /** Launch a playtest. `deck` = a built CardSpec[]; omitted → the full pool (quick fight). */

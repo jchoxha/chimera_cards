@@ -72,6 +72,10 @@ const STATUS_META = {
   soak: { cls: '', icon: 'game-icons:water-drop' },
   shock: { cls: 'str', icon: 'game-icons:lightning-arc' },
   decay: { cls: 'pois', icon: 'game-icons:skull-crossed-bones' },
+  bleed: { cls: 'pois', icon: 'game-icons:drop' },
+  expose: { cls: 'vuln', icon: 'game-icons:cracked-shield' },
+  confuse: { cls: 'weak', icon: 'game-icons:brain' },
+  amplify: { cls: 'str', icon: 'game-icons:magic-swirl' },
 };
 
 const EFFECT_INFO = {
@@ -88,6 +92,10 @@ const EFFECT_INFO = {
   soak: { name: 'Soak', icon: 'game-icons:water-drop', desc: 'A water affliction (not yet active this milestone).' },
   shock: { name: 'Shock', icon: 'game-icons:lightning-arc', desc: 'A charge affliction (not yet active this milestone).' },
   decay: { name: 'Decay', icon: 'game-icons:skull-crossed-bones', desc: 'A void affliction (not yet active this milestone).' },
+  bleed: { name: 'Bleed', icon: 'game-icons:drop', desc: 'A physical affliction (not yet active this milestone).' },
+  expose: { name: 'Expose', icon: 'game-icons:cracked-shield', desc: 'An air affliction (not yet active this milestone).' },
+  confuse: { name: 'Confuse', icon: 'game-icons:brain', desc: 'A mind affliction (not yet active this milestone).' },
+  amplify: { name: 'Amplify', icon: 'game-icons:magic-swirl', desc: 'An arcane self-buff (not yet active this milestone).' },
 };
 
 function Icon({ icon, ...rest }) {

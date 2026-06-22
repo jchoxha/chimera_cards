@@ -1,0 +1,81 @@
+{
+  "_note": "Attunement-own card pools (synthesis-matrix-spec §14.3). Any creature attuned to an element adds that element's cards to its potential pool, alongside its archetype cards. Authored as data; run through interpret.js like archetype cards. Cards apply the element's signature status — LIVE for Fire/Frost/Nature/Shadow/Holy, authorable-but-inert for the rest until §5. Numbers provisional.",
+  "Physical": [
+    { "id": "att_physical_jab", "name": "Jab", "attunement": "Physical", "type": "attack", "cost": 1, "rarity": "common", "effects": [{ "op": "damage", "value": 6 }, { "op": "debuff", "status": "bleed", "value": 1 }] },
+    { "id": "att_physical_rend", "name": "Rend", "attunement": "Physical", "type": "attack", "cost": 2, "rarity": "uncommon", "effects": [{ "op": "damage", "value": 5, "hits": 2 }, { "op": "debuff", "status": "bleed", "value": 2 }] },
+    { "id": "att_physical_gash", "name": "Gash", "attunement": "Physical", "type": "skill", "cost": 1, "rarity": "common", "effects": [{ "op": "debuff", "status": "bleed", "value": 3 }] },
+    { "id": "att_physical_pulverize", "name": "Pulverize", "attunement": "Physical", "type": "attack", "cost": 2, "rarity": "uncommon", "effects": [{ "op": "damage", "value": 12 }] }
+  ],
+  "Fire": [
+    { "id": "att_fire_firebolt", "name": "Firebolt", "attunement": "Fire", "type": "attack", "cost": 1, "rarity": "common", "effects": [{ "op": "damage", "value": 6 }, { "op": "debuff", "status": "burn", "value": 2 }] },
+    { "id": "att_fire_flameburst", "name": "Flame Burst", "attunement": "Fire", "type": "attack", "cost": 2, "rarity": "uncommon", "effects": [{ "op": "damage", "value": 4, "scope": "wholeEnemySide" }, { "op": "debuff", "status": "burn", "value": 1, "scope": "wholeEnemySide" }] },
+    { "id": "att_fire_ignite", "name": "Ignite", "attunement": "Fire", "type": "skill", "cost": 1, "rarity": "common", "effects": [{ "op": "debuff", "status": "burn", "value": 4 }] },
+    { "id": "att_fire_pyroclasm", "name": "Pyroclasm", "attunement": "Fire", "type": "attack", "cost": 2, "rarity": "uncommon", "effects": [{ "op": "damage", "value": 8 }, { "op": "debuff", "status": "burn", "value": 2 }] }
+  ],
+  "Frost": [
+    { "id": "att_frost_shard", "name": "Frost Shard", "attunement": "Frost", "type": "attack", "cost": 1, "rarity": "common", "effects": [{ "op": "damage", "value": 6 }, { "op": "debuff", "status": "weak", "value": 1 }] },
+    { "id": "att_frost_coldsnap", "name": "Cold Snap", "attunement": "Frost", "type": "attack", "cost": 2, "rarity": "uncommon", "effects": [{ "op": "damage", "value": 4, "hits": 2 }, { "op": "debuff", "status": "weak", "value": 1 }] },
+    { "id": "att_frost_chill", "name": "Chill", "attunement": "Frost", "type": "skill", "cost": 1, "rarity": "common", "effects": [{ "op": "debuff", "status": "weak", "value": 2, "scope": "wholeEnemySide" }] },
+    { "id": "att_frost_glaciate", "name": "Glaciate", "attunement": "Frost", "type": "attack", "cost": 2, "rarity": "uncommon", "effects": [{ "op": "damage", "value": 7 }, { "op": "debuff", "status": "weak", "value": 2 }] }
+  ],
+  "Nature": [
+    { "id": "att_nature_thorn", "name": "Thorn Lash", "attunement": "Nature", "type": "attack", "cost": 1, "rarity": "common", "effects": [{ "op": "damage", "value": 5 }, { "op": "debuff", "status": "poison", "value": 2 }] },
+    { "id": "att_nature_spores", "name": "Spore Cloud", "attunement": "Nature", "type": "attack", "cost": 2, "rarity": "uncommon", "effects": [{ "op": "damage", "value": 3, "scope": "wholeEnemySide" }, { "op": "debuff", "status": "poison", "value": 1, "scope": "wholeEnemySide" }] },
+    { "id": "att_nature_envenom", "name": "Envenom", "attunement": "Nature", "type": "skill", "cost": 1, "rarity": "common", "effects": [{ "op": "debuff", "status": "poison", "value": 4 }] },
+    { "id": "att_nature_strangle", "name": "Strangle", "attunement": "Nature", "type": "attack", "cost": 2, "rarity": "uncommon", "effects": [{ "op": "damage", "value": 6 }, { "op": "debuff", "status": "poison", "value": 3 }] }
+  ],
+  "Arcane": [
+    { "id": "att_arcane_bolt", "name": "Arcane Bolt", "attunement": "Arcane", "type": "attack", "cost": 1, "rarity": "common", "effects": [{ "op": "damage", "value": 7 }] },
+    { "id": "att_arcane_amplify", "name": "Amplify", "attunement": "Arcane", "type": "skill", "cost": 0, "rarity": "uncommon", "effects": [{ "op": "buff", "status": "amplify", "value": 1 }, { "op": "draw", "value": 1 }] },
+    { "id": "att_arcane_surge", "name": "Arcane Surge", "attunement": "Arcane", "type": "attack", "cost": 2, "rarity": "uncommon", "effects": [{ "op": "damage", "value": 6 }, { "op": "buff", "status": "amplify", "value": 1 }] },
+    { "id": "att_arcane_lance", "name": "Mana Lance", "attunement": "Arcane", "type": "attack", "cost": 2, "rarity": "rare", "effects": [{ "op": "damage", "value": 12 }] }
+  ],
+  "Shadow": [
+    { "id": "att_shadow_bolt", "name": "Shadow Bolt", "attunement": "Shadow", "type": "attack", "cost": 1, "rarity": "common", "effects": [{ "op": "damage", "value": 6 }, { "op": "debuff", "status": "vulnerable", "value": 2 }] },
+    { "id": "att_shadow_dread", "name": "Dread", "attunement": "Shadow", "type": "skill", "cost": 1, "rarity": "common", "effects": [{ "op": "debuff", "status": "vulnerable", "value": 3 }] },
+    { "id": "att_shadow_umbral", "name": "Umbral Strike", "attunement": "Shadow", "type": "attack", "cost": 2, "rarity": "uncommon", "effects": [{ "op": "damage", "value": 5, "hits": 2 }, { "op": "debuff", "status": "vulnerable", "value": 1 }] },
+    { "id": "att_shadow_eclipse", "name": "Eclipse", "attunement": "Shadow", "type": "attack", "cost": 2, "rarity": "uncommon", "effects": [{ "op": "damage", "value": 9 }, { "op": "debuff", "status": "vulnerable", "value": 2 }] }
+  ],
+  "Holy": [
+    { "id": "att_holy_smite", "name": "Smite", "attunement": "Holy", "type": "attack", "cost": 1, "rarity": "common", "effects": [{ "op": "damage", "value": 6 }] },
+    { "id": "att_holy_consecrate", "name": "Consecrate", "attunement": "Holy", "type": "skill", "cost": 1, "rarity": "common", "effects": [{ "op": "buff", "status": "regen", "value": 3 }] },
+    { "id": "att_holy_layhands", "name": "Lay on Hands", "attunement": "Holy", "type": "skill", "cost": 1, "rarity": "uncommon", "effects": [{ "op": "heal", "value": 8 }] },
+    { "id": "att_holy_wrath", "name": "Holy Wrath", "attunement": "Holy", "type": "attack", "cost": 2, "rarity": "uncommon", "effects": [{ "op": "damage", "value": 9 }] }
+  ],
+  "Water": [
+    { "id": "att_water_jet", "name": "Water Jet", "attunement": "Water", "type": "attack", "cost": 1, "rarity": "common", "effects": [{ "op": "damage", "value": 6 }, { "op": "debuff", "status": "soak", "value": 2 }] },
+    { "id": "att_water_douse", "name": "Douse", "attunement": "Water", "type": "skill", "cost": 1, "rarity": "common", "effects": [{ "op": "debuff", "status": "soak", "value": 3 }] },
+    { "id": "att_water_tide", "name": "Tide", "attunement": "Water", "type": "attack", "cost": 2, "rarity": "uncommon", "effects": [{ "op": "damage", "value": 4, "hits": 2 }, { "op": "debuff", "status": "soak", "value": 1 }] },
+    { "id": "att_water_drown", "name": "Drown", "attunement": "Water", "type": "attack", "cost": 2, "rarity": "uncommon", "effects": [{ "op": "damage", "value": 7 }, { "op": "debuff", "status": "soak", "value": 2 }] }
+  ],
+  "Air": [
+    { "id": "att_air_gust", "name": "Gust", "attunement": "Air", "type": "attack", "cost": 1, "rarity": "common", "effects": [{ "op": "damage", "value": 6 }, { "op": "debuff", "status": "expose", "value": 1 }] },
+    { "id": "att_air_cyclone", "name": "Cyclone", "attunement": "Air", "type": "attack", "cost": 2, "rarity": "uncommon", "effects": [{ "op": "damage", "value": 4, "scope": "wholeEnemySide" }] },
+    { "id": "att_air_expose", "name": "Expose", "attunement": "Air", "type": "skill", "cost": 1, "rarity": "common", "effects": [{ "op": "debuff", "status": "expose", "value": 2 }] },
+    { "id": "att_air_tempest", "name": "Tempest", "attunement": "Air", "type": "attack", "cost": 2, "rarity": "uncommon", "effects": [{ "op": "damage", "value": 8 }, { "op": "debuff", "status": "expose", "value": 1 }] }
+  ],
+  "Stone": [
+    { "id": "att_stone_throw", "name": "Rock Throw", "attunement": "Stone", "type": "attack", "cost": 1, "rarity": "common", "effects": [{ "op": "damage", "value": 6 }] },
+    { "id": "att_stone_stoneskin", "name": "Stoneskin", "attunement": "Stone", "type": "skill", "cost": 1, "rarity": "common", "effects": [{ "op": "block", "value": 8 }] },
+    { "id": "att_stone_bulwark", "name": "Bulwark", "attunement": "Stone", "type": "skill", "cost": 2, "rarity": "uncommon", "effects": [{ "op": "block", "value": 14 }] },
+    { "id": "att_stone_boulder", "name": "Boulder", "attunement": "Stone", "type": "attack", "cost": 2, "rarity": "uncommon", "effects": [{ "op": "damage", "value": 11 }] }
+  ],
+  "Energy": [
+    { "id": "att_energy_spark", "name": "Spark", "attunement": "Energy", "type": "attack", "cost": 1, "rarity": "common", "effects": [{ "op": "damage", "value": 6 }, { "op": "debuff", "status": "shock", "value": 1 }] },
+    { "id": "att_energy_overload", "name": "Overload", "attunement": "Energy", "type": "attack", "cost": 2, "rarity": "uncommon", "effects": [{ "op": "damage", "value": 4, "hits": 2 }, { "op": "debuff", "status": "shock", "value": 1 }] },
+    { "id": "att_energy_static", "name": "Static Field", "attunement": "Energy", "type": "skill", "cost": 1, "rarity": "common", "effects": [{ "op": "debuff", "status": "shock", "value": 2 }] },
+    { "id": "att_energy_thunderclap", "name": "Thunderclap", "attunement": "Energy", "type": "attack", "cost": 2, "rarity": "uncommon", "effects": [{ "op": "damage", "value": 8 }, { "op": "debuff", "status": "shock", "value": 1 }] }
+  ],
+  "Void": [
+    { "id": "att_void_bolt", "name": "Void Bolt", "attunement": "Void", "type": "attack", "cost": 1, "rarity": "common", "effects": [{ "op": "damage", "value": 6 }, { "op": "debuff", "status": "decay", "value": 2 }] },
+    { "id": "att_void_entropy", "name": "Entropy", "attunement": "Void", "type": "skill", "cost": 1, "rarity": "common", "effects": [{ "op": "debuff", "status": "decay", "value": 3 }] },
+    { "id": "att_void_collapse", "name": "Collapse", "attunement": "Void", "type": "attack", "cost": 2, "rarity": "uncommon", "effects": [{ "op": "damage", "value": 5, "hits": 2 }, { "op": "debuff", "status": "decay", "value": 1 }] },
+    { "id": "att_void_annihilate", "name": "Annihilate", "attunement": "Void", "type": "attack", "cost": 2, "rarity": "rare", "effects": [{ "op": "damage", "value": 9 }, { "op": "debuff", "status": "decay", "value": 2 }] }
+  ],
+  "Mind": [
+    { "id": "att_mind_spike", "name": "Mind Spike", "attunement": "Mind", "type": "attack", "cost": 1, "rarity": "common", "effects": [{ "op": "damage", "value": 6 }, { "op": "debuff", "status": "confuse", "value": 1 }] },
+    { "id": "att_mind_daze", "name": "Daze", "attunement": "Mind", "type": "skill", "cost": 1, "rarity": "common", "effects": [{ "op": "debuff", "status": "confuse", "value": 2 }] },
+    { "id": "att_mind_blast", "name": "Psychic Blast", "attunement": "Mind", "type": "attack", "cost": 2, "rarity": "uncommon", "effects": [{ "op": "damage", "value": 4, "scope": "wholeEnemySide" }, { "op": "debuff", "status": "confuse", "value": 1, "scope": "wholeEnemySide" }] },
+    { "id": "att_mind_crush", "name": "Mind Crush", "attunement": "Mind", "type": "attack", "cost": 2, "rarity": "uncommon", "effects": [{ "op": "damage", "value": 8 }, { "op": "debuff", "status": "confuse", "value": 1 }] }
+  ]
+}

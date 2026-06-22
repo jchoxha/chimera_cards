@@ -8,6 +8,8 @@
 const STATUS_LABEL = {
   strength: 'Strength', dexterity: 'Dexterity', regen: 'Regen',
   vulnerable: 'Vulnerable', weak: 'Weak', burn: 'Burn', poison: 'Poison',
+  amplify: 'Amplify', bleed: 'Bleed', soak: 'Soak', shock: 'Shock',
+  expose: 'Expose', confuse: 'Confuse', decay: 'Decay', chill: 'Chill',
 };
 const EVENT_LABEL = {
   cardsPlayed: 'cards played', cardsDrawn: 'cards drawn', cardsDiscarded: 'cards discarded',

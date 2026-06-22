@@ -14,8 +14,14 @@ import { canAttack, canBlock, bracesBlock, shiftStance, setStance } from '../com
 
 // ── Vocabulary ────────────────────────────────────────────────────────────────
 export const CARD_TYPES = Object.freeze(['attack', 'skill', 'power', 'curse', 'status']);
-export const BUFF_STATUSES = Object.freeze(['strength', 'dexterity', 'regen']);
-export const DEBUFF_STATUSES = Object.freeze(['weak', 'vulnerable', 'burn', 'poison']);
+export const BUFF_STATUSES = Object.freeze(['strength', 'dexterity', 'regen', 'amplify']);
+// Attunement signature debuffs. `weak/vulnerable/burn/poison` are LIVE (tick in the
+// turn loop); `bleed/soak/shock/expose/confuse/decay` are authorable + shown as pips
+// but INERT (no behavior yet) until the §5 status system lands.
+export const DEBUFF_STATUSES = Object.freeze([
+  'weak', 'vulnerable', 'burn', 'poison',
+  'bleed', 'soak', 'shock', 'expose', 'confuse', 'decay',
+]);
 
 /** Card keywords with runtime behavior (mod #69 parity). Engine support:
  *  exhaust/unplayable (play), ethereal/retain/innate (deckOps), replay (replayCount). */

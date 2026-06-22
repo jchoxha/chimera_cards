@@ -166,6 +166,22 @@ placeholders with generated Variant-B art. Prompt = "generate the following imag
 PNG at <path>: …{Variant-B style block}". Next when batching: a manifest-driven gen loop +
 WebP post-processing (art-pipeline.md §Generation plan).
 
+**🜂 ATTUNEMENT-OWN CARD POOLS — chunk 2 (v3.24.0, 2026-06-22).** Each of the 13 attunements now
+has its own standalone card pool (§14.3 signature sub-pool): **`src/data/attunementCards.json`** —
+**52 cards** (≈4/attunement: elemental bolt, AoE/multi-hit, a pure status-applier, a marquee),
+each applying the element's signature status. Loader **`src/engine/cards/attunementPool.js`**
+(`attunementCards(attunements)` flattens the pools). A creature attuned to an element adds those
+cards to its **potential pool**: `app/App.jsx` `poolForFile()` now returns `archetype cards +
+attunementCards(heroAttunement())`, so the **DeckBuilder + Quick Fight** include them (Physical
+Warrior gets Physical cards; pick Fire 2nd → Fire cards appear). cardArt already maps them
+(per-element pixel sprite). **Status vocab extended** (`effectRegistry`): `DEBUFF_STATUSES` +=
+`bleed/soak/shock/expose/confuse/decay`, `BUFF_STATUSES` += `amplify` — so these cards author +
+apply + show as **pips** (cardText `STATUS_LABEL`, CombatScreen `STATUS_META`/`EFFECT_INFO`), but
+they stay **INERT (no tick)** until the §5 status system. `test:attunecards` (170 checks: every
+attunement has a valid, correctly-tagged pool). **Not done:** the §14.3 "variant access" half
+(archetype cards re-skinned to OTHER attunements); making the 6 inert statuses live (§5); run
+starter still archetype-only (attunement cards come via the builder).
+
 **Archetype deep-dive (Topic 5) — `docs/archetype-design.md`.** Designing all 36
 **archetypes** (the taxonomy's "Class" axis — *we call them archetypes, not classes*; code
 axis still literally `class`) as full StS-style character builds. Each **base** = a THEME +
