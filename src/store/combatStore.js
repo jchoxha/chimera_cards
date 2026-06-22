@@ -47,12 +47,38 @@ function buildPlayerFighters(names) {
     .map(monsterToFighter);
 }
 
+/** Build a Fighter from data-driven CardSpec cards + a stat line (playtest). */
+function buildCardFighter({ id, name, attunement, biology, klass, cards = [], stats, hp = 60 }) {
+  const f = createFighter({
+    id, name, hp, maxHp: hp, stats,
+    types: attunement ? attunement.map((a) => ({ type: a, weight: 1 })) : [],
+  });
+  if (klass) f.class = klass;
+  if (biology) f.biology = biology;
+  if (attunement) f.attunement = attunement;
+  f.deck.drawPile = cards.map((c) => ({
+    ...c, effects: Array.isArray(c.effects) ? c.effects.map((o) => ({ ...o })) : { ...c.effects },
+  }));
+  return f;
+}
+
+/** A no-axis target dummy with lots of HP — does nothing on its turn (empty deck). */
+function buildDummy({ hp = 200, name = 'Target Dummy' } = {}) {
+  return createFighter({ id: 'dummy', name, hp, maxHp: hp });
+}
+
 /**
  * Map a single Fighter to its UI-safe shape.
  * @param {boolean} [includeDeck]  Expose the full deck card list (player side
  *   only — enemy decks stay hidden; the UI surfaces only enemy moves seen via
  *   the combat log).
  */
+// Clone a card safely whether it's a data-driven CardSpec (op-LIST effects) or a
+// legacy adapted card (flat effects object).
+function cloneCard(c) {
+  return { ...c, effects: Array.isArray(c.effects) ? c.effects.map((o) => ({ ...o })) : { ...c.effects } };
+}
+
 function mapFighter(f, includeDeck = false) {
   return {
     id: f.id,
@@ -60,18 +86,23 @@ function mapFighter(f, includeDeck = false) {
     hp: f.hp,
     maxHp: f.maxHp,
     block: f.block,
+    bracedBlock: f.bracedBlock ?? 0,
     statuses: f.statuses.map((x) => ({ ...x })),
     types: f.types.map((t) => ({ ...t })),
     element: f.meta?.element ?? f.types[0]?.type ?? null,
-    hand: f.hand.map((c) => ({ ...c, effects: { ...c.effects } })),
+    // New 3-axis taxonomy + Topic-1 stat line + Warrior stance (present once content uses them).
+    stance: f.stance ?? null,
+    stats: f.stats ? { ...f.stats } : null,
+    axes: { class: f.class ?? null, biology: f.biology ?? null, attunement: f.attunement ?? null },
+    powers: (f.powers ?? []).map((p) => ({ id: p.id, passive: p.passive ?? null })),
+    hand: f.hand.map(cloneCard),
     piles: {
       draw: f.deck.drawPile.length,
       discard: f.deck.discardPile.length,
       exhaust: f.deck.exhaustPile.length,
     },
     deck: includeDeck
-      ? [...f.deck.drawPile, ...f.deck.discardPile, ...f.deck.exhaustPile, ...f.hand]
-          .map((c) => ({ ...c, effects: { ...c.effects } }))
+      ? [...f.deck.drawPile, ...f.deck.discardPile, ...f.deck.exhaustPile, ...f.hand].map(cloneCard)
       : null,
     sprite: f.meta?.sprite ?? null,
     form: f.meta?.form ?? 'regular',
@@ -125,6 +156,26 @@ export const useCombat = create((set, get) => ({
     const vm = new VanguardManager({
       playerFighters: buildPlayerFighters(party),
       enemyFighters: encounter.map(makeEnemyFighter),
+      room: 'combat',
+      rarity: { offset: -0.05, ascension7: false },
+      pickCard: POOL.pick,
+      log: (e) => events.push(e),
+    });
+    vm.startCombat();
+    set({ vm, _events: events, snap: snapshot(vm), version: 1, log: [...events], reward: null });
+  },
+
+  /**
+   * Start a PLAYTEST fight: one data-driven card deck vs a configurable enemy
+   * (defaults to a no-axis target dummy with lots of HP). Feeds the editor's
+   * author→playtest loop. `playerCards` are CardSpec objects (e.g. warrior.json).
+   */
+  startPlaytest({ playerCards = [], playerName = 'Warrior', stats, attunement, biology, klass, enemyHp = 200, enemyName } = {}) {
+    const events = [];
+    const player = buildCardFighter({ id: 'player', name: playerName, attunement, biology, klass, cards: playerCards, stats });
+    const vm = new VanguardManager({
+      playerFighters: [player],
+      enemyFighters: [buildDummy({ hp: enemyHp, name: enemyName })],
       room: 'combat',
       rarity: { offset: -0.05, ascension7: false },
       pickCard: POOL.pick,

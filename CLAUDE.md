@@ -104,10 +104,15 @@ cards still use `applyCardEffects`), rejects illegal stance plays without cost, 
 and **fires power triggers in the turn loop** (player/enemy turnStart+turnEnd via `fireTriggers`;
 Brace already persists since block-decay only zeroes `f.block`). Validated headless by
 `npm run test:cardturn` (7 checks — full Warrior turn: stat-scaled damage, Rampage 2×, Bloodlust
-turnStart firing across the cycle, illegal-play rejection). **205 checks across suites.** **Next:
-the playtest UI** — build a deck from edited cards into a combat view (in-editor "Playtest" button
-or a minimal harness) for the live author→playtest loop; then onGainBlock triggers + the
-extraStanceStep passive in the turn loop. That live-UI step is the first APP_VERSION bump.
+turnStart firing across the cycle, illegal-play rejection). **Store playtest path WIRED**: `combatStore.startPlaytest({ playerCards, stats, attunement,
+biology, klass, enemyHp })` builds a data-driven CardSpec deck vs a **configurable enemy**
+(default: a no-axis **Target Dummy** with lots of HP), and the snapshot now carries
+`stance`/`stats`/`axes`/`powers` + CardSpec-safe card cloning (`mapFighter`). `npm run
+test:playtest` (7 checks). **213 checks across suites.** **Next (venue = retrofit CombatScreen,
+Jeton): the CombatScreen rendering** — render data-driven cards (op-list, type/cost/text) +
+a stance display, and a playtest launcher (pick deck + enemy; enemy selectable later). Then
+onGainBlock triggers + extraStanceStep passive in the turn loop. That live-UI step is the
+first APP_VERSION bump.
 
 **Done so far:**
 - **Combat UX tweaks round 3, DONE 2026-06-19 (v3.14.0).** (a) **Live re-planning** —
