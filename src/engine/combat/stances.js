@@ -1,7 +1,7 @@
 // ╔══════════════════════════════════════════════════════════════════╗
 // ║ MODULE: engine/combat/stances — the Warrior STANCE SPECTRUM (a      ║
 // ║ State). 5-point slider; offense side can't Block, defense side can't ║
-// ║ Attack; Balanced does both. See docs/class-design.md §5.            ║
+// ║ Attack; Balanced does both. See docs/archetype-design.md §5.        ║
 // ║ UPDATE WHEN: stance rules/order change, or other State mechanics add.║
 // ╚══════════════════════════════════════════════════════════════════╝
 

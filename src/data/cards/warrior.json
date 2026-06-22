@@ -1,7 +1,7 @@
 {
   "class": "Warrior",
   "version": 1,
-  "note": "Authored from docs/class-design.md §5. Numbers provisional. Edited via the card editor; the engine runs these through src/engine/combat/interpret.js.",
+  "note": "Authored from docs/archetype-design.md §5. Numbers provisional. Edited via the card editor; the engine runs these through src/engine/combat/interpret.js.",
   "cards": [
     {
       "id": "warrior_strike",

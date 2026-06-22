@@ -332,7 +332,7 @@ here as we go (status: ⏳ queued · 🔎 in progress · ✅ locked).
 | 2 | Status & keyword system (§5.1) | ⏳ | must absorb keywords surfaced during class design: **Brace** (Block doesn't decay), **Dexterity** (+flat Block, block analog of Strength) — from Warrior |
 | 3 | Attunement identity (damage feel + signature status) | ⏳ | — |
 | 4 | Biology identity (stat profiles + traits, §7.1) | ⏳ | — |
-| 5 | Class identity — **all 36, in `docs/class-design.md`** | 🔎 | Base/subclass model locked: each base = a THEME + signature mechanic; each subclass = 2 base themes + bespoke mechanic (⇒ stronger, must balance). 4 shared primitives (Field Entities/States/Delayed/Card-Gen). Bases first, then 28 hybrids. **Warrior drafted.** |
+| 5 | Archetype identity — **all 36, in `docs/archetype-design.md`** | 🔎 | Base/hybrid model locked: each base = a THEME + signature mechanic; each hybrid = 2 base themes + bespoke mechanic (⇒ stronger, must balance). 4 shared primitives (Field Entities/States/Delayed/Card-Gen). **All 8 base archetypes drafted** (Warrior locked); 28 hybrids next. |
 | 6 | Reactions / cross-element depth (§5.2) | ⏳ | — |
 | 7 | Cross-axis synergies (G3) | ⏳ | — |
 | 8 | Generation algorithm (triple → monster) | 🔎 | §14: **deck recipe locked** — starter = 4 Strike + 4 Defend (shared, class-reworded) + 2–4 class-signature starters; one `generateDeck(triple,{mode})` serves dungeon (`starter`→grow) AND open-world (`full`+rarity-budget deckbuilding). **Card rarity unified onto the 7-tier monster ladder** (common…godly + `basic`). |

@@ -89,14 +89,19 @@ First gameplay change of the synthesis direction → version bumped. **Next:** S
 `generateDeck` + `starter:true` flags + rework `starterDeck()`; Step 3 = open-world budget
 deckbuilder (ships with capture mode). All suites green (test:run 49, test:engine 20, etc.).
 
-**Class deep-dive (Topic 5) — `docs/class-design.md`.** Designing all 36 classes as full
-StS-style character builds. Each **base** = a THEME + signature mechanic; each **subclass**
-(hybrid) inherits BOTH parents' themes + a bespoke mechanic (⇒ stronger, must balance).
-Five-stat model **LOCKED** (§13): **Might**(dmg)/**Guard**(block)/**Focus**(effects on
-others)/**Resolve**(buffs gained + debuff resist)/**Speed**(tempo) + HP. **Warrior LOCKED**:
-5-point **Stance Spectrum** (Rampage→Offensive→Balanced→Defensive→Full Guard; offense side
-can't Block, defense side can't Attack; traversal distance balances the extremes) + keywords
-**Brace**/**Dexterity**; 27-card pool. Rogue (Stealth+Combo) drafted next.
+**Archetype deep-dive (Topic 5) — `docs/archetype-design.md`.** Designing all 36
+**archetypes** (the taxonomy's "Class" axis — *we call them archetypes, not classes*; code
+axis still literally `class`) as full StS-style character builds. Each **base** = a THEME +
+signature mechanic; each **hybrid** inherits BOTH parents' themes + a bespoke mechanic (⇒
+stronger, must balance). Five-stat model **LOCKED** (§13): **Might**(dmg)/**Guard**(block)/
+**Focus**(effects on others)/**Resolve**(buffs gained + debuff resist)/**Speed**(tempo) + HP.
+**ALL 8 BASE ARCHETYPES DRAFTED (2026-06-22):** Warrior (Stance Spectrum + Brace/Dexterity,
+**locked**), Rogue (Stealth+Combo), Mage (Overload+Conjure+Channel), Warlock (Sacrifice+
+Summon+Curse), Priest (Faith+Prayer+Smite), Shaman (Totem+Spread+Soak), Ranger (Mark+Trap+
+Companion), Engineer (Construct+Gadget) — each a full ~26-card pool on the 7-tier rarity ladder
+with `[S]` starter signatures (§14.2). Numbers provisional. The drafts surface the **new engine
+primitives** to build next (Field Entities / States / Delayed Triggers / Card Generation —
+§2). **28 hybrids queued after the bases lock.**
 
 **Card editor + data-driven cards — `docs/card-editor.md` (FOUNDATION DONE).** Cards are now
 **data** (op-list schema `src/engine/cards/cardSpec.js`; data in `src/data/cards/*.json`) run
