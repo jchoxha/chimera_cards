@@ -99,6 +99,22 @@ on each side; (4) `scaleBy` history scaling via `effectiveValue`; (5) editor pre
 revert-to-vanilla; (6) custom art library + upload + preview. Star/2nd-resource skipped
 (not in our model). `test:cards` 36, `test:cardturn` 10 — **227 checks across suites.**
 
+**RUN / META LAYER — playable roguelike loop, DONE 2026-06-21 (v3.16.0).** Gap-checked vs
+Slay the Web (`docs/run-layer-gap.md`): our combat was deeper, but the run layer was missing.
+Built `src/engine/run/` — **action-queue + undo** architecture (Slay-the-Web style): `state.js`
+(serializable run: party w/ per-monster deck+hp, gold, relics, potions, map, position),
+`RunManager.js` (action-descriptor queue on immutable snapshots + past/future undo/redo),
+`rng.js` (mulberry32, state in run state → deterministic through undo/save), `actions.js`
+(economy/inventory/deck/upgrade/reward/heal/travel/combat-result), `map.js` (seeded LINEAR
+act of typed nodes), `combatBridge.js` (party→Fighters, fold HP/win-loss back, inject relics),
+`encounters.js` (real archetype enemies per node), `content.js` (relics/potions/events).
+Card **upgrades**, card **reward→deck**, **relics** (onCombatStart injected via the card
+interpreter), **potions** (`useConsumable` wired), **gold** shop. `npm run test:run` (45).
+`src/store/runStore.js` orchestrates RunManager + combat handoff + save/load (localStorage);
+`src/ui/run/RunScreen.jsx` = act map + party/gold/relics bar + embedded combat + reward picker
++ rooms (rest/treasure/shop/event) + win/lose; app menu gains **Begin a Run / Continue**.
+Linear act for now; branching + ascension + more content are the StS-framework build-on.
+
 **UNIFIED APP SHELL + playable combat, DONE 2026-06-21 (v3.15.0).** New 4th page
 **`app.html`** → `src/app/` (`App.jsx` main menu) connects the **Card Forge** (CardEditor)
 and the **Proving Pit** (CombatScreen) — menu → editor / playtest. Playtest builds a deck

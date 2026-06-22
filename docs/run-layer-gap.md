@@ -1,3 +1,11 @@
+> ✅ **RUN LAYER BUILT (2026-06-21, v3.16.0).** The full meta loop now exists in
+> `src/engine/run/` (state + ActionManager queue/undo + seeded RNG + map + combat bridge +
+> rewards + upgrades + relics/potions/gold + content) and `src/store/runStore.js` +
+> `src/ui/run/RunScreen.jsx`, wired into the app menu (Begin a Run / Continue). Playable
+> start→boss: navigate a linear act, fight (real enemies, HP carries), pick card rewards into
+> your deck, rest/shop/treasure/event rooms, gold, relics injected into combat, potions,
+> save/load, win/lose. Tested by `npm run test:run` (45 checks). Remaining/next below.
+
 # StS Framework Gap Analysis — what we need to "make the game whole"
 
 > Benchmark: **Slay the Web** (oskarrough/slaytheweb) — a clean, documented JS StS
