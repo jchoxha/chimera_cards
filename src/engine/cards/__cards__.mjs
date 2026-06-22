@@ -190,5 +190,18 @@ console.log('Per-effect duration: a thisTurn-triggered op expires after one tick
   ok(g.player.powers.length === 0, 'thisTurn (1-turn) duration expired after one tick');
 }
 
+console.log('Conditional gate reads side event-history counters:');
+{
+  const c = { id: 'cg', name: 'CG', attunement: 'Physical', type: 'skill', cost: 0, effects: [{ op: 'damage', value: 5, condition: { event: 'cardsPlayed', verb: '>=', threshold: 3, window: 'thisTurn' } }] };
+  const g = mk();
+  g.state.player.counters.turn.cardsPlayed = 3;
+  applyCardSpec(g.state, 'player', g.player, c);
+  ok(g.enemy.hp === 95, 'op fires when counter meets condition (cardsPlayed≥3)');
+  const g2 = mk();
+  g2.state.player.counters.turn.cardsPlayed = 1;
+  applyCardSpec(g2.state, 'player', g2.player, c);
+  ok(g2.enemy.hp === 100, 'op skipped when counter below threshold');
+}
+
 console.log(`\ncards: ${pass} passed, ${fail} failed`);
 process.exit(fail ? 1 : 0);

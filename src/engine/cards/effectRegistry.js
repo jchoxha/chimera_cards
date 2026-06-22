@@ -76,9 +76,41 @@ export function resolveValue(op, env) {
   if (op.valueFrom === 'selfBlock') return (env.caster.block ?? 0) + (env.caster.bracedBlock ?? 0);
   return op.value ?? 0;
 }
-/** Test a `bonusIf` condition. */
+/** Multi-variable condition vocabulary (mod #69 "conditional" pattern). */
+export const CONDITION_EVENTS = Object.freeze([
+  'cardsPlayed', 'cardsDrawn', 'cardsDiscarded', 'cardsExhausted',
+  'damageDealt', 'damageTaken', 'blockGained', 'energySpent',
+]);
+export const CONDITION_VERBS = Object.freeze(['>=', '<=', '==', '!=', '>', '<']);
+export const CONDITION_WINDOWS = Object.freeze(['thisTurn', 'thisCombat']);
+
+/** Read a counter value for a condition/scaling spec from the caster's side. */
+export function counterValue(spec, env) {
+  const side = env.state?.[env.casterKey];
+  const win = spec.window === 'thisCombat' ? 'combat' : 'turn';
+  const c = side?.counters?.[win] ?? {};
+  if (spec.event === 'cardsPlayed' && spec.cardType) return c.playedByType?.[spec.cardType] ?? 0;
+  return c[spec.event] ?? 0;
+}
+
+/**
+ * Test a condition. Supports the multi-variable counter form ({event,verb,threshold,
+ * window,cardType}) AND the legacy narrow forms ({stance} / {targetHpPctBelow}).
+ */
 export function condMet(cond, env) {
   if (!cond) return false;
+  if (cond.event) {
+    const val = counterValue(cond, env);
+    const t = cond.threshold ?? 0;
+    switch (cond.verb) {
+      case '>': return val > t;
+      case '<': return val < t;
+      case '<=': return val <= t;
+      case '==': return val === t;
+      case '!=': return val !== t;
+      case '>=': default: return val >= t;
+    }
+  }
   if (cond.stance != null) return stanceOf(env.caster) === cond.stance;
   if (cond.targetHpPctBelow != null && env.target) {
     return env.target.maxHp > 0 && env.target.hp / env.target.maxHp < cond.targetHpPctBelow;
@@ -245,8 +277,9 @@ export const EFFECT_OPS = {
 
 export const OP_TYPES = Object.freeze(Object.keys(EFFECT_OPS));
 
-/** Run one op via its registry handler. */
+/** Run one op via its registry handler, gated by an optional `condition`. */
 export function applyOp(op, env) {
+  if (op.condition && !condMet(op.condition, env)) return; // conditional gate
   EFFECT_OPS[op.op]?.apply(op, env);
 }
 

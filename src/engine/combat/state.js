@@ -111,6 +111,8 @@ export function createSide({ fighters = [], energyRule = 'bench', config } = {})
     handSize: cfg.handSize,
     manualSwapsThisTurn: 0,
     fortifySlot: createFortifySlot(),
+    // Event-history counters for conditional / scaling effects (per turn + per combat).
+    counters: { turn: {}, combat: {} },
   };
 }
 

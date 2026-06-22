@@ -84,5 +84,20 @@ console.log('Illegal stance play is rejected without cost:');
   ok(r === false && vm.state.player.energy === energyBefore, 'Strike rejected in Full Guard, energy unspent');
 }
 
+console.log('Conditional op gated by live event-history counters:');
+{
+  const { vm, foe } = setup();
+  const p = vm.state.player.fighters[vm.state.player.vanguardIndex];
+  // deals 5 only if ≥1 card already played this turn (count is bumped AFTER each play)
+  const cond = { id: 'cond', name: 'Cond', attunement: 'Physical', type: 'skill', cost: 0, effects: [{ op: 'damage', value: 5, scope: 'enemyActiveTarget', condition: { event: 'cardsPlayed', verb: '>=', threshold: 1, window: 'thisTurn' } }] };
+  p.hand = [cond, { ...cond, id: 'cond2' }];
+  vm.state.player.energy = 5;
+  const start = foe.hp;
+  vm.play('cond');   // 0 prior plays → condition fails → no damage
+  ok(foe.hp === start, 'conditional skipped on the 1st play (0 prior)');
+  vm.play('cond2');  // 1 prior play → condition passes → 5 dmg
+  ok(foe.hp === start - 5, 'conditional fires once the counter threshold is met');
+}
+
 console.log(`\ncardturn: ${pass} passed, ${fail} failed`);
 process.exit(fail ? 1 : 0);

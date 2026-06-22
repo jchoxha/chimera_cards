@@ -83,6 +83,30 @@ export class VanguardManager {
     fireTriggers(this.state, sideKey, event, { emit: this._emit.bind(this), rng: this.rng });
   }
 
+  /** Bump an event-history counter (turn + combat) for conditional/scaling effects. */
+  _count(sideKey, key, n = 1) {
+    if (n <= 0) return;
+    const c = this.state[sideKey].counters;
+    if (!c) return;
+    c.turn[key] = (c.turn[key] ?? 0) + n;
+    c.combat[key] = (c.combat[key] ?? 0) + n;
+  }
+
+  /** Count a card play, broken down by card type. */
+  _countPlayed(sideKey, cardType) {
+    this._count(sideKey, 'cardsPlayed');
+    const c = this.state[sideKey].counters;
+    for (const win of ['turn', 'combat']) {
+      c[win].playedByType = c[win].playedByType ?? {};
+      c[win].playedByType[cardType] = (c[win].playedByType[cardType] ?? 0) + 1;
+    }
+  }
+
+  /** Reset the per-turn counters for a side at the start of its turn. */
+  _resetTurnCounters(sideKey) {
+    if (this.state[sideKey].counters) this.state[sideKey].counters.turn = {};
+  }
+
   // ── Lifecycle ─────────────────────────────────────────────────────────────
 
   /** Begin the fight: telegraph intents, then the opening player turn. */
@@ -440,15 +464,18 @@ export class VanguardManager {
     s.player.energyPerTurn = Math.max(3, benchedCount);
     s.player.energy = s.player.energyPerTurn;
 
-    // 4. Draw cards
+    // 4. Draw cards (reset the per-turn counters at the start of the player's turn).
+    this._resetTurnCounters('player');
     const pVanguard = vanguard(s.player);
     if (pVanguard) {
+      const handBefore = pVanguard.hand.length;
       if (s.turn === 1) {
         drawFreshHand(pVanguard, s.player.handSize, this.rng);
       } else {
         const toDraw = Math.max(0, s.player.handSize - pVanguard.hand.length);
         drawCards(pVanguard, toDraw, this.rng);
       }
+      this._count('player', 'cardsDrawn', pVanguard.hand.length - handBefore);
       this._emit('draw', { hand: pVanguard.hand.slice() });
     }
 
@@ -528,16 +555,27 @@ export class VanguardManager {
       }
     }
 
+    // Update event-history counters (before firing, so conditions see this play).
+    const blockDelta = (pVanguard.block + (pVanguard.bracedBlock ?? 0)) - blockBefore;
+    const dealt = enemyHpBefore - sideHp(s.enemy);
+    const taken = playerHpBefore - sideHp(s.player);
+    this._count('player', 'energySpent', cost);
+    this._countPlayed('player', card.type);
+    this._count('player', 'blockGained', blockDelta);
+    this._count('player', 'damageDealt', dealt);
+    this._count('player', 'damageTaken', taken);
+
     // Fire play-related triggered effects (player side), then resolve deaths.
     this._fire('player', 'onEnergySpent');
     this._fire('player', 'onCardPlayed');
-    if ((pVanguard.block + (pVanguard.bracedBlock ?? 0)) > blockBefore) this._fire('player', 'onGainBlock');
-    if (sideHp(s.enemy) < enemyHpBefore) this._fire('player', 'onDamageDealt');
-    if (sideHp(s.player) < playerHpBefore) this._fire('player', 'onDamageTaken');
+    if (blockDelta > 0) this._fire('player', 'onGainBlock');
+    if (dealt > 0) this._fire('player', 'onDamageDealt');
+    if (taken > 0) this._fire('player', 'onDamageTaken');
 
     // Move card from hand: powers + Exhaust cards leave the deck, else discard.
     if (card.type === 'power' || card.keywords?.includes('exhaust')) {
       exhaustCard(pVanguard, card);
+      this._count('player', 'cardsExhausted', 1);
       this._fire('player', 'onExhaust');
     } else {
       discardCard(pVanguard, card);
@@ -663,6 +701,7 @@ export class VanguardManager {
     if (pVanguard) {
       const result = discardHandEndOfTurn(pVanguard);
       this._emit('discard', result);
+      this._count('player', 'cardsDiscarded', result.discarded.length);
       this._fire('player', 'onDiscard');
     }
     // Expire turn-bound triggered effects on the player side.
@@ -720,6 +759,7 @@ export class VanguardManager {
     s.enemy.energy = s.enemy.energyPerTurn;
 
     // Fire enemy powers that hook the start of the turn.
+    this._resetTurnCounters('enemy');
     this._fire('enemy', 'turnStart');
 
     // 2. Execute telegraphed telegraphed actions sequentially
@@ -814,6 +854,7 @@ export class VanguardManager {
         } else {
           discardCard(actor, card);
         }
+        this._countPlayed('enemy', card.type ?? 'skill');
         this._fire('enemy', 'onCardPlayed');
       }
     } else {

@@ -7,7 +7,8 @@
 
 import React, { useEffect, useMemo, useState } from 'react';
 import {
-  EFFECT_OPS, OP_TYPES, CARD_TYPES, PASSIVES, TRIGGER_EVENTS, DURATIONS, KEYWORDS, validateCard, defaultScope,
+  EFFECT_OPS, OP_TYPES, CARD_TYPES, PASSIVES, TRIGGER_EVENTS, DURATIONS, KEYWORDS,
+  CONDITION_EVENTS, CONDITION_VERBS, CONDITION_WINDOWS, validateCard, defaultScope,
 } from '../engine/cards/cardSpec.js';
 
 // Trigger options shown per effect op (onPlay = immediate; 'passive' is power-only).
@@ -112,6 +113,22 @@ function OpRow({ op, onChange, onRemove, onMove }) {
               {DURATIONS.map((d) => <option key={d} value={d}>{d}</option>)}
             </select>
           </Field>
+        )}
+        <Field label="only if">
+          <select value={op.condition?.event || ''} onChange={(e) => {
+            if (!e.target.value) { const { condition: _drop, ...rest } = op; onChange(rest); }
+            else onChange({ ...op, condition: { verb: '>=', threshold: 1, window: 'thisTurn', ...(op.condition || {}), event: e.target.value } });
+          }}>
+            <option value="">(always)</option>
+            {CONDITION_EVENTS.map((ev) => <option key={ev} value={ev}>{ev}</option>)}
+          </select>
+        </Field>
+        {op.condition?.event && (
+          <>
+            <Field label="verb"><select value={op.condition.verb || '>='} onChange={(e) => onChange(setIn(op, 'condition.verb', e.target.value))}>{CONDITION_VERBS.map((v) => <option key={v} value={v}>{v}</option>)}</select></Field>
+            <Field label="count"><input type="number" value={op.condition.threshold ?? ''} onChange={(e) => onChange(setIn(op, 'condition.threshold', e.target.value === '' ? undefined : Number(e.target.value)))} /></Field>
+            <Field label="window"><select value={op.condition.window || 'thisTurn'} onChange={(e) => onChange(setIn(op, 'condition.window', e.target.value))}>{CONDITION_WINDOWS.map((w) => <option key={w} value={w}>{w}</option>)}</select></Field>
+          </>
         )}
       </div>
     </div>
