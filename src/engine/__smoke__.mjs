@@ -21,8 +21,9 @@ console.log('Pity-offset engine:');
   const r = rollRarity(st, 'combat', () => 0);
   ok(r === 'rare', 'rare rolls when chance is met');
   ok(Math.abs(st.offset + 0.05) < 1e-9, 'offset resets to -5% on rare');
-  // Boss is always rare.
-  ok(rollRarity(createRarityState(), 'boss', () => 0.999) === 'rare', 'boss room always rare');
+  // Boss is always rare-or-better (now distributed across the 7-tier ladder, §14.7).
+  const HIGH = ['rare', 'epic', 'mythic', 'legendary', 'godly'];
+  ok(HIGH.includes(rollRarity(createRarityState(), 'boss', () => 0.999)), 'boss room always rare-or-better');
 }
 
 console.log('Combat turn cycle:');

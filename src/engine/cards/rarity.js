@@ -9,8 +9,11 @@
 //   • Offset starts at -5%, +1% per non-rare roll (+0.5% on Ascension 7+),
 //     hard cap +40%. A successful Rare resets the offset to -5%.
 //   • Current rare chance = baseRoomChance + offset (clamped to ≥ 0).
-//   • Boss card rewards are ALWAYS Rare.
+//   • Boss card rewards are ALWAYS rare-or-better.
 //   • Non-rare split: Uncommon ≈ 38%, remainder Common.
+//   • A "rare-or-better" hit is then distributed across the unified 7-tier
+//     ladder (rare…godly) by a per-room weight vector — see HIGH_TIER_WEIGHTS
+//     (synthesis-matrix-spec §14.7). The pity offset still keys the rare gate.
 
 /** @typedef {import('../types.js').CardRarity} CardRarity */
 /** @typedef {import('../types.js').RarityState} RarityState */
@@ -33,6 +36,40 @@ export const BASE_RARE_CHANCE = Object.freeze({
 
 /** Of non-rare rolls, this share are Uncommon; the rest are Common. */
 export const UNCOMMON_SHARE = 0.38;
+
+/**
+ * The "rare or better" loot tiers (synthesis-matrix-spec §14.7). When a roll
+ * lands rare-or-better, it distributes across THESE by the room's weight vector.
+ * @type {ReadonlyArray<CardRarity>}
+ */
+export const HIGH_TIERS = Object.freeze(['rare', 'epic', 'mythic', 'legendary', 'godly']);
+
+/**
+ * Per-room weight vectors over HIGH_TIERS — which top tier a "rare+" hit becomes.
+ * Combat skews low; elite/shop richer; boss top-heavy. (REVIEW/tunable; rows are
+ * normalized, so they need not sum to 1.)
+ */
+export const HIGH_TIER_WEIGHTS = Object.freeze({
+  combat: [0.55, 0.28, 0.12, 0.04, 0.01],
+  elite: [0.42, 0.30, 0.18, 0.08, 0.02],
+  shop: [0.50, 0.28, 0.14, 0.06, 0.02],
+  boss: [0.20, 0.30, 0.28, 0.16, 0.06],
+});
+
+/**
+ * Pick one of HIGH_TIERS by the room's (normalized) weight vector.
+ * @param {RoomKind} room @param {() => number} [rng]
+ * @returns {CardRarity}
+ */
+export function pickHighTier(room, rng = Math.random) {
+  const w = HIGH_TIER_WEIGHTS[room] ?? HIGH_TIER_WEIGHTS.combat;
+  const total = w.reduce((a, b) => a + b, 0);
+  let r = rng() * total;
+  for (let i = 0; i < HIGH_TIERS.length; i++) {
+    if ((r -= w[i]) <= 0) return HIGH_TIERS[i];
+  }
+  return HIGH_TIERS[0];
+}
 
 /** @returns {RarityState} a fresh offset state. */
 export function createRarityState(ascension7 = false) {
@@ -67,8 +104,8 @@ export function rollRarity(state, room, rng = Math.random) {
   const rareChance = currentRareChance(state, room);
 
   if (rng() < rareChance) {
-    state.offset = OFFSET_START; // success → full reset
-    return 'rare';
+    state.offset = OFFSET_START;       // success → full reset
+    return pickHighTier(room, rng);    // rare-or-better → which top tier (§14.7)
   }
 
   // Miss: bump the offset toward the cap, then split common/uncommon.

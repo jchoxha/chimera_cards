@@ -66,8 +66,28 @@ checks) — relationship NUMBERS are still REVIEW/tunable. The status/reaction s
 and the generator profiles/templates (§7) are **DEEP-EXPLORATION-PENDING** — build them
 **data-driven/swappable**. **Fusion/breeding PAUSED** (§6). Next code: data-model
 migration (add `class`/`biology` to Fighter; `attunementsOf` seam already accepts both
-shapes) → wire `computeMatchup` into `computeAttackDamage` (first gameplay change → bump
-version) → generator (§7) → UI (§9). No gameplay wired yet (no version bump).
+shapes) → wire `computeMatchup` into `computeAttackDamage` → generator (§7) → UI (§9).
+
+**🃏 DECK-GEN + RARITY DESIGN LOCKED (§14, 2026-06-22, Jeton).** The §7 generator's
+**deck step** is now designed (`docs/synthesis-matrix-spec.md` §14): three planes of axis
+interaction (**stat affinity** Class×Biology · **card content** Class×Attunement · **emergent
+combos** all three); a creature's **potential pool** = class pool (attunement-skinned) ∪
+attunement signature sub-pool (≈4–6 cards) ∪ biology trait cards (+ free passive). **Starter
+recipe:** 4 Strike + 4 Defend (same mechanics, class-reworded, attunement-skinned) + 2–4
+class-signature starters (~10–12 cards). **One `generateDeck(triple,{mode})`** serves dungeons
+(`starter`→grow via rewards) AND open world (`full` deck built by **free deckbuilding vs a
+rarity-weighted budget**, §14.6). **Card rarity UNIFIED onto the 7-tier monster ladder**
+(`common…godly` + `basic`).
+**STEP 1 IMPLEMENTED (v3.18.0):** the rarity ladder is live everywhere — `types.js`
+(`CardRarity`/`RARITIES`/`LOOT_RARITIES`/`RARITY_POINTS`), `cards/rarity.js` (reward roll now
+distributes a "rare-or-better" hit across `rare…godly` per-room via `HIGH_TIER_WEIGHTS`/
+`pickHighTier`, pity offset unchanged), `content/adapt.js` (`mapRarity` is now pass-through →
+reward pool keeps true epic/mythic/legendary/godly tiers), `ui/combat/frames.js` (frame tints
+realigned to the canonical `forge.js` palette, monotonic up the ladder), the editor rarity
+dropdown (driven by `RARITIES`), and a sample Warrior re-tier (Rampart/Juggernaut → epic).
+First gameplay change of the synthesis direction → version bumped. **Next:** Step 2 =
+`generateDeck` + `starter:true` flags + rework `starterDeck()`; Step 3 = open-world budget
+deckbuilder (ships with capture mode). All suites green (test:run 49, test:engine 20, etc.).
 
 **Class deep-dive (Topic 5) — `docs/class-design.md`.** Designing all 36 classes as full
 StS-style character builds. Each **base** = a THEME + signature mechanic; each **subclass**

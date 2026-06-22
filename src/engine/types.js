@@ -60,7 +60,11 @@
  */
 
 /** @typedef {'attack'|'skill'|'power'|'status'|'curse'} CardType */
-/** @typedef {'basic'|'common'|'uncommon'|'rare'} CardRarity */
+/**
+ * Card rarity — UNIFIED onto the 7-tier monster ladder (synthesis-matrix-spec
+ * §14.7) plus `basic` (starter cards: free, never appear in loot).
+ * @typedef {'basic'|'common'|'uncommon'|'rare'|'epic'|'mythic'|'legendary'|'godly'} CardRarity
+ */
 
 /**
  * Card keywords from StS2 we model in the turn cycle. Stored as a string set on
@@ -258,8 +262,28 @@ export const ELEMENTS = Object.freeze([
   'toxin', 'flora', 'beast', 'lumen', 'aether', 'umbra', 'void', 'blood',
 ]);
 
-/** @type {ReadonlyArray<CardRarity>} */
-export const RARITIES = Object.freeze(['basic', 'common', 'uncommon', 'rare']);
+/**
+ * The full card-rarity ladder (synthesis-matrix-spec §14.7), unified with the
+ * prototype's monster ladder. `basic` = starter cards (free, non-loot).
+ * @type {ReadonlyArray<CardRarity>}
+ */
+export const RARITIES = Object.freeze([
+  'basic', 'common', 'uncommon', 'rare', 'epic', 'mythic', 'legendary', 'godly',
+]);
+
+/** The loot tiers only (the monster ladder, ascending) — `basic` excluded. */
+export const LOOT_RARITIES = Object.freeze([
+  'common', 'uncommon', 'rare', 'epic', 'mythic', 'legendary', 'godly',
+]);
+
+/**
+ * Deck-point cost per rarity for the open-world rarity-weighted deck budget
+ * (synthesis-matrix-spec §14.6 — costs are REVIEW/tunable). `basic` is free.
+ * @type {Readonly<Record<CardRarity, number>>}
+ */
+export const RARITY_POINTS = Object.freeze({
+  basic: 0, common: 1, uncommon: 2, rare: 3, epic: 4, mythic: 5, legendary: 6, godly: 7,
+});
 
 /**
  * The locked targeting-scope vocabulary — single source of truth for the

@@ -13,11 +13,11 @@
 /** @typedef {import('../types.js').TypeAffinity} TypeAffinity */
 /** @typedef {import('../types.js').CardRarity} CardRarity */
 
-// Legacy monster rarities → engine CardRarity (for reward-pool tagging).
-const RARITY_MAP = {
-  common: 'common', uncommon: 'uncommon', rare: 'rare',
-  epic: 'rare', godly: 'rare', legendary: 'rare', mythic: 'rare',
-};
+import { RARITIES } from '../types.js';
+
+// Monster rarities now map 1:1 onto the unified card-rarity ladder (§14.7),
+// so reward cards keep their TRUE tier (epic/mythic/legendary/godly) instead of
+// being collapsed to `rare` — this is what populates the top reward tiers.
 
 // Weight ladders for 1/2/3 typings (dominant first). ~66/33 for duals.
 const WEIGHT_LADDER = { 1: [1], 2: [0.667, 0.333], 3: [0.5, 0.3, 0.2] };
@@ -25,8 +25,9 @@ const WEIGHT_LADDER = { 1: [1], 2: [0.667, 0.333], 3: [0.5, 0.3, 0.2] };
 // Card numeric fields that map to target-applied (enemy) statuses.
 const TARGET_STATUS = ['burn', 'poison', 'chill', 'soak', 'shock', 'vulnerable', 'weak', 'decay'];
 
+/** Pass-through onto the unified ladder; unknown tiers fall back to common. */
 /** @param {CardRarity} r */
-export function mapRarity(r) { return RARITY_MAP[r] ?? 'common'; }
+export function mapRarity(r) { return RARITIES.includes(r) ? r : 'common'; }
 
 /**
  * Convert a legacy element/elements pair into weighted TypeAffinity[].

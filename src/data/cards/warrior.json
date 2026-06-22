@@ -678,7 +678,7 @@
       "attunement": "Physical",
       "type": "power",
       "cost": 2,
-      "rarity": "rare",
+      "rarity": "epic",
       "text": "Your Block always Braces.",
       "effects": [],
       "passive": "blockAlwaysBraces",
@@ -693,7 +693,7 @@
       "attunement": "Physical",
       "type": "power",
       "cost": 2,
-      "rarity": "rare",
+      "rarity": "epic",
       "text": "Whenever you gain Block, deal 3 damage to a random enemy.",
       "effects": [],
       "trigger": {

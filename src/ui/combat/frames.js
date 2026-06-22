@@ -11,22 +11,23 @@
 import { ELEMENT_COLOR } from '../../systems/elements.jsx';
 
 // rarity → { tint metal color, metal: bevel strength 0..1, holo, foil }
-// Covers card rarities (basic/common/uncommon/rare) and the fuller monster
-// ladder (epic/godly/legendary/mythic). Unknown → common.
+// Unified 7-tier monster ladder (synthesis-matrix-spec §14.7) + `basic`. Tints
+// reuse the canonical monster-rarity palette (src/systems/forge.js RARITY_COLOR);
+// metal/holo/foil climb monotonically up the ladder. Unknown → common.
 const RARITY_FINISH = {
   basic:     { tint: '#8c8c8c', metal: 0.12, holo: false, foil: false },
-  common:    { tint: '#9a7b4a', metal: 0.20, holo: false, foil: false }, // bronze
-  uncommon:  { tint: '#cdd6e0', metal: 0.34, holo: false, foil: false }, // silver
-  rare:      { tint: '#f0c84a', metal: 0.50, holo: true,  foil: false }, // gold
-  epic:      { tint: '#c98bff', metal: 0.58, holo: true,  foil: true  }, // amethyst
-  godly:     { tint: '#ffe6a0', metal: 0.66, holo: true,  foil: true  },
-  legendary: { tint: '#ff9a3d', metal: 0.66, holo: true,  foil: true  },
-  mythic:    { tint: '#7ef0ff', metal: 0.72, holo: true,  foil: true  },
+  common:    { tint: '#e8e6f0', metal: 0.20, holo: false, foil: false }, // white
+  uncommon:  { tint: '#7ee787', metal: 0.30, holo: false, foil: false }, // green
+  rare:      { tint: '#4d9fff', metal: 0.42, holo: true,  foil: false }, // blue
+  epic:      { tint: '#a571ff', metal: 0.52, holo: true,  foil: true  }, // purple
+  mythic:    { tint: '#ff5a4d', metal: 0.60, holo: true,  foil: true  }, // red
+  legendary: { tint: '#ff9a3d', metal: 0.68, holo: true,  foil: true  }, // orange
+  godly:     { tint: '#ffd34d', metal: 0.78, holo: true,  foil: true  }, // gold/yellow (top)
 };
 // how strongly the rarity tint bleeds into the type hue (the "metal tint").
 const RARITY_TINT_MIX = {
   basic: 0.05, common: 0.08, uncommon: 0.14, rare: 0.20,
-  epic: 0.26, godly: 0.32, legendary: 0.32, mythic: 0.36,
+  epic: 0.26, mythic: 0.30, legendary: 0.34, godly: 0.40,
 };
 
 function clampByte(n) { return Math.max(0, Math.min(255, Math.round(n))); }
