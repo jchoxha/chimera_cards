@@ -130,6 +130,21 @@ function OpRow({ op, onChange, onRemove, onMove }) {
             <Field label="window"><select value={op.condition.window || 'thisTurn'} onChange={(e) => onChange(setIn(op, 'condition.window', e.target.value))}>{CONDITION_WINDOWS.map((w) => <option key={w} value={w}>{w}</option>)}</select></Field>
           </>
         )}
+        <Field label="scale by">
+          <select value={op.scaleBy?.event || ''} onChange={(e) => {
+            if (!e.target.value) { const { scaleBy: _drop, ...rest } = op; onChange(rest); }
+            else onChange({ ...op, scaleBy: { per: 1, window: 'thisTurn', ...(op.scaleBy || {}), event: e.target.value } });
+          }}>
+            <option value="">(no scaling)</option>
+            {CONDITION_EVENTS.map((ev) => <option key={ev} value={ev}>{ev}</option>)}
+          </select>
+        </Field>
+        {op.scaleBy?.event && (
+          <>
+            <Field label="× per"><input type="number" value={op.scaleBy.per ?? ''} onChange={(e) => onChange(setIn(op, 'scaleBy.per', e.target.value === '' ? undefined : Number(e.target.value)))} /></Field>
+            <Field label="window"><select value={op.scaleBy.window || 'thisTurn'} onChange={(e) => onChange(setIn(op, 'scaleBy.window', e.target.value))}>{CONDITION_WINDOWS.map((w) => <option key={w} value={w}>{w}</option>)}</select></Field>
+          </>
+        )}
       </div>
     </div>
   );

@@ -117,6 +117,17 @@ export function condMet(cond, env) {
   }
   return false;
 }
+
+/**
+ * An op's base numeric value INCLUDING history scaling: `value` (or valueFrom)
+ * plus `scaleBy.per × counter(scaleBy)` (mod #69 per-effect scaling). Used by
+ * every numeric handler so scaling composes uniformly.
+ */
+export function effectiveValue(op, env) {
+  let v = resolveValue(op, env);
+  if (op.scaleBy?.event) v += (op.scaleBy.per ?? 1) * counterValue(op.scaleBy, env);
+  return v;
+}
 /** Default target scope per op when none is specified. */
 export function defaultScope(op) {
   if (op.op === 'damage' || op.op === 'debuff') return 'enemyActiveTarget';
@@ -166,7 +177,7 @@ export const EFFECT_OPS = {
       const hits = op.hits === 'X' ? Math.max(1, env.costPaid) : (op.hits ?? 1);
       for (const t of targets) {
         env.target = t;
-        let v = resolveValue(op, env);
+        let v = effectiveValue(op, env);
         if (op.bonusIf && condMet(op.bonusIf, env)) { if (op.bonusMult) v *= op.bonusMult; if (op.bonusAdd) v += op.bonusAdd; }
         const matchup = matchupOf(env.card?.attunement, t);
         const ts = sideOf(env.state, t);
@@ -183,7 +194,7 @@ export const EFFECT_OPS = {
       const c = env.caster;
       if (!canBlock(stanceOf(c))) return; // offense side can't gain Block
       const dex = dexterityOf(c);
-      const base = resolveValue(op, env) + dex + (op.bonusPerDexterity ?? 0) * dex;
+      const base = effectiveValue(op, env) + dex + (op.bonusPerDexterity ?? 0) * dex;
       const amt = r0(base * statOf(c, 'guard') * env.scale);
       if (amt <= 0) return;
       if (op.brace || bracesBlock(stanceOf(c)) || hasPassive(c, 'blockAlwaysBraces')) {
@@ -200,7 +211,7 @@ export const EFFECT_OPS = {
     default: { op: 'buff', status: 'strength', value: 1 },
     fields: [F.enum('status', BUFF_STATUSES), F.num('value'), F.bool('temporary')],
     apply(op, env) {
-      const amt = r0((op.value ?? 0) * statOf(env.caster, 'resolve') * env.scale); // self → Resolve
+      const amt = r0(effectiveValue(op, env) * statOf(env.caster, 'resolve') * env.scale); // self → Resolve
       if (amt <= 0) return;
       addStatus(env.caster.statuses, { id: op.status, amount: amt, stacking: 'intensity', temporary: !!op.temporary });
       env.emit?.('status', { targetId: env.caster.id, id: op.status, amount: amt });
@@ -215,7 +226,7 @@ export const EFFECT_OPS = {
       if (!DEBUFF_STATUSES.includes(op.status)) return;
       const targets = resolveScope(env.state, env.casterKey, env.caster, op.scope ?? defaultScope(op), { targetId: env.opts.targetId });
       for (const t of targets) {
-        const amt = r0((op.value ?? 0) * statOf(env.caster, 'focus') / statOf(t, 'resolve') * env.scale);
+        const amt = r0(effectiveValue(op, env) * statOf(env.caster, 'focus') / statOf(t, 'resolve') * env.scale);
         if (amt <= 0) continue;
         addStatus(t.statuses, { id: op.status, amount: amt, stacking: op.status === 'burn' || op.status === 'poison' ? 'intensity' : 'duration' });
         env.emit?.('status', { targetId: t.id, id: op.status, amount: amt });
@@ -231,7 +242,7 @@ export const EFFECT_OPS = {
       const targets = resolveScope(env.state, env.casterKey, env.caster, op.scope ?? defaultScope(op), { targetId: env.opts.targetId });
       for (const t of targets) {
         const mult = t === env.caster ? statOf(t, 'resolve') : statOf(env.caster, 'focus') * statOf(t, 'resolve');
-        applyHeal(t, r0((op.value ?? 0) * mult * env.scale), env.emit);
+        applyHeal(t, r0(effectiveValue(op, env) * mult * env.scale), env.emit);
       }
     },
   },
@@ -240,14 +251,14 @@ export const EFFECT_OPS = {
     label: 'Draw cards',
     default: { op: 'draw', value: 1 },
     fields: [F.num('value')],
-    apply(op, env) { drawCards(env.caster, (op.value ?? 0) * env.scale, env.rng); },
+    apply(op, env) { drawCards(env.caster, effectiveValue(op, env) * env.scale, env.rng); },
   },
 
   energy: {
     label: 'Gain energy',
     default: { op: 'energy', value: 1 },
     fields: [F.num('value')],
-    apply(op, env) { env.side.energy += (op.value ?? 0) * env.scale; },
+    apply(op, env) { env.side.energy += effectiveValue(op, env) * env.scale; },
   },
 
   pay: {

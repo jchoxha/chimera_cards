@@ -203,5 +203,14 @@ console.log('Conditional gate reads side event-history counters:');
   ok(g2.enemy.hp === 100, 'op skipped when counter below threshold');
 }
 
+console.log('Scaling: an op value grows with a counter (scaleBy):');
+{
+  const c = { id: 'sc', name: 'SC', attunement: 'Physical', type: 'attack', cost: 0, effects: [{ op: 'damage', value: 2, scaleBy: { event: 'cardsPlayed', per: 3, window: 'thisTurn' } }] };
+  const g = mk();
+  g.state.player.counters.turn.cardsPlayed = 2; // 2 + 3×2 = 8
+  applyCardSpec(g.state, 'player', g.player, c);
+  ok(g.enemy.hp === 92, 'damage = base 2 + (per 3 × count 2) = 8');
+}
+
 console.log(`\ncards: ${pass} passed, ${fail} failed`);
 process.exit(fail ? 1 : 0);
