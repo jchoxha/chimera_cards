@@ -20,6 +20,7 @@ import {
   detectDevWrite, persist, loadDraft, saveDraft, clearDraft,
   loadGitHubSettings, saveGitHubSettings, downloadJSON,
   listPresets, savePreset, loadPreset, deletePreset,
+  listArt, saveArt, resolveArt,
 } from './persistence.js';
 
 const clone = (o) => JSON.parse(JSON.stringify(o));
@@ -181,6 +182,7 @@ export function CardEditor() {
   const [status, setStatus] = useState('');
   const [presets, setPresets] = useState(() => listPresets(activeFile));
   const [presetSel, setPresetSel] = useState('');
+  const [artLib, setArtLib] = useState(() => listArt());
 
   useEffect(() => { detectDevWrite().then(setDevAvailable); }, []);
   useEffect(() => { setPresets(listPresets(activeFile)); setPresetSel(''); }, [activeFile]);
@@ -269,6 +271,16 @@ export function CardEditor() {
     if (!base) { setStatus('no bundled version for this card'); return; }
     setWorking((w) => ({ ...w, cards: w.cards.map((c, i) => (i === cardIdx ? clone(base) : c)) }));
     setStatus(`reverted "${base.name}" to vanilla`);
+  }
+  function handleArtUpload(e) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = () => {
+      if (saveArt(file.name, reader.result)) { setArtLib(listArt()); updateCard({ art: `lib:${file.name}` }); setStatus(`art "${file.name}" added`); }
+      else setStatus('✗ art too large for browser storage');
+    };
+    reader.readAsDataURL(file);
   }
 
   const backend = devAvailable ? 'dev-write (disk)' : gh.token ? 'GitHub commit' : 'download / localStorage';
@@ -376,6 +388,17 @@ export function CardEditor() {
                     </div>
                   </Field>
                   <Field label="text"><textarea className="cardtext" value={card.text || ''} onChange={(e) => updateCard({ text: e.target.value })} /></Field>
+
+                  <div className="artRow">
+                    <Field label="art library">
+                      <select value={(card.art || '').startsWith('lib:') ? card.art.slice(4) : ''} onChange={(e) => updateCard({ art: e.target.value ? `lib:${e.target.value}` : undefined })}>
+                        <option value="">(none / use the art field above)</option>
+                        {artLib.map((n) => <option key={n} value={n}>{n}</option>)}
+                      </select>
+                    </Field>
+                    <Field label="upload art"><input type="file" accept="image/*" onChange={handleArtUpload} /></Field>
+                    {resolveArt(card.art) && <img className="artPreview" src={resolveArt(card.art)} alt="card art" />}
+                  </div>
 
                   <h3>Effects</h3>
                   <OpList ops={card.effects} onChange={(ops) => updateCard({ effects: ops })} />

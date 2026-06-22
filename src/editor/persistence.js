@@ -35,6 +35,26 @@ export function deletePreset(file, name) {
   try { localStorage.setItem(LS_PRESETS(file), JSON.stringify(map)); } catch { /* noop */ }
 }
 
+// ── Custom art library (browser-local; card.art = "lib:<name>") ───────────────
+const LS_ART = 'chimera:cardeditor:art';
+function readArt() { try { return JSON.parse(localStorage.getItem(LS_ART) || '{}'); } catch { return {}; } }
+export function listArt() { return Object.keys(readArt()).sort(); }
+export function getArt(name) { return readArt()[name] ?? null; }
+export function saveArt(name, dataUrl) {
+  const map = readArt(); map[name] = dataUrl;
+  try { localStorage.setItem(LS_ART, JSON.stringify(map)); return true; } catch { return false; /* quota */ }
+}
+export function deleteArt(name) {
+  const map = readArt(); delete map[name];
+  try { localStorage.setItem(LS_ART, JSON.stringify(map)); } catch { /* noop */ }
+}
+/** Resolve a card.art value to a renderable src (lib ref → data URL; else URL/path/dataURL). */
+export function resolveArt(art) {
+  if (!art) return null;
+  if (art.startsWith('lib:')) return getArt(art.slice(4));
+  return art;
+}
+
 // ── GitHub settings ───────────────────────────────────────────────────────────
 export function loadGitHubSettings() {
   try {
