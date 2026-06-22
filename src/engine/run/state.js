@@ -4,7 +4,8 @@
 // ║ run actions through the ActionManager. See docs/run-layer-gap.md.    ║
 // ╚══════════════════════════════════════════════════════════════════╝
 
-import { hashSeed } from './rng.js';
+import { hashSeed, makeRng } from './rng.js';
+import { generateAct } from './map.js';
 
 /**
  * @typedef {Object} RunPartyMember
@@ -49,6 +50,20 @@ export function createRunState({ party = [], seed = Date.now(), map = null } = {
     act: 1,
     status: 'active', // 'active' | 'won' | 'lost'
   };
+}
+
+/**
+ * Create a full run with a generated act map (the normal entry point).
+ * Advances rngState past the map generation so subsequent draws stay deterministic.
+ * @param {{ party?: Object[], seed?: number|string, floors?: number }} [args]
+ */
+export function createRun({ party = [], seed = Date.now(), floors = 10 } = {}) {
+  const seedInt = typeof seed === 'number' ? (seed >>> 0) : hashSeed(seed);
+  const rng = makeRng(seedInt);
+  const map = generateAct(rng, { floors, act: 1 });
+  const state = createRunState({ party, seed: seedInt, map });
+  state.rngState = rng.state; // continue the sequence after map gen
+  return state;
 }
 
 /** Total living party members. */

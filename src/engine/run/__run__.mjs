@@ -1,9 +1,10 @@
 // Smoke test for the run-layer spine: state + ActionManager (queue + undo) +
 // seeded RNG + save/load. Run: node src/engine/run/__run__.mjs  (npm run test:run)
 
-import { createRunState } from './state.js';
+import { createRunState, createRun } from './state.js';
 import { RunManager } from './RunManager.js';
 import { makeRng, hashSeed } from './rng.js';
+import { reachableFrom, currentNode } from './map.js';
 
 let pass = 0, fail = 0;
 const ok = (c, m) => (c ? (pass++, console.log('  ✓', m)) : (fail++, console.error('  ✗', m)));
@@ -74,6 +75,31 @@ console.log('Save / load roundtrip:');
   const rm2 = RunManager.deserialize(json);
   ok(rm2.state.gold === 42 && rm2.state.seed === 7, 'restored gold + seed');
   ok(JSON.stringify(rm2.state) === json, 'restored state matches serialized');
+}
+
+console.log('Act map generates deterministically (linear, boss last):');
+{
+  const a = createRun({ party: baseParty, seed: 'spire', floors: 10 });
+  const b = createRun({ party: baseParty, seed: 'spire', floors: 10 });
+  ok(a.map.nodes.length === 10, 'act has 10 floors');
+  ok(a.map.nodes[0].type === 'combat' && a.map.nodes[9].type === 'boss' && a.map.nodes[8].type === 'rest', 'opens on combat, rest then boss at the end');
+  ok(a.map.nodes.map((n) => n.type).join() === b.map.nodes.map((n) => n.type).join(), 'same seed → identical act');
+  const c = createRun({ party: baseParty, seed: 'other', floors: 10 });
+  ok(a.map.nodes.map((n) => n.type).join() !== c.map.nodes.map((n) => n.type).join(), 'different seed → different act');
+  ok(a.position === a.map.start && a.rngState !== a.seed, 'position = start; rngState advanced past map gen');
+}
+
+console.log('Navigation: travel only to reachable nodes, marks visited:');
+{
+  const rm = new RunManager(createRun({ party: baseParty, seed: 5, floors: 6 }));
+  const start = rm.state.position;
+  const next = reachableFrom(rm.state.map, start)[0];
+  rm.dispatch('travel', { nodeId: 'a1-f5' }); // not reachable from start
+  ok(rm.state.position === start, 'cannot jump to a far node');
+  rm.dispatch('travel', { nodeId: next });
+  ok(rm.state.position === next && currentNode(rm.state).visited, 'traveled to the next node, marked visited');
+  rm.undo();
+  ok(rm.state.position === start, 'undo returns to the previous node');
 }
 
 console.log(`\nrun: ${pass} passed, ${fail} failed`);

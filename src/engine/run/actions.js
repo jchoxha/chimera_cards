@@ -5,6 +5,8 @@
 // ║ UPDATE WHEN: new run-level transitions (rooms, economy) are added.    ║
 // ╚══════════════════════════════════════════════════════════════════╝
 
+import { reachableFrom, nodeById } from './map.js';
+
 const member = (s, id) => s.party.find((p) => p.id === id) || s.party[0] || null;
 
 export const ACTIONS = {
@@ -45,6 +47,13 @@ export const ACTIONS = {
   },
 
   // ── navigation / lifecycle ──
+  /** Move to a reachable node, marking it visited. No-op if unreachable. */
+  travel: (s, { nodeId }) => {
+    if (!reachableFrom(s.map, s.position).includes(nodeId)) return;
+    s.position = nodeId;
+    const n = nodeById(s.map, nodeId);
+    if (n) { s.floor = n.floor; n.visited = true; }
+  },
   setPosition: (s, { nodeId }) => { s.position = nodeId; },
   setFloor: (s, { floor }) => { s.floor = floor; },
   setStatus: (s, { status }) => { s.status = status; },
