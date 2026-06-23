@@ -52,6 +52,18 @@ the **carrier's own** turn-end. `intensity` = a magnitude that's consumed/ticked
 
 ## 2. Reaction framework (LOCKED 2026-06-22, Jeton)
 
+> **PRIME DIRECTIVE (LOCKED):** **every status must be an effective STANDALONE strategic
+> tool.** Reactions / type synergies *enhance* play but are **NEVER required** — no status's
+> value may depend on landing a reaction. (So the game is fully playable on statuses alone;
+> reactions are pure upside.) Consequence: the **Soak reframe is REJECTED** — Soak KEEPS its
+> standalone bite (+25%/stack to the next attack, already live) *and* also serves as a
+> reaction primer.
+>
+> **IMPLEMENTATION STATUS:** the reaction *design* (§3–§4) is settled; the data-driven
+> `REACTIONS` *engine* is **DEFERRED** (built after the demo). Because statuses stand alone,
+> nothing is blocked.
+
+
 A **reaction** fires when an **attack hit** of element **X** lands on a target
 carrying a status the element reacts with. Rules:
 
@@ -106,12 +118,10 @@ Read as: **attacker element + (status on target) → reaction**. `consume` notes
 whether the primer is spent. Numbers are placeholders. Organized by **status**; only
 the logically-meaningful cells are listed (others = no reaction for now).
 
-> **Soak — reframed (my proposal for review):** Soak stops being a flat +25% damage
-> buff and becomes the **conductive primer** — the medium that makes reactions on this
-> target **stronger and able to spread**. While Soaked: reactions on this target are
-> **amplified (+1 effect magnitude / +1 chain target per Soak stack)**, and Soak is
-> what lets Energy/Water reactions chain. This makes Water a *setup/enabler* element
-> rather than a damage buff. (If you prefer Soak keep some standalone punch, say so.)
+> **Soak (LOCKED):** keeps its **standalone** effect (+25%/stack to the next attack, then
+> clears — already live) AND acts as a reaction primer. While Soaked, the §4 Soak reactions
+> (Steam/Freeze/Electrocute/Bloom) can also **chain/amplify by stack** — but Soak is fully
+> useful with zero reactions, per the prime directive.
 
 ### Burn (target is on fire)
 - **Fire → Flare-up** — add +2 Burn (stoke it); no consume.
