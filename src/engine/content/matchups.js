@@ -70,23 +70,24 @@ export const BIOLOGY_ATTUNEMENT = Object.freeze({
 // A card flagged `imbue` inflicts the CASTER creature's attunement signature
 // status (in addition to its explicit damage element, which drives the matchup).
 //   • target 'enemy' → a debuff on the hit target; 'self' → a buff on the caster.
-//   • live → implemented in the engine today (the 6 LIVE_STATUSES + cleanse via
-//     regen). Non-live attunements imbue NOTHING for now (element-only) until
-//     their status is built (§5.1) — the map is the single place to flip them on.
+//   • live → the status has working behavior, so `imbue` grants it. 12 of 13 are
+//     now live (§5). **Stone is the deliberate exception**: its signature is
+//     Fortify — a slot-bound Block AURA, not a creature status — so Stone's
+//     defensive identity comes from its Block cards, not an imbue rider.
 export const ATTUNEMENT_STATUS = Object.freeze({
-  Physical: { id: 'bleed',      target: 'enemy', live: false },
+  Physical: { id: 'bleed',      target: 'enemy', live: true  },
   Fire:     { id: 'burn',       target: 'enemy', live: true  },
   Frost:    { id: 'weak',       target: 'enemy', live: true  },  // "chill"
   Nature:   { id: 'poison',     target: 'enemy', live: true  },
   Shadow:   { id: 'vulnerable', target: 'enemy', live: true  },
   Holy:     { id: 'regen',      target: 'self',  live: true  },
-  Water:    { id: 'soak',       target: 'enemy', live: false },
-  Air:      { id: 'expose',     target: 'enemy', live: false },
-  Energy:   { id: 'shock',      target: 'enemy', live: false },
-  Stone:    { id: 'fortify',    target: 'self',  live: false },
-  Arcane:   { id: 'amplify',    target: 'self',  live: false },
-  Void:     { id: 'decay',      target: 'enemy', live: false },
-  Mind:     { id: 'confuse',    target: 'enemy', live: false },
+  Water:    { id: 'soak',       target: 'enemy', live: true  },
+  Air:      { id: 'expose',     target: 'enemy', live: true  },
+  Energy:   { id: 'shock',      target: 'enemy', live: true  },
+  Stone:    { id: 'fortify',    target: 'self',  live: false }, // slot aura, not a status (see above)
+  Arcane:   { id: 'amplify',    target: 'self',  live: true  },
+  Void:     { id: 'decay',      target: 'enemy', live: true  },
+  Mind:     { id: 'confuse',    target: 'enemy', live: true  },
 });
 
 /**

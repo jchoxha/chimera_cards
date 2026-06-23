@@ -227,6 +227,17 @@ consumed per hit) that **decays 1/turn** (moved out of INTENSITY_STATUSES); when
 (`_exposeLocked`/`_checkExposeLockout` run in `_resolveDeaths`; `swap()` + death-replacement
 `_firstIncoming` skip locked units) — unless it's the last creature. Combat tooltips updated.
 
+**✅ ALL 13 BASE ATTUNEMENTS BUILT OUT (v3.28.0, 2026-06-22).** Consistency fix: the engine made
+12 signature statuses tick, but `ATTUNEMENT_STATUS.live` flags hadn't been flipped, so **imbue**
+(a marked attack also applying the *creature's* attunement status) still only fired for the
+original 5. Flipped Physical/Water/Air/Energy/Void/Mind/Arcane → `live:true`, so imbue now grants
+all 12 (a Physical creature's imbued strike applies Bleed, Water→Soak, Energy→Shock, etc.).
+**Stone is the lone intentional exception** — its signature (Fortify) is a slot-bound Block aura,
+not a creature status, so Stone's identity comes from its Block cards, not an imbue rider. Each
+attunement now has: matchups (§4) + icon/color + own card pool (§14.3) + a working signature
+status (imbue + own cards) [Stone = Block]. `test:statuses` 27. **Attunements are complete →
+ready for §5.2 reactions** (Soak = the universal primer).
+
 **Archetype deep-dive (Topic 5) — `docs/archetype-design.md`.** Designing all 36
 **archetypes** (the taxonomy's "Class" axis — *we call them archetypes, not classes*; code
 axis still literally `class`) as full StS-style character builds. Each **base** = a THEME +

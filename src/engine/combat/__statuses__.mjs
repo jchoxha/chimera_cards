@@ -88,5 +88,13 @@ console.log('Confuse (Mind): fizzle vs normal, driven by rng:');
 { const { m, p, foe } = setup({ rng: () => 0.9 }); addSt(p, 'confuse', 1); p.hand = [strike()]; const b = foe.hp; m.play('s');
   ok(foe.hp === b - 6, `no fizzle/retarget (rng .9): normal 6 (hp ${foe.hp})`); }
 
+console.log('Imbue fires for the newly-live attunements (creature attunement → status):');
+{ const { m, p, foe } = setup(); p.attunement = ['Physical']; p.hand = [{ ...strike(), imbue: 1 }]; m.play('s');
+  ok(amt(foe, 'bleed') === 1, `Physical imbue → 1 Bleed (${amt(foe, 'bleed')})`); }
+{ const { m, p, foe } = setup(); p.attunement = ['Water']; p.hand = [{ ...strike(), imbue: 1 }]; m.play('s');
+  ok(amt(foe, 'soak') === 1, `Water imbue → 1 Soak (${amt(foe, 'soak')})`); }
+{ const { m, p, foe } = setup(); p.attunement = ['Energy']; p.hand = [{ ...strike(), imbue: 1 }]; m.play('s');
+  ok(amt(foe, 'shock') === 1, `Energy imbue → 1 Shock (${amt(foe, 'shock')})`); }
+
 console.log(`\nstatuses: ${pass} passed, ${fail} failed`);
 process.exit(fail ? 1 : 0);
