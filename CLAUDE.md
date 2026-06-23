@@ -447,9 +447,24 @@ first APP_VERSION bump.
   see memory `agy-headless-image-gen`.
 
 **Deep-dive docs:** `docs/combat-engine-spec.md` (**LOCKED Vanguard/Peek combat
-spec — the active rebuild**), `src/engine/README.md` (engine map + spec mapping;
-Phase 1, partly superseded by the Vanguard spec), `api/README.md`
-(backend + deploy), `docs/art-pipeline.md` (art), `experiments/art-direction/README.md`.
+spec — the active rebuild**), **`docs/mechanics.md` (MASTER MECHANICS REGISTRY — statuses,
+the reaction framework + status×attunement matrix, keywords, AI/readout master plans)**,
+`src/engine/README.md` (engine map + spec mapping; Phase 1, partly superseded by the Vanguard
+spec), `api/README.md` (backend + deploy), `docs/art-pipeline.md` (art),
+`experiments/art-direction/README.md`.
+
+**⚛️ REACTIONS — design in progress (`docs/mechanics.md`, 2026-06-22).** Reactions = a
+systematic **status × attunement matrix** of *interesting mechanics* (NOT just bonus damage),
+fired on **attack hits, per hit, across ALL relevant statuses** in **last-updated-first** order;
+consumption is **case-by-case**; power budget **both** (spice → build-defining); keyed on the
+card's element; symmetric; **data-driven** `REACTIONS` table (to build). Built on the lens that
+**each attunement has a reaction VERB** (Fire detonates, Frost freezes/locks, Water spreads, Void
+devours, Holy purges, Shadow corrupts, Mind inverts, Physical shatters…). **Soak reframed** (REVIEW):
+no longer flat +damage — the **conductive primer** that amplifies/chains reactions. First-pass
+matrix authored (REVIEW, tunable). Also captured: **Combust** = consume Poison for a burst ×
+turns-continuously-poisoned (needs a poison-streak counter); a generalized **predictive readout
+system** to build; an **AI-reaction-awareness master plan** stub; a **status-improvement** idea
+list. No code yet — iterating on the matrix with Jeton first.
 
 ## Commands
 
