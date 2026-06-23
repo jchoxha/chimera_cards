@@ -302,6 +302,8 @@ html:has(.cmbt),body:has(.cmbt){height:100%;margin:0;overflow:hidden}
 .floatNum.dmg{color:#ff6f5c}
 .floatNum.heal{color:#8ef0a8}
 .floatNum.block{color:#bfe0ff}
+.floatNum.react{color:#ffd34d;font-family:'Cinzel',serif;font-size:clamp(15px,2.6vw,22px);letter-spacing:1px;
+  text-shadow:0 2px 4px #000,0 0 12px #ffae3a}
 @keyframes floatUp{
   0%{opacity:0;transform:translate(-50%,-28%) scale(.7)}
   18%{opacity:1;transform:translate(-50%,-62%) scale(1.12)}

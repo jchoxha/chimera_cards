@@ -535,6 +535,8 @@ function LogLine({ ev, nameOf, onEntity }) {
       return p.forced
         ? <span className="rx">{p.side === 'player' ? 'Your' : 'Enemy'} vanguard falls — forced swap.</span>
         : <span>{p.side === 'player' ? 'You swap in a new vanguard' : 'Enemy swaps vanguard'} (cost {p.cost}).</span>;
+    case 'reaction':
+      return <span className="rx"><b>{p.verb}!</b> {p.element} reacts with <FxLink id={p.status} onEntity={onEntity} /> on <CrLink id={p.targetId} nameOf={nameOf} onEntity={onEntity} />.</span>;
     case 'peek':
       return <span className="pk">You Peek the enemy’s plan.</span>;
     default:
@@ -597,6 +599,7 @@ export default function CombatScreen({ onMenu, onRestart, embedded } = {}) {
         if (ev.type === 'damage' && p.hpLoss > 0) { text = `-${p.hpLoss}`; kind = 'dmg'; }
         else if (ev.type === 'heal' && p.amount > 0) { text = `+${p.amount}`; kind = 'heal'; }
         else if (ev.type === 'block' && p.amount > 0) { text = `+${p.amount}`; kind = 'block'; }
+        else if (ev.type === 'reaction') { text = `${p.verb}!`; kind = 'react'; }
         else continue;
         const id = p.targetId;
         if (!id) continue;

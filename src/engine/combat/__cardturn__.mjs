@@ -68,7 +68,9 @@ console.log('Replay count re-runs the card effects for free:');
 {
   const { vm, foe } = setup();
   const p = vm.state.player.fighters[vm.state.player.vanguardIndex];
-  p.hand = [{ ...card('warrior_strike'), id: 'replay_strike', replayCount: 1 }]; // plays twice
+  // Non-imbuing Stone strike so this isolates replayCount (an imbued Physical strike
+  // would apply Bleed on hit 1 and Rend it on hit 2 — that interaction is in the reaction suite).
+  p.hand = [{ ...card('warrior_strike'), id: 'replay_strike', replayCount: 1, attunement: 'Stone', imbue: 0 }]; // plays twice
   vm.state.player.energy = 5;
   const before = foe.hp;
   vm.play('replay_strike');

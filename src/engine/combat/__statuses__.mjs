@@ -25,7 +25,9 @@ const addSt = (f, id, amount) => f.statuses.push({ id, amount, stacking: 'intens
 const amt = (f, id) => f.statuses.find((s) => s.id === id)?.amount ?? 0;
 
 console.log('Expose (Air): block-ignore is a window (not consumed); >HP forces a swap:');
-{ const { m, p, foe } = setup(); foe.block = 10; addSt(foe, 'expose', 2); p.hand = [strike()]; const b = foe.hp; m.play('s');
+// Stone strike: a non-reacting element, to test the STANDALONE Expose mechanic in
+// isolation (Physical would also trigger the Smash reaction — tested separately).
+{ const { m, p, foe } = setup(); foe.block = 10; addSt(foe, 'expose', 2); p.hand = [{ ...strike(), attunement: 'Stone' }]; const b = foe.hp; m.play('s');
   ok(foe.hp === b - 6 && foe.block === 10, `ignores Block while Exposed (hp ${foe.hp}, block ${foe.block})`);
   ok(amt(foe, 'expose') === 2, `Expose NOT consumed per hit (still ${amt(foe, 'expose')})`); }
 { const v = createFighter({ id: 'v', name: 'V', hp: 5, maxHp: 60 });
@@ -48,7 +50,9 @@ console.log('Amplify (Arcane, self): next attack +50%, then clears:');
   ok(amt(p, 'amplify') === 0, 'Amplify cleared'); }
 
 console.log('Bleed (Physical): damage = stacks × times hit; falls off if not hit:');
-{ const { m, p, foe } = setup(); addSt(foe, 'bleed', 2); p.hand = [strike({ hits: 2 })]; m.play('s');
+// Stone strike (non-reacting) isolates the standalone Bleed tick; Physical's Rend
+// reaction (+1 Bleed + bonus) is covered by the reaction suite.
+{ const { m, p, foe } = setup(); addSt(foe, 'bleed', 2); p.hand = [{ ...strike({ hits: 2 }), attunement: 'Stone' }]; m.play('s');
   ok(amt(foe, 'bleed') === 2, `unchanged on hit (no more +1/hit grow): ${amt(foe, 'bleed')}`);
   const b = foe.hp; m.endTurn(); // tick: 2 stacks × 2 hits = 4
   ok(foe.hp === b - 4, `ticked stacks×hits = 4 (hp ${foe.hp})`);

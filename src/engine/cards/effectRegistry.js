@@ -11,6 +11,7 @@ import { resolveScope, addStatus, stackingFor, gainBlock, applyHeal, applyDamage
 import { drawCards } from '../combat/deckOps.js';
 import { computeMatchup, imbueStatusesFor, attunementsOf } from '../content/matchups.js';
 import { canAttack, canBlock, bracesBlock, shiftStance, setStance } from '../combat/stances.js';
+import { fireReactions } from './reactions.js';
 
 // ── Vocabulary ────────────────────────────────────────────────────────────────
 export const CARD_TYPES = Object.freeze(['attack', 'skill', 'power', 'curse', 'status']);
@@ -212,11 +213,17 @@ export const EFFECT_OPS = {
         const soakMult = soakSt && soakSt.amount > 0 ? 1 + 0.25 * soakSt.amount : 1;
         const mult = matchupOf(env.card?.attunement, t) * ampMult * soakMult;
         const ts = sideOf(env.state, t);
+        let landed = false;
         for (let i = 0; i < hits; i++) {
           if (t.hp <= 0) break;
           applyDamage(t, scaledDamage(v, env.caster, t, mult), env.emit, false, ts);
           connected = true;
+          landed = true;
         }
+        // §5.2 Reactions: the attack's element reacts with the statuses already on
+        // the target (primers). Fires BEFORE Soak's standalone clear + this card's
+        // imbue, so it reads the pre-attack state. Pure upside (statuses stand alone).
+        if (landed && t.hp > 0) fireReactions(env.state, env.caster, t, env.card?.attunement, { emit: env.emit, rng });
         if (soakSt && soakSt.amount > 0) { soakSt.amount = 0; env.emit?.('status', { targetId: t.id, id: 'soak', amount: 0 }); }
         if (t.hp > 0) for (const im of imbues) if (im.target === 'enemy') {
           addStatus(t.statuses, { id: im.id, amount: imbueAmt, stacking: stackingFor(im.id) });
