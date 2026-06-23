@@ -264,7 +264,9 @@ html:has(.cmbt),body:has(.cmbt){height:100%;margin:0;overflow:hidden}
   box-shadow:0 0 22px #9af0bfaa, 0 10px 26px #000a!important}
 .dropInvalid{outline:3px solid #ff6b6b!important;outline-offset:3px;
   box-shadow:0 0 20px #ff6b6b99, 0 10px 26px #000a!important}
-.mf.droppable{outline-offset:1px}
+/* bench drop targets get a bigger, clearer hit area while dragging a card at them */
+.mf.droppable{outline-offset:2px;padding:8px 9px;transform:scale(1.03);transition:transform .12s,padding .12s}
+.mf.dropHover{transform:scale(1.06)}
 @keyframes dropPulse{0%,100%{outline-color:#ffd34d66}50%{outline-color:#ffd34dee}}
 .dragGhost{position:fixed;z-index:120;pointer-events:none;width:118px;transform:translate(-50%,-64%);
   filter:drop-shadow(0 12px 20px #000c)}
@@ -375,8 +377,9 @@ html:has(.cmbt),body:has(.cmbt){height:100%;margin:0;overflow:hidden}
 .infoChips{display:flex;flex-wrap:wrap;gap:5px;margin-top:8px}
 .infoCard{display:flex;flex-direction:column;align-items:center}
 .miniModal{max-width:380px;max-height:88vh;overflow-y:auto}
-.modalCardWrap{display:flex;justify-content:center;margin:2px 0 4px}
-.modalCardWrap .combat{width:clamp(150px,42vw,180px)}
+.modalCardWrap{display:flex;justify-content:center;margin:2px 0 4px;height:clamp(300px,52vh,420px)}
+/* give the modal card a definite height so its flex art doesn't collapse */
+.modalCardWrap .combat{width:clamp(150px,42vw,180px);height:100%;max-height:100%}
 .deckLabel{margin-top:12px;font-family:'Cinzel',serif;font-weight:700;font-size:12px;color:var(--gold4);
   display:flex;align-items:center;gap:5px;border-top:1px solid #c9a23a33;padding-top:8px}
 .deckGrid{display:flex;flex-wrap:wrap;gap:7px;justify-content:center;margin-top:8px}

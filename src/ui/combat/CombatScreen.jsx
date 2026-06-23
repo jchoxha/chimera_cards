@@ -547,7 +547,9 @@ const DRAG_THRESHOLD = 6; // px the pointer must move before a tap becomes a dra
 
 export default function CombatScreen({ onMenu, onRestart, embedded } = {}) {
   const { snap, log, startCombat, play, swap, peekAll, endTurn, reward, rollReward } = useCombat();
-  const [logOpen, setLogOpen] = useState(true);
+  // Default the log collapsed on short (phone) screens where vertical room is scarce.
+  const [logOpen, setLogOpen] = useState(() => !(typeof window !== 'undefined'
+    && window.matchMedia?.('(max-height: 440px)').matches));
   const [info, setInfo] = useState(null);
   const [kwTerm, setKwTerm] = useState(null);  // glossary keyword selected inside the card modal
   const [notice, setNotice] = useState(null);
