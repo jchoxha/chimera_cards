@@ -1,69 +1,135 @@
-/* Run/meta layer UI — map, party bar, rooms. Dark, utilitarian, matches the app shell. */
-/* Member-target picker (which creature gets a chosen/bought card) + shop card pricing. */
-.memberPick { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin: 6px 0; font-size: 13px; color: #c9b58e; }
-.mpBtn { border: 1px solid #4a3a22; background: #241a10; color: #e8dcc8; border-radius: 999px; padding: 3px 10px; cursor: pointer; font: inherit; font-size: 12px; }
-.mpBtn.on { background: #5a3f16; border-color: #b88a3e; color: #ffe6a0; }
-.ccPrice { margin-left: auto; color: #f0c84a; font-weight: 700; font-size: 12px; }
-.ccRarity { font-size: 10px; text-transform: uppercase; letter-spacing: .5px; color: #8a7a5e; margin-top: 2px; }
-.cardChip:disabled { opacity: .45; cursor: not-allowed; }
-.cardChip.r-uncommon { border-color: #7ee787; }
-.cardChip.r-rare { border-color: #4d9fff; }
-.cardChip.r-epic { border-color: #a571ff; }
-.cardChip.r-mythic { border-color: #ff5a4d; }
-.cardChip.r-legendary { border-color: #ff9a3d; }
-.cardChip.r-godly { border-color: #ffd34d; }
+/* Run/meta layer UI — map, party bar, rooms. Wears the ornate TCG skin so the
+   roguelike layer matches combat. Uses the combat skin's :root gold/ink vars
+   (combat.css is bundled on app.html) + Cinzel/Spectral fonts. */
+
 .runWrap {
-  min-height: 100vh; padding: 16px; box-sizing: border-box;
-  background: radial-gradient(120% 90% at 50% 0%, #221704 0%, #16110a 60%, #0c0905 100%);
+  min-height: 100vh; padding: 18px 16px calc(18px + env(safe-area-inset-bottom,0px)); box-sizing: border-box;
+  background:
+    radial-gradient(ellipse at 50% 0%, #4a3320 0%, #2a1c10 42%, #160f08 82%),
+    repeating-linear-gradient(92deg, #0000 0 38px, #00000020 38px 40px);
+  background-blend-mode: multiply;
   color: #e8dcc8; font: 15px/1.5 'Spectral', Georgia, serif;
 }
-.runWrap h1, .runWrap h2 { font-family: 'Cinzel', serif; color: #f0c84a; }
-.runWrap h1.lose { color: #e0633a; }
-.runHead { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
-.runBtn { font: 600 15px 'Cinzel', serif; color: #e8dcc8; background: #2e2213; border: 1px solid #6a4d1b; border-radius: 8px; padding: 10px 14px; cursor: pointer; }
-.runBtn:hover { background: #3a2c18; border-color: #b88a3e; }
-.runBtn.small { padding: 6px 10px; font-size: 13px; }
-.runBtn:disabled { opacity: 0.4; cursor: default; }
+.runWrap iconify-icon { display: inline-flex; align-items: center; justify-content: center; vertical-align: middle; }
+.runWrap h1, .runWrap h2 {
+  font-family: 'Cinzel', serif; color: var(--gold4); letter-spacing: .5px;
+  display: flex; align-items: center; gap: 9px; justify-content: center; text-shadow: 0 1px 0 #000, 0 0 14px #ffcf6b33;
+}
+.runWrap h1 { font-family: 'Cinzel Decorative', serif; font-size: 32px; }
+.runWrap h1.lose { color: #ff9c9c; text-shadow: 0 0 18px #b1404088; }
 
-.runBar { display: flex; gap: 14px; align-items: center; flex-wrap: wrap; padding: 10px 0; border-bottom: 1px solid #3a2c18; margin-bottom: 12px; }
-.pStat { min-width: 130px; font-size: 13px; }
-.pStat.dead { opacity: 0.45; }
-.pStat .pHp { height: 7px; border-radius: 4px; background: #3a1c14; overflow: hidden; margin-top: 3px; }
-.pStat .pHp > div { height: 100%; background: linear-gradient(90deg, #c2553a, #e8a13a); }
-.runGold { color: #f0c84a; font-weight: 700; }
-.runRelics span, .runPotions span { font-size: 16px; margin-right: 2px; }
+/* top bar: menu / title / undo */
+.runHead { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 6px; }
+.runHead h2 { margin: 0; }
 
-.actMap { display: flex; flex-direction: column; gap: 6px; max-width: 520px; margin: 10px auto; }
+/* buttons — gilded */
+.runBtn {
+  font: 700 14px 'Cinzel', serif; letter-spacing: .5px; color: #3a2606; cursor: pointer;
+  background: linear-gradient(#ffe89a, #d6a72a); border: none; border-radius: 10px; padding: 10px 16px;
+  box-shadow: 0 4px 0 #8a6a18, 0 6px 14px #0008; transition: transform .1s, box-shadow .1s, filter .1s;
+}
+.runBtn:hover:not(:disabled) { filter: brightness(1.06); }
+.runBtn:active:not(:disabled) { transform: translateY(2px); box-shadow: 0 2px 0 #8a6a18, 0 3px 8px #0008; }
+.runBtn.small { padding: 6px 11px; font-size: 12px; }
+.runBtn:disabled { opacity: 0.4; cursor: default; box-shadow: 0 3px 0 #8a6a18; }
+/* a quieter, "stone" variant for secondary actions */
+.runBtn.ghost { background: #2e2213; color: #e8dcc8; box-shadow: inset 0 0 0 1.5px #6a4d1b, 0 3px 10px #0006; }
+
+/* ---------- party bar ---------- */
+.runBar {
+  display: flex; gap: 12px; align-items: center; flex-wrap: wrap; padding: 10px 12px; margin: 4px auto 14px;
+  max-width: 760px; border-radius: 12px; background: #00000044; border: 1.5px solid #c9a23a44;
+  box-shadow: inset 0 0 18px #0006, 0 6px 16px #0007;
+}
+.pStat { display: flex; align-items: center; gap: 8px; min-width: 150px; font-size: 13px; }
+.pStat.dead { opacity: 0.4; filter: grayscale(1); }
+.pCrest {
+  position: relative; flex: 0 0 auto; width: 38px; height: 38px; border-radius: 9px; overflow: hidden;
+  display: grid; place-items: center; background: radial-gradient(circle at 40% 30%, #2a1f3e, #140e26);
+  border: 1.5px solid var(--goldB); box-shadow: 0 0 8px var(--gl, #c9a23a55), inset 0 0 10px #0008;
+}
+.pCrest img { width: 100%; height: 100%; object-fit: cover; }
+.pCrest .pCrestIcon { font-size: 24px; }
+.pInfo { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
+.pInfo > b { font-family: 'Cinzel', serif; font-weight: 700; font-size: 12.5px; color: var(--cream);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.pHp { position: relative; width: 108px; height: 13px; border-radius: 7px; overflow: hidden;
+  background: #160f22; box-shadow: inset 0 0 0 1.5px #c9a23a88; }
+.pHp i { position: absolute; inset: 0; border-radius: 7px; background: linear-gradient(#8ef0a8, #2ea85c); transition: width .25s; }
+.pHp em { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center;
+  font-family: 'Cinzel', serif; font-weight: 700; font-size: 8.5px; color: #fff; text-shadow: 0 1px 1px #000; }
+.runGold { display: inline-flex; align-items: center; gap: 5px; color: #ffd34d; font-weight: 700;
+  font-family: 'Cinzel', serif; }
+.runGold iconify-icon { font-size: 18px; }
+.runRelics, .runPotions { display: inline-flex; gap: 3px; }
+.runRelics iconify-icon { font-size: 20px; color: #ffd34d; filter: drop-shadow(0 1px 3px #000); }
+.runPotions iconify-icon { font-size: 20px; color: #9ad6ff; filter: drop-shadow(0 1px 3px #000); }
+
+/* ---------- act map (a descending spire path) ---------- */
+.actMap { position: relative; display: flex; flex-direction: column; gap: 8px; max-width: 460px; margin: 12px auto; padding-left: 8px; }
+.actMap::before { content: ''; position: absolute; left: 30px; top: 6px; bottom: 6px; width: 3px;
+  background: linear-gradient(#c9a23a55, #c9a23a11); border-radius: 2px; }
 .mapNode {
-  display: flex; align-items: center; gap: 10px; padding: 10px 14px; border-radius: 10px;
-  background: #1c150b; border: 1px solid #3a2c18; opacity: 0.55;
+  position: relative; display: flex; align-items: center; gap: 12px; padding: 11px 15px; border-radius: 12px;
+  background: linear-gradient(#241a3a, #140e26); border: 1.5px solid #3a2c18; opacity: .5;
+  transition: transform .12s, border-color .12s, box-shadow .12s;
 }
-.mapNode .nIcon { font-size: 20px; width: 26px; text-align: center; }
-.mapNode .nType { text-transform: capitalize; letter-spacing: 1px; }
-.mapNode .nGo { margin-left: auto; color: #9be29b; }
-.mapNode.visited { opacity: 0.4; }
-.mapNode.current { border-color: #b88a3e; opacity: 1; background: #2e2213; }
-.mapNode.next { opacity: 1; cursor: pointer; border-color: #6a8a3e; box-shadow: 0 0 0 1px #4a6a2a inset; }
-.mapNode.next:hover { background: #243018; }
+.mapNode .nIcon { flex: 0 0 auto; width: 30px; height: 30px; display: grid; place-items: center; border-radius: 50%;
+  background: #0e0a18; border: 1.5px solid var(--goldB); font-size: 18px; color: var(--gold4); z-index: 1; }
+.mapNode .nType { font-family: 'Cinzel', serif; font-weight: 700; text-transform: capitalize; letter-spacing: 1px; color: var(--cream); }
+.mapNode .nGo { margin-left: auto; color: #9be29b; font-size: 18px; display: inline-flex; }
+.mapNode .nState { margin-left: auto; }
+.mapNode .nState.done { color: #7ee787; font-size: 16px; }
+.mapNode .nState.here { font-family: 'Cinzel', serif; font-size: 10px; letter-spacing: 1px; color: var(--gold1);
+  text-transform: uppercase; }
+.mapNode.visited { opacity: .42; }
+.mapNode.current { opacity: 1; border-color: var(--gold2); box-shadow: 0 0 0 1px var(--gold3) inset, 0 6px 16px #0008; }
+.mapNode.next { opacity: 1; cursor: pointer; border-color: #6a8a3e; box-shadow: 0 0 14px #4a6a2a55; }
+.mapNode.next:hover { transform: translateX(4px); border-color: #9be29b; }
+.mapNode.next .nIcon { box-shadow: 0 0 12px #9be29b66; }
 .mapNode.boss { border-color: #a23; }
+.mapNode.boss .nIcon { color: #ff9c9c; border-color: #c14a4a; }
 
-.roomCol { display: flex; flex-direction: column; gap: 10px; max-width: 520px; margin: 12px auto; }
-.upgradeList { display: flex; flex-direction: column; gap: 6px; }
+/* ---------- rooms (rest / treasure / shop / event) ---------- */
+.roomCol { display: flex; flex-direction: column; gap: 11px; max-width: 540px; margin: 14px auto; }
+.upgradeList { display: flex; flex-direction: column; gap: 7px; }
+.upgradeList p { color: #c9b58e; }
 .cardChip, .shopItem {
-  text-align: left; background: #1c150b; border: 1px solid #4a3a22; border-radius: 8px; padding: 8px 10px;
-  color: #e8dcc8; cursor: pointer; font: inherit;
+  text-align: left; background: linear-gradient(#241a3a, #160f26); border: 1.5px solid #4a3a22; border-radius: 10px;
+  padding: 9px 11px; color: #e8dcc8; cursor: pointer; font: inherit; transition: transform .1s, border-color .1s;
 }
-.cardChip:hover, .shopItem:hover:not(:disabled) { background: #2a2012; border-color: #b88a3e; }
-.shopItem:disabled { opacity: 0.4; cursor: default; }
+.cardChip:hover:not(:disabled), .shopItem:hover:not(:disabled) { border-color: var(--goldB); transform: translateY(-2px); }
+.cardChip:disabled, .shopItem:disabled { opacity: 0.42; cursor: default; }
 .ccTop { display: flex; gap: 8px; align-items: center; }
-.ccCost { background: #5a3f16; border: 1px solid #b88a3e; border-radius: 50%; width: 22px; height: 22px; display: inline-grid; place-items: center; font-weight: 700; }
-.ccText { color: #c9b58e; font-size: 12px; }
-.rewardCards { display: flex; gap: 12px; flex-wrap: wrap; margin: 12px 0; }
-.rewardCards .cardChip { width: 180px; }
-.relicCard { background: #1c150b; border: 1px solid #b88a3e; border-radius: 10px; padding: 12px; max-width: 360px; }
-.eventText { max-width: 520px; color: #c9b58e; }
-.runHint { color: #8a7a5e; font-size: 13px; text-align: center; }
-.over { display: grid; place-items: center; text-align: center; }
+.ccTop b { font-family: 'Cinzel', serif; color: var(--cream); }
+.ccCost { flex: 0 0 auto; background: radial-gradient(circle at 38% 30%, #cfeaff, #3f7fe6 52%, #16306e);
+  border: 2px solid var(--goldB); border-radius: 50%; width: 24px; height: 24px; display: inline-grid; place-items: center;
+  font-family: 'Cinzel', serif; font-weight: 800; font-size: 12px; color: #fff; text-shadow: 0 1px 2px #000; }
+.ccText { color: #c9b58e; font-size: 12px; margin-top: 3px; }
+.ccPrice { margin-left: auto; color: #ffd34d; font-weight: 700; font-size: 13px; font-family: 'Cinzel', serif; }
+.ccRarity { font-size: 10px; text-transform: uppercase; letter-spacing: .5px; color: #8a7a5e; margin-top: 2px; }
+/* rarity rim on cards */
+.cardChip.r-uncommon { border-color: #7ee787; } .cardChip.r-rare { border-color: #4d9fff; }
+.cardChip.r-epic { border-color: #a571ff; } .cardChip.r-mythic { border-color: #ff5a4d; }
+.cardChip.r-legendary { border-color: #ff9a3d; } .cardChip.r-godly { border-color: #ffd34d; }
+.rewardCards { display: flex; gap: 14px; flex-wrap: wrap; justify-content: center; margin: 14px auto; max-width: 640px; }
+.rewardCards .cardChip { width: 184px; }
+.relicCard { background: linear-gradient(#241a3a, #160f26); border: 1.5px solid var(--goldB); border-radius: 12px;
+  padding: 14px; max-width: 380px; margin: 0 auto; box-shadow: 0 6px 16px #0008; }
+.relicCard b { font-family: 'Cinzel', serif; color: var(--gold4); display: flex; align-items: center; gap: 7px; }
+.relicCard p { margin-top: 6px; color: #c9b58e; }
+
+/* member-target picker */
+.memberPick { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin: 8px auto; max-width: 540px;
+  font-family: 'Cinzel', serif; font-size: 12px; color: #c9b58e; }
+.mpBtn { border: 1.5px solid #4a3a22; background: #241a10; color: #e8dcc8; border-radius: 999px; padding: 4px 12px;
+  cursor: pointer; font: inherit; font-size: 12px; }
+.mpBtn.on { background: #5a3f16; border-color: var(--goldB); color: #ffe6a0; }
+
+.eventText { max-width: 540px; margin: 4px auto; color: #c9b58e; text-align: center; }
+.runHint { color: #9a8a6a; font-size: 13px; text-align: center; font-style: italic; }
+.runActions { display: flex; gap: 10px; justify-content: center; margin-top: 14px; }
+.over { display: grid; place-items: center; text-align: center; min-height: 70vh; }
 
 /* Combat is a full-screen replacement. height:100% would depend on every
    ancestor resolving a height (fragile through the app shell), so pin the

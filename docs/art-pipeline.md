@@ -96,3 +96,16 @@ quality ~80. Target ~30–80 KB each. Write to `public/art/...`. Produce
 ## Blocked on
 
 `claude-image-gen` installed + `GEMINI_API_KEY` set + Claude Code restarted.
+
+## TODO — roster portraits to regenerate (flagged 2026-06-23, Jeton)
+
+Two roster creatures have bad/missing portraits (regen needs the `agy` env —
+`scripts/gen_roster.py` — which only runs on the Windows machine, not the web
+session):
+
+- **tidecaller** — NO portrait at all (absent from `src/data/creatureArt.json`);
+  currently falls back to the attunement icon. Generate `public/art/gen/tidecaller.png`
+  and add `"tidecaller"` to `creatureArt.json`.
+- **frostmind** ("the thought" one) — portrait reads off; regenerate
+  `public/art/gen/frostmind.png`. *(Confirm this is the one meant — flagged as
+  "the thought".)*

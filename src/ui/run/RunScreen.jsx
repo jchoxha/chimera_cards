@@ -13,6 +13,7 @@ import { currentNode } from '../../engine/run/map.js';
 import { makeRng } from '../../engine/run/rng.js';
 import { RELICS, POTIONS, EVENTS } from '../../engine/run/content.js';
 import { draftRunReward } from '../../engine/run/rewards.js';
+import { creatureIcon, creatureColor } from '../../data/axisIcons.js';
 import { cardText } from '../../engine/cards/cardText.js';
 import './run.css';
 
@@ -33,21 +34,42 @@ function MemberPicker({ snap, target, setTarget }) {
   );
 }
 
-const NODE_ICON = { start: '🚪', combat: '⚔', elite: '☠', boss: '👑', rest: '🔥', shop: '🛒', treasure: '💎', event: '❓' };
+const Icon = ({ icon, ...rest }) => <iconify-icon icon={icon} {...rest}></iconify-icon>;
+
+const NODE_ICON = {
+  start: 'game-icons:dungeon-gate', combat: 'game-icons:crossed-swords', elite: 'game-icons:daemon-skull',
+  boss: 'game-icons:dragon-head', rest: 'game-icons:campfire', shop: 'game-icons:swap-bag',
+  treasure: 'game-icons:open-treasure-chest', event: 'game-icons:perspective-dice-six-faces-random',
+};
 const roomRng = (s) => makeRng((s.rngState ^ (s.floor * 0x9e3779b1)) >>> 0);
+
+/** A small creature crest (AI portrait if present, else the tinted axis icon). */
+function Crest({ m }) {
+  const color = creatureColor(m);
+  return (
+    <span className="pCrest" style={{ '--gl': color }}>
+      {m.meta?.portrait
+        ? <img src={m.meta.portrait} alt="" />
+        : <Icon className="pCrestIcon" icon={creatureIcon(m)} style={{ color }} />}
+    </span>
+  );
+}
 
 function PartyBar({ snap }) {
   return (
     <div className="runBar">
       {snap.party.map((m) => (
         <div key={m.id} className={`pStat ${m.hp <= 0 ? 'dead' : ''}`}>
-          <b>{m.name}</b> <span>{m.hp}/{m.maxHp}</span>
-          <div className="pHp"><div style={{ width: `${Math.max(0, (m.hp / m.maxHp) * 100)}%` }} /></div>
+          <Crest m={m} />
+          <div className="pInfo">
+            <b>{m.name}</b>
+            <div className="pHp"><i style={{ width: `${Math.max(0, (m.hp / m.maxHp) * 100)}%` }} /><em>{m.hp}/{m.maxHp}</em></div>
+          </div>
         </div>
       ))}
-      <span className="runGold">💰 {snap.gold}</span>
-      <span className="runRelics">{snap.relics.map((r) => <span key={r.id} title={r.text}>🟡</span>)}</span>
-      <span className="runPotions">{snap.potions.map((p, i) => <span key={i} title={p.text}>🧪</span>)}</span>
+      <span className="runGold"><Icon icon="game-icons:two-coins" /> {snap.gold}</span>
+      <span className="runRelics">{snap.relics.map((r) => <Icon key={r.id} icon="game-icons:gem-pendant" title={r.text} />)}</span>
+      <span className="runPotions">{snap.potions.map((p, i) => <Icon key={i} icon="game-icons:round-potion" title={p.text} />)}</span>
     </div>
   );
 }
@@ -96,7 +118,7 @@ export default function RunScreen({ onMenu }) {
   if (run.view === 'reward') {
     return (
       <div className="runWrap">
-        <h2>Choose a card</h2>
+        <h2><Icon icon="game-icons:card-pickup" /> Choose a card</h2>
         <MemberPicker snap={snap} target={tgt} setTarget={setTarget} />
         <div className="rewardCards">
           {(snap.pendingReward || []).map((c, i) => <CardChip key={i} c={c} onClick={() => run.chooseReward(c, tgt)} />)}
@@ -142,14 +164,16 @@ export default function RunScreen({ onMenu }) {
             <div key={n.id}
               className={`mapNode ${n.type} ${isCurrent ? 'current' : ''} ${n.visited ? 'visited' : ''} ${isNext ? 'next' : ''}`}
               onClick={isNext ? () => run.goTo(n.id) : undefined}>
-              <span className="nIcon">{NODE_ICON[n.type] || '•'}</span>
+              <span className="nIcon"><Icon icon={NODE_ICON[n.type] || 'game-icons:flat-platform'} /></span>
               <span className="nType">{n.type}</span>
-              {isNext && <span className="nGo">▶</span>}
+              {n.visited && <Icon className="nState done" icon="game-icons:check-mark" />}
+              {isCurrent && !n.visited && <span className="nState here">You are here</span>}
+              {isNext && <span className="nGo"><Icon icon="game-icons:plain-arrow" /></span>}
             </div>
           );
         })}
       </div>
-      <p className="runHint">Click the next ▶ node to advance.</p>
+      <p className="runHint">Choose your next path to descend.</p>
     </div>
   );
 }
@@ -161,7 +185,7 @@ function Room({ run, snap, node, target, setTarget }) {
     const upgradable = (member?.deck || []).filter((c) => !c.upgraded);
     return (
       <div className="runWrap">
-        <h2>🔥 Campfire</h2>
+        <h2><Icon icon="game-icons:campfire" /> Campfire</h2>
         <PartyBar snap={snap} />
         <div className="roomCol">
           <button className="runBtn" onClick={() => { run.dispatch('healParty', { pct: 0.3 }); run.finishRoom(); }}>Rest — heal 30% HP</button>
@@ -186,10 +210,10 @@ function Room({ run, snap, node, target, setTarget }) {
     const relic = pool.length ? roomRng(snap).pick(pool) : null;
     return (
       <div className="runWrap">
-        <h2>💎 Treasure</h2>
+        <h2><Icon icon="game-icons:open-treasure-chest" /> Treasure</h2>
         {relic ? (
           <div className="roomCol">
-            <div className="relicCard"><b>{relic.name}</b><p>{relic.text}</p></div>
+            <div className="relicCard"><b><Icon icon="game-icons:gem-pendant" /> {relic.name}</b><p>{relic.text}</p></div>
             <button className="runBtn" onClick={() => { run.dispatch('addRelic', { relic }); run.finishRoom(); }}>Take {relic.name}</button>
           </div>
         ) : <p>Nothing left to find.</p>}
@@ -208,7 +232,7 @@ function Room({ run, snap, node, target, setTarget }) {
     const tgt = target || snap.party.find((m) => m.hp > 0)?.id || snap.party[0]?.id;
     return (
       <div className="runWrap">
-        <h2>🛒 Shop — 💰 {snap.gold}</h2>
+        <h2><Icon icon="game-icons:swap-bag" /> Shop <span className="runGold"><Icon icon="game-icons:two-coins" /> {snap.gold}</span></h2>
         {cardStock.length > 0 && <>
           <MemberPicker snap={snap} target={tgt} setTarget={setTarget} />
           <div className="rewardCards">
@@ -239,7 +263,7 @@ function Room({ run, snap, node, target, setTarget }) {
     const ev = roomRng(snap).pick(EVENTS);
     return (
       <div className="runWrap">
-        <h2>❓ {ev.name}</h2>
+        <h2><Icon icon="game-icons:suspicious" /> {ev.name}</h2>
         <p className="eventText">{ev.text}</p>
         <div className="roomCol">
           {ev.choices.map((ch, i) => (
