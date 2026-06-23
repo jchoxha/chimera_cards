@@ -463,7 +463,6 @@ export class VanguardManager {
     const benchedCount = benchFighters(s.player).length;
     s.player.energyPerTurn = Math.max(3, benchedCount);
     s.player.energy = s.player.energyPerTurn;
-    this._applyShock('player'); // Shock drains energy at turn start
 
     // 4. Draw cards (reset the per-turn counters at the start of the player's turn).
     this._resetTurnCounters('player');
@@ -516,7 +515,7 @@ export class VanguardManager {
       if (card.requires?.stanceSide && stanceSide(stance) !== card.requires.stanceSide) return false;
     }
 
-    const cost = card.cost === -1 ? s.player.energy : card.cost;
+    const cost = card.cost === -1 ? s.player.energy : card.cost + this._shockTax('player');
     if (cost > s.player.energy) return false;
     s.player.energy -= cost;
 
@@ -644,6 +643,7 @@ export class VanguardManager {
 
     const incoming = side.fighters[benchIndex];
     if (!incoming || incoming.hp <= 0) return false;
+    if (this._exposeLocked(incoming)) return false; // can't swap in while Expose > HP
 
     const cost = side.manualSwapsThisTurn + 1;
     if (side.energy < cost) return false;
@@ -772,7 +772,6 @@ export class VanguardManager {
     const benchedCount = benchFighters(s.enemy).length;
     s.enemy.energyPerTurn = Math.max(3, benchedCount);
     s.enemy.energy = s.enemy.energyPerTurn;
-    this._applyShock('enemy'); // Shock drains energy at turn start
 
     // Fire enemy powers that hook the start of the turn.
     this._resetTurnCounters('enemy');
@@ -849,7 +848,7 @@ export class VanguardManager {
     } else if (action.detail.cardId) {
       const card = actor.hand.find((c) => c.id === action.detail.cardId);
       if (card) {
-        const cost = card.cost === -1 ? s.enemy.energy : card.cost;
+        const cost = card.cost === -1 ? s.enemy.energy : card.cost + this._shockTax('enemy');
         s.enemy.energy = Math.max(0, s.enemy.energy - cost);
 
         const pVanguard = vanguard(s.player);
@@ -905,28 +904,51 @@ export class VanguardManager {
    * @param {'player'|'enemy'} sideKey
    * @param {'dots'|'regen'|'duration'} type
    */
-  /**
-   * Shock (Energy): the side's Vanguard loses `stacks` energy at its own turn start,
-   * then Shock clears. Symmetric — affects whichever side carries it.
-   * @param {'player'|'enemy'} sideKey
-   */
-  _applyShock(sideKey) {
-    const side = this.state[sideKey];
-    const v = side.fighters[side.vanguardIndex];
-    if (!v || v.hp <= 0) return;
-    const st = v.statuses.find((s) => s.id === 'shock');
-    if (st && st.amount > 0) {
-      side.energy = Math.max(0, side.energy - st.amount);
-      st.amount = 0;
-      this._emit('status', { targetId: v.id, id: 'shock', amount: 0 });
-      pruneStatuses(v.statuses);
+  /** Shock v2: card-cost tax = number of living creatures on the side carrying Shock. */
+  _shockTax(sideKey) {
+    return this.state[sideKey].fighters.filter(
+      (f) => f.hp > 0 && f.statuses.some((s) => s.id === 'shock' && s.amount > 0),
+    ).length;
+  }
+
+  /** Expose v2: a creature is locked out of the Vanguard while its Expose > its HP. */
+  _exposeLocked(f) {
+    return (f.statuses.find((s) => s.id === 'expose')?.amount ?? 0) > f.hp;
+  }
+
+  /** Best incoming Vanguard: first living, non-Expose-locked unit; else the first
+   *  living unit (the last-creature / all-locked fallback). */
+  _firstIncoming(side) {
+    const free = side.fighters.findIndex((f) => f.hp > 0 && !this._exposeLocked(f));
+    return free !== -1 ? free : side.fighters.findIndex((f) => f.hp > 0);
+  }
+
+  /** Expose v2: force-swap out any Vanguard whose Expose exceeds its HP, when a
+   *  living non-locked benched unit exists (else it stays — last/all-locked). */
+  _checkExposeLockout() {
+    for (const sideKey of ['player', 'enemy']) {
+      const side = this.state[sideKey];
+      const vg = side.fighters[side.vanguardIndex];
+      if (!vg || vg.hp <= 0 || !this._exposeLocked(vg)) continue;
+      const idx = side.fighters.findIndex((f, i) => i !== side.vanguardIndex && f.hp > 0 && !this._exposeLocked(f));
+      if (idx === -1) continue;
+      const oldIndex = side.vanguardIndex;
+      discardWholeHand(vg);
+      side.vanguardIndex = idx;
+      const incoming = side.fighters[idx];
+      drawFreshHand(incoming, side.handSize, this.rng);
+      this._emit('swap', { side: sideKey, fromIndex: oldIndex, toIndex: idx, cost: 0, forced: true, reason: 'expose' });
+      this._triggerSwapInBoons(sideKey, incoming);
+      if (sideKey === 'enemy') this.state.enemyPlan = this.state.enemyPlan.filter((a) => a.actor !== vg.id);
     }
   }
 
   _tickStatuses(sideKey, type) {
     const side = this.state[sideKey];
     const emit = this._emit.bind(this);
-    
+    // Shock spread factor: how many creatures on this side carry Shock (Shock v2).
+    const shockN = side.fighters.filter((f) => f.hp > 0 && f.statuses.some((x) => x.id === 'shock' && x.amount > 0)).length;
+
     for (const f of side.fighters) {
       if (f.hp <= 0) continue;
 
@@ -962,6 +984,13 @@ export class VanguardManager {
             emit('powerStripped', { targetId: f.id, source: removed && removed.source });
           }
           dec.amount -= 1;
+        }
+        // Shock (Energy): DoT = stacks; stack changes by (N-1) per tick → persists at
+        // N=1, GROWS when 2+ creatures on this side are Shocked. Capped at 9.
+        const sh = f.statuses.find((x) => x.id === 'shock');
+        if (sh && sh.amount > 0) {
+          applyDamage(f, sh.amount, emit, true);
+          sh.amount = Math.max(0, Math.min(9, sh.amount + (shockN - 1)));
         }
         // Reset the per-window hit counter once Bleed has consumed it.
         f.hitsTaken = 0;
@@ -999,7 +1028,7 @@ export class VanguardManager {
       this._fire('player', 'onDeath');   // dying side's own death hooks
       this._fire('enemy', 'fatal');      // killer side's fatal hooks
       discardWholeHand(pVanguard);
-      const nextIdx = pSide.fighters.findIndex((f) => f.hp > 0);
+      const nextIdx = this._firstIncoming(pSide);
       if (nextIdx !== -1) {
         const oldIndex = pSide.vanguardIndex;
         pSide.vanguardIndex = nextIdx;
@@ -1020,7 +1049,7 @@ export class VanguardManager {
       discardWholeHand(eVanguard);
       // Remove any queued actions for this dead Vanguard
       s.enemyPlan = s.enemyPlan.filter((a) => a.actor !== eVanguard.id);
-      const nextIdx = eSide.fighters.findIndex((f) => f.hp > 0);
+      const nextIdx = this._firstIncoming(eSide);
       if (nextIdx !== -1) {
         const oldIndex = eSide.vanguardIndex;
         eSide.vanguardIndex = nextIdx;
@@ -1030,6 +1059,9 @@ export class VanguardManager {
         this._triggerSwapInBoons('enemy', incoming);
       }
     }
+
+    // Expose v2: force-swap out any Vanguard whose Expose now exceeds its HP.
+    this._checkExposeLockout();
   }
 
   _triggerSwapInBoons(sideKey, fighter) {

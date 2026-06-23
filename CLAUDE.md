@@ -213,10 +213,19 @@ old +1/hit grow). (c) **Decay reworked:** each tick now also **strips 1 stack of
 (strength/dexterity/regen/amplify) **AND removes one active Power** (`f.powers.pop()`) on top of
 HP+Block — devastating vs buff/power decks. Void cards rebalanced **more expensive / lower decay**
 (Entropy→cost 2 / 2 decay; Bolt/Annihilate→1 decay; Annihilate cost 3) since Decay is now potent.
-`test:statuses` 20. **STILL PENDING (confirmed, bigger system reworks):** **Shock v2** (per-side
-energy-cost tax = #shocked creatures + a damage tic + spread-growth decay-by-(1−N)) and **Expose
-v2** (forced-swap + swap-lockout while Expose > HP) — these touch the energy economy + swap system;
-plan locked, building next.
+`test:statuses` 20.
+
+**🔄 ATTUNEMENT TUNING ROUND 2 — Shock v2 + Expose v2 (v3.27.0, 2026-06-22).** Both reworked into
+SYSTEM mechanics (`test:statuses` 24). **Shock v2** (replaces the old energy-drain): while a side
+has Shocked creatures, its **active Vanguard pays +1 energy per Shocked creature** on that side
+(`_shockTax`, added to card cost in `play()` + the enemy play loop); each turn Shock also **DoTs HP
+= stacks** and its stack changes by **(N−1)** (N = Shocked creatures on the side) — **persists at
+N=1, GROWS when spread to 2+** (capped 9), in `_tickStatuses`. Fixes the old "3 = nullify."
+**Expose v2:** block-ignore is now a **window** (while Expose > 0 ALL hits ignore Block, NOT
+consumed per hit) that **decays 1/turn** (moved out of INTENSITY_STATUSES); when a creature's
+**Expose > its HP** it is **force-swapped to the bench and locked** from returning until HP > Expose
+(`_exposeLocked`/`_checkExposeLockout` run in `_resolveDeaths`; `swap()` + death-replacement
+`_firstIncoming` skip locked units) — unless it's the last creature. Combat tooltips updated.
 
 **Archetype deep-dive (Topic 5) — `docs/archetype-design.md`.** Designing all 36
 **archetypes** (the taxonomy's "Class" axis — *we call them archetypes, not classes*; code

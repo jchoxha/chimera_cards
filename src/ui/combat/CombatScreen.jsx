@@ -90,10 +90,10 @@ const EFFECT_INFO = {
   regen: { name: 'Regen', icon: 'game-icons:health-normal', desc: 'Heals HP equal to its stacks at the end of the carrier’s own turn, then decays by 1.' },
   chill: { name: 'Chill', icon: 'game-icons:snowflake-1', desc: 'A frost affliction (not yet active this milestone).' },
   soak: { name: 'Soak', icon: 'game-icons:water-drop', desc: 'The next attack against this unit deals +25% per Soak stack, then Soak clears. Stack it up for a devastating blow.' },
-  shock: { name: 'Shock', icon: 'game-icons:lightning-arc', desc: 'At the start of its turn, this unit loses energy equal to its Shock, then Shock clears.' },
+  shock: { name: 'Shock', icon: 'game-icons:lightning-arc', desc: 'While this side has Shocked creatures, its Vanguard pays +1 energy per Shocked ally. Each turn it loses HP = stacks; with 2+ Shocked allies it spreads (grows) instead of fading.' },
   decay: { name: 'Decay', icon: 'game-icons:skull-crossed-bones', desc: 'At turn-end: loses HP AND Block equal to stacks, strips 1 stack of EVERY buff, and removes one active Power. Then decays 1.' },
   bleed: { name: 'Bleed', icon: 'game-icons:drop', desc: 'At turn-end loses HP = stacks × the number of times it was hit that turn; if it was not hit, Bleed falls off entirely. Otherwise decays 1.' },
-  expose: { name: 'Expose', icon: 'game-icons:cracked-shield', desc: 'The next hit against this unit ignores ALL Block; one Expose consumed per hit.' },
+  expose: { name: 'Expose', icon: 'game-icons:cracked-shield', desc: 'While Exposed, ALL hits against this unit ignore Block (not consumed; decays 1/turn). If Expose exceeds its HP, it is forced to the bench and cannot return until HP > Expose (unless it is the last unit).' },
   confuse: { name: 'Confuse', icon: 'game-icons:brain', desc: 'This unit’s next attack is unreliable — it may fizzle, or strike a random target. Consumed per attack.' },
   amplify: { name: 'Amplify', icon: 'game-icons:magic-swirl', desc: 'This unit’s next attack deals +50%, then Amplify clears.' },
 };

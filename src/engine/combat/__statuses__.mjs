@@ -24,10 +24,18 @@ const strike = (extra = {}) => ({ id: 's', name: 'Strike', attunement: 'Physical
 const addSt = (f, id, amount) => f.statuses.push({ id, amount, stacking: 'intensity' });
 const amt = (f, id) => f.statuses.find((s) => s.id === id)?.amount ?? 0;
 
-console.log('Expose (Air): next hit ignores all Block:');
-{ const { m, p, foe } = setup(); foe.block = 10; addSt(foe, 'expose', 1); p.hand = [strike()]; const b = foe.hp; m.play('s');
-  ok(foe.hp === b - 6 && foe.block === 10, `6 to HP straight through 10 Block (hp ${foe.hp}, block ${foe.block})`);
-  ok(amt(foe, 'expose') === 0, 'Expose consumed'); }
+console.log('Expose (Air): block-ignore is a window (not consumed); >HP forces a swap:');
+{ const { m, p, foe } = setup(); foe.block = 10; addSt(foe, 'expose', 2); p.hand = [strike()]; const b = foe.hp; m.play('s');
+  ok(foe.hp === b - 6 && foe.block === 10, `ignores Block while Exposed (hp ${foe.hp}, block ${foe.block})`);
+  ok(amt(foe, 'expose') === 2, `Expose NOT consumed per hit (still ${amt(foe, 'expose')})`); }
+{ const v = createFighter({ id: 'v', name: 'V', hp: 5, maxHp: 60 });
+  v.statuses.push({ id: 'expose', amount: 6, stacking: 'duration' }); // 6 > 5 HP → locked
+  const ally = createFighter({ id: 'a', name: 'A', hp: 60, maxHp: 60 });
+  const foe = createFighter({ id: 'f', name: 'F', hp: 100, maxHp: 100 });
+  const m = new VanguardManager({ playerFighters: [v, ally], enemyFighters: [foe], room: 'combat', rarity: { offset: -0.05, ascension7: false } });
+  m.startCombat(); m._checkExposeLockout();
+  ok(m.state.player.vanguardIndex === 1, `Expose>HP force-swapped the Vanguard out (now index ${m.state.player.vanguardIndex})`);
+  ok(m.swap(0) === false, 'the locked creature cannot be swapped back in'); }
 
 console.log('Soak (Water): next attack +25% per stack, then clears:');
 { const { m, p, foe } = setup(); addSt(foe, 'soak', 2); p.hand = [strike()]; const b = foe.hp; m.play('s');
@@ -57,10 +65,21 @@ console.log('Decay (Void): strips HP, Block, a buff stack, AND a power:');
   ok(foe.powers.length === 0, 'stripped a power card');
   ok(amt(foe, 'decay') === 2, 'decayed 1'); }
 
-console.log('Shock (Energy): drains energy at turn start:');
-{ const { m, p } = setup(); m.state.player.energy = 5; addSt(p, 'shock', 3); m._applyShock('player');
-  ok(m.state.player.energy === 2, `drained 3 energy (5 → ${m.state.player.energy})`);
-  ok(amt(p, 'shock') === 0, 'Shock cleared'); }
+console.log('Shock (Energy): cost tax + DoT + spread growth:');
+{ const { m, p } = setup(); addSt(p, 'shock', 2); m.state.player.energy = 5; p.hand = [strike()]; m.play('s');
+  ok(m.state.player.energy === 3, `cost tax +1 per Shocked creature: a 1-cost card paid 2 (energy ${m.state.player.energy})`); }
+{ const { m, foe } = setup(); addSt(foe, 'shock', 3); const b = foe.hp; m._tickStatuses('enemy', 'dots');
+  ok(foe.hp === b - 3, `DoT = stacks (hp ${foe.hp})`);
+  ok(amt(foe, 'shock') === 3, `N=1 → Shock persists, no decay (${amt(foe, 'shock')})`); }
+{ const pl = createFighter({ id: 'p', name: 'P', hp: 60, maxHp: 60 });
+  const f1 = createFighter({ id: 'f1', name: 'F1', hp: 100, maxHp: 100 });
+  const f2 = createFighter({ id: 'f2', name: 'F2', hp: 100, maxHp: 100 });
+  f1.statuses.push({ id: 'shock', amount: 2, stacking: 'intensity' });
+  f2.statuses.push({ id: 'shock', amount: 2, stacking: 'intensity' });
+  const m = new VanguardManager({ playerFighters: [pl], enemyFighters: [f1, f2], room: 'combat', rarity: { offset: -0.05, ascension7: false } });
+  m.startCombat(); m._tickStatuses('enemy', 'dots');
+  const g = f1.statuses.find((s) => s.id === 'shock')?.amount ?? 0;
+  ok(g === 3, `N=2 → Shock spreads/grows +1 (2 → ${g})`); }
 
 console.log('Confuse (Mind): fizzle vs normal, driven by rng:');
 { const { m, p, foe } = setup({ rng: () => 0 }); addSt(p, 'confuse', 1); p.hand = [strike()]; const b = foe.hp; m.play('s');

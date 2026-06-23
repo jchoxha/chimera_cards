@@ -110,8 +110,10 @@ export function resolveScope(state, casterKey, caster, scope, { targetId } = {})
 /** Default stacking discipline per status id. @param {string} id */
 const INTENSITY_STATUSES = new Set([
   'strength', 'burn', 'poison',
-  // consumed-on-use / DoT counters — NOT turn-countdown debuffs
-  'bleed', 'decay', 'soak', 'shock', 'expose', 'confuse', 'amplify',
+  // consumed-on-use / DoT counters — NOT turn-countdown debuffs.
+  // (Expose is intentionally NOT here: it accumulates AND decays 1/turn like a
+  // duration debuff, so it can build past the target's HP — Expose v2.)
+  'bleed', 'decay', 'soak', 'shock', 'confuse', 'amplify',
 ]);
 export function stackingFor(id) {
   return INTENSITY_STATUSES.has(id) ? 'intensity' : 'duration'; // weak, vulnerable, regen, frail → duration
@@ -174,7 +176,8 @@ export function applyDamage(target, amount, emit, dot = false, side = null) {
   let absorbedBraced = 0;
   let absorbedFortify = 0;
 
-  // Expose (Air): the next hit ignores ALL Block layers; consume one stack.
+  // Expose (Air): while Expose > 0, EVERY hit ignores ALL Block layers (a window,
+  // NOT consumed per hit — it decays 1/turn and can build past the target's HP).
   const exposeSt = !dot && target.statuses.find((s) => s.id === 'expose');
   const exposed = exposeSt && exposeSt.amount > 0;
 
@@ -197,10 +200,8 @@ export function applyDamage(target, amount, emit, dot = false, side = null) {
       side.fortifySlot.block -= absorbedFortify;
       hpLoss -= absorbedFortify;
     }
-  } else if (exposed) {
-    exposeSt.amount -= 1; // ignored all Block this hit
-    emit?.('status', { targetId: target.id, id: 'expose', amount: exposeSt.amount });
   }
+  // (exposed → Block was skipped above; Expose is not consumed per hit.)
 
   target.hp = Math.max(0, target.hp - hpLoss);
   emit?.('damage', {
