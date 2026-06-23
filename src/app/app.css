@@ -25,8 +25,16 @@
 .menuBtn:disabled { opacity: 0.4; cursor: default; }
 .menuBtn.big { font-size: 18px; padding: 16px; background: #5a3f16; border-color: #b88a3e; }
 .menuBtn.big:hover { background: #6f4f1d; }
+/* advanced playtest disclosure */
+.menuToggle {
+  display: flex; width: 100%; align-items: center; justify-content: space-between; margin: 14px 0 0;
+  padding: 9px 14px; cursor: pointer; font: 600 13px 'Cinzel', serif; letter-spacing: .5px; color: #c9b58e;
+  background: transparent; border: 1px dashed #4a3a22; border-radius: 10px;
+}
+.menuToggle:hover { color: #e8dcc8; border-color: #6a4d1b; }
+.menuChevron { color: #8a7a5e; }
 .menuSetup {
-  margin: 18px 0 6px; padding: 16px; border: 1px solid #3a2c18; border-radius: 12px; background: #16110a;
+  margin: 8px 0 6px; padding: 16px; border: 1px solid #3a2c18; border-radius: 12px; background: #16110a;
 }
 .menuSetup h3 { margin: 0 0 12px; font-family: 'Cinzel', serif; color: #e2c98a; }
 .menuSetup label { display: flex; justify-content: space-between; align-items: center; gap: 10px; margin: 8px 0; font-size: 14px; color: #c9b58e; }

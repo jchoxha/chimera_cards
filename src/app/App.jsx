@@ -41,6 +41,7 @@ export default function App() {
   const [dummyAtt, setDummyAtt] = useState('');
   const [dummyBio, setDummyBio] = useState('');
   const [lastDeck, setLastDeck] = useState(null); // remembered deck → "Restart" replays it
+  const [showPlaytest, setShowPlaytest] = useState(false); // advanced playtest knobs (collapsed)
 
   // The class of the selected deck → which primary attunements are legal (a combo is
   // legal if its FIRST base is legal; the 2nd may be anything — synthesis.js A4).
@@ -114,71 +115,74 @@ export default function App() {
     <div className="menu">
       <div className="menuCard">
         <h1 className="menuTitle">CHIMERA</h1>
-        <p className="menuSub">Card Forge &amp; Proving Pit <span className="menuVersion">{APP_VERSION}</span></p>
+        <p className="menuSub">Card-driven creature deckbuilder <span className="menuVersion">{APP_VERSION}</span></p>
 
-        <button className="menuBtn big" onClick={() => setView('editor')}>
+        {/* Primary: descend */}
+        <button className="menuBtn big" onClick={() => setView('select')}>
+          ⚔ Choose Your Team &amp; Descend
+        </button>
+        {useRun.getState().hasSave() && (
+          <button className="menuBtn" onClick={continueRun}>↻ Continue Saved Run</button>
+        )}
+
+        {/* Secondary: forge */}
+        <button className="menuBtn" onClick={() => setView('editor')}>
           🃏 Open the Card Forge
         </button>
 
-        <div className="menuSetup">
-          <h3>⚔ Playtest Combat</h3>
-          <label>Deck
-            <select value={deckFile} onChange={(e) => setDeckFile(e.target.value)}>
-              {FILE_NAMES.map((f) => <option key={f} value={f}>{f.replace('.json', '')}</option>)}
-            </select>
-          </label>
-          <label>Your attunement
-            <select value={att1} onChange={(e) => setAtt1(e.target.value)}>
-              {legalPrimary.map((a) => <option key={a} value={a}>{a}</option>)}
-            </select>
-          </label>
-          <label>+ 2nd (optional)
-            <select value={att2} onChange={(e) => setAtt2(e.target.value)}>
-              <option value="">(none)</option>
-              {ATTUNEMENT_BASES.map((a) => <option key={a} value={a}>{a}</option>)}
-            </select>
-          </label>
-          <label>Dummy attunement
-            <select value={dummyAtt} onChange={(e) => setDummyAtt(e.target.value)}>
-              <option value="">(none)</option>
-              {ATTUNEMENT_BASES.map((a) => <option key={a} value={a}>{a}</option>)}
-            </select>
-          </label>
-          <label>Dummy biology
-            <select value={dummyBio} onChange={(e) => setDummyBio(e.target.value)}>
-              <option value="">(none)</option>
-              {BIOLOGY_BASES.map((b) => <option key={b} value={b}>{b}</option>)}
-            </select>
-          </label>
-          <label>Target Dummy HP
-            <input type="number" min="1" value={enemyHp} onChange={(e) => setEnemyHp(e.target.value)} />
-          </label>
-          <div className="menuRow">
-            <button className="menuBtn big" onClick={() => setView('deckbuild')} disabled={!FILE_NAMES.length}>
-              🛠 Build a Deck
-            </button>
-            <button className="menuBtn" onClick={() => launchCombat()} disabled={!FILE_NAMES.length}
-              title="Skip the builder and fight with the whole card pool">
-              Quick Fight (full pool)
-            </button>
+        {/* Advanced: playtest knobs, collapsed by default */}
+        <button className="menuToggle" onClick={() => setShowPlaytest((v) => !v)} aria-expanded={showPlaytest}>
+          <span>⚔ Playtest Combat</span>
+          <span className="menuChevron">{showPlaytest ? '▾' : '▸'}</span>
+        </button>
+        {showPlaytest && (
+          <div className="menuSetup">
+            <label>Deck
+              <select value={deckFile} onChange={(e) => setDeckFile(e.target.value)}>
+                {FILE_NAMES.map((f) => <option key={f} value={f}>{f.replace('.json', '')}</option>)}
+              </select>
+            </label>
+            <label>Your attunement
+              <select value={att1} onChange={(e) => setAtt1(e.target.value)}>
+                {legalPrimary.map((a) => <option key={a} value={a}>{a}</option>)}
+              </select>
+            </label>
+            <label>+ 2nd (optional)
+              <select value={att2} onChange={(e) => setAtt2(e.target.value)}>
+                <option value="">(none)</option>
+                {ATTUNEMENT_BASES.map((a) => <option key={a} value={a}>{a}</option>)}
+              </select>
+            </label>
+            <label>Dummy attunement
+              <select value={dummyAtt} onChange={(e) => setDummyAtt(e.target.value)}>
+                <option value="">(none)</option>
+                {ATTUNEMENT_BASES.map((a) => <option key={a} value={a}>{a}</option>)}
+              </select>
+            </label>
+            <label>Dummy biology
+              <select value={dummyBio} onChange={(e) => setDummyBio(e.target.value)}>
+                <option value="">(none)</option>
+                {BIOLOGY_BASES.map((b) => <option key={b} value={b}>{b}</option>)}
+              </select>
+            </label>
+            <label>Target Dummy HP
+              <input type="number" min="1" value={enemyHp} onChange={(e) => setEnemyHp(e.target.value)} />
+            </label>
+            <div className="menuRow">
+              <button className="menuBtn big" onClick={() => setView('deckbuild')} disabled={!FILE_NAMES.length}>
+                🛠 Build a Deck
+              </button>
+              <button className="menuBtn" onClick={() => launchCombat()} disabled={!FILE_NAMES.length}
+                title="Skip the builder and fight with the whole card pool">
+                Quick Fight
+              </button>
+            </div>
+            <p className="menuHint">
+              Set your attunement (a 2nd drives Imbue, e.g. Fire→Burn) and give the dummy an
+              attunement/biology to test matchups.
+            </p>
           </div>
-        </div>
-
-        <div className="menuSetup">
-          <h3>🗺 Roguelike Run</h3>
-          <button className="menuBtn big" onClick={() => setView('select')}>
-            ⚔ Choose Your Team &amp; Descend
-          </button>
-          {useRun.getState().hasSave() && (
-            <button className="menuBtn" onClick={continueRun}>Continue Saved Run</button>
-          )}
-        </div>
-
-        <p className="menuHint">
-          Forge cards (autosaves as you go), then <b>Build a Deck</b> (rarity-weighted budget) or
-          Quick Fight the full pool. Set your attunement (a 2nd one drives Imbue, e.g. Fire→Burn) and
-          give the dummy an attunement/biology to see matchups.
-        </p>
+        )}
       </div>
     </div>
   );
