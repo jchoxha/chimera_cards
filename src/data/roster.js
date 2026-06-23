@@ -8,6 +8,11 @@
 // ╚══════════════════════════════════════════════════════════════════╝
 
 import { makeCreature } from '../engine/content/generate.js';
+import CREATURE_ART from './creatureArt.json';
+
+// GH-Pages base + which roster ids have an AI portrait baked in public/art/gen/.
+const BASE = (import.meta.env && import.meta.env.BASE_URL) || '/';
+const HAS_ART = new Set(CREATURE_ART);
 
 /**
  * Demo roster — spans all 8 base archetypes, varied biology + (legal) attunement.
@@ -42,6 +47,9 @@ export function buildRoster(poolsByClass = {}, fallbackPool = []) {
     const pool = poolsByClass[r.class] || fallbackPool;
     const c = makeCreature({ ...r, pool });
     c.blurb = r.blurb;
+    // AI portrait (only if baked — else the UI falls back to the biology icon).
+    c.portrait = HAS_ART.has(r.id) ? `${BASE}art/gen/${r.id}.png` : null;
+    c.meta = { portrait: c.portrait };
     return c;
   });
 }

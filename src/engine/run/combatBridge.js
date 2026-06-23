@@ -25,6 +25,7 @@ export function partyToFighters(party) {
     if (m.class) f.class = m.class;
     if (m.biology) f.biology = m.biology;
     if (m.attunement) f.attunement = m.attunement;
+    if (m.portrait) f.meta = { ...f.meta, portrait: m.portrait };
     f.deck.drawPile = (m.deck ?? []).map((c) => ({ ...c }));
     return f;
   });

@@ -42,6 +42,7 @@ export function createRunState({ party = [], seed = Date.now(), map = null, rewa
       stats: p.stats ?? { might: 1, guard: 1, focus: 1, resolve: 1, speed: 0 },
       maxHp: p.maxHp ?? p.hp ?? 60,
       hp: p.hp ?? p.maxHp ?? 60,
+      portrait: p.portrait ?? p.meta?.portrait ?? null,  // AI creature art, carried into combat
       deck: [...(p.deck ?? [])].map((c) => ({ ...c })),
     })),
     gold: 0,
