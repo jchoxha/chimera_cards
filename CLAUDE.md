@@ -253,6 +253,10 @@ pinned to the bottom of the foes rail; move info modal shows card **art**; the *
 faithful copy (no squish); a **playtime timer** in the topbar + **log timestamps** (playtime + local
 clock; events carry `_ts`, store carries `startedAt`); the **version chip opens a changelog modal**
 (`src/data/changelog.js`, in both combat + menu). `test:run` 51; all suites green.
+**v3.39.0 follow-up:** verified the FULL run loop end-to-end headlessly (8 seeds, 29 fights, no
+crashes/hangs, proper win/loss) now that enemies act; then added **varied floor-scaled encounters**
+(`enemyForNode`): elites = a beefy pair, bosses = leader + bench lieutenant, normal fights can spawn
+a 2nd foe on floors ≥5, enemy HP ramps with depth (`floorMult`). Multi-enemy combat resolves cleanly.
 
 **🧹 COMBAT DECLUTTER + CARD SYMMETRY (v3.36.0, 2026-06-23, Jeton mobile feedback).** (a) **Card
 size symmetry:** the foe featured card sat in a `.foeSide` wrapper with a forecast strip, so its
