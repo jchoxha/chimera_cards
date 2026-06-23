@@ -65,4 +65,7 @@
 .runHint { color: #8a7a5e; font-size: 13px; text-align: center; }
 .over { display: grid; place-items: center; text-align: center; }
 
-.runCombat { position: relative; }
+/* Combat is a full-screen replacement: #root is forced to height:100% by the
+   `:has(.cmbt)` rule, so .runCombat must fill it or .cmbt's height:100% collapses
+   to content height (and the combat log grows unbounded instead of scrolling). */
+.runCombat { position: relative; height: 100%; }
