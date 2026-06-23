@@ -6,6 +6,9 @@
 
 /** @type {{version:string, date:string, notes:string[]}[]} newest first */
 export const CHANGELOG = [
+  { version: 'v3.43.0', date: '2026-06-23', notes: [
+    'Reactions are now discoverable: tap a creature’s attunement to see every reaction that element can trigger.',
+  ] },
   { version: 'v3.42.0', date: '2026-06-23', notes: [
     'Elemental Reactions are live: hitting a status with the right element triggers a payoff — Fire stokes Burn, Water quenches it, Energy electrocutes the Soaked, Void devours wounds, and more.',
     'Reactions show in the log and pop as a label over the target. Statuses still work fully on their own — reactions are pure upside.',

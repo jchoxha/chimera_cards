@@ -21,6 +21,7 @@ import { cardArt, creatureArt } from '../../data/artPool.js';
 import { cardText, linkifySegments, KEYWORD_GLOSSARY } from '../../engine/cards/cardText.js';
 import { APP_VERSION } from '../../version.js';
 import { CHANGELOG } from '../../data/changelog.js';
+import { REACTIONS } from '../../engine/cards/reactions.js';
 import './combat.css';
 
 const ELEMENT_ICON = {
@@ -967,12 +968,25 @@ export default function CombatScreen({ onMenu, onRestart, embedded } = {}) {
                 <div>
                   <div className="infoHead"><Icon icon={head.icon} /> {head.name}: {vals.join(' / ') || '—'}</div>
                   <p>{head.desc}</p>
-                  {info.axis === 'attunement' && vals.map((v) => (
-                    <div className="infoRow" key={v}>
-                      <Icon icon={ATTUNEMENT_ICON[v] || 'game-icons:rosa-shield'} style={{ color: ATTUNEMENT_COLOR[v] }} />
-                      {v}{ATTUNEMENT_SIGNATURE[v] ? ` — signature status: ${ATTUNEMENT_SIGNATURE[v]}` : ''}
-                    </div>
-                  ))}
+                  {info.axis === 'attunement' && vals.map((v) => {
+                    const rx = REACTIONS[v] ? Object.entries(REACTIONS[v]) : [];
+                    return (
+                      <div className="axAtt" key={v}>
+                        <div className="infoRow">
+                          <Icon icon={ATTUNEMENT_ICON[v] || 'game-icons:rosa-shield'} style={{ color: ATTUNEMENT_COLOR[v] }} />
+                          {v}{ATTUNEMENT_SIGNATURE[v] ? ` — signature status: ${ATTUNEMENT_SIGNATURE[v]}` : ''}
+                        </div>
+                        {rx.length > 0 && (
+                          <div className="axReacts">
+                            <b>Reactions</b> (hit a status with {v}):
+                            <ul>{rx.map(([st, cell]) => (
+                              <li key={st}><span className="rxVerb">{cell.verb}</span> — vs <FxLink id={st} onEntity={setInfo} /></li>
+                            ))}</ul>
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
                 </div>
               );
             })()}

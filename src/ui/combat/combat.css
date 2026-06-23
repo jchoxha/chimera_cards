@@ -59,6 +59,14 @@ html:has(.cmbt),body:has(.cmbt){height:100%;margin:0;overflow:hidden}
 .changelog li{font-size:12.5px;line-height:1.5;margin:2px 0}
 .clVer{margin-left:auto;font-family:'Cinzel',serif;font-size:12px;color:#ffd34d}
 
+/* attunement reaction list (axis info modal) */
+.axAtt{margin-top:8px}
+.axReacts{margin:4px 0 0 22px;font-size:12px;color:#c9b58e}
+.axReacts b{color:var(--gold4)}
+.axReacts ul{margin:4px 0 0;padding-left:16px}
+.axReacts li{margin:2px 0;line-height:1.4}
+.axReacts .rxVerb{color:#ffd34d;font-weight:700;font-family:'Cinzel',serif}
+
 /* ---------- arena: 3 columns filling the rest of the height ---------- */
 .arena{flex:1 1 auto;min-height:0;display:flex;gap:8px}
 .sideCol{flex:0 0 auto;width:clamp(140px,16vw,200px);display:flex;flex-direction:column;

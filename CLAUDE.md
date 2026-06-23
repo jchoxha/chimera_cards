@@ -239,6 +239,26 @@ status (imbue + own cards) [Stone = Block]. `test:statuses` 27. **Attunements ar
 ready for §5.2 reactions** (Soak = the universal primer). Reaction DESIGN locked in
 `docs/mechanics.md` (master mechanics registry; engine deferred — statuses stand alone).
 
+**⚛️ REACTIONS ENGINE + BALANCE/ENCOUNTER PASS (v3.39.0→v3.43.0, 2026-06-23, Jeton).** Four-front
+follow-up after combat became functional. (a) **Balance** (v3.40): built a headless balance harness
+(3-creature party, smarter autoplay, deck growth via rewards); the old enemy HP scaling won ~3-8%
+(punishing), retuned per-tier multipliers (combat 1.0→0.85, elite 1.6/1.4→1.3/1.1, boss 2.4/1.2→2.0/1.0,
+floor ramp 4%→3%) to land the baseline at ~33% win-to-boss — fair, skilled play does better.
+(b) **Curated encounters** (v3.41): `encounters.js` `BANDS` (early/mid/late + elite/boss) replace the
+random full-roster draw so difficulty/theme don't swing; floor depth picks the band. (c) **§5.2
+REACTIONS ENGINE BUILT** (v3.42): `src/engine/cards/reactions.js` — data-driven `REACTIONS` table
+({element:{statusId:cell}}) + `fireReactions()`, ~30 first-pass cells across all 13 attunement verbs
+(Fire detonates, Water spreads, Energy conducts, Void devours, Frost freezes, Holy purges, Shadow
+corrupts, Arcane transmutes, Air disperses…). Fires in `EFFECT_OPS.damage` after a hit lands, before
+Soak's standalone clear + imbue (reads pre-attack primers); keyed on the card's element; symmetric;
+PURE UPSIDE (statuses stand alone). UI: a `reaction` log line + floating verb label. `test:reactions`
+(17); standalone-status + replay tests use a non-reacting Stone strike to isolate. **NUMBERS are
+REVIEW/tunable.** (d) **Discoverability** (v3.43): the attunement axis-info modal lists every reaction
+that element triggers. Verified the FULL run loop end-to-end headlessly (no crashes/hangs). **Loose
+ends still open:** §14.3 variant access (reskin to OTHER attunements) + run-start deck drafting are
+features for a focused pass; legacy `applyCardEffects` reaction parity is now **obsolete** (the active
+app.html game is 100% CardSpec). All suites green.
+
 **🐞 ROGUELIKE BUGFIXES + COMBAT QoL (v3.37.0→v3.38.0, 2026-06-23, Jeton).** (a) **Enemies did
 nothing** (critical): the AI planner (`VanguardManager._generateEnemyPlan`) read the legacy flat
 `effects` shape and `executeEnemyAction` ran cards via `applyCardEffects`, so CardSpec (roster)
