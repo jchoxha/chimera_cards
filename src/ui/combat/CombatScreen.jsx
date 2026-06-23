@@ -19,6 +19,7 @@ import { frameStyle } from './frames.js';
 import { creatureIcon, creatureColor, cardIcon as axisCardIcon, ATTUNEMENT_ICON, ATTUNEMENT_COLOR } from '../../data/axisIcons.js';
 import { cardArt, creatureArt } from '../../data/artPool.js';
 import { cardText, linkifySegments, KEYWORD_GLOSSARY } from '../../engine/cards/cardText.js';
+import { APP_VERSION } from '../../version.js';
 import './combat.css';
 
 const ELEMENT_ICON = {
@@ -674,6 +675,7 @@ export default function CombatScreen({ onMenu, onRestart, embedded } = {}) {
         <span className="pill"><Icon icon="game-icons:dungeon-gate" /> The Proving Pit</span>
         <span className="pill">{over ? (snap.phase === 'victory' ? 'Victory' : 'Defeat') : isPlayerTurn ? 'Your turn' : 'Enemy turn'}</span>
         <span className="pill">Turn {snap.turn}</span>
+        <span className="pill ver">{APP_VERSION}</span>
       </div>
 
       <div className="arena">

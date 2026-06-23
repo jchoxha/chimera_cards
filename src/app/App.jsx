@@ -17,6 +17,7 @@ import { ATTUNEMENT_BASES, BIOLOGY_BASES, legalAttunements } from '../data/synth
 import { attunementCards } from '../engine/cards/attunementPool.js';
 import { reskinDeck } from '../engine/cards/reskin.js';
 import { buildRoster } from '../data/roster.js';
+import { APP_VERSION } from '../version.js';
 import './app.css';
 
 // Bundled card files (the editor saves drafts on top of these in localStorage).
@@ -113,7 +114,7 @@ export default function App() {
     <div className="menu">
       <div className="menuCard">
         <h1 className="menuTitle">CHIMERA</h1>
-        <p className="menuSub">Card Forge &amp; Proving Pit</p>
+        <p className="menuSub">Card Forge &amp; Proving Pit <span className="menuVersion">{APP_VERSION}</span></p>
 
         <button className="menuBtn big" onClick={() => setView('editor')}>
           🃏 Open the Card Forge
