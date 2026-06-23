@@ -239,6 +239,22 @@ status (imbue + own cards) [Stone = Block]. `test:statuses` 27. **Attunements ar
 ready for §5.2 reactions** (Soak = the universal primer). Reaction DESIGN locked in
 `docs/mechanics.md` (master mechanics registry; engine deferred — statuses stand alone).
 
+**📱 COMBAT UI MOBILE + FEEL PASS (v3.34.1→v3.34.6, 2026-06-23, Jeton).** Follow-up polish across
+four fronts. (a) **Version visibility:** `APP_VERSION` now renders in the app-shell menu subtitle
+(`app/App.jsx`) AND the combat topbar (`CombatScreen`) — the new `app.html` never showed it (only the
+legacy `index.html` prototype did), so there was no way to confirm the live build. **Note for future
+sessions: the GH-Pages ROOT url serves `index.html` (old prototype); ALL new engine/combat work is at
+`/chimera_cards/app.html`.** (b) **Responsive cards:** `.combat` height changed from a fixed 296px min
+(which overflowed short phone landscape) to `height:100%` capped by `max-height` so cards fill the row
+and shrink on mobile; the modal creature card got an explicit wrapper height so its flex art can't
+collapse. (c) **Mobile rails:** short-landscape (`max-height:440px`) media query slims the foe/team
+rails, compacts mini-fighters, and stacks the energy orb above End Turn. (d) **Hand usability:** the
+pressed (held) card pops up, the drag ghost is bigger + shows effect text, playable cards get a glowing
+cost orb. (e) **Combat feel:** NEW — floating damage/heal/block numbers + a hit-shake, spawned from the
+event stream and anchored to the target's `data-drop-id` card (`floaters` state + rAF effect in
+CombatScreen; `.floatNum`/`.hitShake` CSS). (f) **Targeting/log:** log starts collapsed on phones;
+bench drop targets enlarge while dragging. All builds/lints green; combat node suites green.
+
 **🖼 COMBAT CARD UI PASS + ROSTER ENEMIES (v3.34.0, 2026-06-23, Jeton).** (a) **Run combat-log
 fix:** the embedded run combat (`.runCombat`) had no height, so `.cmbt`'s `height:100%` collapsed to
 content height and the log grew unbounded (only in the roguelike, not the standalone Target-Dummy
