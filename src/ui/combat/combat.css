@@ -161,10 +161,10 @@ html:has(.cmbt),body:has(.cmbt){height:100%;margin:0;overflow:hidden}
   opacity:.7;animation:holoShift 4s linear infinite}
 @keyframes holoShift{0%{background-position:0% 0%}100%{background-position:100% 100%}}
 
-/* combat card sizing — FIXED dimensions so every creature card is identical
-   regardless of status/axes/matchup content (art flexes to fill the slack). */
-.combat{flex:0 0 auto;width:clamp(168px,16.5vw,210px);height:clamp(296px,58vh,438px);
-  position:relative;display:flex;flex-direction:column}
+/* combat card sizing — fills the available row height (responsive) but capped, so
+   every creature card is identical AND never overflows a short mobile viewport. */
+.combat{flex:0 0 auto;width:clamp(168px,16.5vw,210px);height:100%;max-height:clamp(248px,58vh,438px);
+  min-height:0;position:relative;display:flex;flex-direction:column}
 .combat .inner{flex:1 1 auto;display:flex;flex-direction:column;min-height:0}
 
 /* size badge (top-left) */
