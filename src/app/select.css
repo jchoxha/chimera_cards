@@ -3,6 +3,8 @@
   background: radial-gradient(120% 90% at 50% 0%, #211634 0%, #120d1d 60%, #0a0710 100%);
   color: #e8e0f4; font-family: 'Spectral', Georgia, serif; box-sizing: border-box; }
 .sel, .sel * { box-sizing: border-box; }
+.sel iconify-icon { display: inline-flex; align-items: center; justify-content: center; vertical-align: middle;
+  width: 1em; height: 1em; flex: none; }
 
 .selHead { padding: 14px 20px 10px; border-bottom: 1px solid #2c2444; background: #160f24; }
 .selHead h1 { margin: 0; font-family: 'Cinzel', serif; font-size: 22px; color: #f0c84a; letter-spacing: 1px; }

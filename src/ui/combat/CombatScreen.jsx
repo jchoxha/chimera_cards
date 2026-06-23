@@ -50,8 +50,8 @@ const powerLabel = (id) => id.replace(/^[a-z]+_/, '').replace(/[-_]/g, ' ').repl
 function extraPips(f) {
   if (!f) return [];
   const out = [];
-  const isWarrior = (f.axes?.class || f.class || []).includes?.('Warrior');
-  if (f.stance && (f.stance !== 'Balanced' || isWarrior)) {
+  // Balanced is the neutral/default stance — never show it as a status pip.
+  if (f.stance && f.stance !== 'Balanced') {
     out.push({ key: 'stance', cls: 'stance', icon: STANCE_ICON[f.stance] || 'game-icons:sword-brandish', label: `Stance: ${f.stance}`, text: f.stance });
   }
   for (const p of f.powers || []) {
@@ -206,12 +206,6 @@ function actionTitle(action) {
   const a = actionAspects(action);
   const base = a.length === 0 ? 'Action' : a.length === 1 ? a[0] : 'Special';
   return (action?.revealed ? '' : 'Hidden ') + base;
-}
-
-function actionShort(action) {
-  if (action?.revealed) return planActionView(action).text;
-  const a = actionAspects(action);
-  return a.length > 1 ? 'Special' : (a[0] || '?');
 }
 
 function describeEffectsDetailed(fx) {
@@ -547,15 +541,11 @@ const DRAG_THRESHOLD = 6; // px the pointer must move before a tap becomes a dra
 
 export default function CombatScreen({ onMenu, onRestart, embedded } = {}) {
   const { snap, log, startCombat, play, swap, peekAll, endTurn, reward, rollReward } = useCombat();
-  // Default the log collapsed on short (phone) screens where vertical room is scarce.
-  const [logOpen, setLogOpen] = useState(() => !(typeof window !== 'undefined'
-    && window.matchMedia?.('(max-height: 440px)').matches));
-  const [info, setInfo] = useState(null);
+  const [info, setInfo] = useState(null);   // unified modal: effect/action/card/creature/axis/matchup/intent/log
   const [kwTerm, setKwTerm] = useState(null);  // glossary keyword selected inside the card modal
   const [notice, setNotice] = useState(null);
   const [drag, setDrag] = useState(null);   // { card, side, validIds, x, y, overId, moved }
   const dragRef = useRef(null);
-  const logBodyRef = useRef(null);
   const [floaters, setFloaters] = useState([]);  // transient floating damage/heal/block numbers
   const seenRef = useRef(0);                      // # of log events already turned into floaters
   const [turnBanner, setTurnBanner] = useState(null);  // transient "YOUR TURN" / "ENEMY TURN" sweep
@@ -600,9 +590,6 @@ export default function CombatScreen({ onMenu, onRestart, embedded } = {}) {
   }, [log]);
   useEffect(() => { setKwTerm(null); }, [info]);  // reset keyword popup when the modal target changes
   useEffect(() => {
-    if (logOpen && logBodyRef.current) logBodyRef.current.scrollTop = logBodyRef.current.scrollHeight;
-  }, [log, logOpen]);
-  useEffect(() => {
     if (!notice) return undefined;
     const t = setTimeout(() => setNotice(null), 2400);
     return () => clearTimeout(t);
@@ -631,7 +618,6 @@ export default function CombatScreen({ onMenu, onRestart, embedded } = {}) {
 
   const isPlayerTurn = snap.phase === 'player';
   const over = snap.phase === 'victory' || snap.phase === 'defeat';
-  const featuredPlan = featured ? enemyPlan.filter((a) => a.actor === featured.id) : [];
 
   let matchup = null;
   if (activeMon?.element && featured?.element) {
@@ -733,7 +719,7 @@ export default function CombatScreen({ onMenu, onRestart, embedded } = {}) {
       </div>
 
       <div className="arena">
-        {/* LEFT: foes (each shows its own forecast strip) */}
+        {/* LEFT: foes · enemy-intent button (forecast lives in a modal now) */}
         <div className="sideCol foesCol">
           <div className="colHead"><Icon icon="game-icons:daemon-skull" /> Foes</div>
           <div className="miniList">
@@ -746,56 +732,30 @@ export default function CombatScreen({ onMenu, onRestart, embedded } = {}) {
                 droppable={isDroppable(e.id)}
                 dropHover={isHover(e.id) && isDroppable(e.id)}
                 dropInvalid={isHover(e.id) && !isDroppable(e.id)}
-                planActions={enemyPlan.filter((a) => a.actor === e.id)}
-                onAction={openAction}
                 onClick={() => setInfo({ kind: 'creature', id: e.id })}
               />
             ))}
           </div>
+          <button className={`benchBtn intent${canPeek ? ' ready' : ''}`} onClick={() => setInfo({ kind: 'intent' })}>
+            <Icon icon="game-icons:eye-target" /> Enemy Intent
+            <span className="benchCount">{peekCharges}</span>
+          </button>
         </div>
 
         {/* CENTER: peek bar · cards (foe strip under vanguard) · hand */}
         <div className="centerCol">
-          <div className="peekBar">
-            <span className="peekLabel"><Icon icon="game-icons:eye-target" /> Enemy turn</span>
-            <div className="planSlots">
-              {enemyPlan.length === 0 && <span className="planEmpty">—</span>}
-              {enemyPlan.map((action, i) => {
-                const iv = planActionView(action);
-                return (
-                  <React.Fragment key={i}>
-                    {i > 0 && <span className="planArrow">→</span>}
-                    <span className={`planSlot${action.revealed ? ' revealed' : ''}`} onClick={() => openAction(action)}>
-                      <Icon icon={iv.icon} />
-                      <small>{actionShort(action)}</small>
-                      <ActionTip action={action} targetName={planTargetName(action)} />
-                    </span>
-                  </React.Fragment>
-                );
-              })}
-            </div>
-            <button className={`peekBtn${canPeek ? ' ready' : ''}`} disabled={!canPeek} onClick={peekAll}
-              title="Spend 1 Peek charge to reveal the enemy's entire turn">
-              <Icon icon="game-icons:magnifying-glass" /> PEEK
-              <span className="peekCount">{peekCharges}</span>
-            </button>
-          </div>
-
           <div className="cardsRow">
-            <div className="foeSide">
-              {featured && (
-                <FoeCard
-                  e={featured}
-                  matchup={matchup}
-                  droppable={isDroppable(featured.id)}
-                  dropHover={isHover(featured.id) && isDroppable(featured.id)}
-                  dropInvalid={isHover(featured.id) && !isDroppable(featured.id)}
-                  onEffect={(id) => setInfo({ kind: 'effect', id })}
-                  onInfo={setInfo}
-                />
-              )}
-              <ActionStrip actions={featuredPlan} targetNameOf={planTargetName} onAction={openAction} tip />
-            </div>
+            {featured && (
+              <FoeCard
+                e={featured}
+                matchup={matchup}
+                droppable={isDroppable(featured.id)}
+                dropHover={isHover(featured.id) && isDroppable(featured.id)}
+                dropInvalid={isHover(featured.id) && !isDroppable(featured.id)}
+                onEffect={(id) => setInfo({ kind: 'effect', id })}
+                onInfo={setInfo}
+              />
+            )}
             <div className="vsMark">VS</div>
             {activeMon && (
               <AllyCard
@@ -846,7 +806,7 @@ export default function CombatScreen({ onMenu, onRestart, embedded } = {}) {
           </div>
         </div>
 
-        {/* RIGHT: team · log · dock (dock pinned to bottom) */}
+        {/* RIGHT: team · log button · dock (dock pinned to bottom) */}
         <div className="sideCol teamCol">
           <div className="colHead"><Icon icon="game-icons:rosa-shield" /> Your Team</div>
           <div className="miniList">
@@ -871,20 +831,9 @@ export default function CombatScreen({ onMenu, onRestart, embedded } = {}) {
             })}
           </div>
 
-          <div className={`logPanel${logOpen ? '' : ' closed'}`}>
-            <div className="logHead" onClick={() => setLogOpen((v) => !v)}>
-              <span><Icon icon="game-icons:scroll-quill" /> Combat Log</span>
-              <Icon icon={logOpen ? 'mdi:chevron-down' : 'mdi:chevron-up'} />
-            </div>
-            {logOpen && (
-              <div className="logBody" ref={logBodyRef}>
-                {(log ?? []).map((ev, i) => {
-                  const content = LogLine({ ev, nameOf, onEntity: setInfo });
-                  return content ? <div key={i} className="logRow">{content}</div> : null;
-                })}
-              </div>
-            )}
-          </div>
+          <button className="benchBtn" onClick={() => setInfo({ kind: 'log' })}>
+            <Icon icon="game-icons:scroll-quill" /> Combat Log
+          </button>
 
           <div className="dock">
             <div className="orb" key={`orb-${player.energy}`}>
@@ -1011,6 +960,45 @@ export default function CombatScreen({ onMenu, onRestart, embedded } = {}) {
                 </div>
               );
             })()}
+
+            {info.kind === 'intent' && (() => (
+              <div>
+                <div className="infoHead"><Icon icon="game-icons:eye-target" /> Enemy Intent</div>
+                <div className="intentList">
+                  {enemyPlan.length === 0 && <div className="infoRow dim">No actions forecast.</div>}
+                  {enemyPlan.map((action, i) => {
+                    const iv = planActionView(action);
+                    const actor = enemyById.get(action.actor);
+                    return (
+                      <button key={i} className={`intentRow${action.revealed ? ' revealed' : ''}`} onClick={() => openAction(action)}>
+                        <Icon className="iIcon" icon={iv.icon} />
+                        <span className="iName">{actor?.name || 'Foe'}</span>
+                        <span className="iAct">{actionTitle(action)}</span>
+                        <span className="iTgt"><Icon icon="game-icons:bullseye" /> {planTargetName(action)}{action.revealed && iv.text !== '?' ? ` · ${iv.text}` : ''}</span>
+                      </button>
+                    );
+                  })}
+                </div>
+                <button className={`endBtn${canPeek ? '' : ' '}`} style={{ marginTop: 12 }} disabled={!canPeek} onClick={peekAll}>
+                  <Icon icon="game-icons:magnifying-glass" /> PEEK — reveal the turn ({peekCharges})
+                </button>
+                {!canPeek && allRevealed && <p className="cdHint">This turn is already revealed.</p>}
+                {!canPeek && !allRevealed && <p className="cdHint">No Peek charges left this combat.</p>}
+              </div>
+            ))()}
+
+            {info.kind === 'log' && (
+              <div>
+                <div className="infoHead"><Icon icon="game-icons:scroll-quill" /> Combat Log</div>
+                <div className="logModalBody" ref={(el) => { if (el) el.scrollTop = el.scrollHeight; }}>
+                  {(log ?? []).map((ev, i) => {
+                    const content = LogLine({ ev, nameOf, onEntity: setInfo });
+                    return content ? <div key={i} className="logRow">{content}</div> : null;
+                  })}
+                  {!(log ?? []).some((ev) => LogLine({ ev, nameOf, onEntity: setInfo })) && <div className="infoRow dim">No events yet.</div>}
+                </div>
+              </div>
+            )}
 
             {info.kind === 'creature' && (() => {
               const f = fightersById.get(info.id);

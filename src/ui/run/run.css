@@ -10,7 +10,8 @@
   background-blend-mode: multiply;
   color: #e8dcc8; font: 15px/1.5 'Spectral', Georgia, serif;
 }
-.runWrap iconify-icon { display: inline-flex; align-items: center; justify-content: center; vertical-align: middle; }
+.runWrap iconify-icon { display: inline-flex; align-items: center; justify-content: center; vertical-align: middle;
+  width: 1em; height: 1em; flex: none; }
 .runWrap h1, .runWrap h2 {
   font-family: 'Cinzel', serif; color: var(--gold4); letter-spacing: .5px;
   display: flex; align-items: center; gap: 9px; justify-content: center; text-shadow: 0 1px 0 #000, 0 0 14px #ffcf6b33;

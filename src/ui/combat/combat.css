@@ -16,7 +16,9 @@
 }
 
 .cmbt,.cmbt *{box-sizing:border-box;margin:0;padding:0}
-.cmbt iconify-icon{display:inline-flex;align-items:center;justify-content:center;vertical-align:middle}
+/* reserve a 1em square so icons don't reflow/grow the layout as Iconify loads */
+.cmbt iconify-icon{display:inline-flex;align-items:center;justify-content:center;vertical-align:middle;
+  width:1em;height:1em;flex:none}
 
 /* lock the page to the viewport whenever the combat screen is mounted —
    no scrolling behavior anywhere (landscape, fixed-frame combat). */
@@ -363,6 +365,37 @@ html:has(.cmbt),body:has(.cmbt){height:100%;margin:0;overflow:hidden}
 .logEnt.mv{color:#1d5b8a}
 .logEnt.fx{color:#7a2a8a}
 .logEnt:hover{filter:brightness(1.25);text-decoration-style:solid}
+
+/* ---------- bench buttons (enemy intent / combat log open their modals) ---------- */
+.benchBtn{flex:0 0 auto;display:flex;align-items:center;gap:6px;justify-content:center;cursor:pointer;
+  font-family:'Cinzel',serif;font-weight:700;font-size:11px;letter-spacing:.5px;color:#e8dcc8;
+  padding:7px 9px;border-radius:9px;border:1.5px solid #5a4a2a;background:#1a1020cc;
+  transition:border-color .12s,background .12s}
+.benchBtn:hover{border-color:var(--goldB);background:#241634}
+.benchBtn iconify-icon{font-size:15px;color:var(--gold4)}
+.benchBtn .benchCount{margin-left:auto;background:#140e26;color:var(--gold1);font-size:10px;border-radius:8px;
+  padding:0 6px;line-height:16px;min-width:16px;text-align:center}
+.benchBtn.intent{border-color:#5a2a2a;color:#ffd9d9}
+.benchBtn.intent iconify-icon{color:#ff9c9c}
+.benchBtn.intent.ready{animation:peekGlow 1.6s ease-in-out infinite}
+
+/* intent modal — one row per forecast action */
+.intentList{display:flex;flex-direction:column;gap:6px;margin-top:8px}
+.intentRow{display:flex;align-items:center;gap:8px;width:100%;text-align:left;cursor:pointer;font:inherit;
+  padding:7px 9px;border-radius:8px;border:1px solid #4a3f63;background:#1a1230;color:#c9b88a}
+.intentRow.revealed{border-color:var(--gold1);background:#2a1a0a;color:var(--cream)}
+.intentRow .iIcon{font-size:18px;color:#ffd34d;flex:0 0 auto}
+.intentRow .iName{font-family:'Cinzel',serif;font-weight:700;color:var(--cream)}
+.intentRow .iAct{color:#cdbff0}
+.intentRow .iTgt{margin-left:auto;display:flex;align-items:center;gap:3px;font-size:11px;color:#ffd9b0;white-space:nowrap}
+
+/* log modal — scrollable history */
+.logModalBody{max-height:46vh;overflow-y:auto;margin-top:8px;padding:6px 9px;border-radius:8px;
+  background:linear-gradient(#efe2bd,#d8c79a);color:#3a2c12;font-size:12px;line-height:1.5}
+.logModalBody .logRow{padding:1px 0;border-bottom:1px solid #00000010}
+.logModalBody b{font-weight:700}
+.logModalBody .rx{color:#1d6e56;font-weight:600}.logModalBody .dmg{color:#a01b12;font-weight:600}
+.logModalBody .pk{color:#6a4a14;font-weight:600}
 
 /* ---------- right: dock (energy orb + end turn) — pinned to the bottom ---------- */
 .dock{flex:0 0 auto;margin-top:auto;display:flex;align-items:center;gap:10px}
