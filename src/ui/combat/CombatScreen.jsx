@@ -558,6 +558,8 @@ export default function CombatScreen({ onMenu, onRestart, embedded } = {}) {
   const logBodyRef = useRef(null);
   const [floaters, setFloaters] = useState([]);  // transient floating damage/heal/block numbers
   const seenRef = useRef(0);                      // # of log events already turned into floaters
+  const [turnBanner, setTurnBanner] = useState(null);  // transient "YOUR TURN" / "ENEMY TURN" sweep
+  const prevPhaseRef = useRef(null);
 
   // Auto-start only the standalone demo (no host shell driving setup like the app menu).
   useEffect(() => { if (!snap && !onMenu) startCombat(); }, [snap, startCombat, onMenu]);
@@ -605,6 +607,19 @@ export default function CombatScreen({ onMenu, onRestart, embedded } = {}) {
     const t = setTimeout(() => setNotice(null), 2400);
     return () => clearTimeout(t);
   }, [notice]);
+
+  // Announce each turn handover with a transient banner.
+  const phase = snap?.phase;
+  useEffect(() => {
+    const prev = prevPhaseRef.current;
+    prevPhaseRef.current = phase;
+    if (!phase || phase === prev) return undefined;
+    if (phase !== 'player' && phase !== 'enemy') return undefined;
+    if (prev === null) return undefined;   // don't announce the initial mount
+    setTurnBanner({ key: Date.now(), kind: phase });
+    const t = setTimeout(() => setTurnBanner(null), 1100);
+    return () => clearTimeout(t);
+  }, [phase]);
 
   if (!snap) return <div className="cmbt">Loading…</div>;
 
@@ -759,7 +774,7 @@ export default function CombatScreen({ onMenu, onRestart, embedded } = {}) {
                 );
               })}
             </div>
-            <button className="peekBtn" disabled={!canPeek} onClick={peekAll}
+            <button className={`peekBtn${canPeek ? ' ready' : ''}`} disabled={!canPeek} onClick={peekAll}
               title="Spend 1 Peek charge to reveal the enemy's entire turn">
               <Icon icon="game-icons:magnifying-glass" /> PEEK
               <span className="peekCount">{peekCharges}</span>
@@ -872,7 +887,7 @@ export default function CombatScreen({ onMenu, onRestart, embedded } = {}) {
           </div>
 
           <div className="dock">
-            <div className="orb">
+            <div className="orb" key={`orb-${player.energy}`}>
               <b>{player.energy}</b>
               <small>/{player.energyPerTurn}</small>
               <small>ENERGY</small>
@@ -906,6 +921,13 @@ export default function CombatScreen({ onMenu, onRestart, embedded } = {}) {
       )}
 
       {notice && <div className="toast"><Icon icon="game-icons:cancel" /> {notice}</div>}
+
+      {/* turn handover banner */}
+      {turnBanner && (
+        <div key={turnBanner.key} className={`turnBanner ${turnBanner.kind}`}>
+          {turnBanner.kind === 'player' ? 'YOUR TURN' : 'ENEMY TURN'}
+        </div>
+      )}
 
       {/* transient floating numbers (damage / heal / block) anchored to targets */}
       {floaters.length > 0 && (

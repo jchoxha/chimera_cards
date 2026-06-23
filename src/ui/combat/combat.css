@@ -293,6 +293,31 @@ html:has(.cmbt),body:has(.cmbt){height:100%;margin:0;overflow:hidden}
 @keyframes hitShake{0%,100%{transform:translateX(0)}20%{transform:translateX(-4px)}
   40%{transform:translateX(4px)}60%{transform:translateX(-3px)}80%{transform:translateX(3px)}}
 
+/* ---------- turn handover banner ---------- */
+.turnBanner{position:fixed;top:38%;left:50%;transform:translate(-50%,-50%);z-index:119;pointer-events:none;
+  font-family:'Cinzel Decorative',serif;font-weight:900;font-size:clamp(26px,5vw,46px);letter-spacing:3px;
+  text-shadow:0 2px 0 #000,0 0 24px #000;white-space:nowrap;animation:bannerSweep 1.1s ease-out forwards}
+.turnBanner.player{color:#9af0bf}
+.turnBanner.enemy{color:#ff9c9c}
+@keyframes bannerSweep{
+  0%{opacity:0;transform:translate(-50%,-50%) scale(.7)}
+  18%{opacity:1;transform:translate(-50%,-50%) scale(1.05)}
+  78%{opacity:1;transform:translate(-50%,-50%) scale(1)}
+  100%{opacity:0;transform:translate(-50%,-50%) scale(1.04)}}
+
+/* status pips pop in when first applied */
+.pip,.chip{animation:pipIn .28s ease}
+@keyframes pipIn{0%{opacity:0;transform:scale(.4)}60%{transform:scale(1.15)}100%{opacity:1;transform:scale(1)}}
+
+/* energy orb pulses on change (keyed remount replays this) */
+.orb{animation:orbPop .34s ease}
+@keyframes orbPop{0%{transform:scale(.78)}55%{transform:scale(1.12)}100%{transform:scale(1)}}
+
+/* Peek invites a glance while a charge is available */
+.peekBtn.ready{animation:peekGlow 1.5s ease-in-out infinite}
+@keyframes peekGlow{0%,100%{box-shadow:0 3px 0 #8a6a18,0 0 0 #ffd34d00}
+  50%{box-shadow:0 3px 0 #8a6a18,0 0 14px #ffd34daa}}
+
 /* ---------- transient toast (invalid target, etc.) ---------- */
 /* pointer-events:none so it never blocks dragging the next card */
 .toast{position:fixed;left:50%;top:64px;transform:translateX(-50%);z-index:130;pointer-events:none;
