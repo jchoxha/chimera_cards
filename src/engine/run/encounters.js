@@ -20,8 +20,8 @@ const ENEMY_ROSTER = buildRoster(POOLS, POOLS.Warrior || []);
 
 let _foeSeq = 0; // monotonic so two encounters in a run never share a fighter/card id
 
-/** Gentle HP ramp by floor depth (each floor ≈ +4%), on top of the per-tier multiplier. */
-const floorMult = (floor = 0) => 1 + Math.max(0, floor) * 0.04;
+/** Gentle HP ramp by floor depth (each floor ≈ +3%), on top of the per-tier multiplier. */
+const floorMult = (floor = 0) => 1 + Math.max(0, floor) * 0.03;
 
 /** Convert a generated roster creature into a fresh, uniquely-identified enemy Fighter. */
 function rosterFighter(creature, hpMult) {
@@ -54,22 +54,24 @@ export function enemyForNode(node, rng) {
   const floor = node.floor ?? 0;
   const fm = floorMult(floor);
 
+  // Per-tier HP multipliers tuned via the headless balance harness (≈33% autoplay
+  // win rate to the boss with deck growth — a fair baseline; skilled play does better).
   if (node.type === 'boss') {
     // A strong leader + one lieutenant on the bench.
     const [leader, aide] = pickDistinct(2, rng);
-    return [rosterFighter(leader, 2.4 * fm), rosterFighter(aide, 1.2 * fm)];
+    return [rosterFighter(leader, 2.0 * fm), rosterFighter(aide, 1.0 * fm)];
   }
   if (node.type === 'elite') {
     // A beefy pair.
     const [a, b] = pickDistinct(2, rng);
-    return [rosterFighter(a, 1.6 * fm), rosterFighter(b, 1.4 * fm)];
+    return [rosterFighter(a, 1.3 * fm), rosterFighter(b, 1.1 * fm)];
   }
   // Normal combat: a single foe early; a chance of a second on deeper floors.
   const pair = floor >= 5 && rng && rng.next && rng.next() < 0.45;
   if (pair) {
     const [a, b] = pickDistinct(2, rng);
-    return [rosterFighter(a, fm), rosterFighter(b, 0.85 * fm)];
+    return [rosterFighter(a, 0.85 * fm), rosterFighter(b, 0.7 * fm)];
   }
   const pick = rng ? rng.pick(ENEMY_ROSTER) : ENEMY_ROSTER[0];
-  return [rosterFighter(pick, fm)];
+  return [rosterFighter(pick, 0.85 * fm)];
 }
