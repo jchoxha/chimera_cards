@@ -239,6 +239,21 @@ status (imbue + own cards) [Stone = Block]. `test:statuses` 27. **Attunements ar
 ready for §5.2 reactions** (Soak = the universal primer). Reaction DESIGN locked in
 `docs/mechanics.md` (master mechanics registry; engine deferred — statuses stand alone).
 
+**🐞 ROGUELIKE BUGFIXES + COMBAT QoL (v3.37.0→v3.38.0, 2026-06-23, Jeton).** (a) **Enemies did
+nothing** (critical): the AI planner (`VanguardManager._generateEnemyPlan`) read the legacy flat
+`effects` shape and `executeEnemyAction` ran cards via `applyCardEffects`, so CardSpec (roster)
+enemies forecast an EMPTY turn and never resolved. Added `effSummary()` to normalize CardSpec
+op-lists for planning (dmg/block/applyStatus/buff/draw/energy/scope) and routed enemy CardSpec cards
+through `applyCardSpec`. (b) **Menu mid-combat → resume marked the fight complete:** `travel`
+committed the combat node `visited` on arrival. Now combat/elite/boss nodes are marked visited only
+on WIN (`markVisited` action), and `runStore.loadSaved` RE-ENTERS an un-won combat node. (c) **No new
+run / dead-save:** death now `clearSave()`s and the run-over screen has a **New Run** button
+(`onNewRun`→select). (d) **Combat QoL:** Enemy-Intent modal shows numbered steps + arrows, button
+pinned to the bottom of the foes rail; move info modal shows card **art**; the **drag ghost** is a
+faithful copy (no squish); a **playtime timer** in the topbar + **log timestamps** (playtime + local
+clock; events carry `_ts`, store carries `startedAt`); the **version chip opens a changelog modal**
+(`src/data/changelog.js`, in both combat + menu). `test:run` 51; all suites green.
+
 **🧹 COMBAT DECLUTTER + CARD SYMMETRY (v3.36.0, 2026-06-23, Jeton mobile feedback).** (a) **Card
 size symmetry:** the foe featured card sat in a `.foeSide` wrapper with a forecast strip, so its
 height basis differed from the ally card (foe looked bigger). Removed the wrapper/strip — both
