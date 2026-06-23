@@ -239,6 +239,21 @@ status (imbue + own cards) [Stone = Block]. `test:statuses` 27. **Attunements ar
 ready for §5.2 reactions** (Soak = the universal primer). Reaction DESIGN locked in
 `docs/mechanics.md` (master mechanics registry; engine deferred — statuses stand alone).
 
+**🎨 APP-WIDE UI COHESION PASS (v3.35.0→v3.35.2, 2026-06-23, Jeton).** The run/meta layer + menu
+were plain dev forms clashing with the ornate combat skin; closed the gap. (a) **Run-layer reskin**
+(`ui/run/run.css` rewritten + `RunScreen.jsx`): gilded skin (gold/ink vars from combat.css are global
+on app.html, Cinzel/Spectral), the **act map is now a descending spire path** (connecting spine,
+Iconify node icons in gold medallions, clear current/visited/next), the **party bar** gains creature
+**crests** (`creatureColor`/`creatureIcon` or AI portrait) + styled HP bars + Iconify gold/relic/potion
+icons (was identical emoji dots), and all room/reward/shop/event headers use themed glyphs. (b) **Menu
+cleanup** (`app/App.jsx` + `app.css`): lead with the **roguelike run** (primary CTA), then Card Forge;
+the playtest deck/attunement/dummy knobs are tucked behind a collapsible **Playtest Combat** disclosure
+(collapsed by default). (c) **Combat feel pass 2** (`CombatScreen.jsx` + `combat.css`): transient
+**YOUR TURN / ENEMY TURN** banner on handover, status **pips pop in**, the **energy orb pulses** on
+change (keyed remount), and the **Peek button glows** while a charge is available. All builds/lints
+green; combat node suites green. **ART TODO (`docs/art-pipeline.md`):** tidecaller (no portrait → icon
+fallback) + frostmind need regen via the `agy` env (Windows, not the web session).
+
 **📱 COMBAT UI MOBILE + FEEL PASS (v3.34.1→v3.34.6, 2026-06-23, Jeton).** Follow-up polish across
 four fronts. (a) **Version visibility:** `APP_VERSION` now renders in the app-shell menu subtitle
 (`app/App.jsx`) AND the combat topbar (`CombatScreen`) — the new `app.html` never showed it (only the
