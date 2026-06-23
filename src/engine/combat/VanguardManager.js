@@ -35,6 +35,46 @@ import { canAttack, stanceSide } from './stances.js';
 /** A data-driven CardSpec uses an op-LIST in `effects` (legacy cards use a flat object). */
 const isCardSpec = (card) => Array.isArray(card.effects) || card.type === 'power';
 
+/**
+ * Normalize a card's effects into the FLAT summary the AI planner reasons over
+ * (dmg/hits/block/applyStatus/selfStatus/strength/draw/energy/scope), regardless
+ * of whether the card is a legacy flat-effects card or a data-driven CardSpec
+ * op-list. Without this the planner sees no dmg/block on roster (CardSpec) enemies
+ * and forecasts an empty turn.
+ */
+function effSummary(card) {
+  const e = card?.effects;
+  if (!Array.isArray(e)) return e || {};
+  const out = {};
+  for (const op of e) {
+    switch (op.op) {
+      case 'damage': {
+        out.dmg = (out.dmg || 0) + (Number(op.value) || 0);
+        const h = op.hits === 'X' ? 'X' : Number(op.hits);
+        if (h) out.hits = h;
+        if (op.scope && !out.scope) out.scope = op.scope;
+        break;
+      }
+      case 'block': out.block = (out.block || 0) + (Number(op.value) || 0); break;
+      case 'debuff': {
+        out.applyStatus = out.applyStatus || {};
+        const st = op.status || 'weak';
+        out.applyStatus[st] = (out.applyStatus[st] || 0) + (Number(op.value) || 0);
+        if (op.scope && !out.scope) out.scope = op.scope;
+        break;
+      }
+      case 'buff':
+        if (op.status === 'strength') out.strength = (out.strength || 0) + (Number(op.value) || 0);
+        else { out.selfStatus = out.selfStatus || {}; out.selfStatus[op.status] = (out.selfStatus[op.status] || 0) + (Number(op.value) || 0); }
+        break;
+      case 'draw': out.draw = (out.draw || 0) + (Number(op.value) || 0); break;
+      case 'energy': out.energy = (out.energy || 0) + (Number(op.value) || 0); break;
+      default: break;
+    }
+  }
+  return out;
+}
+
 /** Total living HP on a side (for damage-dealt/taken trigger detection). */
 const sideHp = (side) => side.fighters.reduce((n, f) => n + Math.max(0, f.hp), 0);
 
@@ -239,7 +279,7 @@ export class VanguardManager {
       let highestDmgVal = -1;
 
       for (const c of playableCards) {
-        if (c.effects?.dmg) {
+        if (effSummary(c).dmg) {
           const dmg = getExpectedHPLoss(c, simVanguard, playerVanguard, s.player, simSide.energy);
           totalComboDmg += dmg;
           if (dmg > highestDmgVal) {
@@ -284,8 +324,9 @@ export class VanguardManager {
           let bestDefensiveCard = null;
           let maxDefensiveVal = -1;
           for (const c of playableCards) {
-            const blockVal = c.effects?.block ?? 0;
-            const fortifyVal = c.effects?.fortify?.block ?? 0;
+            const ce = effSummary(c);
+            const blockVal = ce.block ?? 0;
+            const fortifyVal = ce.fortify?.block ?? 0;
             const totalDef = blockVal + fortifyVal;
             if (totalDef > maxDefensiveVal && totalDef > 0) {
               maxDefensiveVal = totalDef;
@@ -303,7 +344,7 @@ export class VanguardManager {
         let bestAttackCard = null;
         let maxAttackDmg = -1;
         for (const c of playableCards) {
-          if (c.effects?.dmg) {
+          if (effSummary(c).dmg) {
             const dmg = getExpectedHPLoss(c, simVanguard, playerVanguard, s.player, simSide.energy);
             if (dmg > maxAttackDmg) {
               maxAttackDmg = dmg;
@@ -339,36 +380,37 @@ export class VanguardManager {
         const cost = card.cost === -1 ? simSide.energy : card.cost;
         simSide.energy -= cost;
 
+        const eff = effSummary(card);
         let silhouette = 'skill';
-        if (card.effects?.dmg) {
+        if (eff.dmg) {
           silhouette = 'attack';
-        } else if (card.effects?.block || card.effects?.fortify) {
+        } else if (eff.block || eff.fortify) {
           silhouette = 'block';
-        } else if (card.effects?.applyStatus && (card.effects.applyStatus.weak || card.effects.applyStatus.vulnerable || card.effects.applyStatus.burn || card.effects.applyStatus.poison)) {
+        } else if (eff.applyStatus && Object.keys(eff.applyStatus).length) {
           silhouette = 'debuff';
-        } else if (card.effects?.strength || card.effects?.selfStatus?.strength || card.effects?.selfStatus?.regen || card.effects?.draw || card.effects?.energy) {
+        } else if (eff.strength || eff.selfStatus?.strength || eff.selfStatus?.regen || eff.draw || eff.energy) {
           silhouette = 'buff';
-        } else if (card.effects?.displacement) {
+        } else if (eff.displacement) {
           silhouette = 'swap';
         }
 
-        const hits = (card.effects?.hits ?? 1) * (card.cost === -1 ? Math.max(1, cost) : 1);
+        const hits = (eff.hits === 'X' ? Math.max(1, cost) : (eff.hits ?? 1)) * (card.cost === -1 ? Math.max(1, cost) : 1);
         const detail = {
           cardId: card.id,
           cardName: card.name,
-          targetScope: card.effects?.scope,
-          // Full effect payload so the UI can label the action's ASPECTS even
+          targetScope: eff.scope,
+          // Flat effect summary so the UI can label the action's ASPECTS even
           // while hidden (e.g. "Hidden Special — includes Attack, Block") and
           // show exact numbers once Peeked. The UI gates numbers by `revealed`.
-          effects: { ...card.effects },
+          effects: { ...eff },
         };
-        if (card.effects?.dmg) {
-          detail.value = card.effects.dmg;
+        if (eff.dmg) {
+          detail.value = eff.dmg;
           detail.hits = hits;
-        } else if (card.effects?.block) {
-          detail.value = card.effects.block;
-        } else if (card.effects?.fortify) {
-          detail.value = card.effects.fortify.block;
+        } else if (eff.block) {
+          detail.value = eff.block;
+        } else if (eff.fortify) {
+          detail.value = eff.fortify.block;
         }
 
         plan.push(
@@ -383,7 +425,7 @@ export class VanguardManager {
         simVanguard.hand.splice(cIdx, 1);
 
         if (card.effects) {
-          applySimulatedSelfEffects(simSide, simVanguard, card.effects, this.rng);
+          applySimulatedSelfEffects(simSide, simVanguard, effSummary(card), this.rng);
         }
 
       } else if (decision.type === 'swap') {
@@ -856,13 +898,22 @@ export class VanguardManager {
 
         this._emit('play', { card, actorId: actor.id, side: 'enemy', targetId });
 
-        applyCardEffects(s, 'enemy', actor, card.effects, {
-          targetId,
-          costPaid: cost,
-          xCost: card.cost === -1,
-          rng: this.rng,
-          emit: this._emit.bind(this)
-        });
+        if (isCardSpec(card)) {
+          applyCardSpec(s, 'enemy', actor, card, {
+            targetId,
+            costPaid: cost,
+            rng: this.rng,
+            emit: this._emit.bind(this),
+          });
+        } else {
+          applyCardEffects(s, 'enemy', actor, card.effects, {
+            targetId,
+            costPaid: cost,
+            xCost: card.cost === -1,
+            rng: this.rng,
+            emit: this._emit.bind(this)
+          });
+        }
 
         if (card.keywords?.includes('exhaust')) {
           exhaustCard(actor, card);
@@ -1179,9 +1230,11 @@ function getMatchupMultiplier(atkFighter, defFighter) {
 }
 
 function getExpectedHPLoss(card, attacker, target, targetSide, energyPaid) {
-  if (!card.effects?.dmg) return 0;
-  const hits = (card.effects.hits ?? 1) * (card.cost === -1 ? Math.max(1, energyPaid) : 1);
-  const dmgPerHit = computeAttackDamage(card.effects.dmg, attacker.statuses, target.statuses);
+  const eff = effSummary(card);
+  if (!eff.dmg) return 0;
+  const baseHits = eff.hits === 'X' ? Math.max(1, energyPaid) : (eff.hits ?? 1);
+  const hits = baseHits * (card.cost === -1 ? Math.max(1, energyPaid) : 1);
+  const dmgPerHit = computeAttackDamage(eff.dmg, attacker.statuses, target.statuses);
   const totalDmgBeforeBlock = hits * dmgPerHit;
 
   let tempBlock = target.block;

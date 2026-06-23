@@ -62,13 +62,17 @@ export const ACTIONS = {
   },
 
   // ── navigation / lifecycle ──
-  /** Move to a reachable node, marking it visited. No-op if unreachable. */
+  /** Move to a reachable node. Non-combat rooms are marked visited on arrival;
+   *  combat/elite/boss nodes are marked visited only once WON (markVisited), so
+   *  abandoning a fight mid-way and resuming re-enters it instead of skipping it. */
   travel: (s, { nodeId }) => {
     if (!reachableFrom(s.map, s.position).includes(nodeId)) return;
     s.position = nodeId;
     const n = nodeById(s.map, nodeId);
-    if (n) { s.floor = n.floor; n.visited = true; }
+    if (n) { s.floor = n.floor; if (!['combat', 'elite', 'boss'].includes(n.type)) n.visited = true; }
   },
+  /** Mark the current (or given) node visited — used to commit a won combat. */
+  markVisited: (s, { nodeId } = {}) => { const n = nodeById(s.map, nodeId ?? s.position); if (n) n.visited = true; },
   setPosition: (s, { nodeId }) => { s.position = nodeId; },
   setFloor: (s, { floor }) => { s.floor = floor; },
   setStatus: (s, { status }) => { s.status = status; },

@@ -92,7 +92,7 @@ console.log('Act map generates deterministically (linear, boss last):');
   ok(a.position === a.map.start && a.rngState !== a.seed, 'position = start; rngState advanced past map gen');
 }
 
-console.log('Navigation: travel only to reachable nodes, marks visited:');
+console.log('Navigation: travel only to reachable nodes; combat nodes commit on win:');
 {
   const rm = new RunManager(createRun({ party: baseParty, seed: 5, floors: 6 }));
   const start = rm.state.position;
@@ -100,9 +100,16 @@ console.log('Navigation: travel only to reachable nodes, marks visited:');
   rm.dispatch('travel', { nodeId: 'a1-f5' }); // not reachable from start
   ok(rm.state.position === start, 'cannot jump to a far node');
   rm.dispatch('travel', { nodeId: next });
-  ok(rm.state.position === next && currentNode(rm.state).visited, 'traveled to the next node, marked visited');
+  const node = currentNode(rm.state);
+  ok(rm.state.position === next, 'traveled to the next node');
+  const isCombat = ['combat', 'elite', 'boss'].includes(node.type);
+  // Combat nodes are NOT visited on arrival (so an abandoned fight re-enters on
+  // resume); non-combat rooms are marked visited immediately.
+  ok(node.visited === !isCombat, `arrival visited = ${!isCombat} for a ${node.type} node`);
+  rm.dispatch('markVisited', {});
+  ok(currentNode(rm.state).visited, 'markVisited commits the node (combat won)');
   rm.undo();
-  ok(rm.state.position === start, 'undo returns to the previous node');
+  ok(rm.state.position === next, 'undo reverts the markVisited (still at the node)');
 }
 
 console.log('Combat bridge: build fighters from the run party + fold the result back:');

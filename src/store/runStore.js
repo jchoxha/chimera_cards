@@ -38,7 +38,13 @@ export const useRun = create((set, get) => ({
       const j = localStorage.getItem(SAVE_KEY);
       if (!j) return false;
       const rm = RunManager.deserialize(j);
-      set({ rm, snap: { ...rm.state }, version: 1, view: rm.state.status === 'active' ? 'map' : 'over' });
+      const active = rm.state.status === 'active';
+      const node = currentNode(rm.state);
+      // Resuming while parked on an un-won combat node (abandoned via Menu) → re-enter
+      // the fight rather than landing on the map with the node already passed.
+      const unresolvedCombat = active && node && ['combat', 'elite', 'boss'].includes(node.type) && !node.visited;
+      set({ rm, snap: { ...rm.state }, version: 1, view: active ? 'map' : 'over' });
+      if (unresolvedCombat) get()._beginCombat(node);
       return true;
     } catch { return false; }
   },
@@ -75,7 +81,10 @@ export const useRun = create((set, get) => ({
     const out = combatOutcome(vm);
     rm.dispatch('applyCombatResult', out);
     const node = currentNode(rm.state);
-    if (!out.won) { rm.dispatch('setStatus', { status: 'lost' }); get()._publish(); set({ view: 'over' }); return; }
+    if (!out.won) { rm.dispatch('setStatus', { status: 'lost' }); get().clearSave(); get()._publish(); set({ view: 'over' }); return; }
+    // Combat won → commit the node as visited (travel leaves combat nodes un-visited
+    // so an abandoned fight re-enters on resume; winning is what completes it).
+    rm.dispatch('markVisited', {});
     rm.dispatch('gainGold', { amount: node.type === 'boss' ? 100 : node.type === 'elite' ? 40 : 25 });
     if (node.type === 'boss') { rm.dispatch('setStatus', { status: 'won' }); get().clearSave(); get()._publish(); set({ view: 'over' }); return; }
     // Draft rewards from the PARTY's own potential pool (archetype + attunement cards).

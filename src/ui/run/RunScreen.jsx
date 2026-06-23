@@ -85,7 +85,7 @@ function CardChip({ c, onClick, disabled, price }) {
   );
 }
 
-export default function RunScreen({ onMenu }) {
+export default function RunScreen({ onMenu, onNewRun }) {
   const run = useRun();
   const combat = useCombat();
   const snap = run.snap;
@@ -141,7 +141,8 @@ export default function RunScreen({ onMenu }) {
         <h1 className={won ? '' : 'lose'}>{won ? 'RUN COMPLETE' : 'YOU DIED'}</h1>
         <p>{won ? 'You cleared the act.' : 'Your party fell.'}</p>
         <div className="runActions">
-          <button className="runBtn" onClick={onMenu}>Main Menu</button>
+          {onNewRun && <button className="runBtn" onClick={() => { run.clearSave?.(); onNewRun(); }}>New Run</button>}
+          <button className="runBtn ghost" onClick={onMenu}>Main Menu</button>
         </div>
       </div>
     );

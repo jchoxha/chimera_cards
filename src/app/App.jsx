@@ -99,7 +99,7 @@ export default function App() {
 
   if (view === 'editor') return <CardEditor onMenu={() => setView('menu')} />;
   if (view === 'combat') return <CombatScreen onMenu={() => setView('menu')} onRestart={() => launchCombat(lastDeck)} />;
-  if (view === 'run') return <RunScreen onMenu={() => setView('menu')} />;
+  if (view === 'run') return <RunScreen onMenu={() => setView('menu')} onNewRun={() => setView('select')} />;
   if (view === 'select') return <SelectScreen roster={ROSTER} onConfirm={startSelectedRun} onCancel={() => setView('menu')} />;
   if (view === 'deckbuild') return (
     <DeckBuilder
