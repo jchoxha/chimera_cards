@@ -43,6 +43,21 @@ html:has(.cmbt),body:has(.cmbt){height:100%;margin:0;overflow:hidden}
 .topbar .pill{background:#00000055;border:1px solid #c9a23a55;padding:2px 10px;border-radius:20px;
   display:flex;align-items:center;gap:6px}
 .topbar .pill.ver{color:#ffd34d;font-weight:700;letter-spacing:.5px}
+.topbar .pill.ver.clickable{cursor:pointer}
+.topbar .pill.ver.clickable:hover{border-color:var(--goldB);background:#00000077}
+
+/* log timestamps (playtime · local clock) */
+.logModalBody .logTime{display:inline-block;min-width:84px;color:#7a6a48;font-variant-numeric:tabular-nums;
+  font-size:10px;margin-right:6px}
+
+/* changelog modal */
+.changelog{max-height:54vh;overflow-y:auto;margin-top:8px;display:flex;flex-direction:column;gap:12px}
+.changelog .clRel .clHead{display:flex;align-items:baseline;gap:8px}
+.changelog .clRel .clHead b{font-family:'Cinzel',serif;color:var(--gold4);font-size:14px}
+.changelog .clRel .clHead span{color:#8a7a5e;font-size:11px}
+.changelog ul{margin:5px 0 0;padding-left:18px;color:#e8dcc8}
+.changelog li{font-size:12.5px;line-height:1.5;margin:2px 0}
+.clVer{margin-left:auto;font-family:'Cinzel',serif;font-size:12px;color:#ffd34d}
 
 /* ---------- arena: 3 columns filling the rest of the height ---------- */
 .arena{flex:1 1 auto;min-height:0;display:flex;gap:8px}
@@ -270,11 +285,11 @@ html:has(.cmbt),body:has(.cmbt){height:100%;margin:0;overflow:hidden}
 .mf.droppable{outline-offset:2px;padding:8px 9px;transform:scale(1.03);transition:transform .12s,padding .12s}
 .mf.dropHover{transform:scale(1.06)}
 @keyframes dropPulse{0%,100%{outline-color:#ffd34d66}50%{outline-color:#ffd34dee}}
-.dragGhost{position:fixed;z-index:120;pointer-events:none;width:118px;transform:translate(-50%,-64%);
-  filter:drop-shadow(0 12px 20px #000c)}
-.dragGhost .move{width:118px;margin:0;cursor:grabbing}
-.dragGhost .move .micon{height:46px;font-size:26px}
-.dragGhost .move .mt{min-height:0;font-size:8px;padding:3px 5px}
+/* the drag ghost is a FAITHFUL copy of the hand card (same size/proportions) so
+   the card never appears to squish or resize while dragging. */
+.dragGhost{position:fixed;z-index:120;pointer-events:none;width:clamp(82px,9vw,100px);
+  transform:translate(-50%,-64%);filter:drop-shadow(0 12px 20px #000c)}
+.dragGhost .move{width:100%;margin:0;cursor:grabbing;transform:none!important}
 .dragHint{margin-top:4px;text-align:center;font-family:'Cinzel',serif;font-size:9px;letter-spacing:.5px;
   color:#9af0bf;text-shadow:0 1px 3px #000;background:#000a;border-radius:6px;padding:2px 4px}
 .dragHint.bad{color:#ff9c9c}
@@ -378,6 +393,13 @@ html:has(.cmbt),body:has(.cmbt){height:100%;margin:0;overflow:hidden}
 .benchBtn.intent{border-color:#5a2a2a;color:#ffd9d9}
 .benchBtn.intent iconify-icon{color:#ff9c9c}
 .benchBtn.intent.ready{animation:peekGlow 1.6s ease-in-out infinite}
+/* the Enemy Intent button sits at the BOTTOM of the foes rail */
+.foesCol .benchBtn{margin-top:auto}
+
+/* arrows + step numbers between forecast actions */
+.intentArrow{display:flex;justify-content:center;color:var(--gold3);font-size:14px;margin:-2px 0}
+.intentRow .iStep{flex:0 0 auto;width:18px;height:18px;border-radius:50%;display:grid;place-items:center;
+  background:#140e26;border:1px solid var(--goldB);color:var(--gold1);font-family:'Cinzel',serif;font-weight:700;font-size:10px}
 
 /* intent modal — one row per forecast action */
 .intentList{display:flex;flex-direction:column;gap:6px;margin-top:8px}
@@ -460,7 +482,15 @@ html:has(.cmbt),body:has(.cmbt){height:100%;margin:0;overflow:hidden}
 .cardDetail .cdName{ font-family:'Cinzel',serif; font-size:21px; font-weight:800; }
 .cardDetail .cdType{ margin-left:auto; text-transform:uppercase; font-size:11px; letter-spacing:1px; opacity:.75; }
 .cardDetail .cdType.atk{ color:#ffb9a0; } .cardDetail .cdType.def{ color:#a0d8ff; } .cardDetail .cdType.util{ color:#d0b0ff; }
-.cardDetail .cdMeta{ color:#c9b58e; font-size:12px; margin:4px 0 12px; text-transform:capitalize; }
+.cardDetail .cdMeta{ color:#c9b58e; font-size:12px; margin:4px 0 10px; text-transform:capitalize; }
+.cardDetail .cdArt{ height:clamp(120px,22vh,180px); border-radius:10px; overflow:hidden; margin-bottom:12px;
+  display:flex; align-items:center; justify-content:center; border:1.5px solid #8a6a18;
+  background:radial-gradient(circle at 50% 35%,#2a1f3e,#140e26); box-shadow:inset 0 0 18px #0008; }
+.cardDetail .cdArt img.artImg{ height:100%; width:100%; object-fit:cover; image-rendering:pixelated; }
+.cardDetail .cdArt iconify-icon{ font-size:clamp(56px,12vh,96px); color:#fff; }
+.cardDetail .cdArt.atk{ background:radial-gradient(circle at 50% 60%,#5a2a1e,#1a0e0e); }
+.cardDetail .cdArt.def{ background:radial-gradient(circle at 50% 60%,#1e3a5a,#0e131a); }
+.cardDetail .cdArt.util{ background:radial-gradient(circle at 50% 60%,#3a1e5a,#140e26); }
 .cardDetail .linkedText{ font-size:16px; line-height:1.65; }
 .cardDetail .cdHint{ color:#8a7a5e; font-size:11px; margin-top:10px; }
 .kw{ background:rgba(240,200,74,.16); border:1px solid #b88a3e; color:#f0c84a; border-radius:5px;

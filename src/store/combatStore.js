@@ -155,6 +155,9 @@ function snapshot(vm) {
   };
 }
 
+/** Stamp each combat event with wall-clock time so the log can show playtime + local time. */
+const stampEvent = (e) => { if (e && e._ts == null) e._ts = Date.now(); return e; };
+
 export const useCombat = create((set, get) => ({
   /** @type {VanguardManager|null} */ vm: null,
   /** Mutable events array; spread on each update for React diff. */
@@ -163,6 +166,7 @@ export const useCombat = create((set, get) => ({
   version: 0,
   log: [],
   reward: null,
+  startedAt: null,   // wall-clock combat start (for the playtime timer)
   roster: ROSTER,
 
   startCombat({ party = DEFAULT_PARTY, encounter = DEFAULT_ENCOUNTER } = {}) {
@@ -173,10 +177,10 @@ export const useCombat = create((set, get) => ({
       room: 'combat',
       rarity: { offset: -0.05, ascension7: false },
       pickCard: POOL.pick,
-      log: (e) => events.push(e),
+      log: (e) => events.push(stampEvent(e)),
     });
     vm.startCombat();
-    set({ vm, _events: events, snap: snapshot(vm), version: 1, log: [...events], reward: null });
+    set({ vm, _events: events, snap: snapshot(vm), version: 1, log: [...events], reward: null, startedAt: Date.now() });
   },
 
   /**
@@ -193,10 +197,10 @@ export const useCombat = create((set, get) => ({
       room: 'combat',
       rarity: { offset: -0.05, ascension7: false },
       pickCard: POOL.pick,
-      log: (e) => events.push(e),
+      log: (e) => events.push(stampEvent(e)),
     });
     vm.startCombat();
-    set({ vm, _events: events, snap: snapshot(vm), version: 1, log: [...events], reward: null });
+    set({ vm, _events: events, snap: snapshot(vm), version: 1, log: [...events], reward: null, startedAt: Date.now() });
   },
 
   /**
@@ -211,11 +215,11 @@ export const useCombat = create((set, get) => ({
       room: 'combat',
       rarity: { offset: -0.05, ascension7: false },
       pickCard: POOL.pick,
-      log: (e) => events.push(e),
+      log: (e) => events.push(stampEvent(e)),
     });
     vm.startCombat();
     applyRelics(vm, relics);
-    set({ vm, _events: events, snap: snapshot(vm), version: 1, log: [...events], reward: null });
+    set({ vm, _events: events, snap: snapshot(vm), version: 1, log: [...events], reward: null, startedAt: Date.now() });
   },
 
   /** Use a potion (consumable) during combat. */

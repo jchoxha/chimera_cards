@@ -20,6 +20,7 @@ import { creatureIcon, creatureColor, cardIcon as axisCardIcon, ATTUNEMENT_ICON,
 import { cardArt, creatureArt } from '../../data/artPool.js';
 import { cardText, linkifySegments, KEYWORD_GLOSSARY } from '../../engine/cards/cardText.js';
 import { APP_VERSION } from '../../version.js';
+import { CHANGELOG } from '../../data/changelog.js';
 import './combat.css';
 
 const ELEMENT_ICON = {
@@ -113,6 +114,22 @@ const ATTUNEMENT_SIGNATURE = {
 
 function Icon({ icon, ...rest }) {
   return <iconify-icon icon={icon} {...rest}></iconify-icon>;
+}
+
+/** mm:ss (or h:mm:ss) elapsed playtime. */
+function fmtElapsed(ms) {
+  if (ms == null || ms < 0) ms = 0;
+  const s = Math.floor(ms / 1000);
+  const h = Math.floor(s / 3600); const m = Math.floor((s % 3600) / 60); const sec = s % 60;
+  const pad = (n) => String(n).padStart(2, '0');
+  return h > 0 ? `${h}:${pad(m)}:${pad(sec)}` : `${m}:${pad(sec)}`;
+}
+/** Local wall-clock HH:MM:SS for a timestamp. */
+function fmtClock(ts) {
+  if (!ts) return '';
+  const d = new Date(ts);
+  const pad = (n) => String(n).padStart(2, '0');
+  return `${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
 }
 
 function SizeBadge({ form }) {
@@ -540,7 +557,8 @@ function observedMoves(log, fighterId) {
 const DRAG_THRESHOLD = 6; // px the pointer must move before a tap becomes a drag
 
 export default function CombatScreen({ onMenu, onRestart, embedded } = {}) {
-  const { snap, log, startCombat, play, swap, peekAll, endTurn, reward, rollReward } = useCombat();
+  const { snap, log, startCombat, play, swap, peekAll, endTurn, reward, rollReward, startedAt } = useCombat();
+  const [nowTick, setNowTick] = useState(() => Date.now());
   const [info, setInfo] = useState(null);   // unified modal: effect/action/card/creature/axis/matchup/intent/log
   const [kwTerm, setKwTerm] = useState(null);  // glossary keyword selected inside the card modal
   const [notice, setNotice] = useState(null);
@@ -553,6 +571,14 @@ export default function CombatScreen({ onMenu, onRestart, embedded } = {}) {
 
   // Auto-start only the standalone demo (no host shell driving setup like the app menu).
   useEffect(() => { if (!snap && !onMenu) startCombat(); }, [snap, startCombat, onMenu]);
+
+  // Live playtime clock (ticks once a second; stops at end of combat).
+  const combatOver = snap?.phase === 'victory' || snap?.phase === 'defeat';
+  useEffect(() => {
+    if (!startedAt || combatOver) return undefined;
+    const t = setInterval(() => setNowTick(Date.now()), 1000);
+    return () => clearInterval(t);
+  }, [startedAt, combatOver]);
 
   // Spawn floating numbers + a hit-shake from NEW combat events (anchored to the
   // target's on-screen card via its data-drop-id). Prefers the big featured card.
@@ -715,7 +741,8 @@ export default function CombatScreen({ onMenu, onRestart, embedded } = {}) {
         <span className="pill"><Icon icon="game-icons:dungeon-gate" /> The Proving Pit</span>
         <span className="pill">{over ? (snap.phase === 'victory' ? 'Victory' : 'Defeat') : isPlayerTurn ? 'Your turn' : 'Enemy turn'}</span>
         <span className="pill">Turn {snap.turn}</span>
-        <span className="pill ver">{APP_VERSION}</span>
+        <span className="pill"><Icon icon="game-icons:stopwatch" /> {fmtElapsed(nowTick - (startedAt ?? nowTick))}</span>
+        <span className="pill ver clickable" onClick={() => setInfo({ kind: 'changelog' })} title="View changelog">{APP_VERSION}</span>
       </div>
 
       <div className="arena">
@@ -922,6 +949,7 @@ export default function CombatScreen({ onMenu, onRestart, embedded } = {}) {
                     <span className={`cdType ${cardKind(c)}`}>{c.type || ''}</span>
                   </div>
                   <div className="cdMeta">{c.rarity || 'common'} · {att || 'colorless'}{c.upgraded ? ' · upgraded' : ''}</div>
+                  <div className={`cdArt ${cardKind(c)}`}><MoveArt c={c} /></div>
                   <LinkedText text={describe(c)} onKeyword={setKwTerm} />
                   {kwTerm && <div className="kwDef"><b>{kwTerm}</b><span>{KEYWORD_GLOSSARY[kwTerm]}</span></div>}
                   <p className="cdHint">Tap a highlighted keyword for its meaning.</p>
@@ -961,6 +989,20 @@ export default function CombatScreen({ onMenu, onRestart, embedded } = {}) {
               );
             })()}
 
+            {info.kind === 'changelog' && (
+              <div>
+                <div className="infoHead"><Icon icon="game-icons:scroll-unfurled" /> Changelog <span className="clVer">{APP_VERSION}</span></div>
+                <div className="changelog">
+                  {CHANGELOG.map((rel) => (
+                    <div className="clRel" key={rel.version}>
+                      <div className="clHead"><b>{rel.version}</b><span>{rel.date}</span></div>
+                      <ul>{rel.notes.map((n, i) => <li key={i}>{n}</li>)}</ul>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
             {info.kind === 'intent' && (() => (
               <div>
                 <div className="infoHead"><Icon icon="game-icons:eye-target" /> Enemy Intent</div>
@@ -970,12 +1012,16 @@ export default function CombatScreen({ onMenu, onRestart, embedded } = {}) {
                     const iv = planActionView(action);
                     const actor = enemyById.get(action.actor);
                     return (
-                      <button key={i} className={`intentRow${action.revealed ? ' revealed' : ''}`} onClick={() => openAction(action)}>
-                        <Icon className="iIcon" icon={iv.icon} />
-                        <span className="iName">{actor?.name || 'Foe'}</span>
-                        <span className="iAct">{actionTitle(action)}</span>
-                        <span className="iTgt"><Icon icon="game-icons:bullseye" /> {planTargetName(action)}{action.revealed && iv.text !== '?' ? ` · ${iv.text}` : ''}</span>
-                      </button>
+                      <React.Fragment key={i}>
+                        {i > 0 && <div className="intentArrow"><Icon icon="game-icons:down-arrow" /></div>}
+                        <button className={`intentRow${action.revealed ? ' revealed' : ''}`} onClick={() => openAction(action)}>
+                          <span className="iStep">{i + 1}</span>
+                          <Icon className="iIcon" icon={iv.icon} />
+                          <span className="iName">{actor?.name || 'Foe'}</span>
+                          <span className="iAct">{actionTitle(action)}</span>
+                          <span className="iTgt"><Icon icon="game-icons:bullseye" /> {planTargetName(action)}{action.revealed && iv.text !== '?' ? ` · ${iv.text}` : ''}</span>
+                        </button>
+                      </React.Fragment>
                     );
                   })}
                 </div>
@@ -993,7 +1039,13 @@ export default function CombatScreen({ onMenu, onRestart, embedded } = {}) {
                 <div className="logModalBody" ref={(el) => { if (el) el.scrollTop = el.scrollHeight; }}>
                   {(log ?? []).map((ev, i) => {
                     const content = LogLine({ ev, nameOf, onEntity: setInfo });
-                    return content ? <div key={i} className="logRow">{content}</div> : null;
+                    if (!content) return null;
+                    return (
+                      <div key={i} className="logRow">
+                        <span className="logTime" title={`local ${fmtClock(ev._ts)}`}>{fmtElapsed((ev._ts ?? startedAt) - startedAt)} · {fmtClock(ev._ts)}</span>
+                        {content}
+                      </div>
+                    );
                   })}
                   {!(log ?? []).some((ev) => LogLine({ ev, nameOf, onEntity: setInfo })) && <div className="infoRow dim">No events yet.</div>}
                 </div>

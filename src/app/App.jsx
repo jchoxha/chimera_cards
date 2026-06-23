@@ -18,6 +18,7 @@ import { attunementCards } from '../engine/cards/attunementPool.js';
 import { reskinDeck } from '../engine/cards/reskin.js';
 import { buildRoster } from '../data/roster.js';
 import { APP_VERSION } from '../version.js';
+import { CHANGELOG } from '../data/changelog.js';
 import './app.css';
 
 // Bundled card files (the editor saves drafts on top of these in localStorage).
@@ -42,6 +43,7 @@ export default function App() {
   const [dummyBio, setDummyBio] = useState('');
   const [lastDeck, setLastDeck] = useState(null); // remembered deck → "Restart" replays it
   const [showPlaytest, setShowPlaytest] = useState(false); // advanced playtest knobs (collapsed)
+  const [showChangelog, setShowChangelog] = useState(false);
 
   // The class of the selected deck → which primary attunements are legal (a combo is
   // legal if its FIRST base is legal; the 2nd may be anything — synthesis.js A4).
@@ -115,7 +117,9 @@ export default function App() {
     <div className="menu">
       <div className="menuCard">
         <h1 className="menuTitle">CHIMERA</h1>
-        <p className="menuSub">Card-driven creature deckbuilder <span className="menuVersion">{APP_VERSION}</span></p>
+        <p className="menuSub">Card-driven creature deckbuilder{' '}
+          <button className="menuVersion" onClick={() => setShowChangelog(true)} title="View changelog">{APP_VERSION}</button>
+        </p>
 
         {/* Primary: descend */}
         <button className="menuBtn big" onClick={() => setView('select')}>
@@ -184,6 +188,23 @@ export default function App() {
           </div>
         )}
       </div>
+
+      {showChangelog && (
+        <div className="clWrap" onClick={() => setShowChangelog(false)}>
+          <div className="clCard" onClick={(e) => e.stopPropagation()}>
+            <button className="clClose" onClick={() => setShowChangelog(false)}>✕</button>
+            <h2>Changelog <span className="clCardVer">{APP_VERSION}</span></h2>
+            <div className="clList">
+              {CHANGELOG.map((rel) => (
+                <div className="clRel" key={rel.version}>
+                  <div className="clRelHead"><b>{rel.version}</b><span>{rel.date}</span></div>
+                  <ul>{rel.notes.map((n, i) => <li key={i}>{n}</li>)}</ul>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
