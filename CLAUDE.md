@@ -239,6 +239,20 @@ status (imbue + own cards) [Stone = Block]. `test:statuses` 27. **Attunements ar
 ready for §5.2 reactions** (Soak = the universal primer). Reaction DESIGN locked in
 `docs/mechanics.md` (master mechanics registry; engine deferred — statuses stand alone).
 
+**🧹 COMBAT DECLUTTER + CARD SYMMETRY (v3.36.0, 2026-06-23, Jeton mobile feedback).** (a) **Card
+size symmetry:** the foe featured card sat in a `.foeSide` wrapper with a forecast strip, so its
+height basis differed from the ally card (foe looked bigger). Removed the wrapper/strip — both
+featured cards are now direct, identical children of `.cardsRow`. (b) **Declutter:** removed the
+center **Peek bar**, the per-monster **forecast strips**, and the always-on **combat-log panel**.
+Enemy intent + Peek now open from an **'Enemy Intent'** button under the foes bench; the log opens
+from a **'Combat Log'** button under the team bench — both render in the unified modal (new
+`intent`/`log` kinds; `.benchBtn`). The hand stays on-screen (primary interaction; the user mused
+about moving it but it would hurt play). (c) **Load reflow:** `<iconify-icon>` is 0×0 until its SVG
+loads, growing the layout on load — reserved a 1em box (`width/height:1em;flex:none`) in
+combat/run/select. (d) **Balanced stance** is the default and no longer renders as a status pip (it
+showed on every Warrior); stance-set cards still read "Enter <X> stance". All builds/lints + combat
+node suites green.
+
 **🎨 APP-WIDE UI COHESION PASS (v3.35.0→v3.35.2, 2026-06-23, Jeton).** The run/meta layer + menu
 were plain dev forms clashing with the ornate combat skin; closed the gap. (a) **Run-layer reskin**
 (`ui/run/run.css` rewritten + `RunScreen.jsx`): gilded skin (gold/ink vars from combat.css are global
