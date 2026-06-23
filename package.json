@@ -17,6 +17,7 @@
     "test:statuses": "node src/engine/combat/__statuses__.mjs",
     "test:playtest": "node src/store/__playtest__.mjs",
     "test:run": "node src/engine/run/__run__.mjs",
+    "test:rewards": "node src/engine/run/__rewards__.mjs",
     "test:deck": "node src/engine/deck/__budget__.mjs",
     "test:icons": "node src/data/__icons__.mjs",
     "test:art": "node src/data/__art__.mjs",

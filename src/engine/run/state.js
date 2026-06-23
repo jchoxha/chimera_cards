@@ -25,11 +25,14 @@ import { generateAct } from './map.js';
  * @param {Object} [args.map]
  * @returns {Object} serializable run state
  */
-export function createRunState({ party = [], seed = Date.now(), map = null } = {}) {
+export function createRunState({ party = [], seed = Date.now(), map = null, rewardPool = [] } = {}) {
   const seedInt = typeof seed === 'number' ? (seed >>> 0) : hashSeed(seed);
   return {
     seed: seedInt,
     rngState: seedInt,
+    // The party's combined potential pool (archetype + attunement cards) — what
+    // card rewards/shops draft from (engine/run/rewards.js). Set at run start.
+    rewardPool: rewardPool.map((c) => ({ ...c })),
     party: party.map((p) => ({
       id: p.id,
       name: p.name,
@@ -58,11 +61,11 @@ export function createRunState({ party = [], seed = Date.now(), map = null } = {
  * Advances rngState past the map generation so subsequent draws stay deterministic.
  * @param {{ party?: Object[], seed?: number|string, floors?: number }} [args]
  */
-export function createRun({ party = [], seed = Date.now(), floors = 10 } = {}) {
+export function createRun({ party = [], seed = Date.now(), floors = 10, rewardPool = [] } = {}) {
   const seedInt = typeof seed === 'number' ? (seed >>> 0) : hashSeed(seed);
   const rng = makeRng(seedInt);
   const map = generateAct(rng, { floors, act: 1 });
-  const state = createRunState({ party, seed: seedInt, map });
+  const state = createRunState({ party, seed: seedInt, map, rewardPool });
   state.rngState = rng.state; // continue the sequence after map gen
   return state;
 }

@@ -12,13 +12,10 @@ import { currentNode, reachableFrom } from '../engine/run/map.js';
 import { enemyForNode } from '../engine/run/encounters.js';
 import { combatOutcome } from '../engine/run/combatBridge.js';
 import { makeRng } from '../engine/run/rng.js';
+import { draftRunReward } from '../engine/run/rewards.js';
 import { useCombat } from './combatStore.js';
 
 const SAVE_KEY = 'chimera:run:save';
-
-function rewardCards(vm) {
-  try { return vm.generateReward(3); } catch { return []; }
-}
 
 export const useRun = create((set, get) => ({
   /** @type {RunManager|null} */ rm: null,
@@ -31,8 +28,8 @@ export const useRun = create((set, get) => ({
   hasSave() { try { return !!localStorage.getItem(SAVE_KEY); } catch { return false; } },
   clearSave() { try { localStorage.removeItem(SAVE_KEY); } catch { /* noop */ } },
 
-  startRun({ party, seed }) {
-    const rm = new RunManager(createRun({ party, seed, floors: 10 }));
+  startRun({ party, seed, rewardPool = [] }) {
+    const rm = new RunManager(createRun({ party, seed, floors: 10, rewardPool }));
     set({ rm, snap: { ...rm.state }, version: 1, view: 'map' });
     get()._save();
   },
@@ -81,14 +78,17 @@ export const useRun = create((set, get) => ({
     if (!out.won) { rm.dispatch('setStatus', { status: 'lost' }); get()._publish(); set({ view: 'over' }); return; }
     rm.dispatch('gainGold', { amount: node.type === 'boss' ? 100 : node.type === 'elite' ? 40 : 25 });
     if (node.type === 'boss') { rm.dispatch('setStatus', { status: 'won' }); get().clearSave(); get()._publish(); set({ view: 'over' }); return; }
-    rm.dispatch('offerReward', { cards: rewardCards(vm) });
+    // Draft rewards from the PARTY's own potential pool (archetype + attunement cards).
+    const rng = makeRng((rm.state.rngState ^ 0x6d2b79f5) >>> 0);
+    rm.dispatch('offerReward', { cards: draftRunReward(rm.state.rewardPool, 3, () => rng.next()) });
     get()._publish();
     set({ view: 'reward' });
   },
 
-  chooseReward(card) {
+  /** Add the chosen reward card to a party member's deck (defaults to the first). */
+  chooseReward(card, memberId) {
     const { rm } = get();
-    rm.dispatch('chooseReward', { memberId: rm.state.party[0]?.id, card });
+    rm.dispatch('chooseReward', { memberId: memberId || rm.state.party[0]?.id, card });
     get()._publish(); set({ view: 'map' });
   },
   skipReward() { get().rm.dispatch('skipReward'); get()._publish(); set({ view: 'map' }); },

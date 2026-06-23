@@ -7,15 +7,16 @@
 import React, { useState } from 'react';
 import { useCombat } from '../store/combatStore.js';
 import { useRun } from '../store/runStore.js';
-import { starterDeck } from '../engine/run/state.js';
 import { CardEditor } from '../editor/CardEditor.jsx';
 import CombatScreen from '../ui/combat/CombatScreen.jsx';
 import RunScreen from '../ui/run/RunScreen.jsx';
 import DeckBuilder from '../ui/deck/DeckBuilder.jsx';
+import SelectScreen from './SelectScreen.jsx';
 import { loadDraft } from '../editor/persistence.js';
 import { ATTUNEMENT_BASES, BIOLOGY_BASES, legalAttunements } from '../data/synthesis.js';
 import { attunementCards } from '../engine/cards/attunementPool.js';
 import { reskinDeck } from '../engine/cards/reskin.js';
+import { buildRoster } from '../data/roster.js';
 import './app.css';
 
 // Bundled card files (the editor saves drafts on top of these in localStorage).
@@ -24,6 +25,9 @@ const FILES = Object.fromEntries(
   Object.entries(BUNDLE).map(([p, m]) => [p.split('/').pop(), (m.default ?? m)]),
 );
 const FILE_NAMES = Object.keys(FILES);
+// Archetype card pools keyed by class name, for the generator + reward pools.
+const POOLS = Object.fromEntries(Object.values(FILES).map((f) => [f.class, f.cards || []]));
+const ROSTER = buildRoster(POOLS, POOLS.Warrior || []);
 
 export default function App() {
   const [view, setView] = useState('menu');
@@ -75,20 +79,18 @@ export default function App() {
     setView('combat');
   }
 
-  function deckFromFile() {
-    const file = loadDraft(deckFile) || FILES[deckFile] || { cards: [] };
-    const raw = (file.cards || []).filter((c) => c.type !== 'curse' && c.type !== 'status');
-    const attunement = [raw.find((c) => c.attunement)?.attunement || 'Physical'];
-    return { file, cards: reskinDeck(raw, attunement), attunement };
+  /** Combined potential pool (archetype reskinned + attunement cards) the run drafts
+   *  rewards/shop from — the union over the chosen team. */
+  function partyRewardPool(creatures) {
+    const out = [];
+    for (const c of creatures) {
+      out.push(...reskinDeck(POOLS[c.class?.[0]] || [], c.attunement), ...attunementCards(c.attunement));
+    }
+    return out;
   }
-  function launchRun() {
-    const { file, cards, attunement } = deckFromFile();
-    const party = [{
-      id: 'hero', name: file.class || 'Hero', class: file.class ? [file.class] : undefined,
-      attunement, stats: { might: 1, guard: 1, focus: 1, resolve: 1, speed: 0 }, maxHp: 60,
-      deck: starterDeck(cards, 10), // ≤10-card starter; more from rewards
-    }];
-    useRun.getState().startRun({ party, seed: Date.now() });
+  function startSelectedRun(creatures) {
+    if (!creatures.length) return;
+    useRun.getState().startRun({ party: creatures, seed: Date.now(), rewardPool: partyRewardPool(creatures) });
     setView('run');
   }
   function continueRun() { if (useRun.getState().loadSaved()) setView('run'); }
@@ -96,6 +98,7 @@ export default function App() {
   if (view === 'editor') return <CardEditor onMenu={() => setView('menu')} />;
   if (view === 'combat') return <CombatScreen onMenu={() => setView('menu')} onRestart={() => launchCombat(lastDeck)} />;
   if (view === 'run') return <RunScreen onMenu={() => setView('menu')} />;
+  if (view === 'select') return <SelectScreen roster={ROSTER} onConfirm={startSelectedRun} onCancel={() => setView('menu')} />;
   if (view === 'deckbuild') return (
     <DeckBuilder
       pool={poolForFile()}
@@ -162,8 +165,8 @@ export default function App() {
 
         <div className="menuSetup">
           <h3>🗺 Roguelike Run</h3>
-          <button className="menuBtn big" onClick={launchRun} disabled={!FILE_NAMES.length}>
-            Begin a Run — {deckFile.replace('.json', '')}
+          <button className="menuBtn big" onClick={() => setView('select')}>
+            ⚔ Choose Your Team &amp; Descend
           </button>
           {useRun.getState().hasSave() && (
             <button className="menuBtn" onClick={continueRun}>Continue Saved Run</button>
