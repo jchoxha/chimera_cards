@@ -1,0 +1,26 @@
+{
+  "class": "Engineer",
+  "version": 1,
+  "note": "Engineer kit (§12). Constructs (Field Entities) approximated as Powers that tick each turn (turnStart). Gadgets (card-gen) approximated as energy/block. Block-scaling via Guard/Dexterity; Railgun scales with energy spent. Overdrive pays Block for energy. Tweak later.",
+  "cards": [
+    { "id": "engineer_wrench_strike", "name": "Wrench Strike", "class": "Engineer", "attunement": "Physical", "type": "attack", "cost": 1, "rarity": "basic", "imbue": 1, "effects": [{ "op": "damage", "value": 6 }] },
+    { "id": "engineer_plating", "name": "Plating", "class": "Engineer", "attunement": "Physical", "type": "skill", "cost": 1, "rarity": "basic", "effects": [{ "op": "block", "value": 5 }] },
+    { "id": "engineer_reinforce", "name": "Reinforce", "class": "Engineer", "attunement": "Physical", "type": "skill", "cost": 1, "rarity": "common", "effects": [{ "op": "block", "value": 8 }] },
+    { "id": "engineer_overcharge_shield", "name": "Overcharge Shield", "class": "Engineer", "attunement": "Physical", "type": "skill", "cost": 1, "rarity": "common", "effects": [{ "op": "block", "value": 10 }] },
+    { "id": "engineer_piston_punch", "name": "Piston Punch", "class": "Engineer", "attunement": "Physical", "type": "attack", "cost": 1, "rarity": "common", "imbue": 1, "effects": [{ "op": "damage", "value": 7 }] },
+    { "id": "engineer_deploy_turret", "name": "Deploy Turret", "class": "Engineer", "attunement": "Physical", "type": "power", "cost": 1, "rarity": "common", "trigger": { "on": "turnStart", "effects": [{ "op": "damage", "value": 4, "scope": "enemyActiveTarget" }] } },
+    { "id": "engineer_deploy_shield_drone", "name": "Deploy Shield Drone", "class": "Engineer", "attunement": "Physical", "type": "power", "cost": 1, "rarity": "common", "trigger": { "on": "turnStart", "effects": [{ "op": "block", "value": 3 }] } },
+    { "id": "engineer_overdrive", "name": "Overdrive", "class": "Engineer", "attunement": "Physical", "type": "skill", "cost": 1, "rarity": "common", "effects": [{ "op": "energy", "value": 2 }, { "op": "pay", "block": 3 }] },
+    { "id": "engineer_barricade", "name": "Barricade", "class": "Engineer", "attunement": "Physical", "type": "skill", "cost": 2, "rarity": "uncommon", "effects": [{ "op": "block", "value": 12, "brace": true }] },
+    { "id": "engineer_deflector", "name": "Deflector", "class": "Engineer", "attunement": "Physical", "type": "power", "cost": 1, "rarity": "uncommon", "trigger": { "on": "onDamageTaken", "effects": [{ "op": "damage", "value": 3, "scope": "enemyActiveTarget" }] } },
+    { "id": "engineer_repair_bot", "name": "Repair Bot", "class": "Engineer", "attunement": "Physical", "type": "power", "cost": 1, "rarity": "uncommon", "trigger": { "on": "turnStart", "effects": [{ "op": "heal", "value": 3 }] } },
+    { "id": "engineer_sentry", "name": "Sentry", "class": "Engineer", "attunement": "Physical", "type": "power", "cost": 1, "rarity": "uncommon", "trigger": { "on": "turnStart", "effects": [{ "op": "damage", "value": 3, "scope": "enemyActiveTarget" }] } },
+    { "id": "engineer_recycle", "name": "Recycle", "class": "Engineer", "attunement": "Physical", "type": "skill", "cost": 1, "rarity": "uncommon", "effects": [{ "op": "energy", "value": 2 }, { "op": "block", "value": 4 }] },
+    { "id": "engineer_flamethrower", "name": "Flamethrower", "class": "Engineer", "attunement": "Physical", "type": "attack", "cost": 2, "rarity": "uncommon", "effects": [{ "op": "damage", "value": 5, "scope": "wholeEnemySide" }, { "op": "debuff", "status": "burn", "value": 2, "scope": "wholeEnemySide" }] },
+    { "id": "engineer_auto_defense", "name": "Auto-Defense", "class": "Engineer", "attunement": "Physical", "type": "power", "cost": 1, "rarity": "uncommon", "trigger": { "on": "turnStart", "effects": [{ "op": "block", "value": 3 }] } },
+    { "id": "engineer_railgun", "name": "Railgun", "class": "Engineer", "attunement": "Physical", "type": "attack", "cost": 2, "rarity": "rare", "imbue": 1, "effects": [{ "op": "damage", "value": 10, "scaleBy": { "event": "energySpent", "per": 1, "window": "thisTurn" } }] },
+    { "id": "engineer_deploy_bombard", "name": "Deploy Bombard", "class": "Engineer", "attunement": "Physical", "type": "power", "cost": 2, "rarity": "rare", "trigger": { "on": "turnStart", "effects": [{ "op": "damage", "value": 6, "scope": "wholeEnemySide" }] } },
+    { "id": "engineer_mass_production", "name": "Mass Production", "class": "Engineer", "attunement": "Physical", "type": "power", "cost": 2, "rarity": "rare", "trigger": { "on": "turnStart", "effects": [{ "op": "energy", "value": 1 }] } },
+    { "id": "engineer_overclock", "name": "Overclock", "class": "Engineer", "attunement": "Physical", "type": "power", "cost": 1, "rarity": "epic", "trigger": { "on": "turnStart", "effects": [{ "op": "block", "value": 3 }] } }
+  ]
+}

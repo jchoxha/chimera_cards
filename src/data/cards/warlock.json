@@ -1,0 +1,26 @@
+{
+  "class": "Warlock",
+  "version": 1,
+  "note": "Warlock kit (§8). Curses = debuffs; Drain = damage+heal; Sacrifice = pay HP. Summons (Field Entities) aren't engine-supported, approximated as Powers that tick each turn (turnStart). Doom = a delayed hit (trigger turnStart). Tweak later.",
+  "cards": [
+    { "id": "warlock_shadow_bolt", "name": "Shadow Bolt", "class": "Warlock", "attunement": "Shadow", "type": "attack", "cost": 1, "rarity": "basic", "imbue": 1, "effects": [{ "op": "damage", "value": 6 }] },
+    { "id": "warlock_shroud", "name": "Shroud", "class": "Warlock", "attunement": "Shadow", "type": "skill", "cost": 1, "rarity": "basic", "effects": [{ "op": "block", "value": 5 }] },
+    { "id": "warlock_curse_of_weakness", "name": "Curse of Weakness", "class": "Warlock", "attunement": "Shadow", "type": "skill", "cost": 1, "rarity": "common", "effects": [{ "op": "debuff", "status": "weak", "value": 3 }] },
+    { "id": "warlock_curse_of_agony", "name": "Curse of Agony", "class": "Warlock", "attunement": "Shadow", "type": "skill", "cost": 1, "rarity": "common", "effects": [{ "op": "debuff", "status": "poison", "value": 5 }] },
+    { "id": "warlock_corruption", "name": "Corruption", "class": "Warlock", "attunement": "Shadow", "type": "skill", "cost": 1, "rarity": "common", "effects": [{ "op": "debuff", "status": "vulnerable", "value": 3 }, { "op": "draw", "value": 1 }] },
+    { "id": "warlock_hex", "name": "Hex", "class": "Warlock", "attunement": "Shadow", "type": "attack", "cost": 1, "rarity": "common", "imbue": 1, "effects": [{ "op": "damage", "value": 5 }, { "op": "debuff", "status": "vulnerable", "value": 2 }] },
+    { "id": "warlock_drain_life", "name": "Drain Life", "class": "Warlock", "attunement": "Shadow", "type": "attack", "cost": 1, "rarity": "common", "imbue": 1, "effects": [{ "op": "damage", "value": 7 }, { "op": "heal", "value": 4 }] },
+    { "id": "warlock_dark_pact", "name": "Dark Pact", "class": "Warlock", "attunement": "Shadow", "type": "skill", "cost": 0, "rarity": "common", "effects": [{ "op": "pay", "hp": 4 }, { "op": "energy", "value": 2 }, { "op": "draw", "value": 1 }] },
+    { "id": "warlock_summon_imp", "name": "Summon Imp", "class": "Warlock", "attunement": "Shadow", "type": "power", "cost": 1, "rarity": "common", "trigger": { "on": "turnStart", "effects": [{ "op": "damage", "value": 3, "scope": "enemyActiveTarget" }] } },
+    { "id": "warlock_siphon_soul", "name": "Siphon Soul", "class": "Warlock", "attunement": "Shadow", "type": "attack", "cost": 2, "rarity": "uncommon", "imbue": 1, "effects": [{ "op": "damage", "value": 10 }, { "op": "heal", "value": 5 }] },
+    { "id": "warlock_demonic_power", "name": "Demonic Power", "class": "Warlock", "attunement": "Shadow", "type": "skill", "cost": 1, "rarity": "uncommon", "effects": [{ "op": "pay", "hp": 5 }, { "op": "buff", "status": "strength", "value": 3 }] },
+    { "id": "warlock_soul_harvest", "name": "Soul Harvest", "class": "Warlock", "attunement": "Shadow", "type": "skill", "cost": 1, "rarity": "uncommon", "effects": [{ "op": "pay", "hp": 6 }, { "op": "draw", "value": 3 }] },
+    { "id": "warlock_raise_thrall", "name": "Raise Thrall", "class": "Warlock", "attunement": "Shadow", "type": "power", "cost": 1, "rarity": "uncommon", "trigger": { "on": "turnStart", "effects": [{ "op": "block", "value": 4 }] } },
+    { "id": "warlock_summon_voidling", "name": "Summon Voidling", "class": "Warlock", "attunement": "Shadow", "type": "power", "cost": 2, "rarity": "uncommon", "trigger": { "on": "turnStart", "effects": [{ "op": "debuff", "status": "vulnerable", "value": 1 }] } },
+    { "id": "warlock_malefic_vision", "name": "Malefic Vision", "class": "Warlock", "attunement": "Shadow", "type": "power", "cost": 1, "rarity": "uncommon", "trigger": { "on": "turnStart", "effects": [{ "op": "debuff", "status": "weak", "value": 1 }] } },
+    { "id": "warlock_doom", "name": "Doom", "class": "Warlock", "attunement": "Shadow", "type": "skill", "cost": 2, "rarity": "rare", "effects": [{ "op": "damage", "value": 20, "scope": "enemyActiveTarget", "trigger": "turnStart", "duration": "thisTurn" }] },
+    { "id": "warlock_soul_leech", "name": "Soul Leech", "class": "Warlock", "attunement": "Shadow", "type": "attack", "cost": 2, "rarity": "rare", "effects": [{ "op": "damage", "value": 6, "scope": "wholeEnemySide" }, { "op": "heal", "value": 3 }] },
+    { "id": "warlock_nightfall", "name": "Nightfall", "class": "Warlock", "attunement": "Shadow", "type": "power", "cost": 2, "rarity": "rare", "trigger": { "on": "turnEnd", "effects": [{ "op": "debuff", "status": "vulnerable", "value": 1, "scope": "wholeEnemySide" }] } },
+    { "id": "warlock_soul_link", "name": "Soul Link", "class": "Warlock", "attunement": "Shadow", "type": "power", "cost": 2, "rarity": "epic", "trigger": { "on": "turnStart", "effects": [{ "op": "damage", "value": 3, "scope": "wholeEnemySide" }] } }
+  ]
+}

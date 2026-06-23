@@ -1,0 +1,25 @@
+{
+  "class": "Shaman",
+  "version": 1,
+  "note": "Shaman kit (§10). Totems (Field Entities) aren't engine-supported, approximated as Powers that tick each turn (turnStart). Soak/DoT via debuffs. Spread (copying a DoT) approximated as AoE. Plain attacks carry imbue; status-applying cards don't (avoid double-applying). Tweak later.",
+  "cards": [
+    { "id": "shaman_jolt", "name": "Lightning Jolt", "class": "Shaman", "attunement": "Nature", "type": "attack", "cost": 1, "rarity": "basic", "imbue": 1, "effects": [{ "op": "damage", "value": 6 }] },
+    { "id": "shaman_stoneskin", "name": "Stoneskin", "class": "Shaman", "attunement": "Nature", "type": "skill", "cost": 1, "rarity": "basic", "effects": [{ "op": "block", "value": 5 }] },
+    { "id": "shaman_searing_totem", "name": "Searing Totem", "class": "Shaman", "attunement": "Nature", "type": "power", "cost": 1, "rarity": "common", "trigger": { "on": "turnStart", "effects": [{ "op": "damage", "value": 4, "scope": "enemyActiveTarget" }] } },
+    { "id": "shaman_stoneclaw_totem", "name": "Stoneclaw Totem", "class": "Shaman", "attunement": "Nature", "type": "power", "cost": 1, "rarity": "common", "trigger": { "on": "turnStart", "effects": [{ "op": "block", "value": 4 }] } },
+    { "id": "shaman_poison_spit", "name": "Poison Spit", "class": "Shaman", "attunement": "Nature", "type": "attack", "cost": 1, "rarity": "common", "effects": [{ "op": "damage", "value": 5 }, { "op": "debuff", "status": "poison", "value": 3 }] },
+    { "id": "shaman_frostbrand", "name": "Frostbrand", "class": "Shaman", "attunement": "Nature", "type": "attack", "cost": 1, "rarity": "common", "effects": [{ "op": "damage", "value": 5 }, { "op": "debuff", "status": "weak", "value": 1 }] },
+    { "id": "shaman_earth_shock", "name": "Earth Shock", "class": "Shaman", "attunement": "Nature", "type": "attack", "cost": 1, "rarity": "common", "imbue": 1, "effects": [{ "op": "damage", "value": 6 }] },
+    { "id": "shaman_soak", "name": "Soak", "class": "Shaman", "attunement": "Nature", "type": "skill", "cost": 1, "rarity": "common", "effects": [{ "op": "debuff", "status": "soak", "value": 3 }] },
+    { "id": "shaman_regrowth", "name": "Regrowth", "class": "Shaman", "attunement": "Nature", "type": "skill", "cost": 1, "rarity": "common", "effects": [{ "op": "buff", "status": "regen", "value": 3 }, { "op": "block", "value": 4 }] },
+    { "id": "shaman_ancestral_aid", "name": "Ancestral Aid", "class": "Shaman", "attunement": "Nature", "type": "skill", "cost": 1, "rarity": "common", "effects": [{ "op": "draw", "value": 2 }] },
+    { "id": "shaman_healing_totem", "name": "Healing Totem", "class": "Shaman", "attunement": "Nature", "type": "power", "cost": 1, "rarity": "uncommon", "trigger": { "on": "turnStart", "effects": [{ "op": "heal", "value": 3 }] } },
+    { "id": "shaman_windfury_totem", "name": "Windfury Totem", "class": "Shaman", "attunement": "Nature", "type": "power", "cost": 2, "rarity": "uncommon", "trigger": { "on": "turnStart", "effects": [{ "op": "draw", "value": 1 }] } },
+    { "id": "shaman_lava_burst", "name": "Lava Burst", "class": "Shaman", "attunement": "Nature", "type": "attack", "cost": 2, "rarity": "uncommon", "effects": [{ "op": "damage", "value": 8 }, { "op": "debuff", "status": "burn", "value": 3 }] },
+    { "id": "shaman_chain_lightning", "name": "Chain Lightning", "class": "Shaman", "attunement": "Nature", "type": "attack", "cost": 2, "rarity": "uncommon", "effects": [{ "op": "damage", "value": 5, "scope": "wholeEnemySide" }] },
+    { "id": "shaman_tremor", "name": "Tremor", "class": "Shaman", "attunement": "Nature", "type": "attack", "cost": 2, "rarity": "uncommon", "effects": [{ "op": "damage", "value": 4, "scope": "wholeEnemySide" }] },
+    { "id": "shaman_spirit_surge", "name": "Spirit Surge", "class": "Shaman", "attunement": "Nature", "type": "skill", "cost": 0, "rarity": "uncommon", "effects": [{ "op": "energy", "value": 1 }, { "op": "draw", "value": 1 }] },
+    { "id": "shaman_overgrowth", "name": "Overgrowth", "class": "Shaman", "attunement": "Nature", "type": "power", "cost": 1, "rarity": "uncommon", "trigger": { "on": "turnStart", "effects": [{ "op": "debuff", "status": "poison", "value": 1 }] } },
+    { "id": "shaman_elemental_mastery", "name": "Elemental Mastery", "class": "Shaman", "attunement": "Nature", "type": "power", "cost": 2, "rarity": "rare", "trigger": { "on": "turnStart", "effects": [{ "op": "damage", "value": 2, "scope": "wholeEnemySide" }] } }
+  ]
+}

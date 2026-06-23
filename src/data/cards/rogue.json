@@ -1,0 +1,29 @@
+{
+  "class": "Rogue",
+  "version": 1,
+  "note": "Rogue kit (docs/archetype-design.md §6). Shape cards — element comes from the creature's attunement (re-skin) + imbue. Combo via scaleBy cardsPlayed. Stealth's untargetability isn't engine-supported yet, so Stealth cards keep their tangible effects (draw/energy/burst) as an approximation — tweak later.",
+  "cards": [
+    { "id": "rogue_dagger", "name": "Dagger", "class": "Rogue", "attunement": "Physical", "type": "attack", "cost": 1, "rarity": "basic", "imbue": 1, "effects": [{ "op": "damage", "value": 6 }] },
+    { "id": "rogue_dodge", "name": "Dodge", "class": "Rogue", "attunement": "Physical", "type": "skill", "cost": 1, "rarity": "basic", "effects": [{ "op": "block", "value": 5 }] },
+    { "id": "rogue_backstab", "name": "Backstab", "class": "Rogue", "attunement": "Physical", "type": "attack", "cost": 1, "rarity": "common", "imbue": 1, "effects": [{ "op": "damage", "value": 9 }] },
+    { "id": "rogue_shiv", "name": "Shiv", "class": "Rogue", "attunement": "Physical", "type": "attack", "cost": 0, "rarity": "common", "imbue": 1, "effects": [{ "op": "damage", "value": 4 }] },
+    { "id": "rogue_fan_of_knives", "name": "Fan of Knives", "class": "Rogue", "attunement": "Physical", "type": "attack", "cost": 1, "rarity": "common", "imbue": 1, "effects": [{ "op": "damage", "value": 3, "hits": 2 }] },
+    { "id": "rogue_quick_slash", "name": "Quick Slash", "class": "Rogue", "attunement": "Physical", "type": "attack", "cost": 1, "rarity": "common", "effects": [{ "op": "damage", "value": 6 }, { "op": "draw", "value": 1 }] },
+    { "id": "rogue_crippling_cut", "name": "Crippling Cut", "class": "Rogue", "attunement": "Physical", "type": "attack", "cost": 1, "rarity": "common", "effects": [{ "op": "damage", "value": 5 }, { "op": "debuff", "status": "weak", "value": 2 }] },
+    { "id": "rogue_vanish", "name": "Vanish", "class": "Rogue", "attunement": "Physical", "type": "skill", "cost": 1, "rarity": "common", "effects": [{ "op": "draw", "value": 1 }, { "op": "energy", "value": 1 }] },
+    { "id": "rogue_smoke_bomb", "name": "Smoke Bomb", "class": "Rogue", "attunement": "Physical", "type": "skill", "cost": 1, "rarity": "common", "effects": [{ "op": "block", "value": 6 }, { "op": "draw", "value": 1 }] },
+    { "id": "rogue_envenom", "name": "Envenom", "class": "Rogue", "attunement": "Physical", "type": "skill", "cost": 1, "rarity": "common", "effects": [{ "op": "debuff", "status": "poison", "value": 4 }] },
+    { "id": "rogue_expose_weakness", "name": "Expose Weakness", "class": "Rogue", "attunement": "Physical", "type": "skill", "cost": 1, "rarity": "common", "effects": [{ "op": "debuff", "status": "vulnerable", "value": 2 }, { "op": "draw", "value": 1 }] },
+    { "id": "rogue_preparation", "name": "Preparation", "class": "Rogue", "attunement": "Physical", "type": "skill", "cost": 0, "rarity": "common", "effects": [{ "op": "draw", "value": 2 }] },
+    { "id": "rogue_ambush", "name": "Ambush", "class": "Rogue", "attunement": "Physical", "type": "attack", "cost": 2, "rarity": "uncommon", "imbue": 1, "effects": [{ "op": "damage", "value": 12 }, { "op": "debuff", "status": "weak", "value": 2 }] },
+    { "id": "rogue_shadowstep", "name": "Shadowstep", "class": "Rogue", "attunement": "Physical", "type": "skill", "cost": 0, "rarity": "uncommon", "effects": [{ "op": "energy", "value": 1 }, { "op": "draw", "value": 1 }] },
+    { "id": "rogue_eviscerate", "name": "Eviscerate", "class": "Rogue", "attunement": "Physical", "type": "attack", "cost": 2, "rarity": "uncommon", "imbue": 1, "effects": [{ "op": "damage", "value": 8, "scaleBy": { "event": "cardsPlayed", "per": 3, "window": "thisTurn" } }] },
+    { "id": "rogue_finishing_move", "name": "Finishing Move", "class": "Rogue", "attunement": "Physical", "type": "attack", "cost": 1, "rarity": "uncommon", "effects": [{ "op": "damage", "value": 9, "bonusIf": { "targetHpPctBelow": 0.4 }, "bonusMult": 2 }] },
+    { "id": "rogue_toxic_blades", "name": "Toxic Blades", "class": "Rogue", "attunement": "Physical", "type": "attack", "cost": 2, "rarity": "uncommon", "effects": [{ "op": "damage", "value": 6 }, { "op": "debuff", "status": "poison", "value": 3 }] },
+    { "id": "rogue_adrenaline", "name": "Adrenaline", "class": "Rogue", "attunement": "Physical", "type": "skill", "cost": 0, "rarity": "uncommon", "effects": [{ "op": "energy", "value": 2 }, { "op": "draw", "value": 1 }] },
+    { "id": "rogue_deadly_momentum", "name": "Deadly Momentum", "class": "Rogue", "attunement": "Physical", "type": "power", "cost": 1, "rarity": "uncommon", "trigger": { "on": "turnStart", "effects": [{ "op": "energy", "value": 1 }] } },
+    { "id": "rogue_toxicology", "name": "Toxicology", "class": "Rogue", "attunement": "Physical", "type": "power", "cost": 1, "rarity": "uncommon", "trigger": { "on": "turnStart", "effects": [{ "op": "debuff", "status": "poison", "value": 1 }] } },
+    { "id": "rogue_killing_spree", "name": "Killing Spree", "class": "Rogue", "attunement": "Physical", "type": "attack", "cost": -1, "rarity": "rare", "imbue": 1, "effects": [{ "op": "damage", "value": 5, "hits": "X" }] },
+    { "id": "rogue_thousand_cuts", "name": "Thousand Cuts", "class": "Rogue", "attunement": "Physical", "type": "power", "cost": 2, "rarity": "epic", "trigger": { "on": "onCardPlayed", "effects": [{ "op": "damage", "value": 1, "scope": "enemyActiveTarget" }] } }
+  ]
+}

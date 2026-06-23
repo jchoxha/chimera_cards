@@ -1,0 +1,26 @@
+{
+  "class": "Ranger",
+  "version": 1,
+  "note": "Ranger kit (§11). Mark isn't an engine status yet, approximated as Vulnerable. Traps approximated as Powers that fire when YOU take damage (onDamageTaken) — i.e. when the enemy attacks. Companions = Powers ticking each turn. Piercing/any-target via scopes. Tweak later.",
+  "cards": [
+    { "id": "ranger_quick_shot", "name": "Quick Shot", "class": "Ranger", "attunement": "Physical", "type": "attack", "cost": 1, "rarity": "basic", "imbue": 1, "effects": [{ "op": "damage", "value": 6 }] },
+    { "id": "ranger_roll", "name": "Roll", "class": "Ranger", "attunement": "Physical", "type": "skill", "cost": 1, "rarity": "basic", "effects": [{ "op": "block", "value": 5 }] },
+    { "id": "ranger_hunters_mark", "name": "Hunter's Mark", "class": "Ranger", "attunement": "Physical", "type": "skill", "cost": 1, "rarity": "common", "effects": [{ "op": "debuff", "status": "vulnerable", "value": 2 }, { "op": "draw", "value": 1 }] },
+    { "id": "ranger_precision", "name": "Precision", "class": "Ranger", "attunement": "Physical", "type": "attack", "cost": 1, "rarity": "common", "imbue": 1, "effects": [{ "op": "damage", "value": 8 }] },
+    { "id": "ranger_hunt", "name": "Hunt", "class": "Ranger", "attunement": "Physical", "type": "attack", "cost": 1, "rarity": "common", "imbue": 1, "effects": [{ "op": "damage", "value": 6, "scope": "piercingEnemyTarget" }] },
+    { "id": "ranger_camouflage", "name": "Camouflage", "class": "Ranger", "attunement": "Physical", "type": "skill", "cost": 1, "rarity": "common", "effects": [{ "op": "block", "value": 8 }] },
+    { "id": "ranger_natural_remedy", "name": "Natural Remedy", "class": "Ranger", "attunement": "Physical", "type": "skill", "cost": 1, "rarity": "common", "effects": [{ "op": "buff", "status": "regen", "value": 3 }] },
+    { "id": "ranger_caltrops", "name": "Caltrops", "class": "Ranger", "attunement": "Physical", "type": "skill", "cost": 1, "rarity": "common", "effects": [{ "op": "debuff", "status": "bleed", "value": 2 }] },
+    { "id": "ranger_aimed_shot", "name": "Aimed Shot", "class": "Ranger", "attunement": "Physical", "type": "attack", "cost": 2, "rarity": "uncommon", "imbue": 1, "effects": [{ "op": "damage", "value": 12, "scope": "flexEnemyTarget" }] },
+    { "id": "ranger_multishot", "name": "Multishot", "class": "Ranger", "attunement": "Physical", "type": "attack", "cost": 2, "rarity": "uncommon", "effects": [{ "op": "damage", "value": 4, "scope": "wholeEnemySide" }] },
+    { "id": "ranger_volley", "name": "Volley", "class": "Ranger", "attunement": "Physical", "type": "attack", "cost": 2, "rarity": "uncommon", "effects": [{ "op": "damage", "value": 5, "scope": "wholeEnemySide" }] },
+    { "id": "ranger_bear_trap", "name": "Bear Trap", "class": "Ranger", "attunement": "Physical", "type": "power", "cost": 1, "rarity": "uncommon", "trigger": { "on": "onDamageTaken", "effects": [{ "op": "damage", "value": 10, "scope": "enemyActiveTarget" }, { "op": "debuff", "status": "weak", "value": 2 }] } },
+    { "id": "ranger_summon_hawk", "name": "Summon Hawk", "class": "Ranger", "attunement": "Physical", "type": "power", "cost": 1, "rarity": "uncommon", "trigger": { "on": "turnStart", "effects": [{ "op": "damage", "value": 4, "scope": "enemyActiveTarget" }] } },
+    { "id": "ranger_track", "name": "Track", "class": "Ranger", "attunement": "Physical", "type": "skill", "cost": 0, "rarity": "uncommon", "effects": [{ "op": "draw", "value": 1 }, { "op": "energy", "value": 1 }] },
+    { "id": "ranger_trapper", "name": "Trapper", "class": "Ranger", "attunement": "Physical", "type": "power", "cost": 1, "rarity": "uncommon", "trigger": { "on": "onDamageTaken", "effects": [{ "op": "damage", "value": 2, "scope": "enemyActiveTarget" }] } },
+    { "id": "ranger_rapid_fire", "name": "Rapid Fire", "class": "Ranger", "attunement": "Physical", "type": "attack", "cost": -1, "rarity": "rare", "imbue": 1, "effects": [{ "op": "damage", "value": 4, "hits": "X" }] },
+    { "id": "ranger_explosive_trap", "name": "Explosive Trap", "class": "Ranger", "attunement": "Physical", "type": "power", "cost": 2, "rarity": "rare", "trigger": { "on": "onDamageTaken", "effects": [{ "op": "damage", "value": 6, "scope": "wholeEnemySide" }] } },
+    { "id": "ranger_summon_wolf", "name": "Summon Wolf", "class": "Ranger", "attunement": "Physical", "type": "power", "cost": 2, "rarity": "rare", "trigger": { "on": "turnStart", "effects": [{ "op": "damage", "value": 5, "scope": "enemyActiveTarget" }] } },
+    { "id": "ranger_open_season", "name": "Open Season", "class": "Ranger", "attunement": "Physical", "type": "power", "cost": 2, "rarity": "epic", "trigger": { "on": "turnStart", "effects": [{ "op": "debuff", "status": "vulnerable", "value": 1 }] } }
+  ]
+}

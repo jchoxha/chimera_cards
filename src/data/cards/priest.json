@@ -1,0 +1,27 @@
+{
+  "class": "Priest",
+  "version": 1,
+  "note": "Priest kit (§9). Heal/Regen/protect + Holy smite damage. Faith-scaling (effects that scale with healing done) and Smite (consume-a-debuff) aren't engine-supported yet, so Faith payoffs are flat and Smites are plain damage — approximations, tweak later. Heals target self (the Vanguard).",
+  "cards": [
+    { "id": "priest_smite", "name": "Smite", "class": "Priest", "attunement": "Holy", "type": "attack", "cost": 1, "rarity": "basic", "imbue": 1, "effects": [{ "op": "damage", "value": 6 }] },
+    { "id": "priest_sanctuary", "name": "Sanctuary", "class": "Priest", "attunement": "Holy", "type": "skill", "cost": 1, "rarity": "basic", "effects": [{ "op": "block", "value": 5 }] },
+    { "id": "priest_heal", "name": "Heal", "class": "Priest", "attunement": "Holy", "type": "skill", "cost": 1, "rarity": "common", "effects": [{ "op": "heal", "value": 8 }] },
+    { "id": "priest_renew", "name": "Renew", "class": "Priest", "attunement": "Holy", "type": "skill", "cost": 1, "rarity": "common", "effects": [{ "op": "buff", "status": "regen", "value": 3 }] },
+    { "id": "priest_divine_shield", "name": "Divine Shield", "class": "Priest", "attunement": "Holy", "type": "skill", "cost": 1, "rarity": "common", "effects": [{ "op": "block", "value": 8 }] },
+    { "id": "priest_purify", "name": "Purify", "class": "Priest", "attunement": "Holy", "type": "skill", "cost": 1, "rarity": "common", "effects": [{ "op": "heal", "value": 4 }, { "op": "draw", "value": 1 }] },
+    { "id": "priest_holy_fire", "name": "Holy Fire", "class": "Priest", "attunement": "Holy", "type": "attack", "cost": 1, "rarity": "common", "imbue": 1, "effects": [{ "op": "damage", "value": 6 }] },
+    { "id": "priest_conviction", "name": "Conviction", "class": "Priest", "attunement": "Holy", "type": "attack", "cost": 1, "rarity": "common", "imbue": 1, "effects": [{ "op": "damage", "value": 7 }] },
+    { "id": "priest_inspire", "name": "Inspire", "class": "Priest", "attunement": "Holy", "type": "skill", "cost": 1, "rarity": "common", "effects": [{ "op": "buff", "status": "strength", "value": 2 }] },
+    { "id": "priest_lay_on_hands", "name": "Lay on Hands", "class": "Priest", "attunement": "Holy", "type": "skill", "cost": 2, "rarity": "uncommon", "effects": [{ "op": "heal", "value": 14 }] },
+    { "id": "priest_sanctify", "name": "Sanctify", "class": "Priest", "attunement": "Holy", "type": "skill", "cost": 1, "rarity": "uncommon", "effects": [{ "op": "block", "value": 10 }] },
+    { "id": "priest_condemn", "name": "Condemn", "class": "Priest", "attunement": "Holy", "type": "attack", "cost": 2, "rarity": "uncommon", "imbue": 1, "effects": [{ "op": "damage", "value": 10 }] },
+    { "id": "priest_holy_wrath", "name": "Holy Wrath", "class": "Priest", "attunement": "Holy", "type": "attack", "cost": 2, "rarity": "uncommon", "imbue": 1, "effects": [{ "op": "damage", "value": 9 }] },
+    { "id": "priest_searing_light", "name": "Searing Light", "class": "Priest", "attunement": "Holy", "type": "attack", "cost": 2, "rarity": "uncommon", "effects": [{ "op": "damage", "value": 5, "scope": "wholeEnemySide" }] },
+    { "id": "priest_holy_nova", "name": "Holy Nova", "class": "Priest", "attunement": "Holy", "type": "attack", "cost": 1, "rarity": "uncommon", "effects": [{ "op": "damage", "value": 4, "scope": "wholeEnemySide" }] },
+    { "id": "priest_benediction", "name": "Benediction", "class": "Priest", "attunement": "Holy", "type": "skill", "cost": 1, "rarity": "uncommon", "effects": [{ "op": "block", "value": 4 }, { "op": "buff", "status": "regen", "value": 1 }] },
+    { "id": "priest_halo", "name": "Halo", "class": "Priest", "attunement": "Holy", "type": "power", "cost": 1, "rarity": "uncommon", "trigger": { "on": "turnStart", "effects": [{ "op": "buff", "status": "regen", "value": 1 }] } },
+    { "id": "priest_judgment", "name": "Judgment", "class": "Priest", "attunement": "Holy", "type": "attack", "cost": 2, "rarity": "rare", "imbue": 1, "effects": [{ "op": "damage", "value": 12 }] },
+    { "id": "priest_faith", "name": "Faith", "class": "Priest", "attunement": "Holy", "type": "power", "cost": 2, "rarity": "rare", "trigger": { "on": "turnEnd", "effects": [{ "op": "damage", "value": 2, "scope": "enemyActiveTarget" }] } },
+    { "id": "priest_divinity", "name": "Divinity", "class": "Priest", "attunement": "Holy", "type": "power", "cost": 2, "rarity": "epic", "trigger": { "on": "turnStart", "effects": [{ "op": "heal", "value": 4 }] } }
+  ]
+}
