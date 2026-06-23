@@ -5,14 +5,33 @@
 // ║ this host owns the post-fight flow. Reads runStore + combatStore.      ║
 // ╚══════════════════════════════════════════════════════════════════╝
 
-import React from 'react';
+import React, { useState } from 'react';
 import { useRun } from '../../store/runStore.js';
 import { useCombat } from '../../store/combatStore.js';
 import CombatScreen from '../combat/CombatScreen.jsx';
 import { currentNode } from '../../engine/run/map.js';
 import { makeRng } from '../../engine/run/rng.js';
 import { RELICS, POTIONS, EVENTS } from '../../engine/run/content.js';
+import { draftRunReward } from '../../engine/run/rewards.js';
+import { cardText } from '../../engine/cards/cardText.js';
 import './run.css';
+
+// Gold price of a shop card by rarity (REVIEW/tunable).
+const CARD_PRICE = { common: 40, uncommon: 65, rare: 90, epic: 130, mythic: 180, legendary: 240, godly: 300 };
+const priceOf = (c) => CARD_PRICE[c.rarity] || 50;
+
+/** Pick which party creature receives a bought/chosen card (≥2 living members). */
+function MemberPicker({ snap, target, setTarget }) {
+  const living = snap.party.filter((m) => m.hp > 0);
+  if (living.length <= 1) return null;
+  return (
+    <div className="memberPick">Give to:
+      {living.map((m) => (
+        <button key={m.id} className={`mpBtn${target === m.id ? ' on' : ''}`} onClick={() => setTarget(m.id)}>{m.name}</button>
+      ))}
+    </div>
+  );
+}
 
 const NODE_ICON = { start: '🚪', combat: '⚔', elite: '☠', boss: '👑', rest: '🔥', shop: '🛒', treasure: '💎', event: '❓' };
 const roomRng = (s) => makeRng((s.rngState ^ (s.floor * 0x9e3779b1)) >>> 0);
@@ -33,11 +52,13 @@ function PartyBar({ snap }) {
   );
 }
 
-function CardChip({ c, onClick }) {
+function CardChip({ c, onClick, disabled, price }) {
   return (
-    <button className="cardChip" onClick={onClick}>
-      <div className="ccTop"><span className="ccCost">{c.cost === -1 ? 'X' : c.cost}</span><b>{c.name}</b></div>
-      <div className="ccText">{c.text || ''}</div>
+    <button className={`cardChip r-${c.rarity || 'common'}`} onClick={onClick} disabled={disabled}>
+      <div className="ccTop"><span className="ccCost">{c.cost === -1 ? 'X' : c.cost}</span><b>{c.name}</b>
+        {price != null && <span className="ccPrice">{price}g</span>}</div>
+      <div className="ccText">{cardText(c)}</div>
+      <div className="ccRarity">{c.rarity || 'common'}{c.attunement ? ` · ${c.attunement}` : ''}</div>
     </button>
   );
 }
@@ -46,7 +67,10 @@ export default function RunScreen({ onMenu }) {
   const run = useRun();
   const combat = useCombat();
   const snap = run.snap;
+  const [target, setTarget] = useState(null);
   if (!snap) return <div className="runWrap"><p>No active run.</p></div>;
+  // Which creature receives a chosen/bought card (default: first living member).
+  const tgt = target || snap.party.find((m) => m.hp > 0)?.id || snap.party[0]?.id;
 
   const node = currentNode(snap);
   const reachable = (snap.map?.edges || []).filter((e) => e[0] === snap.position).map((e) => e[1]);
@@ -73,8 +97,9 @@ export default function RunScreen({ onMenu }) {
     return (
       <div className="runWrap">
         <h2>Choose a card</h2>
+        <MemberPicker snap={snap} target={tgt} setTarget={setTarget} />
         <div className="rewardCards">
-          {(snap.pendingReward || []).map((c, i) => <CardChip key={i} c={c} onClick={() => run.chooseReward(c)} />)}
+          {(snap.pendingReward || []).map((c, i) => <CardChip key={i} c={c} onClick={() => run.chooseReward(c, tgt)} />)}
         </div>
         <button className="runBtn" onClick={() => run.skipReward()}>Skip</button>
       </div>
@@ -83,7 +108,7 @@ export default function RunScreen({ onMenu }) {
 
   // ── NON-COMBAT ROOM ──
   if (run.view === 'room' && node) {
-    return <Room run={run} snap={snap} node={node} />;
+    return <Room run={run} snap={snap} node={node} target={tgt} setTarget={setTarget} />;
   }
 
   // ── OVER ──
@@ -130,7 +155,7 @@ export default function RunScreen({ onMenu }) {
 }
 
 // ── Non-combat room views ─────────────────────────────────────────────────────
-function Room({ run, snap, node }) {
+function Room({ run, snap, node, target, setTarget }) {
   if (node.type === 'rest') {
     const member = snap.party[0];
     const upgradable = (member?.deck || []).filter((c) => !c.upgraded);
@@ -177,9 +202,22 @@ function Room({ run, snap, node }) {
     const owned = new Set(snap.relics.map((r) => r.id));
     const relicStock = RELICS.filter((r) => !owned.has(r.id)).slice(0, 2);
     const potionStock = POTIONS.slice(0, 3);
+    // Card stock drafted from the PARTY's own pool (same source as rewards).
+    const shopRng = roomRng(snap);
+    const cardStock = draftRunReward(snap.rewardPool || [], 4, () => shopRng.next());
+    const tgt = target || snap.party.find((m) => m.hp > 0)?.id || snap.party[0]?.id;
     return (
       <div className="runWrap">
         <h2>🛒 Shop — 💰 {snap.gold}</h2>
+        {cardStock.length > 0 && <>
+          <MemberPicker snap={snap} target={tgt} setTarget={setTarget} />
+          <div className="rewardCards">
+            {cardStock.map((c, i) => (
+              <CardChip key={i} c={c} price={priceOf(c)} disabled={snap.gold < priceOf(c)}
+                onClick={() => run.dispatch('buyCard', { memberId: tgt, card: c, cost: priceOf(c) })} />
+            ))}
+          </div>
+        </>}
         <div className="roomCol">
           {relicStock.map((r) => (
             <button key={r.id} className="shopItem" disabled={snap.gold < r.cost} onClick={() => run.dispatch('buyRelic', { relic: r, cost: r.cost })}>

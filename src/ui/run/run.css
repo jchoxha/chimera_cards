@@ -1,4 +1,17 @@
 /* Run/meta layer UI — map, party bar, rooms. Dark, utilitarian, matches the app shell. */
+/* Member-target picker (which creature gets a chosen/bought card) + shop card pricing. */
+.memberPick { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin: 6px 0; font-size: 13px; color: #c9b58e; }
+.mpBtn { border: 1px solid #4a3a22; background: #241a10; color: #e8dcc8; border-radius: 999px; padding: 3px 10px; cursor: pointer; font: inherit; font-size: 12px; }
+.mpBtn.on { background: #5a3f16; border-color: #b88a3e; color: #ffe6a0; }
+.ccPrice { margin-left: auto; color: #f0c84a; font-weight: 700; font-size: 12px; }
+.ccRarity { font-size: 10px; text-transform: uppercase; letter-spacing: .5px; color: #8a7a5e; margin-top: 2px; }
+.cardChip:disabled { opacity: .45; cursor: not-allowed; }
+.cardChip.r-uncommon { border-color: #7ee787; }
+.cardChip.r-rare { border-color: #4d9fff; }
+.cardChip.r-epic { border-color: #a571ff; }
+.cardChip.r-mythic { border-color: #ff5a4d; }
+.cardChip.r-legendary { border-color: #ff9a3d; }
+.cardChip.r-godly { border-color: #ffd34d; }
 .runWrap {
   min-height: 100vh; padding: 16px; box-sizing: border-box;
   background: radial-gradient(120% 90% at 50% 0%, #221704 0%, #16110a 60%, #0c0905 100%);
