@@ -250,6 +250,11 @@ html:has(.cmbt),body:has(.cmbt){height:100%;margin:0;overflow:hidden}
 .move.unplayable{filter:grayscale(.7) brightness(.7);cursor:default}
 .move:not(.unplayable):hover,.move:not(.unplayable):focus{transform:translateY(-20px) scale(1.06) rotate(0)!important;
   filter:drop-shadow(0 14px 22px #000b);z-index:9}
+/* touch: the pressed (grabbed) card pops up so you can see what you have hold of */
+.move.pressed{transform:translateY(-26px) scale(1.14) rotate(0)!important;z-index:11;
+  filter:drop-shadow(0 16px 24px #000c)}
+/* gentle invitation that a card can be played this turn */
+.move.playable .cost{box-shadow:0 2px 6px #000a,0 0 0 2px var(--goldB),0 0 10px #ffd34d88}
 .move.dragging{opacity:.28;filter:grayscale(.4)}
 
 /* ---------- drag-to-target ---------- */
@@ -261,10 +266,11 @@ html:has(.cmbt),body:has(.cmbt){height:100%;margin:0;overflow:hidden}
   box-shadow:0 0 20px #ff6b6b99, 0 10px 26px #000a!important}
 .mf.droppable{outline-offset:1px}
 @keyframes dropPulse{0%,100%{outline-color:#ffd34d66}50%{outline-color:#ffd34dee}}
-.dragGhost{position:fixed;z-index:120;pointer-events:none;width:96px;transform:translate(-50%,-60%);
+.dragGhost{position:fixed;z-index:120;pointer-events:none;width:118px;transform:translate(-50%,-64%);
   filter:drop-shadow(0 12px 20px #000c)}
-.dragGhost .move{width:96px;margin:0;cursor:grabbing}
-.dragGhost .move .micon{height:42px;font-size:24px}
+.dragGhost .move{width:118px;margin:0;cursor:grabbing}
+.dragGhost .move .micon{height:46px;font-size:26px}
+.dragGhost .move .mt{min-height:0;font-size:8px;padding:3px 5px}
 .dragHint{margin-top:4px;text-align:center;font-family:'Cinzel',serif;font-size:9px;letter-spacing:.5px;
   color:#9af0bf;text-shadow:0 1px 3px #000;background:#000a;border-radius:6px;padding:2px 4px}
 .dragHint.bad{color:#ff9c9c}

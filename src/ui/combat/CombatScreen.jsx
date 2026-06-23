@@ -764,9 +764,10 @@ export default function CombatScreen({ onMenu, onRestart, embedded } = {}) {
                 const lift = Math.abs(i - (n - 1) / 2) * 4;
                 const f = frameStyle({ element: c.element, rarity: c.rarity });
                 const isDragging = dragging && drag?.card?.id === c.id;
+                const isPressed = !dragging && drag?.card?.id === c.id;
                 return (
                   <div key={`${c.id}-${i}`}
-                    className={`frame move ${f.finish}${unplayable ? ' unplayable' : ''}${isDragging ? ' dragging' : ''}`}
+                    className={`frame move ${f.finish}${unplayable ? ' unplayable' : ''}${isDragging ? ' dragging' : ''}${isPressed ? ' pressed' : ''}${!unplayable ? ' playable' : ''}`}
                     style={{ background: f.background, transform: `translateY(${lift}px) rotate(${rot}deg)` }}
                     draggable={false}
                     onPointerDown={(e) => onCardPointerDown(e, c, unplayable)}
@@ -851,8 +852,9 @@ export default function CombatScreen({ onMenu, onRestart, embedded } = {}) {
             style={{ background: frameStyle({ element: drag.card.element, rarity: drag.card.rarity }).background }}>
             <div className="cost">{drag.card.cost === -1 ? 'X' : drag.card.cost}</div>
             <div className="inner">
-              <div className={`micon ${cardKind(drag.card)}`}><Icon icon={cardIcon(drag.card)} /></div>
+              <div className={`micon ${cardKind(drag.card)}`}><MoveArt c={drag.card} /></div>
               <div className="mn">{drag.card.name}</div>
+              <div className="mt">{describe(drag.card)}</div>
             </div>
           </div>
           <div className={`dragHint${drag.overId && !validIds?.has(drag.overId) ? ' bad' : ''}`}>
