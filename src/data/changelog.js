@@ -6,6 +6,9 @@
 
 /** @type {{version:string, date:string, notes:string[]}[]} newest first */
 export const CHANGELOG = [
+  { version: 'v3.39.0', date: '2026-06-23', notes: [
+    'Varied enemy encounters: elites and bosses now field a bench, deeper floors can bring a second foe, and enemy HP scales with depth.',
+  ] },
   { version: 'v3.38.0', date: '2026-06-23', notes: [
     'Roguelike enemies now actually take their turn (CardSpec AI fix).',
     'Leaving a fight via Menu and resuming re-enters it instead of skipping it.',
