@@ -380,6 +380,9 @@ html:has(.cmbt),body:has(.cmbt){height:100%;margin:0;overflow:hidden}
 .chip.stance,.pip.stance{ color:#f0c84a; border-color:#b88a3e; background:rgba(240,200,74,.12); }
 .chip.power,.pip.power{ color:#d0b0ff; border-color:#6a4d8a; background:rgba(160,120,220,.12); }
 
+/* creature axes line (archetype · biology · attunement) under the name */
+.cmbt .axesLine{ text-align:center; font-size:10px; letter-spacing:.3px; color:#c9b58e; opacity:.85; margin:-2px 0 2px; }
+
 /* placeholder pixel art (artPool) — crisp upscaling */
 .cmbt img.artImg{ image-rendering:pixelated; object-fit:contain; display:block; }
 .cmbt .micon img.artImg{ width:30px; height:30px; }

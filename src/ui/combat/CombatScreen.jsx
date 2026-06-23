@@ -398,6 +398,9 @@ function CardFace({ f, side, matchup, onEffect, extraClass = '', dataId, dataSid
           })()}
         </div>
         <div className="nameBan">{f.name}{f.hp <= 0 ? ' 💀' : ''}</div>
+        {f.axes && (f.axes.class || f.axes.biology || f.axes.attunement) && (
+          <div className="axesLine">{[f.axes.class?.[0], f.axes.biology?.[0], f.axes.attunement?.[0]].filter(Boolean).join(' · ')}</div>
+        )}
         <HpBar hp={f.hp} maxHp={f.maxHp} />
         {matchup && <div className={`match ${matchup.good ? 'good' : 'bad'}`}>
           <Icon icon={matchup.good ? 'tabler:caret-up-filled' : 'tabler:caret-down-filled'} /> {matchup.label}
