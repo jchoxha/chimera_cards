@@ -6,6 +6,9 @@
 
 /** @type {{version:string, date:string, notes:string[]}[]} newest first */
 export const CHANGELOG = [
+  { version: 'v3.41.0', date: '2026-06-23', notes: [
+    'Curated enemy bands: early floors face weaker foes, deeper floors tougher ones, with dedicated elite and boss pools — no more wild difficulty swings.',
+  ] },
   { version: 'v3.40.0', date: '2026-06-23', notes: [
     'Combat balance pass: enemy HP retuned so a run is challenging but winnable (was punishing).',
   ] },

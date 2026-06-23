@@ -17,6 +17,26 @@ const POOLS = Object.fromEntries(
 );
 // The generated roster of enemies (rebuilt once; same creatures as the player roster).
 const ENEMY_ROSTER = buildRoster(POOLS, POOLS.Warrior || []);
+const BY_ID = Object.fromEntries(ENEMY_ROSTER.map((c) => [c.id, c]));
+
+// Curated bestiary bands so difficulty + theme don't swing wildly with a random
+// full-roster draw. Floor depth selects the normal-fight band; elites/bosses have
+// their own dedicated pools. Ids reference data/roster.js. Unknown ids are skipped,
+// so the bands degrade gracefully if the roster changes.
+const BANDS = {
+  // weaker / simpler foes for the opening floors
+  early: ['emberwisp', 'nightveil', 'voltfang', 'wildeye'],
+  // the bulk of the act
+  mid: ['frostmind', 'grimsoul', 'dawnkeeper', 'thornroot', 'tidecaller', 'voltfang', 'wildeye'],
+  // tougher foes deep in the act
+  late: ['ironhide', 'cogwright', 'maw', 'grimsoul', 'frostmind', 'dawnkeeper'],
+  // dedicated elite threats
+  elite: ['ironhide', 'cogwright', 'maw', 'grimsoul'],
+  // act bosses (the big bads)
+  boss: ['maw', 'ironhide', 'cogwright'],
+};
+const bandCreatures = (key) => (BANDS[key] || []).map((id) => BY_ID[id]).filter(Boolean);
+const normalBand = (floor) => (floor <= 3 ? 'early' : floor <= 6 ? 'mid' : 'late');
 
 let _foeSeq = 0; // monotonic so two encounters in a run never share a fighter/card id
 
@@ -33,14 +53,18 @@ function rosterFighter(creature, hpMult) {
   return f;
 }
 
-/** Pick `n` DISTINCT roster creatures (falls back to repeats if the roster is small). */
-function pickDistinct(n, rng) {
-  const pool = [...ENEMY_ROSTER];
+/** Pick `n` DISTINCT creatures from a band (falls back to the full roster / repeats). */
+function pickDistinct(n, rng, bandKey) {
+  const base = bandCreatures(bandKey);
+  const pool = (base.length ? base : ENEMY_ROSTER).slice();
   const out = [];
   for (let i = 0; i < n; i++) {
-    if (!pool.length) { out.push(rng ? rng.pick(ENEMY_ROSTER) : ENEMY_ROSTER[0]); continue; }
-    const idx = rng ? Math.floor((rng.next ? rng.next() : 0) * pool.length) : 0;
-    out.push(pool.splice(Math.min(idx, pool.length - 1), 1)[0]);
+    const src = pool.length ? pool : ENEMY_ROSTER;
+    if (!src.length) break;
+    const idx = rng && rng.next ? Math.floor(rng.next() * src.length) : 0;
+    const chosen = src[Math.min(idx, src.length - 1)];
+    if (pool.length) pool.splice(pool.indexOf(chosen), 1);
+    out.push(chosen);
   }
   return out;
 }
@@ -57,21 +81,23 @@ export function enemyForNode(node, rng) {
   // Per-tier HP multipliers tuned via the headless balance harness (≈33% autoplay
   // win rate to the boss with deck growth — a fair baseline; skilled play does better).
   if (node.type === 'boss') {
-    // A strong leader + one lieutenant on the bench.
-    const [leader, aide] = pickDistinct(2, rng);
+    // A strong leader + one lieutenant on the bench, both from the boss band.
+    const [leader, aide] = pickDistinct(2, rng, 'boss');
     return [rosterFighter(leader, 2.0 * fm), rosterFighter(aide, 1.0 * fm)];
   }
   if (node.type === 'elite') {
-    // A beefy pair.
-    const [a, b] = pickDistinct(2, rng);
+    // A beefy pair from the elite band.
+    const [a, b] = pickDistinct(2, rng, 'elite');
     return [rosterFighter(a, 1.3 * fm), rosterFighter(b, 1.1 * fm)];
   }
-  // Normal combat: a single foe early; a chance of a second on deeper floors.
+  // Normal combat: pick from the floor-appropriate band; a single foe early, a
+  // chance of a second on deeper floors.
+  const band = normalBand(floor);
   const pair = floor >= 5 && rng && rng.next && rng.next() < 0.45;
   if (pair) {
-    const [a, b] = pickDistinct(2, rng);
+    const [a, b] = pickDistinct(2, rng, band);
     return [rosterFighter(a, 0.85 * fm), rosterFighter(b, 0.7 * fm)];
   }
-  const pick = rng ? rng.pick(ENEMY_ROSTER) : ENEMY_ROSTER[0];
+  const [pick] = pickDistinct(1, rng, band);
   return [rosterFighter(pick, 0.85 * fm)];
 }
