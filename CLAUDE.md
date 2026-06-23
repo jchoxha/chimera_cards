@@ -236,7 +236,29 @@ all 12 (a Physical creature's imbued strike applies Bleed, Water→Soak, Energy�
 not a creature status, so Stone's identity comes from its Block cards, not an imbue rider. Each
 attunement now has: matchups (§4) + icon/color + own card pool (§14.3) + a working signature
 status (imbue + own cards) [Stone = Block]. `test:statuses` 27. **Attunements are complete →
-ready for §5.2 reactions** (Soak = the universal primer).
+ready for §5.2 reactions** (Soak = the universal primer). Reaction DESIGN locked in
+`docs/mechanics.md` (master mechanics registry; engine deferred — statuses stand alone).
+
+**🎮 PLAYABLE DEMO (v3.29→v3.32, 2026-06-22).** `app.html` → **Choose Your Team & Descend** →
+pick ≤3 creatures → play a full StS act → win/lose. Pieces:
+- **All 8 archetype kits authored** (`src/data/cards/*.json`, 162 cards, `test:kits` 486). Shape
+  cards (element via attunement re-skin + imbue); signature mechanics approximated with the live
+  op/trigger/scaleBy vocab (Totems/Summons/Constructs/Companions → turnStart Powers; Combo/spell-
+  volume → scaleBy cardsPlayed; Channel/Doom → delayed ops; Traps → onDamageTaken Powers;
+  Stealth/Conjure/Mark approximated). Tweak later.
+- **Generator** `engine/content/generate.js` `makeCreature(triple+pool)` + biology profiles
+  (`engine/content/biology.js`); **roster** `data/roster.js` (12 creatures, all 8 archetypes,
+  `buildRoster`). `test:generate`.
+- **Select screen** `app/SelectScreen.jsx` (pick ≤3, shows axes+stats+flavor+portrait). **3-creature
+  party** runs through the act (Vanguard+bench; `createRun`/`partyToFighters`).
+- **Rewards + shop FIXED** — draft from the party's combined archetype+attunement pool
+  (`engine/run/rewards.js` `draftRunReward`; run carries `rewardPool`), on the rarity ladder; the
+  **shop now sells cards** (priced by rarity) + relics/potions; a **MemberPicker** chooses which
+  creature gets a card. `test:rewards`.
+- **Unique AI creature portraits** (Variant-B via `scripts/gen_roster.py`/agy, 384px in
+  `public/art/gen/`, gated by `data/creatureArt.json`); moves keep the pixel artPool. Combat shows
+  the portrait (`CardFace`) + an archetype·biology·attunement line. **(tidecaller portrait
+  regenerating; icon fallback until it lands.)**
 
 **Archetype deep-dive (Topic 5) — `docs/archetype-design.md`.** Designing all 36
 **archetypes** (the taxonomy's "Class" axis — *we call them archetypes, not classes*; code
