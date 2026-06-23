@@ -38,3 +38,31 @@
 .menuHint { margin: 16px 0 0; font-size: 12px; color: #8a7a5e; line-height: 1.4; }
 .cmbt .menuPill { cursor: pointer; border: 1px solid #6a4d1b; }
 .cmbt .menuPill:hover { background: #3a2c18; }
+
+/* ---------- force-landscape gate (touch devices held in portrait) ---------- */
+.rotGate {
+  position: fixed; inset: 0; z-index: 100000; display: grid; place-items: center;
+  padding: 24px; text-align: center; color: #e8dcc8; font-family: 'Spectral', Georgia, serif;
+  background: radial-gradient(120% 90% at 50% 0%, #2a1d0c 0%, #16110a 55%, #0c0905 100%);
+}
+.rotInner { max-width: 320px; }
+.rotIcon { font-size: 92px; color: #f0c84a; filter: drop-shadow(0 4px 10px #000a);
+  animation: rotNudge 2.6s ease-in-out infinite; }
+@keyframes rotNudge { 0%, 45% { transform: rotate(0); } 65%, 100% { transform: rotate(-90deg); } }
+.rotGate h2 { font-family: 'Cinzel', serif; color: #f0c84a; margin: 18px 0 6px; font-size: 24px; letter-spacing: 1px; }
+.rotGate p { color: #c9b58e; margin: 0 0 20px; line-height: 1.5; font-size: 15px; }
+.rotBtn { font: 600 15px 'Cinzel', serif; color: #3a2606; cursor: pointer; border: none; border-radius: 10px;
+  padding: 12px 22px; background: linear-gradient(#ffe89a, #d6a72a); box-shadow: 0 3px 0 #8a6a18; }
+.rotBtn:active { transform: translateY(2px); box-shadow: 0 1px 0 #8a6a18; }
+
+/* short landscape (phones): compact the menu + align to top so nothing clips */
+@media (max-height: 560px) {
+  .menu { padding: 12px; align-items: start; }
+  .menuCard { padding: 16px 18px; }
+  .menuTitle { font-size: 30px; letter-spacing: 3px; }
+  .menuSub { margin-bottom: 12px; }
+  .menuBtn { padding: 10px 14px; margin: 6px 0; }
+  .menuBtn.big { padding: 12px; font-size: 16px; }
+  .menuSetup { margin: 12px 0 6px; padding: 12px; }
+  .menuHint { font-size: 11px; }
+}

@@ -390,3 +390,21 @@ html:has(.cmbt),body:has(.cmbt){height:100%;margin:0;overflow:hidden}
 .cmbt .art img.creature.artImg{ width:68px; height:68px; filter:drop-shadow(0 3px 4px rgba(0,0,0,.5)); }
 /* AI-generated full portraits render smooth + larger than the 34px sprites */
 .cmbt .art img.creature.artImg.gen{ image-rendering:auto; width:104px; height:104px; border-radius:8px; }
+
+/* ---------- short landscape (phones) — shrink everything to fit, no scroll ---------- */
+@media (max-height: 440px){
+  .cmbt{padding:4px 6px calc(4px + env(safe-area-inset-bottom,0px));gap:4px}
+  .topbar{font-size:10px}
+  .arena{gap:6px}
+  .sideCol{width:clamp(116px,15vw,168px)}
+  .art{height:clamp(46px,11vh,88px)}
+  .art .creature{font-size:clamp(34px,8vh,56px)}
+  .cmbt .art img.creature.artImg.gen{width:clamp(60px,15vh,96px);height:clamp(60px,15vh,96px)}
+  .cmbt .art img.creature.artImg{width:clamp(48px,12vh,68px);height:clamp(48px,12vh,68px)}
+  .handWrap{height:clamp(90px,27vh,150px)}
+  .move{width:clamp(64px,11vw,88px)}
+  .nameBan{font-size:11px;margin-top:4px}
+  .cmbt .axesLine{font-size:9px}
+  .hpWrap{height:14px;margin:4px 10px 3px}
+  .combat{width:clamp(132px,17vw,176px)}
+}
