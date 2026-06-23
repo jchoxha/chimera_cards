@@ -554,9 +554,46 @@ export default function CombatScreen({ onMenu, onRestart, embedded } = {}) {
   const [drag, setDrag] = useState(null);   // { card, side, validIds, x, y, overId, moved }
   const dragRef = useRef(null);
   const logBodyRef = useRef(null);
+  const [floaters, setFloaters] = useState([]);  // transient floating damage/heal/block numbers
+  const seenRef = useRef(0);                      // # of log events already turned into floaters
 
   // Auto-start only the standalone demo (no host shell driving setup like the app menu).
   useEffect(() => { if (!snap && !onMenu) startCombat(); }, [snap, startCombat, onMenu]);
+
+  // Spawn floating numbers + a hit-shake from NEW combat events (anchored to the
+  // target's on-screen card via its data-drop-id). Prefers the big featured card.
+  useEffect(() => {
+    const evs = log ?? [];
+    if (seenRef.current > evs.length) seenRef.current = 0;   // combat restarted → log reset
+    const fresh = evs.slice(seenRef.current);
+    seenRef.current = evs.length;
+    if (!fresh.length) return undefined;
+    const timers = [];
+    const raf = requestAnimationFrame(() => {
+      const spawned = [];
+      for (const ev of fresh) {
+        const p = ev.payload ?? {};
+        let text = null; let kind = null;
+        if (ev.type === 'damage' && p.hpLoss > 0) { text = `-${p.hpLoss}`; kind = 'dmg'; }
+        else if (ev.type === 'heal' && p.amount > 0) { text = `+${p.amount}`; kind = 'heal'; }
+        else if (ev.type === 'block' && p.amount > 0) { text = `+${p.amount}`; kind = 'block'; }
+        else continue;
+        const id = p.targetId;
+        if (!id) continue;
+        const el = document.querySelector(`.combat[data-drop-id="${id}"]`) || document.querySelector(`[data-drop-id="${id}"]`);
+        if (!el) continue;
+        const r = el.getBoundingClientRect();
+        const key = `${Date.now()}-${spawned.length}-${Math.random().toString(36).slice(2, 6)}`;
+        spawned.push({ key, x: r.left + r.width / 2, y: r.top + r.height * 0.34, text, kind });
+        if (kind === 'dmg') { el.classList.add('hitShake'); timers.push(setTimeout(() => el.classList.remove('hitShake'), 420)); }
+      }
+      if (spawned.length) {
+        setFloaters((cur) => [...cur, ...spawned]);
+        timers.push(setTimeout(() => setFloaters((cur) => cur.filter((f) => !spawned.some((s) => s.key === f.key))), 1000));
+      }
+    });
+    return () => { cancelAnimationFrame(raf); timers.forEach(clearTimeout); };
+  }, [log]);
   useEffect(() => { setKwTerm(null); }, [info]);  // reset keyword popup when the modal target changes
   useEffect(() => {
     if (logOpen && logBodyRef.current) logBodyRef.current.scrollTop = logBodyRef.current.scrollHeight;
@@ -867,6 +904,15 @@ export default function CombatScreen({ onMenu, onRestart, embedded } = {}) {
       )}
 
       {notice && <div className="toast"><Icon icon="game-icons:cancel" /> {notice}</div>}
+
+      {/* transient floating numbers (damage / heal / block) anchored to targets */}
+      {floaters.length > 0 && (
+        <div className="floaters">
+          {floaters.map((fl) => (
+            <span key={fl.key} className={`floatNum ${fl.kind}`} style={{ left: fl.x, top: fl.y }}>{fl.text}</span>
+          ))}
+        </div>
+      )}
 
       {/* unified info popup */}
       {info && (
