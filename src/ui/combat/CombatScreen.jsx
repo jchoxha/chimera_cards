@@ -98,6 +98,18 @@ const EFFECT_INFO = {
   amplify: { name: 'Amplify', icon: 'game-icons:magic-swirl', desc: 'This unit’s next attack deals +50%, then Amplify clears.' },
 };
 
+// The 3-axis taxonomy readouts (synthesis matrix) + each attunement's signature status.
+const AXIS_INFO = {
+  class: { name: 'Archetype', icon: 'game-icons:gladius', desc: 'Its character build — the theme and signature mechanics that shape its card pool and play style.' },
+  biology: { name: 'Biology', icon: 'game-icons:dna2', desc: 'Its body — drives base stats and HP, and gives an innate weakness/resistance to certain attunement elements.' },
+  attunement: { name: 'Attunement', icon: 'game-icons:embrace-energy', desc: 'Its element — shapes the damage type of its attacks, its elemental matchups, and the signature status its imbued strikes inflict.' },
+};
+const ATTUNEMENT_SIGNATURE = {
+  Physical: 'Bleed', Fire: 'Burn', Frost: 'Weak', Water: 'Soak', Nature: 'Poison',
+  Air: 'Expose', Energy: 'Shock', Shadow: 'Vulnerable', Holy: 'Regen', Void: 'Decay',
+  Mind: 'Confuse', Arcane: 'Amplify', Stone: 'Fortify (Block)',
+};
+
 function Icon({ icon, ...rest }) {
   return <iconify-icon icon={icon} {...rest}></iconify-icon>;
 }
@@ -109,11 +121,13 @@ function SizeBadge({ form }) {
 }
 function artScale(form) { return FORMS[form]?.art ?? 1; }
 
-function elementBadge(el) {
+function elementBadge(el, onClick) {
   if (!el) return null;
   const color = ATTUNEMENT_COLOR[el] || ELEMENT_COLOR[el] || '#c9a66b';
   return (
-    <div className="elem" style={{ background: `radial-gradient(circle at 38% 30%, #fff6, ${color} 55%, #0006)` }}>
+    <div className={`elem${onClick ? ' clickable' : ''}`} style={{ background: `radial-gradient(circle at 38% 30%, #fff6, ${color} 55%, #0006)` }}
+      onClick={onClick ? (e) => { e.stopPropagation(); onClick(); } : undefined}
+      title={onClick ? `${el} — tap for details` : undefined}>
       <Icon icon={ATTUNEMENT_ICON[el] || ELEMENT_ICON[el] || 'game-icons:rosa-shield'} />
       <em>{el}</em>
     </div>
@@ -367,10 +381,14 @@ function MiniCard({ c, onClick }) {
 
 // ── the reusable big monster card visual ────────────────────────────────────────
 
-function CardFace({ f, side, matchup, onEffect, extraClass = '', dataId, dataSide }) {
+function CardFace({ f, side, matchup, onEffect, onInfo, extraClass = '', dataId, dataSide }) {
   const isFoe = side === 'enemy';
   const fr = frameStyle({ types: f.types, element: f.element, rarity: f.rarity });
   const scale = { transform: `scale(${artScale(f.form)})` };
+  const seeCreature = onInfo ? (e) => { e.stopPropagation(); onInfo({ kind: 'creature', id: f.id }); } : undefined;
+  const axisInfo = (axis) => onInfo && onInfo({ kind: 'axis', axis, value: f.axes?.[axis] });
+  // The attunement element (badge) for a generated creature is its primary attunement.
+  const badgeEl = f.element || f.axes?.attunement?.[0] || null;
   return (
     <div
       data-drop-id={dataId}
@@ -379,11 +397,17 @@ function CardFace({ f, side, matchup, onEffect, extraClass = '', dataId, dataSid
       style={{ background: fr.background }}>
       {fr.holo && <div className="holo" />}
       <SizeBadge form={f.form} />
-      {elementBadge(f.element)}
+      {elementBadge(badgeEl, onInfo ? () => onInfo({ kind: 'axis', axis: 'attunement', value: f.axes?.attunement ?? [badgeEl] }) : undefined)}
       <span className={`sideTag ${isFoe ? 'foe' : 'you'}`}>{isFoe ? 'FOE' : 'YOU'}</span>
-      {f.block > 0 && <span className="blockBadge"><Icon icon="game-icons:checked-shield" /> {f.block}</span>}
+      {f.block > 0 && (
+        <span className={`blockBadge${onEffect ? ' clickable' : ''}`}
+          onClick={onEffect ? (e) => { e.stopPropagation(); onEffect('block'); } : undefined}
+          title="Block — tap for details">
+          <Icon icon="game-icons:checked-shield" /> {f.block}
+        </span>
+      )}
       <div className="inner">
-        <div className="art">
+        <div className="art" onClick={seeCreature} title={seeCreature ? `${f.name} — tap for details` : undefined}>
           <div className="moon" /><div className="mtn" />
           {(() => {
             if (f.portrait) return <img className="creature artImg gen" src={f.portrait} style={scale} alt="" />;
@@ -397,12 +421,22 @@ function CardFace({ f, side, matchup, onEffect, extraClass = '', dataId, dataSid
             return <span className="creature" style={scale}>{f.sprite || (isFoe ? '👾' : '✶')}</span>;
           })()}
         </div>
-        <div className="nameBan">{f.name}{f.hp <= 0 ? ' 💀' : ''}</div>
+        <div className={`nameBan${seeCreature ? ' clickable' : ''}`} onClick={seeCreature}>{f.name}{f.hp <= 0 ? ' 💀' : ''}</div>
         {f.axes && (f.axes.class || f.axes.biology || f.axes.attunement) && (
-          <div className="axesLine">{[f.axes.class?.[0], f.axes.biology?.[0], f.axes.attunement?.[0]].filter(Boolean).join(' · ')}</div>
+          <div className="axesLine">
+            {[['class', f.axes.class?.[0]], ['biology', f.axes.biology?.[0]], ['attunement', f.axes.attunement?.[0]]]
+              .filter(([, v]) => v)
+              .map(([axis, v], i) => (
+                <React.Fragment key={axis}>
+                  {i > 0 && <span className="axDot"> · </span>}
+                  <button className="axTok" onClick={onInfo ? (e) => { e.stopPropagation(); axisInfo(axis); } : undefined}>{v}</button>
+                </React.Fragment>
+              ))}
+          </div>
         )}
-        <HpBar hp={f.hp} maxHp={f.maxHp} />
-        {matchup && <div className={`match ${matchup.good ? 'good' : 'bad'}`}>
+        <div className={onInfo ? 'hpClick' : undefined} onClick={seeCreature}><HpBar hp={f.hp} maxHp={f.maxHp} /></div>
+        {matchup && <div className={`match ${matchup.good ? 'good' : 'bad'}${onInfo ? ' clickable' : ''}`}
+          onClick={onInfo ? (e) => { e.stopPropagation(); onInfo({ kind: 'matchup', matchup, atk: badgeEl, def: matchup.def }); } : undefined}>
           <Icon icon={matchup.good ? 'tabler:caret-up-filled' : 'tabler:caret-down-filled'} /> {matchup.label}
         </div>}
         <div className="stats"><StatChips f={f} onEffect={onEffect} /></div>
@@ -411,14 +445,14 @@ function CardFace({ f, side, matchup, onEffect, extraClass = '', dataId, dataSid
   );
 }
 
-function AllyCard({ m, droppable, dropHover, dropInvalid, onEffect }) {
+function AllyCard({ m, droppable, dropHover, dropInvalid, onEffect, onInfo }) {
   const extra = `${droppable ? ' droppable' : ''}${dropHover ? ' dropHover' : ''}${dropInvalid ? ' dropInvalid' : ''}`;
-  return <CardFace f={m} side="ally" onEffect={onEffect} extraClass={extra} dataId={m.id} dataSide="ally" />;
+  return <CardFace f={m} side="ally" onEffect={onEffect} onInfo={onInfo} extraClass={extra} dataId={m.id} dataSide="ally" />;
 }
 
-function FoeCard({ e, matchup, droppable, dropHover, dropInvalid, onEffect }) {
+function FoeCard({ e, matchup, droppable, dropHover, dropInvalid, onEffect, onInfo }) {
   const extra = `${droppable ? ' droppable' : ''}${dropHover ? ' dropHover' : ''}${dropInvalid ? ' dropInvalid' : ''}`;
-  return <CardFace f={e} side="enemy" matchup={matchup} onEffect={onEffect} extraClass={extra} dataId={e.id} dataSide="enemy" />;
+  return <CardFace f={e} side="enemy" matchup={matchup} onEffect={onEffect} onInfo={onInfo} extraClass={extra} dataId={e.id} dataSide="enemy" />;
 }
 
 // ── mini-fighter (side columns) ─────────────────────────────────────────────────
@@ -547,8 +581,8 @@ export default function CombatScreen({ onMenu, onRestart, embedded } = {}) {
   let matchup = null;
   if (activeMon?.element && featured?.element) {
     const mult = elementMultiplier(activeMon.element, featured.element);
-    if (mult > 1) matchup = { good: true, label: 'SUPER EFFECTIVE' };
-    else if (mult < 1) matchup = { good: false, label: 'RESISTED' };
+    if (mult > 1) matchup = { good: true, label: 'SUPER EFFECTIVE', atk: activeMon.element, def: featured.element };
+    else if (mult < 1) matchup = { good: false, label: 'RESISTED', atk: activeMon.element, def: featured.element };
   }
 
   const allFighters = [...player.fighters, ...enemy.fighters];
@@ -701,6 +735,7 @@ export default function CombatScreen({ onMenu, onRestart, embedded } = {}) {
                   dropHover={isHover(featured.id) && isDroppable(featured.id)}
                   dropInvalid={isHover(featured.id) && !isDroppable(featured.id)}
                   onEffect={(id) => setInfo({ kind: 'effect', id })}
+                  onInfo={setInfo}
                 />
               )}
               <ActionStrip actions={featuredPlan} targetNameOf={planTargetName} onAction={openAction} tip />
@@ -713,6 +748,7 @@ export default function CombatScreen({ onMenu, onRestart, embedded } = {}) {
                 dropHover={isHover(activeMon.id) && isDroppable(activeMon.id)}
                 dropInvalid={isHover(activeMon.id) && !isDroppable(activeMon.id)}
                 onEffect={(id) => setInfo({ kind: 'effect', id })}
+                onInfo={setInfo}
               />
             )}
           </div>
@@ -866,6 +902,38 @@ export default function CombatScreen({ onMenu, onRestart, embedded } = {}) {
                   <LinkedText text={describe(c)} onKeyword={setKwTerm} />
                   {kwTerm && <div className="kwDef"><b>{kwTerm}</b><span>{KEYWORD_GLOSSARY[kwTerm]}</span></div>}
                   <p className="cdHint">Tap a highlighted keyword for its meaning.</p>
+                </div>
+              );
+            })()}
+
+            {info.kind === 'axis' && (() => {
+              const vals = Array.isArray(info.value) ? info.value : [info.value].filter(Boolean);
+              const head = AXIS_INFO[info.axis] || { name: info.axis, icon: 'game-icons:perspective-dice-six-faces-random', desc: '' };
+              return (
+                <div>
+                  <div className="infoHead"><Icon icon={head.icon} /> {head.name}: {vals.join(' / ') || '—'}</div>
+                  <p>{head.desc}</p>
+                  {info.axis === 'attunement' && vals.map((v) => (
+                    <div className="infoRow" key={v}>
+                      <Icon icon={ATTUNEMENT_ICON[v] || 'game-icons:rosa-shield'} style={{ color: ATTUNEMENT_COLOR[v] }} />
+                      {v}{ATTUNEMENT_SIGNATURE[v] ? ` — signature status: ${ATTUNEMENT_SIGNATURE[v]}` : ''}
+                    </div>
+                  ))}
+                </div>
+              );
+            })()}
+
+            {info.kind === 'matchup' && (() => {
+              const m = info.matchup;
+              return (
+                <div>
+                  <div className="infoHead">
+                    <Icon icon={m.good ? 'tabler:caret-up-filled' : 'tabler:caret-down-filled'} /> {m.label}
+                  </div>
+                  <div className="infoRow"><Icon icon="game-icons:crossed-swords" /> {info.atk || '?'} vs {m.def || '?'}</div>
+                  <p>{m.good
+                    ? `Your ${info.atk} damage is super effective against ${m.def} — it deals increased damage.`
+                    : `Your ${info.atk} damage is resisted by ${m.def} — it deals reduced damage.`}</p>
                 </div>
               );
             })()}

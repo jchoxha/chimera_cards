@@ -239,6 +239,24 @@ status (imbue + own cards) [Stone = Block]. `test:statuses` 27. **Attunements ar
 ready for §5.2 reactions** (Soak = the universal primer). Reaction DESIGN locked in
 `docs/mechanics.md` (master mechanics registry; engine deferred — statuses stand alone).
 
+**🖼 COMBAT CARD UI PASS + ROSTER ENEMIES (v3.34.0, 2026-06-23, Jeton).** (a) **Run combat-log
+fix:** the embedded run combat (`.runCombat`) had no height, so `.cmbt`'s `height:100%` collapsed to
+content height and the log grew unbounded (only in the roguelike, not the standalone Target-Dummy
+fight which is the root view). Pinned `.runCombat` to the viewport (`position:fixed;inset:0`) so the
+log scrolls within its panel regardless of the ancestor height chain. (b) **Uniform creature cards +
+hero art:** `.combat` cards are now a FIXED size (`width clamp(168px,16.5vw,210px)` ×
+`height clamp(296px,58vh,438px)`); `.inner` is a flex column and `.art` flexes to fill all slack, so
+every card is identical regardless of status/axes/matchup content, and the portrait reads as a big
+TALL illustration (`object-fit:cover` for gen portraits). (c) **Every card item is clickable →
+info modal:** name + art + HP → creature modal; element badge + each axes token (archetype/biology/
+attunement) → new `axis` modal (`AXIS_INFO` + `ATTUNEMENT_SIGNATURE`); matchup line → new `matchup`
+modal; block badge + status chips → effect modal. `CardFace` gained an `onInfo` prop (wired on the
+featured Ally/Foe cards; the in-modal card stays read-only). (d) **Roguelike enemies now come from
+the GENERATED ROSTER** (`engine/run/encounters.js` builds `buildRoster` over the bundled card pools
+and converts a seeded pick into a fresh, uniquely-id'd enemy Fighter via the new
+`combatBridge.creatureToFighter`; HP scales by node tier), so foes have real axes/portraits/decks
+instead of the old hand-authored `slime`/`hexer` archetypes. Build + lint + all node suites green.
+
 **🎮 PLAYABLE DEMO (v3.29→v3.32, 2026-06-22).** `app.html` → **Choose Your Team & Descend** →
 pick ≤3 creatures → play a full StS act → win/lose. Pieces:
 - **All 8 archetype kits authored** (`src/data/cards/*.json`, 162 cards, `test:kits` 486). Shape

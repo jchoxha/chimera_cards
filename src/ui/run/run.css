@@ -65,7 +65,9 @@
 .runHint { color: #8a7a5e; font-size: 13px; text-align: center; }
 .over { display: grid; place-items: center; text-align: center; }
 
-/* Combat is a full-screen replacement: #root is forced to height:100% by the
-   `:has(.cmbt)` rule, so .runCombat must fill it or .cmbt's height:100% collapses
-   to content height (and the combat log grows unbounded instead of scrolling). */
-.runCombat { position: relative; height: 100%; }
+/* Combat is a full-screen replacement. height:100% would depend on every
+   ancestor resolving a height (fragile through the app shell), so pin the
+   combat frame to the viewport directly — .cmbt then has a definite height and
+   the combat log scrolls within its panel instead of growing unbounded.
+   The end-of-fight overlay is itself position:fixed, so it still layers on top. */
+.runCombat { position: fixed; inset: 0; z-index: 1; }

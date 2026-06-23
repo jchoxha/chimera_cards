@@ -160,8 +160,11 @@ html:has(.cmbt),body:has(.cmbt){height:100%;margin:0;overflow:hidden}
   opacity:.7;animation:holoShift 4s linear infinite}
 @keyframes holoShift{0%{background-position:0% 0%}100%{background-position:100% 100%}}
 
-/* combat card sizing — compact to fit landscape without scroll */
-.combat{flex:0 0 auto;width:clamp(150px,16vw,196px);max-height:100%;position:relative}
+/* combat card sizing — FIXED dimensions so every creature card is identical
+   regardless of status/axes/matchup content (art flexes to fill the slack). */
+.combat{flex:0 0 auto;width:clamp(168px,16.5vw,210px);height:clamp(296px,58vh,438px);
+  position:relative;display:flex;flex-direction:column}
+.combat .inner{flex:1 1 auto;display:flex;flex-direction:column;min-height:0}
 
 /* size badge (top-left) */
 .size{position:absolute;top:-9px;left:-9px;z-index:5;min-width:28px;height:28px;padding:0 7px;
@@ -192,6 +195,12 @@ html:has(.cmbt),body:has(.cmbt){height:100%;margin:0;overflow:hidden}
 .art{position:relative;height:clamp(78px,13vh,140px);display:flex;align-items:center;justify-content:center;
   filter:drop-shadow(0 6px 10px #000a);overflow:hidden}
 .art .creature{font-size:clamp(48px,8vh,74px);line-height:1;transition:transform .2s ease}
+/* on the big combat card the art is the hero: it flexes to fill all slack so the
+   portrait reads as a tall illustration, and every card stays the same height. */
+.combat .art{flex:1 1 auto;height:auto;min-height:0;border-radius:8px;margin:2px 2px 0;cursor:pointer}
+.combat .art .creature{font-size:clamp(72px,17vh,168px)}
+.cmbt .combat .art img.creature.artImg.gen{width:100%;height:100%;border-radius:8px;object-fit:cover}
+.cmbt .combat .art img.creature.artImg{width:auto;height:90%;max-width:100%}
 .art .moon{position:absolute;top:12px;right:22px;width:32px;height:32px;border-radius:50%;
   background:radial-gradient(circle at 40% 40%,#fffbe9,#ffe9a8);box-shadow:0 0 26px #ffe9a8aa;opacity:.85}
 .art .mtn{position:absolute;bottom:0;left:0;right:0;height:42px;background-color:#2a1c3e;opacity:.55;
@@ -382,6 +391,15 @@ html:has(.cmbt),body:has(.cmbt){height:100%;margin:0;overflow:hidden}
 
 /* creature axes line (archetype · biology · attunement) under the name */
 .cmbt .axesLine{ text-align:center; font-size:10px; letter-spacing:.3px; color:#c9b58e; opacity:.85; margin:-2px 0 2px; }
+.cmbt .axesLine .axTok{ font:inherit; color:#d8c79a; background:none; border:none; padding:0 1px; cursor:pointer;
+  text-decoration:underline; text-underline-offset:2px; text-decoration-style:dotted; }
+.cmbt .axesLine .axTok:hover{ color:#ffe6a0; }
+.cmbt .axesLine .axDot{ color:#8a7a5e; }
+/* every readable item on the card hints it is tappable for an info modal */
+.combat .nameBan.clickable,.combat .hpClick,.combat .match.clickable,
+.combat .elem.clickable,.combat .blockBadge.clickable,.combat .art{ cursor:pointer; }
+.combat .nameBan.clickable:hover,.combat .match.clickable:hover{ filter:brightness(1.12); }
+.combat .elem.clickable:hover,.combat .blockBadge.clickable:hover{ filter:brightness(1.15); }
 
 /* placeholder pixel art (artPool) — crisp upscaling */
 .cmbt img.artImg{ image-rendering:pixelated; object-fit:contain; display:block; }

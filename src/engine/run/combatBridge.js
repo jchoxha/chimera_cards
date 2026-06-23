@@ -11,24 +11,33 @@ import { VanguardManager } from '../combat/VanguardManager.js';
 import { applyCardSpec } from '../combat/interpret.js';
 import { makeRng } from './rng.js';
 
+/**
+ * Build one combat Fighter from a generated creature (carrying current HP + deck
+ * + stats + axes + portrait). Used for both the player party and roster enemies.
+ * @param {Object} m   generated creature ({id,name,class,biology,attunement,stats,maxHp,hp,deck,portrait})
+ * @param {{ id?:string, hp?:number, maxHp?:number }} [over]  field overrides (e.g. a fresh enemy id / scaled HP)
+ */
+export function creatureToFighter(m, over = {}) {
+  const maxHp = over.maxHp ?? m.maxHp;
+  const f = createFighter({
+    id: over.id ?? m.id,
+    name: m.name,
+    types: (m.attunement ?? ['Physical']).map((a) => ({ type: a, weight: 1 })),
+    hp: over.hp ?? m.hp,
+    maxHp,
+    stats: m.stats,
+  });
+  if (m.class) f.class = m.class;
+  if (m.biology) f.biology = m.biology;
+  if (m.attunement) f.attunement = m.attunement;
+  if (m.portrait) f.meta = { ...f.meta, portrait: m.portrait };
+  f.deck.drawPile = (m.deck ?? []).map((c) => ({ ...c }));
+  return f;
+}
+
 /** Build combat Fighters from the LIVING run party (carrying current HP + deck + stats + axes). */
 export function partyToFighters(party) {
-  return party.filter((m) => m.hp > 0).map((m) => {
-    const f = createFighter({
-      id: m.id,
-      name: m.name,
-      types: (m.attunement ?? ['Physical']).map((a) => ({ type: a, weight: 1 })),
-      hp: m.hp,
-      maxHp: m.maxHp,
-      stats: m.stats,
-    });
-    if (m.class) f.class = m.class;
-    if (m.biology) f.biology = m.biology;
-    if (m.attunement) f.attunement = m.attunement;
-    if (m.portrait) f.meta = { ...f.meta, portrait: m.portrait };
-    f.deck.drawPile = (m.deck ?? []).map((c) => ({ ...c }));
-    return f;
-  });
+  return party.filter((m) => m.hp > 0).map((m) => creatureToFighter(m));
 }
 
 /**
