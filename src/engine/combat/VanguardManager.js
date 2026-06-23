@@ -931,21 +931,40 @@ export class VanguardManager {
       if (f.hp <= 0) continue;
 
       if (type === 'dots') {
-        // Burn, Poison & Bleed tick (DoTs bypass Block); each decays by 1.
-        for (const id of ['burn', 'poison', 'bleed']) {
+        // Burn & Poison tick (DoTs bypass Block); each decays by 1.
+        for (const id of ['burn', 'poison']) {
           const st = f.statuses.find((x) => x.id === id);
           if (st && st.amount > 0) {
             applyDamage(f, st.amount, emit, true);
             st.amount -= 1;
           }
         }
-        // Decay (Void): lose HP AND Block equal to stacks, then decay by 1.
+        // Bleed (Physical): damage = stacks × times hit this window. Hit 0 times →
+        // Bleed falls off entirely; otherwise it also decays by 1.
+        const bl = f.statuses.find((x) => x.id === 'bleed');
+        if (bl && bl.amount > 0) {
+          const hits = f.hitsTaken || 0;
+          if (hits > 0) { applyDamage(f, bl.amount * hits, emit, true); bl.amount -= 1; }
+          else bl.amount = 0;
+        }
+        // Decay (Void): lose HP AND Block = stacks, strip 1 stack of EVERY buff, and
+        // strip one active power; then decay by 1. (Devastating vs buff/power decks.)
         const dec = f.statuses.find((x) => x.id === 'decay');
         if (dec && dec.amount > 0) {
           applyDamage(f, dec.amount, emit, true);
           if (f.block > 0) f.block = Math.max(0, f.block - dec.amount);
+          for (const id of ['strength', 'dexterity', 'regen', 'amplify']) {
+            const b = f.statuses.find((x) => x.id === id);
+            if (b && b.amount > 0) { b.amount -= 1; emit('status', { targetId: f.id, id, amount: b.amount }); }
+          }
+          if (Array.isArray(f.powers) && f.powers.length > 0) {
+            const removed = f.powers.pop();
+            emit('powerStripped', { targetId: f.id, source: removed && removed.source });
+          }
           dec.amount -= 1;
         }
+        // Reset the per-window hit counter once Bleed has consumed it.
+        f.hitsTaken = 0;
       } else if (type === 'regen') {
         const st = f.statuses.find((x) => x.id === 'regen');
         if (st && st.amount > 0) {

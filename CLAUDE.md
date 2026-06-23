@@ -201,6 +201,23 @@ grow Bleed / apply Soak/Confuse yet. Shock's effect on the **enemy AI** is limit
 doesn't re-check energy). Next attunement work: §5.2 **reactions** (Soak is the universal primer),
 then §14.3 variant access.
 
+**🔄 ATTUNEMENT TUNING ROUND 1 (v3.26.0, 2026-06-22, Jeton feedback).** (a) **Type conversion
+(§14.3 variant access) — DONE:** `src/engine/cards/reskin.js` `reskinDeck(cards, attunement)`
+converts **~75%** of a creature's archetype cards to its **primary attunement** (deterministic
+per card, ~25% keep native Physical), so an Energy Warrior mostly deals Energy (matchup + imbue +
+displayed damage type + art all follow). Wired in `app/App.jsx` `poolForFile()` (DeckBuilder/Quick
+Fight) + `deckFromFile()` (run); attunement-OWN cards are NOT re-skinned. (b) **Bleed reworked:**
+tick damage = **stacks × times-hit-that-turn**; hit 0 times → Bleed falls to 0; else decays 1.
+Hit counter `f.hitsTaken` in `resolve.applyDamage`, consumed+reset in the dots tick (removed the
+old +1/hit grow). (c) **Decay reworked:** each tick now also **strips 1 stack of every buff**
+(strength/dexterity/regen/amplify) **AND removes one active Power** (`f.powers.pop()`) on top of
+HP+Block — devastating vs buff/power decks. Void cards rebalanced **more expensive / lower decay**
+(Entropy→cost 2 / 2 decay; Bolt/Annihilate→1 decay; Annihilate cost 3) since Decay is now potent.
+`test:statuses` 20. **STILL PENDING (confirmed, bigger system reworks):** **Shock v2** (per-side
+energy-cost tax = #shocked creatures + a damage tic + spread-growth decay-by-(1−N)) and **Expose
+v2** (forced-swap + swap-lockout while Expose > HP) — these touch the energy economy + swap system;
+plan locked, building next.
+
 **Archetype deep-dive (Topic 5) — `docs/archetype-design.md`.** Designing all 36
 **archetypes** (the taxonomy's "Class" axis — *we call them archetypes, not classes*; code
 axis still literally `class`) as full StS-style character builds. Each **base** = a THEME +

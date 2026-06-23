@@ -67,10 +67,10 @@
     { "id": "att_energy_thunderclap", "name": "Thunderclap", "attunement": "Energy", "type": "attack", "cost": 2, "rarity": "uncommon", "effects": [{ "op": "damage", "value": 8 }, { "op": "debuff", "status": "shock", "value": 1 }] }
   ],
   "Void": [
-    { "id": "att_void_bolt", "name": "Void Bolt", "attunement": "Void", "type": "attack", "cost": 1, "rarity": "common", "effects": [{ "op": "damage", "value": 6 }, { "op": "debuff", "status": "decay", "value": 2 }] },
-    { "id": "att_void_entropy", "name": "Entropy", "attunement": "Void", "type": "skill", "cost": 1, "rarity": "common", "effects": [{ "op": "debuff", "status": "decay", "value": 3 }] },
+    { "id": "att_void_bolt", "name": "Void Bolt", "attunement": "Void", "type": "attack", "cost": 1, "rarity": "common", "effects": [{ "op": "damage", "value": 6 }, { "op": "debuff", "status": "decay", "value": 1 }] },
+    { "id": "att_void_entropy", "name": "Entropy", "attunement": "Void", "type": "skill", "cost": 2, "rarity": "uncommon", "effects": [{ "op": "debuff", "status": "decay", "value": 2 }] },
     { "id": "att_void_collapse", "name": "Collapse", "attunement": "Void", "type": "attack", "cost": 2, "rarity": "uncommon", "effects": [{ "op": "damage", "value": 5, "hits": 2 }, { "op": "debuff", "status": "decay", "value": 1 }] },
-    { "id": "att_void_annihilate", "name": "Annihilate", "attunement": "Void", "type": "attack", "cost": 2, "rarity": "rare", "effects": [{ "op": "damage", "value": 9 }, { "op": "debuff", "status": "decay", "value": 2 }] }
+    { "id": "att_void_annihilate", "name": "Annihilate", "attunement": "Void", "type": "attack", "cost": 3, "rarity": "rare", "effects": [{ "op": "damage", "value": 9 }, { "op": "debuff", "status": "decay", "value": 1 }] }
   ],
   "Mind": [
     { "id": "att_mind_spike", "name": "Mind Spike", "attunement": "Mind", "type": "attack", "cost": 1, "rarity": "common", "effects": [{ "op": "damage", "value": 6 }, { "op": "debuff", "status": "confuse", "value": 1 }] },

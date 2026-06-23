@@ -166,7 +166,9 @@ export function applyHeal(target, amount, emit) {
  */
 export function applyDamage(target, amount, emit, dot = false, side = null) {
   if (amount <= 0 || target.hp <= 0) return;
-  
+  // Count real attack hits this window (consumed + reset by the Bleed tick).
+  if (!dot) target.hitsTaken = (target.hitsTaken || 0) + 1;
+
   let hpLoss = amount;
   let absorbedCreature = 0;
   let absorbedBraced = 0;

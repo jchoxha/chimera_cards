@@ -216,9 +216,6 @@ export const EFFECT_OPS = {
           if (t.hp <= 0) break;
           applyDamage(t, scaledDamage(v, env.caster, t, mult), env.emit, false, ts);
           connected = true;
-          // Bleed (Physical): each hit on a bleeding target deepens the wound (+1).
-          const bl = t.statuses.find((s) => s.id === 'bleed');
-          if (bl && bl.amount > 0) { bl.amount += 1; env.emit?.('status', { targetId: t.id, id: 'bleed', amount: bl.amount }); }
         }
         if (soakSt && soakSt.amount > 0) { soakSt.amount = 0; env.emit?.('status', { targetId: t.id, id: 'soak', amount: 0 }); }
         if (t.hp > 0) for (const im of imbues) if (im.target === 'enemy') {

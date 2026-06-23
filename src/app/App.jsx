@@ -15,6 +15,7 @@ import DeckBuilder from '../ui/deck/DeckBuilder.jsx';
 import { loadDraft } from '../editor/persistence.js';
 import { ATTUNEMENT_BASES, BIOLOGY_BASES, legalAttunements } from '../data/synthesis.js';
 import { attunementCards } from '../engine/cards/attunementPool.js';
+import { reskinDeck } from '../engine/cards/reskin.js';
 import './app.css';
 
 // Bundled card files (the editor saves drafts on top of these in localStorage).
@@ -52,7 +53,9 @@ export default function App() {
   function poolForFile() {
     const file = loadDraft(deckFile) || FILES[deckFile] || { cards: [] };
     const cards = (file.cards || []).filter((c) => c.type !== 'curse' && c.type !== 'status');
-    return [...cards, ...attunementCards(heroAttunement())];
+    // ~75% of the archetype cards convert to the creature's attunement (§14.3),
+    // then add the attunement's own on-element cards (already correctly typed).
+    return [...reskinDeck(cards, heroAttunement()), ...attunementCards(heroAttunement())];
   }
 
   /** Launch a playtest. `deck` = a built CardSpec[]; omitted → the full pool (quick fight). */
@@ -74,9 +77,9 @@ export default function App() {
 
   function deckFromFile() {
     const file = loadDraft(deckFile) || FILES[deckFile] || { cards: [] };
-    const cards = (file.cards || []).filter((c) => c.type !== 'curse' && c.type !== 'status');
-    const attunement = [cards.find((c) => c.attunement)?.attunement || 'Physical'];
-    return { file, cards, attunement };
+    const raw = (file.cards || []).filter((c) => c.type !== 'curse' && c.type !== 'status');
+    const attunement = [raw.find((c) => c.attunement)?.attunement || 'Physical'];
+    return { file, cards: reskinDeck(raw, attunement), attunement };
   }
   function launchRun() {
     const { file, cards, attunement } = deckFromFile();
