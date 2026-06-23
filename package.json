@@ -20,7 +20,8 @@
     "test:deck": "node src/engine/deck/__budget__.mjs",
     "test:icons": "node src/data/__icons__.mjs",
     "test:art": "node src/data/__art__.mjs",
-    "test:attunecards": "node src/data/__attunecards__.mjs"
+    "test:attunecards": "node src/data/__attunecards__.mjs",
+    "test:generate": "node src/engine/content/__generate__.mjs"
   },
   "dependencies": {
     "react": "^18.3.1",
