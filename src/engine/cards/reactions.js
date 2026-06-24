@@ -58,59 +58,67 @@ function makeCtx(state, attacker, target, status, emit, rng) {
 /**
  * The reaction matrix. `REACTIONS[element][statusId] = { verb, react(ctx) }`.
  * Only the logically-meaningful cells exist; everything else = no reaction.
- * (First-pass subset of docs/mechanics.md §4 — numbers are placeholders/REVIEW.)
+ *
+ * TWO DESIGN AXES (locked 2026-06-24):
+ *   • Consumption — DETONATE consumes its primer (a one-shot burst; re-apply to
+ *     fire again); AMPLIFY/SPREAD leaves or grows the primer (a standing engine).
+ *   • Magnitude — scales with the PRIMER's stacks (`c.stacks`), so building a big
+ *     DoT/debuff before popping it pays off (bigger primer → bigger reaction).
+ * Soak stays a per-cell primer (its own Steam/Bloom/Freeze/Electrocute cells); it
+ * is NOT a universal amplifier of unrelated reactions.
+ * (Subset of docs/mechanics.md §4 — numbers are first-pass / REVIEW, tune freely.)
  */
 export const REACTIONS = {
   Fire: {
-    burn: { verb: 'Flare-up', react: (c) => c.add('burn', 2) },                 // stoke the fire
-    weak: { verb: 'Melt', react: (c) => { c.consume(); c.dmg(5); } },           // thermal shock
+    burn: { verb: 'Flare-up', react: (c) => c.add('burn', 2) },                 // amplify: stoke the fire
+    weak: { verb: 'Melt', react: (c) => { const v = c.stacks; c.consume(); c.dmg(4 * v); } },   // detonate
     poison: { verb: 'Combust', react: (c) => { const v = c.stacks; c.consume(); c.dmg(v * 2); } },
     soak: { verb: 'Steam', react: (c) => { const s = c.stacks; c.consume(); c.dmg(3 + 2 * s); c.add('weak', 1); } },
   },
   Water: {
-    burn: { verb: 'Quench', react: (c) => { c.consume(); c.add('weak', 1); } }, // steam → Weak
-    poison: { verb: 'Spread', react: (c) => c.spread('poison', c.stacks, 1) },  // copy toxin
-    shock: { verb: 'Conduct', react: (c) => c.spread('shock', c.stacks, 2) },   // electrify the wet
+    burn: { verb: 'Quench', react: (c) => { c.consume(); c.add('weak', 1); } }, // detonate: steam → Weak
+    poison: { verb: 'Spread', react: (c) => c.spread('poison', c.stacks, 1) },  // amplify: copy toxin
+    shock: { verb: 'Conduct', react: (c) => c.spread('shock', c.stacks, 2) },   // amplify: electrify the wet
   },
   Nature: {
-    burn: { verb: 'Wildfire', react: (c) => c.spread('burn', c.stacks, 1) },    // fire spreads
-    poison: { verb: 'Fester', react: (c) => c.set(c.stacks * 2) },              // toxin doubles
+    burn: { verb: 'Wildfire', react: (c) => c.spread('burn', c.stacks, 1) },    // amplify: fire spreads
+    poison: { verb: 'Fester', react: (c) => c.set(c.stacks * 2) },              // amplify: toxin doubles
     soak: { verb: 'Bloom', react: (c) => { const s = c.stacks; c.consume(); c.add('poison', 2 + s); } },
   },
   Void: {
     burn: { verb: 'Devour', react: (c) => { const v = c.stacks; c.consume(); c.heal(v); } },
     bleed: { verb: 'Devour', react: (c) => { const v = c.stacks; c.consume(); c.heal(v); } },
-    decay: { verb: 'Collapse', react: (c) => c.set(c.stacks * 2) },             // entropy feeds entropy
+    decay: { verb: 'Collapse', react: (c) => c.set(c.stacks * 2) },             // amplify: entropy feeds entropy
   },
   Physical: {
-    bleed: { verb: 'Rend', react: (c) => { c.dmg(c.stacks); c.add('bleed', 1); } },
+    bleed: { verb: 'Rend', react: (c) => { c.dmg(c.stacks); c.add('bleed', 1); } },   // amplify: dmg = wound, deepen it
     vulnerable: { verb: 'Exploit', react: (c) => c.add('vulnerable', 1) },
-    shock: { verb: 'Ground', react: (c) => { c.consume(); c.dmg(4); } },
-    expose: { verb: 'Smash', react: (c) => { c.dmg(3); c.add('expose', 1); } },
+    shock: { verb: 'Ground', react: (c) => { const v = c.stacks; c.consume(); c.dmg(3 * v); } },   // detonate
+    expose: { verb: 'Smash', react: (c) => { c.dmg(2 * c.stacks); c.add('expose', 1); } },         // amplify
   },
   Energy: {
     soak: { verb: 'Electrocute', react: (c) => { const s = c.stacks; c.consume(); c.add('shock', 1); c.spread('shock', 1, s); } },
   },
   Frost: {
-    soak: { verb: 'Freeze', react: (c) => { c.consume(); c.add('expose', 2); } },
-    bleed: { verb: 'Frostbite', react: (c) => c.add('bleed', 1) },              // entrench the wound
+    soak: { verb: 'Freeze', react: (c) => { const s = c.stacks; c.consume(); c.add('expose', 1 + s); } },   // detonate
+    bleed: { verb: 'Frostbite', react: (c) => c.add('bleed', 1) },              // amplify: entrench the wound
   },
   Holy: {
     poison: { verb: 'Purge-Smite', react: (c) => { const v = c.stacks; c.consume(); c.dmg(v); } },
     decay: { verb: 'Restore', react: (c) => { const v = c.stacks; c.consume(); c.dmg(v); } },
   },
   Shadow: {
-    vulnerable: { verb: 'Sunder', react: (c) => c.add('vulnerable', 2) },       // deepen the breach
+    vulnerable: { verb: 'Sunder', react: (c) => c.add('vulnerable', 2) },       // amplify: deepen the breach
     strength: { verb: 'Corrupt', react: (c) => { c.set(c.stacks - 1); c.add('weak', 1); } },
     regen: { verb: 'Corrupt', react: (c) => { c.set(c.stacks - 1); c.add('poison', 1); } },
   },
   Arcane: {
     poison: { verb: 'Transmute', react: (c) => { const v = c.stacks; c.consume(); c.add('decay', v); } },
-    confuse: { verb: 'Transmute', react: (c) => { c.consume(); c.add('weak', 2); } },
+    confuse: { verb: 'Transmute', react: (c) => { const v = c.stacks; c.consume(); c.add('weak', 1 + v); } },   // detonate
     vulnerable: { verb: 'Transmute', react: (c) => c.add('weak', 1) },
   },
   Air: {
-    expose: { verb: 'Gale', react: (c) => { c.consume(); c.dmg(c.stacks); } },  // blow the breach open
+    expose: { verb: 'Gale', react: (c) => { c.consume(); c.dmg(c.stacks); } },  // detonate: blow the breach open
     burn: { verb: 'Backdraft', react: (c) => { const v = c.stacks; c.consume(); c.dmg(v); c.spread('burn', Math.ceil(v / 2), 1); } },
   },
 };
@@ -143,4 +151,50 @@ export function fireReactions(state, attacker, target, element, { emit, rng } = 
     emit?.('reaction', { attackerId: attacker.id, targetId: target.id, element: el, status: id, verb: cell.verb });
   }
   return fired;
+}
+
+/**
+ * NON-MUTATING value estimate of the reactions an attack of `element` would
+ * trigger against `target` — used by the AI planner to SEEK reactions (prefer a
+ * reacting element, and set up its own primers). Pure: it runs the same cells
+ * against a throwaway stack-bookkeeping ctx, accumulating an HP-equivalent worth.
+ * `extraStatuses` (statusId→amount) folds in primers an earlier action in the same
+ * planned turn will have already applied, so a setup→detonate chain is valued.
+ * @returns {{ damage:number, heal:number, score:number }}
+ */
+export function previewReactions(target, element, extraStatuses = {}) {
+  const el = primaryElement(element);
+  if (!el || !REACTIONS[el] || !target || target.hp <= 0) return { damage: 0, heal: 0, score: 0 };
+  const cells = REACTIONS[el];
+  // Working primer stacks (freshest-last in `order`); extras count as freshest.
+  const work = {};
+  for (const s of target.statuses || []) if (s.amount > 0) work[s.id] = (work[s.id] || 0) + s.amount;
+  for (const [id, n] of Object.entries(extraStatuses)) if (n > 0) work[id] = (work[id] || 0) + n;
+
+  let damage = 0, heal = 0, statusVal = 0;
+  // Freshest-first: extra (just-applied) primers, then the existing stack tail→head.
+  const order = [...Object.keys(extraStatuses), ...(target.statuses || []).map((s) => s.id).reverse()];
+  const seen = new Set();
+  for (const id of order) {
+    if (seen.has(id)) continue;
+    seen.add(id);
+    const cell = cells[id];
+    if (!cell || !(work[id] > 0)) continue;
+    const ctx = {
+      stacks: work[id],
+      rng: () => 0.5,
+      dmg: (n) => { if (n > 0) damage += n; },
+      heal: (n) => { if (n > 0) heal += n; },
+      add: (i, n) => { if (n > 0) statusVal += n; },
+      selfAdd: () => {},
+      set: (n) => { work[id] = Math.max(0, n); },
+      consume: () => { work[id] = 0; },
+      others: () => [],
+      spread: (i, n, k = 1) => { if (n > 0) statusVal += n * Math.max(1, k) * 0.5; },
+    };
+    cell.react(ctx);
+  }
+  // Direct damage is worth face value; self-heal and applied statuses are softer.
+  const score = damage + heal * 0.8 + statusVal * 1.2;
+  return { damage, heal, score };
 }

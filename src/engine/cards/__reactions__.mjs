@@ -1,5 +1,5 @@
 // Smoke test for the §5.2 reaction engine (engine/cards/reactions.js).
-import { fireReactions, REACTIONS, primaryElement } from './reactions.js';
+import { fireReactions, previewReactions, REACTIONS, primaryElement } from './reactions.js';
 import { createFighter } from '../combat/state.js';
 import { addStatus, stackingFor } from '../combat/resolve.js';
 
@@ -52,6 +52,30 @@ console.log('No primer → no reaction:');
 
 console.log('Element with no table → no-op:');
 { const { state, atk, def } = setup(); give(def, 'burn', 2); const fired = fireReactions(state, atk, def, 'Stone'); ok(fired.length === 0 && amt(def, 'burn') === 2, 'Stone has no Burn cell'); }
+
+console.log('Magnitude scales with primer stacks (Physical → Ground on Shock):');
+{ const { state, atk, def } = setup(); give(def, 'shock', 3); const hp0 = def.hp; fireReactions(state, atk, def, 'Physical'); ok(amt(def, 'shock') === 0 && hp0 - def.hp === 9, `consume + 3*3 dmg (got shock ${amt(def, 'shock')}, dmg ${hp0 - def.hp})`); }
+
+console.log('Detonate consumes, amplify keeps (Frost Freeze vs Frostbite):');
+{ const { state, atk, def } = setup(); give(def, 'soak', 2); fireReactions(state, atk, def, 'Frost'); ok(amt(def, 'soak') === 0 && amt(def, 'expose') === 3, `Freeze consumes Soak, Expose 1+2=3 (got soak ${amt(def, 'soak')}, expose ${amt(def, 'expose')})`); }
+{ const { state, atk, def } = setup(); give(def, 'bleed', 4); fireReactions(state, atk, def, 'Frost'); ok(amt(def, 'bleed') === 5, `Frostbite keeps + grows Bleed 4->5 (got ${amt(def, 'bleed')})`); }
+
+console.log('previewReactions is a non-mutating value estimate:');
+{ const { state, atk, def } = setup(); give(def, 'poison', 5);
+  const p = previewReactions(def, 'Holy');
+  ok(p.damage === 5 && amt(def, 'poison') === 5, `predicts 5 burst, leaves status intact (dmg ${p.damage}, poison ${amt(def, 'poison')})`);
+  // sanity: prediction matches the real reaction
+  const hp0 = def.hp; fireReactions(state, atk, def, 'Holy');
+  ok(hp0 - def.hp === p.damage, `prediction == actual (${p.damage})`); }
+{ const def = { id: 'd', hp: 50, statuses: [] };
+  ok(previewReactions(def, 'Fire').score === 0, 'no primer → 0 score');
+  ok(previewReactions(def, 'Stone').score === 0, 'no table → 0 score'); }
+
+console.log('previewReactions values a queued (setup) primer:');
+{ const def = { id: 'd', hp: 50, statuses: [] };
+  const without = previewReactions(def, 'Holy').damage;
+  const withP = previewReactions(def, 'Holy', { poison: 4 }).damage;
+  ok(without === 0 && withP === 4, `priming Poison 4 makes Holy worth 4 (got ${without} -> ${withP})`); }
 
 console.log(`\nreactions: ${pass} passed, ${fail} failed`);
 if (fail) process.exit(1);

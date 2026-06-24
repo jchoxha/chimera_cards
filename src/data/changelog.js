@@ -6,6 +6,10 @@
 
 /** @type {{version:string, date:string, notes:string[]}[]} newest first */
 export const CHANGELOG = [
+  { version: 'v3.44.0', date: '2026-06-24', notes: [
+    'Enemies now play around reactions: they prefer attacking with an element that detonates a status you carry, and will set up their own primer (e.g. apply Poison, then hit it with Fire) within a single turn.',
+    'Reaction tuning: detonating reactions consume their status for a burst, while amplifying ones leave or grow it — and the payoff scales with how many stacks you’d built up.',
+  ] },
   { version: 'v3.43.0', date: '2026-06-23', notes: [
     'Reactions are now discoverable: tap a creature’s attunement to see every reaction that element can trigger.',
   ] },

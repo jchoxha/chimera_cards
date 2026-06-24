@@ -31,6 +31,23 @@ import { draftCards, combinedTypeWeights } from '../cards/rarity.js';
 import { applyCardSpec } from './interpret.js';
 import { fireTriggers, tickTriggerDurations } from '../cards/effectRegistry.js';
 import { canAttack, stanceSide } from './stances.js';
+import { describeScope } from './scopes.js';
+import { previewReactions, REACTIONS, primaryElement } from '../cards/reactions.js';
+
+/** Does this scope token deliver an effect to the OPPOSING (player) side? */
+function scopeHitsEnemy(scope) {
+  if (!scope) return false;
+  try {
+    const d = describeScope(scope);
+    return d.side === 'enemy' || d.side === 'either' || d.side === 'both';
+  } catch { return false; }
+}
+
+/** The card's reacting element (its damage attunement), if it has a reaction table. */
+function reactionElement(card) {
+  const el = primaryElement(card?.attunement);
+  return el && REACTIONS[el] ? el : null;
+}
 
 /** A data-driven CardSpec uses an op-LIST in `effects` (legacy cards use a flat object). */
 const isCardSpec = (card) => Array.isArray(card.effects) || card.type === 'power';
@@ -248,6 +265,10 @@ export class VanguardManager {
     }
 
     const plan = [];
+    // Primers (statusId→amount) this planned turn will have already applied to the
+    // player vanguard, so reaction-seeking can value a setup→detonate chain that
+    // lands in sequence at execution time (the sim doesn't model debuffs onto the foe).
+    const plannedPrimers = {};
 
     // 2. Planning loop
     while (true) {
@@ -280,7 +301,10 @@ export class VanguardManager {
 
       for (const c of playableCards) {
         if (effSummary(c).dmg) {
-          const dmg = getExpectedHPLoss(c, simVanguard, playerVanguard, s.player, simSide.energy);
+          // Count any reaction BURST the card's element would detonate on the
+          // player vanguard (incl. primers this plan already queued) toward lethal.
+          const react = reactionElement(c) ? previewReactions(playerVanguard, c.attunement, plannedPrimers).damage : 0;
+          const dmg = getExpectedHPLoss(c, simVanguard, playerVanguard, s.player, simSide.energy) + react;
           totalComboDmg += dmg;
           if (dmg > highestDmgVal) {
             highestDmgVal = dmg;
@@ -339,13 +363,42 @@ export class VanguardManager {
         }
       }
 
-      // Rule 4: Highest value attack check
+      // Rule 3.5: Set up a reaction primer — if a pure debuff applies a status the
+      // hand can DETONATE/AMPLIFY with a follow-up attack, prime it first so the
+      // chain lands this turn (the attack scores its reaction once the primer is queued).
+      if (!decision) {
+        let bestPrimer = null;
+        let bestPrimerVal = 0;
+        for (const c of playableCards) {
+          const ce = effSummary(c);
+          if (ce.dmg || !ce.applyStatus || !scopeHitsEnemy(ce.scope)) continue;
+          for (const [stId, amt] of Object.entries(ce.applyStatus)) {
+            if (!(amt > 0)) continue;
+            for (const other of playableCards) {
+              if (other === c) continue;
+              const el = reactionElement(other);
+              if (!el || !effSummary(other).dmg || !REACTIONS[el][stId]) continue;
+              // Marginal worth of priming this status before the follow-up reacts.
+              const withP = previewReactions(playerVanguard, el, { ...plannedPrimers, [stId]: amt }).score;
+              const without = previewReactions(playerVanguard, el, plannedPrimers).score;
+              const gain = withP - without;
+              if (gain > bestPrimerVal) { bestPrimerVal = gain; bestPrimer = c; }
+            }
+          }
+        }
+        if (bestPrimer && bestPrimerVal >= 3) {
+          decision = { type: 'play', card: bestPrimer };
+        }
+      }
+
+      // Rule 4: Highest value attack check (reaction value biases the pick).
       if (!decision) {
         let bestAttackCard = null;
         let maxAttackDmg = -1;
         for (const c of playableCards) {
           if (effSummary(c).dmg) {
-            const dmg = getExpectedHPLoss(c, simVanguard, playerVanguard, s.player, simSide.energy);
+            const react = reactionElement(c) ? previewReactions(playerVanguard, c.attunement, plannedPrimers).score : 0;
+            const dmg = getExpectedHPLoss(c, simVanguard, playerVanguard, s.player, simSide.energy) + react;
             if (dmg > maxAttackDmg) {
               maxAttackDmg = dmg;
               bestAttackCard = c;
@@ -420,6 +473,14 @@ export class VanguardManager {
             detail
           })
         );
+
+        // Queue any enemy-targeted status this card lands, so later attacks in
+        // the SAME plan value the reaction it sets up (chain at execution time).
+        if (eff.applyStatus && scopeHitsEnemy(eff.scope)) {
+          for (const [stId, amt] of Object.entries(eff.applyStatus)) {
+            if (amt > 0) plannedPrimers[stId] = (plannedPrimers[stId] || 0) + amt;
+          }
+        }
 
         const cIdx = simVanguard.hand.indexOf(card);
         simVanguard.hand.splice(cIdx, 1);

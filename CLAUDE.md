@@ -239,6 +239,21 @@ status (imbue + own cards) [Stone = Block]. `test:statuses` 27. **Attunements ar
 ready for §5.2 reactions** (Soak = the universal primer). Reaction DESIGN locked in
 `docs/mechanics.md` (master mechanics registry; engine deferred — statuses stand alone).
 
+**🧠 AI SEEKS REACTIONS + REACTION TUNING (v3.44.0, 2026-06-24, Jeton).** Follow-up to the reactions
+engine: tuned the matrix and taught the enemy AI to play around it. **Tuning (locked):** (1) **detonate
+consumes / amplify keeps** — burst cells (Combust/Steam/Melt/Ground/Freeze/Purge-Smite/Gale…) consume
+their primer; amplify/spread cells (Flare-up/Fester/Collapse/Conduct/Sunder/Frostbite…) leave or grow it;
+(2) **magnitude scales with primer stacks** (`c.stacks`) — bigger DoT/debuff before popping = bigger
+reaction (flat cells Ground/Smash/Freeze/Melt/Transmute-confuse now scale); (3) **Soak stays a per-cell
+primer** (its own Steam/Bloom/Freeze/Electrocute), NOT a universal amplifier. **AI reaction-seeking**
+(`VanguardManager._generateEnemyPlan`): a pure `previewReactions(target, element, extraStatuses)` estimate
+(in `reactions.js`) lets the planner score each attack by raw HP loss **+ its reaction value**, so it
+prefers a reacting element over a slightly-bigger raw hit and counts a detonation burst toward lethal; a
+new **Rule 3.5** **sets up its own primer** within one turn (play a debuff that applies a status the hand
+can detonate, then the follow-up attack — `plannedPrimers` carries the queued status so the chain scores
+and lands in sequence at execution). `test:reactions` 25 (+previewReactions/scaling/consumption),
+**new `test:aireact` 4** (planner prefers/sets up reactions). Build + lint + all suites green.
+
 **⚛️ REACTIONS ENGINE + BALANCE/ENCOUNTER PASS (v3.39.0→v3.43.0, 2026-06-23, Jeton).** Four-front
 follow-up after combat became functional. (a) **Balance** (v3.40): built a headless balance harness
 (3-creature party, smarter autoplay, deck growth via rewards); the old enemy HP scaling won ~3-8%

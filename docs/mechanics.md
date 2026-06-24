@@ -202,12 +202,19 @@ Plus the archetype keywords: **Brace**, **Dexterity** (Warrior); **Stealth**, **
 
 ## 6. Open threads & master plans
 
-- **AI reaction-awareness (master plan — TODO):** the enemy planner should eventually
-  *seek* reactions — prefer hitting a Soaked target with Energy, set up its own primers
-  (apply Soak then Steam next turn), and avoid wasting a detonator on an unprimed foe.
-  For now reactions resolve symmetrically but the AI doesn't deliberately set them up.
-  Track here as the seed of an **AI-behavior master plan** (also: difficulty tiers,
-  bluffing with the forecast, value-of-Peek modelling).
+- **AI reaction-awareness (master plan — FIRST PASS DONE v3.44.0):** the enemy planner now
+  *seeks* reactions. `VanguardManager._generateEnemyPlan` scores each attack by raw HP loss
+  **+ the value of any reaction its element would trigger** on the player vanguard
+  (`previewReactions` in `reactions.js`, a pure non-mutating estimate), so it prefers a
+  reacting element over a slightly-bigger raw hit and counts a detonation burst toward lethal.
+  It also **sets up its own primers** within one planned turn (new Rule 3.5): if a pure debuff
+  applies a status the hand can detonate/amplify with a follow-up attack, it plays the primer
+  first — `plannedPrimers` carries the queued status forward so the follow-up scores the chain
+  (which lands in sequence at execution time). Tuning decisions locked 2026-06-24: **detonate
+  consumes / amplify keeps**; reaction **magnitude scales with primer stacks**; **Soak stays a
+  per-cell primer**, not a universal amplifier. Tests: `test:reactions` (previewReactions +
+  consumption/scaling), `test:aireact` (the planner seeks/sets up reactions). Still TODO on the
+  AI-behavior master plan: difficulty tiers, bluffing with the forecast, value-of-Peek modelling.
 - **Predictive readout system (BUILD — generalize):** a reusable "what will happen"
   readout, shown when targeting — not just "Fire→Frost ×1.5" but "**will trigger Steam:
   +X, applies Weak**". Build it generic (matchup breakdown + reaction preview +
