@@ -397,6 +397,9 @@ html:has(.cmbt),body:has(.cmbt){height:100%;margin:0;overflow:hidden}
 .logEnt.cr{color:#7a3a12}
 .logEnt.mv{color:#1d5b8a}
 .logEnt.fx{color:#7a2a8a}
+.logEnt.rxv{color:#1d6e56}
+.logEnt.eff{color:#b8741a}
+.logEnt.res{color:#5a6a86}
 .logEnt:hover{filter:brightness(1.25);text-decoration-style:solid}
 
 /* ---------- bench buttons (enemy intent / combat log open their modals) ---------- */

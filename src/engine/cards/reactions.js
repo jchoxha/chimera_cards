@@ -19,6 +19,40 @@ const sideOf = (state, f) => (state.player.fighters.includes(f) ? state.player :
 export const primaryElement = (att) => (Array.isArray(att) ? att[0] : att) || null;
 
 /**
+ * Player-facing descriptions of each reaction VERB (for the combat-log info modal +
+ * the codex). Keyed by verb; several elements can share a verb (e.g. Devour, Transmute).
+ * @type {Record<string,string>}
+ */
+export const REACTION_INFO = {
+  'Flare-up': 'Fire feeds an existing Burn, adding more Burn stacks (the primer is kept).',
+  Melt: 'Fire consumes Weak on the target for an immediate burst of damage.',
+  Combust: 'Fire detonates Poison — consumes it all for a burst that scales with the stacks.',
+  Steam: 'Fire flashes Soak into scalding steam: a burst (bigger per Soak stack) that also applies Weak; Soak is consumed.',
+  Quench: 'Water consumes Burn, the steam leaving the target Weak.',
+  Spread: 'Water spreads Poison to another enemy (the original is kept).',
+  Conduct: 'Water conducts Shock through the wet, spreading it to the enemy bench.',
+  Wildfire: 'Nature lets Burn leap to another enemy (the original is kept).',
+  Fester: 'Nature doubles the Poison already on the target (kept and grown).',
+  Bloom: 'Nature consumes Soak to bloom toxins — applies extra Poison scaling with the Soak.',
+  Devour: 'Void devours a damage-over-time (Burn/Bleed) on the target, healing the attacker for its stacks.',
+  Collapse: 'Void doubles Decay already on the target — entropy feeds entropy (kept and grown).',
+  Rend: 'Physical deepens a Bleed, dealing bonus damage equal to its stacks and adding more.',
+  Exploit: 'Physical drives a Vulnerable deeper, adding a stack (kept).',
+  Ground: 'Physical grounds Shock — consumes it for a burst that scales with the stacks.',
+  Smash: 'Physical smashes an Exposed target for bonus damage and adds more Expose.',
+  Electrocute: 'Energy consumes Soak to electrocute — Shocks the target and chains Shock outward per Soak stack.',
+  Freeze: 'Frost consumes Soak to freeze, applying Expose that scales with the Soak.',
+  Frostbite: 'Frost entrenches a Bleed, adding a stack (kept).',
+  'Purge-Smite': 'Holy consumes Poison, smiting the target for damage equal to its stacks.',
+  Restore: 'Holy consumes Decay, purging the entropy and smiting for its stacks.',
+  Sunder: 'Shadow deepens Vulnerable, adding stacks (kept).',
+  Corrupt: 'Shadow corrupts a buff on the target — saps a stack and twists it into a debuff (Weak from Strength, Poison from Regen).',
+  Transmute: 'Arcane transmutes a status into another — Poison into Decay, Confuse or Vulnerable into Weak.',
+  Gale: 'Air consumes Expose, blasting the open breach for a burst equal to its stacks.',
+  Backdraft: 'Air consumes Burn for a burst and disperses some of it to an adjacent enemy.',
+};
+
+/**
  * A reaction cell receives a `ctx` of bound helpers so the table reads declaratively.
  * Helpers (all no-ops when not meaningful):
  *   ctx.stacks            current amount of the primer status

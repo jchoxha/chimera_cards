@@ -21,7 +21,7 @@ import { cardArt, creatureArt } from '../../data/artPool.js';
 import { cardText, linkifySegments, KEYWORD_GLOSSARY } from '../../engine/cards/cardText.js';
 import { APP_VERSION } from '../../version.js';
 import { CHANGELOG } from '../../data/changelog.js';
-import { REACTIONS, forecastReactions } from '../../engine/cards/reactions.js';
+import { REACTIONS, forecastReactions, REACTION_INFO } from '../../engine/cards/reactions.js';
 import './combat.css';
 
 const ELEMENT_ICON = {
@@ -524,10 +524,16 @@ function LogLine({ ev, nameOf, onEntity }) {
       return p.card
         ? <span><button className="logEnt mv" onClick={() => onEntity({ kind: 'card', card: p.card })}>{p.card.name}</button> played.</span>
         : null;
-    case 'damage':
-      if (p.hpLoss > 0) return <span className="dmg"><CrLink id={p.targetId} nameOf={nameOf} onEntity={onEntity} /> takes {p.hpLoss} damage{p.dot ? ' (over time)' : ''}.</span>;
+    case 'damage': {
+      const mNote = !p.dot && p.matchup > 1
+        ? <button className="logEnt eff" onClick={() => onEntity({ kind: 'matchupNote', good: true })}> — super effective!</button>
+        : !p.dot && p.matchup > 0 && p.matchup < 1
+          ? <button className="logEnt res" onClick={() => onEntity({ kind: 'matchupNote', good: false })}> — resisted</button>
+          : null;
+      if (p.hpLoss > 0) return <span className="dmg"><CrLink id={p.targetId} nameOf={nameOf} onEntity={onEntity} /> takes {p.hpLoss} damage{p.dot ? ' (over time)' : ''}{mNote}.</span>;
       if (p.absorbedCreature > 0 || p.absorbedFortify > 0) return <span><CrLink id={p.targetId} nameOf={nameOf} onEntity={onEntity} /> blocks the hit.</span>;
       return null;
+    }
     case 'block':
       if (p.amount > 0) return <span><CrLink id={p.targetId} nameOf={nameOf} onEntity={onEntity} /> gains {p.amount} <FxLink id="block" onEntity={onEntity} />.</span>;
       return null;
@@ -543,7 +549,7 @@ function LogLine({ ev, nameOf, onEntity }) {
         ? <span className="rx">{p.side === 'player' ? 'Your' : 'Enemy'} vanguard falls — forced swap.</span>
         : <span>{p.side === 'player' ? 'You swap in a new vanguard' : 'Enemy swaps vanguard'} (cost {p.cost}).</span>;
     case 'reaction':
-      return <span className="rx"><b>{p.verb}!</b> {p.element} reacts with <FxLink id={p.status} onEntity={onEntity} /> on <CrLink id={p.targetId} nameOf={nameOf} onEntity={onEntity} />.</span>;
+      return <span className="rx"><button className="logEnt rxv" onClick={() => onEntity({ kind: 'reaction', verb: p.verb, element: p.element, status: p.status })}>{p.verb}!</button> {p.element} reacts with <FxLink id={p.status} onEntity={onEntity} /> on <CrLink id={p.targetId} nameOf={nameOf} onEntity={onEntity} />.</span>;
     case 'peek':
       return <span className="pk">You Peek the enemy’s plan.</span>;
     default:
@@ -1035,6 +1041,28 @@ export default function CombatScreen({ onMenu, onRestart, embedded } = {}) {
                 </div>
               );
             })()}
+
+            {info.kind === 'reaction' && (
+              <div>
+                <div className="infoHead">
+                  <Icon icon={ATTUNEMENT_ICON[info.element] || 'game-icons:fire'} style={{ color: ATTUNEMENT_COLOR[info.element] }} /> {info.verb}
+                </div>
+                <div className="infoRow"><Icon icon="game-icons:embrace-energy" /> {info.element} reacts with <FxLink id={info.status} onEntity={setInfo} /></div>
+                <p>{REACTION_INFO[info.verb] || 'An elemental reaction — hitting a status with the right element triggers a payoff. Statuses still work on their own; reactions are pure upside.'}</p>
+              </div>
+            )}
+
+            {info.kind === 'matchupNote' && (
+              <div>
+                <div className="infoHead">
+                  <Icon icon={info.good ? 'tabler:caret-up-filled' : 'tabler:caret-down-filled'} /> {info.good ? 'Super effective' : 'Resisted'}
+                </div>
+                <p>{info.good
+                  ? 'The attack’s element is strong against the target (its attunement and/or biology), so it dealt INCREASED damage.'
+                  : 'The attack’s element is weak against the target (its attunement and/or biology), so it dealt REDUCED damage.'}</p>
+                <p className="cdHint">Damage matchups come from the attacking card’s element vs the target’s attunement and biology.</p>
+              </div>
+            )}
 
             {info.kind === 'changelog' && (
               <div>

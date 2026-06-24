@@ -211,12 +211,13 @@ export const EFFECT_OPS = {
         // Soak (Water): the next attack vs this target deals +25% per stack, then clears.
         const soakSt = t.statuses.find((s) => s.id === 'soak');
         const soakMult = soakSt && soakSt.amount > 0 ? 1 + 0.25 * soakSt.amount : 1;
-        const mult = matchupOf(env.card?.attunement, t) * ampMult * soakMult;
+        const typeMult = matchupOf(env.card?.attunement, t);
+        const mult = typeMult * ampMult * soakMult;
         const ts = sideOf(env.state, t);
         let landed = false;
         for (let i = 0; i < hits; i++) {
           if (t.hp <= 0) break;
-          applyDamage(t, scaledDamage(v, env.caster, t, mult), env.emit, false, ts);
+          applyDamage(t, scaledDamage(v, env.caster, t, mult), env.emit, false, ts, { matchup: typeMult });
           connected = true;
           landed = true;
         }

@@ -6,6 +6,10 @@
 
 /** @type {{version:string, date:string, notes:string[]}[]} newest first */
 export const CHANGELOG = [
+  { version: 'v3.50.0', date: '2026-06-24', notes: [
+    'Combat log now flags resistances: a hit that’s strong or weak against the target’s type reads “— super effective!” / “— resisted”, clickable for a quick explanation.',
+    'Reactions in the combat log are now clickable — tap a reaction (e.g. Combust) to read exactly what it does.',
+  ] },
   { version: 'v3.49.0', date: '2026-06-24', notes: [
     'Card rewards are now per-character: after a win, each party member shows its OWN distinct set of card options (drawn from that character’s pool). You still pick just one card total — and it goes to that character.',
   ] },

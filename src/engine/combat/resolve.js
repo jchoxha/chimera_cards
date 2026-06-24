@@ -166,7 +166,7 @@ export function applyHeal(target, amount, emit) {
  * @param {Fighter} target @param {number} amount @param {(t,p)=>void} [emit] @param {boolean} [dot]
  * @param {Side} [side] Optional side to apply fortifySlot block.
  */
-export function applyDamage(target, amount, emit, dot = false, side = null) {
+export function applyDamage(target, amount, emit, dot = false, side = null, meta = null) {
   if (amount <= 0 || target.hp <= 0) return;
   // Count real attack hits this window (consumed + reset by the Bleed tick).
   if (!dot) target.hitsTaken = (target.hitsTaken || 0) + 1;
@@ -212,7 +212,9 @@ export function applyDamage(target, amount, emit, dot = false, side = null) {
     dot,
     absorbedCreature,
     absorbedBraced,
-    absorbedFortify
+    absorbedFortify,
+    // Type-matchup multiplier (>1 super effective, <1 resisted) for the combat-log note.
+    matchup: meta?.matchup ?? null
   });
   if (target.hp === 0) emit?.('death', { fighterId: target.id });
 }
