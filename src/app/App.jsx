@@ -11,6 +11,7 @@ import { CardEditor } from '../editor/CardEditor.jsx';
 import CombatScreen from '../ui/combat/CombatScreen.jsx';
 import RunScreen from '../ui/run/RunScreen.jsx';
 import DeckBuilder from '../ui/deck/DeckBuilder.jsx';
+import Codex from '../ui/Codex.jsx';
 import SelectScreen from './SelectScreen.jsx';
 import { loadDraft } from '../editor/persistence.js';
 import { ATTUNEMENT_BASES, BIOLOGY_BASES, legalAttunements } from '../data/synthesis.js';
@@ -108,6 +109,7 @@ export default function App() {
   }
   function continueRun() { if (useRun.getState().loadSaved()) setView('run'); }
 
+  if (view === 'codex') return <Codex onMenu={() => setView('menu')} />;
   if (view === 'editor') return <CardEditor onMenu={() => setView('menu')} />;
   if (view === 'combat') return <CombatScreen onMenu={() => setView('menu')} onRestart={() => launchCombat(lastDeck)} />;
   if (view === 'run') return <RunScreen onMenu={() => setView('menu')} onNewRun={() => setView('select')} />;
@@ -138,9 +140,12 @@ export default function App() {
           <button className="menuBtn" onClick={continueRun}>↻ Continue Saved Run</button>
         )}
 
-        {/* Secondary: forge */}
+        {/* Secondary: forge + codex */}
         <button className="menuBtn" onClick={() => setView('editor')}>
           🃏 Open the Card Forge
+        </button>
+        <button className="menuBtn" onClick={() => setView('codex')}>
+          📖 Read the Codex
         </button>
 
         {/* Advanced: playtest knobs, collapsed by default */}

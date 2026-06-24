@@ -6,6 +6,9 @@
 
 /** @type {{version:string, date:string, notes:string[]}[]} newest first */
 export const CHANGELOG = [
+  { version: 'v3.51.0', date: '2026-06-24', notes: [
+    'New Codex (from the main menu): a browsable reference for how combat works, every status, the full reaction matrix, the three creature axes, and all keywords — the same info the in-combat tooltips show, in one place to read through.',
+  ] },
   { version: 'v3.50.0', date: '2026-06-24', notes: [
     'Combat log now flags resistances: a hit that’s strong or weak against the target’s type reads “— super effective!” / “— resisted”, clickable for a quick explanation.',
     'Reactions in the combat log are now clickable — tap a reaction (e.g. Combust) to read exactly what it does.',

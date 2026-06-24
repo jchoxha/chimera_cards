@@ -1,0 +1,52 @@
+/* Codex — central reference reader. Uses the app-global gilded vars (combat.css). */
+.codex { position: fixed; inset: 0; display: flex; flex-direction: column;
+  background: radial-gradient(120% 90% at 50% 0%, #241a3a 0%, #140e26 60%, #0d0918 100%);
+  color: #e8dcc8; font-family: 'Spectral', serif; padding: 14px clamp(10px, 4vw, 40px); gap: 12px; overflow: hidden; }
+.cxBar { display: flex; align-items: center; gap: 14px; flex: 0 0 auto; }
+.cxBar h1 { font-family: 'Cinzel', serif; font-size: clamp(20px, 3vw, 30px); color: var(--gold4, #e8c878);
+  display: flex; align-items: center; gap: 10px; margin: 0; }
+.cxBack { border: 1.5px solid #4a3a22; background: #241a10; color: #e8dcc8; border-radius: 999px;
+  padding: 6px 14px; cursor: pointer; font: inherit; font-size: 13px; display: flex; align-items: center; gap: 6px; }
+.cxBack:hover { border-color: var(--gold4, #e8c878); }
+
+.cxTabs { display: flex; flex-wrap: wrap; gap: 8px; flex: 0 0 auto; }
+.cxTab { border: 1.5px solid #4a3a22; background: #1c1410; color: #c9b58e; border-radius: 999px;
+  padding: 7px 16px; cursor: pointer; font-family: 'Cinzel', serif; font-size: 13px; display: flex; align-items: center; gap: 6px; }
+.cxTab.on { border-color: var(--gold4, #e8c878); color: #fff3d6; background: #2a1d10; box-shadow: 0 0 12px #e8c87844; }
+.cxTab iconify-icon { width: 1em; height: 1em; flex: none; }
+
+.cxBody { flex: 1 1 auto; min-height: 0; overflow-y: auto; padding-right: 6px; }
+.cxIntro, .cxAxisBlock > p, .cxCard p { color: #cbb893; line-height: 1.45; }
+.cxIntro { margin: 0 0 12px; font-size: 14px; max-width: 720px; }
+
+.cxGrid { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 12px; }
+.cxCard { border: 1px solid #4a3a22; border-radius: 12px; background: #1c141099; padding: 10px 12px; }
+.cxCardHead { font-family: 'Cinzel', serif; font-weight: 700; color: var(--gold4, #e8c878);
+  display: flex; align-items: center; gap: 8px; margin-bottom: 4px; font-size: 15px; }
+.cxCardHead iconify-icon { width: 1.1em; height: 1.1em; flex: none; }
+.cxCard p { margin: 0; font-size: 13px; }
+
+.cxTable { display: flex; flex-direction: column; gap: 4px; }
+.cxRow { display: grid; grid-template-columns: 92px 14px 92px 16px 96px 1fr; align-items: center; gap: 6px;
+  border: 1px solid #4a3a2266; border-radius: 8px; background: #1c141066; padding: 6px 10px; font-size: 13px; }
+.cxRow .cxEl { display: flex; align-items: center; gap: 4px; font-family: 'Cinzel', serif; font-weight: 700; }
+.cxRow .cxEl iconify-icon { width: 1em; height: 1em; flex: none; }
+.cxRow .cxPlus, .cxRow .cxArrow { color: var(--gold3, #c9a66b); text-align: center; }
+.cxRow .cxStatus { color: #e8dcc8; }
+.cxRow .cxVerb { color: #ffd9a0; font-family: 'Cinzel', serif; }
+.cxRow .cxDesc { color: #b8a684; }
+@media (max-width: 680px) {
+  .cxRow { grid-template-columns: 1fr 1fr; }
+  .cxRow .cxPlus, .cxRow .cxArrow { display: none; }
+  .cxRow .cxDesc { grid-column: 1 / -1; }
+}
+
+.cxAxes { display: flex; flex-direction: column; gap: 16px; }
+.cxAxisBlock { border: 1px solid #4a3a22; border-radius: 12px; background: #1c141099; padding: 12px 14px; }
+.cxAxisBlock > p { margin: 4px 0 10px; font-size: 13px; }
+.cxChips { display: flex; flex-wrap: wrap; gap: 8px; }
+.cxChip { display: flex; align-items: center; gap: 6px; border: 1px solid #4a3a2288; border-radius: 999px;
+  background: #241a10; padding: 5px 12px; font-size: 13px; }
+.cxChip iconify-icon { width: 1.1em; height: 1.1em; flex: none; }
+.cxChip b { font-family: 'Cinzel', serif; }
+.cxChipExtra { color: var(--gold3, #c9a66b); font-size: 11px; border-left: 1px solid #4a3a22; padding-left: 6px; }
