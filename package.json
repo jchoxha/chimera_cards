@@ -16,6 +16,7 @@
     "test:cardturn": "node src/engine/combat/__cardturn__.mjs",
     "test:reactions": "node src/engine/cards/__reactions__.mjs",
     "test:aireact": "node src/engine/combat/__aireact__.mjs",
+    "balance": "node src/engine/run/__balance__.mjs",
     "test:statuses": "node src/engine/combat/__statuses__.mjs",
     "test:playtest": "node src/store/__playtest__.mjs",
     "test:run": "node src/engine/run/__run__.mjs",
