@@ -6,6 +6,9 @@
 
 /** @type {{version:string, date:string, notes:string[]}[]} newest first */
 export const CHANGELOG = [
+  { version: 'v3.46.0', date: '2026-06-24', notes: [
+    'Variant access: a creature attuned to two elements can now build its archetype attacks in EITHER element — the deck builder offers, e.g., both a Physical and a Fire version of each strike, so you choose your damage type per card.',
+  ] },
   { version: 'v3.45.0', date: '2026-06-24', notes: [
     'Reaction preview: while dragging an attack onto a foe, you now see exactly what reaction it will trigger (e.g. “Combust · 8 dmg”, “Freeze · Expose +3”) before you commit — no more guessing.',
   ] },

@@ -468,8 +468,16 @@ Two mechanisms, **both** used:
 > `content/matchups.js` (Fire→Burn, Frost→Weak, Nature→Poison, Shadow→Vulnerable, Holy→Regen
 > live; 8 others mapped-but-inert until §5.1 builds them). Supports 1–2 attunements. (c) A
 > creature's attunement also grants **access to archetype-card variants of other
-> attunements**, and each attunement has **its own standalone cards** in the potential pool
-> — **chunk 2, NOT yet built** (needs the generator's pool step, §14.1).
+> attunements**, and each attunement has **its own standalone cards** in the potential pool.
+>
+> **Both halves now BUILT.** Standalone cards shipped v3.24.0 (`attunementCards`). **Variant
+> access IMPLEMENTED v3.46.0:** `reskin.js` `attunementVariants(cards, attunement)` re-elements a
+> multi-attunement creature's archetype ATTACK cards to its NON-primary attunement(s) (id-suffixed
+> `@<Att>`, distinct pickable cards), so a [Physical, Fire] Warrior's potential pool offers both a
+> Physical and a Fire version of each strike — element choice per card. Wired into the deck-builder
+> pool + the run reward pool (the lean Quick-Fight deck stays single-variant to avoid duplicate-attack
+> bloat); mono-attunement creatures get none (stay on-identity); block/utility cards aren't varied
+> (no damage element). `test:reskin` 9.
 
 ### 14.4 Biology → deck (LOCKED)
 

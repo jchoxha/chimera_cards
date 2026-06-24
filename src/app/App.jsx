@@ -15,7 +15,7 @@ import SelectScreen from './SelectScreen.jsx';
 import { loadDraft } from '../editor/persistence.js';
 import { ATTUNEMENT_BASES, BIOLOGY_BASES, legalAttunements } from '../data/synthesis.js';
 import { attunementCards } from '../engine/cards/attunementPool.js';
-import { reskinDeck } from '../engine/cards/reskin.js';
+import { reskinDeck, attunementVariants } from '../engine/cards/reskin.js';
 import { buildRoster } from '../data/roster.js';
 import { APP_VERSION } from '../version.js';
 import { CHANGELOG } from '../data/changelog.js';
@@ -66,6 +66,16 @@ export default function App() {
     return [...reskinDeck(cards, heroAttunement()), ...attunementCards(heroAttunement())];
   }
 
+  /** The full POTENTIAL pool the deckbuilder draws from: the auto pool PLUS §14.3
+   *  variant access — archetype attacks re-elemented to the creature's OTHER
+   *  attunement, so a multi-attunement creature can choose its damage element per card.
+   *  (Quick Fight stays on the lean poolForFile() to avoid duplicate-attack bloat.) */
+  function builderPool() {
+    const file = loadDraft(deckFile) || FILES[deckFile] || { cards: [] };
+    const cards = (file.cards || []).filter((c) => c.type !== 'curse' && c.type !== 'status');
+    return [...poolForFile(), ...attunementVariants(cards, heroAttunement())];
+  }
+
   /** Launch a playtest. `deck` = a built CardSpec[]; omitted → the full pool (quick fight). */
   function launchCombat(deck) {
     const file = loadDraft(deckFile) || FILES[deckFile] || { cards: [] };
@@ -88,7 +98,8 @@ export default function App() {
   function partyRewardPool(creatures) {
     const out = [];
     for (const c of creatures) {
-      out.push(...reskinDeck(POOLS[c.class?.[0]] || [], c.attunement), ...attunementCards(c.attunement));
+      const pool = POOLS[c.class?.[0]] || [];
+      out.push(...reskinDeck(pool, c.attunement), ...attunementCards(c.attunement), ...attunementVariants(pool, c.attunement));
     }
     return out;
   }
@@ -105,7 +116,7 @@ export default function App() {
   if (view === 'select') return <SelectScreen roster={ROSTER} onConfirm={startSelectedRun} onCancel={() => setView('menu')} />;
   if (view === 'deckbuild') return (
     <DeckBuilder
-      pool={poolForFile()}
+      pool={builderPool()}
       title={`Build a ${deckClass || 'Hero'} deck`}
       subtitle={`${heroAttunement().join(' / ')}  ·  vs ${dummyAtt || dummyBio ? [dummyAtt, dummyBio].filter(Boolean).join(' ') : 'no-axis'} dummy (${Number(enemyHp) || 200} HP)`}
       onConfirm={(deck) => launchCombat(deck)}

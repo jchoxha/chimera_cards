@@ -31,3 +31,30 @@ export function reskinDeck(cards, attunement) {
     return clone;
   });
 }
+
+/**
+ * §14.3 "variant access": a creature attuned to 1–2 bases can build its archetype
+ * ATTACK cards in its OTHER attunement(s) too, not just the primary. Returns
+ * re-elemented variant clones (one per archetype attack × each non-primary
+ * attunement), id-suffixed `@<Att>` so they coexist as distinct pickable cards in
+ * the deckbuilder's potential pool. Mono-attunement creatures get none (no "other"
+ * element — they stay on-identity). Only damage-dealing cards are re-elemented;
+ * block/utility cards have no element to vary. Never mutates; returns clones.
+ * @param {Object[]} cards         archetype CardSpec[] (pre-reskin).
+ * @param {string|string[]} attunement  the creature's attunement (1–2 bases).
+ * @returns {Object[]} variant clones for the non-primary attunement(s).
+ */
+export function attunementVariants(cards, attunement) {
+  const atts = (Array.isArray(attunement) ? attunement : [attunement]).filter(Boolean);
+  const others = atts.slice(1).filter((a) => a && a !== atts[0]);
+  if (!others.length) return [];
+  const out = [];
+  for (const c of cards || []) {
+    if (!Array.isArray(c.effects) || !c.effects.some((o) => o.op === 'damage')) continue;
+    for (const att of others) {
+      if (c.attunement === att) continue;
+      out.push({ ...c, id: `${c.id}@${att}`, attunement: att, effects: c.effects.map((o) => ({ ...o })) });
+    }
+  }
+  return out;
+}
