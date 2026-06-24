@@ -113,8 +113,37 @@
 .cardChip.r-uncommon { border-color: #7ee787; } .cardChip.r-rare { border-color: #4d9fff; }
 .cardChip.r-epic { border-color: #a571ff; } .cardChip.r-mythic { border-color: #ff5a4d; }
 .cardChip.r-legendary { border-color: #ff9a3d; } .cardChip.r-godly { border-color: #ffd34d; }
-.rewardCards { display: flex; gap: 14px; flex-wrap: wrap; justify-content: center; margin: 14px auto; max-width: 640px; }
+.rewardCards { display: flex; gap: 14px; flex-wrap: wrap; justify-content: center; margin: 14px auto; max-width: 660px; }
 .rewardCards .cardChip { width: 184px; }
+
+/* reward cards drawn like hand cards */
+.rwCard { position: relative; width: 150px; min-height: 210px; border-radius: 13px; padding: 9px 8px 8px;
+  border: none; cursor: pointer; display: flex; flex-direction: column; align-items: center; gap: 5px;
+  color: #f4ead2; font-family: 'Spectral', serif; text-align: center;
+  box-shadow: 0 5px 14px #000a, inset 0 0 0 2px #00000033; transition: transform .12s ease, box-shadow .12s ease; }
+.rwCard:hover { transform: translateY(-4px); }
+.rwCard.sel { outline: 3px solid #ffd86b; outline-offset: 1px; transform: translateY(-6px);
+  box-shadow: 0 10px 22px #000b, 0 0 18px #ffd86b66; }
+.rwCard .rwCost { position: absolute; top: -8px; left: -8px; width: 28px; height: 28px; border-radius: 50%;
+  background: radial-gradient(circle at 38% 30%, #fff3cf, #b8862a); color: #2a1c08; font-family: 'Cinzel', serif;
+  font-weight: 800; display: grid; place-items: center; box-shadow: 0 2px 5px #0008; }
+.rwCard .rwArt { width: 100%; height: 78px; border-radius: 8px; background: #140e26aa; display: grid; place-items: center;
+  overflow: hidden; }
+.rwCard .rwArt img { width: 100%; height: 100%; object-fit: cover; image-rendering: pixelated; }
+.rwCard .rwArt iconify-icon { font-size: 44px; color: #ffe6b0; }
+.rwCard .rwName { font-family: 'Cinzel', serif; font-weight: 700; font-size: 13px; line-height: 1.1;
+  text-shadow: 0 1px 2px #000; }
+.rwCard .rwText { font-size: 11px; line-height: 1.25; color: #efe3c8; flex: 1 1 auto;
+  background: #0e0a18aa; border-radius: 6px; padding: 4px 5px; }
+.rwCard .rwRarity { font-size: 9.5px; letter-spacing: .4px; text-transform: capitalize; opacity: .85; }
+
+.lootBanner { display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 10px;
+  margin: 6px auto 2px; max-width: 560px; padding: 8px 12px; border: 1px solid #4a3a22; border-radius: 12px;
+  background: #1c141099; }
+.lootLabel { font-family: 'Cinzel', serif; color: var(--gold4, #e8c878); display: flex; align-items: center; gap: 6px; }
+.lootItem { display: flex; align-items: center; gap: 5px; color: #e8dcc8; font-size: 13px;
+  border: 1px solid #4a3a2288; border-radius: 999px; padding: 3px 10px; background: #241a10; }
+.rewardActions { display: flex; gap: 12px; justify-content: center; align-items: center; margin-top: 14px; flex-wrap: wrap; }
 .rewardHint { text-align: center; color: #c9b58e; font-size: 13px; margin: 2px auto 6px; max-width: 560px; }
 .rewardGroups { display: flex; flex-direction: column; gap: 10px; margin: 10px auto; max-width: 700px; }
 .rewardGroup { border: 1px solid #4a3a22; border-radius: 14px; background: #1c1410aa; padding: 6px 10px 12px; }

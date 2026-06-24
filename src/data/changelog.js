@@ -6,6 +6,10 @@
 
 /** @type {{version:string, date:string, notes:string[]}[]} newest first */
 export const CHANGELOG = [
+  { version: 'v3.54.0', date: '2026-06-24', notes: [
+    'Card rewards now look like real cards (frame, cost, art) — tap to select, then Confirm before it’s added. No more accidental picks.',
+    'Combat rewards now also drop loot: a potion drops sometimes after normal fights, and elites & bosses always drop a relic (plus a potion), shown on the reward screen.',
+  ] },
   { version: 'v3.53.0', date: '2026-06-24', notes: [
     'Combat log no longer yanks itself to the bottom — it only auto-scrolls if you’re already at the bottom, so you can scroll up to read history.',
     'Fixed creature portraits showing a white edge / wrong size: the decorative “moon” backdrop no longer renders behind a real portrait, and portraits aren’t zoom-scaled.',

@@ -13,6 +13,7 @@ import { enemyForNode } from '../engine/run/encounters.js';
 import { combatOutcome } from '../engine/run/combatBridge.js';
 import { makeRng } from '../engine/run/rng.js';
 import { draftRunReward } from '../engine/run/rewards.js';
+import { RELICS, POTIONS } from '../engine/run/content.js';
 import { useCombat } from './combatStore.js';
 
 const SAVE_KEY = 'chimera:run:save';
@@ -86,11 +87,21 @@ export const useRun = create((set, get) => ({
     // so an abandoned fight re-enters on resume; winning is what completes it).
     rm.dispatch('markVisited', {});
     rm.dispatch('gainGold', { amount: node.type === 'boss' ? 100 : node.type === 'elite' ? 40 : 25 });
+
+    // Bonus loot: a guaranteed relic for elites & bosses; a potion always for those
+    // and ~40% of normal fights. Granted immediately and surfaced on the reward screen.
+    const rng = makeRng((rm.state.rngState ^ 0x6d2b79f5) >>> 0);
+    const eliteBoss = node.type === 'elite' || node.type === 'boss';
+    const owned = new Set(rm.state.relics.map((r) => r.id));
+    const relicPool = RELICS.filter((r) => !owned.has(r.id));
+    const loot = {};
+    if (eliteBoss && relicPool.length) { const relic = relicPool[Math.floor(rng.next() * relicPool.length)]; rm.dispatch('addRelic', { relic }); loot.relic = relic; }
+    if (eliteBoss || rng.next() < 0.4) { const potion = POTIONS[Math.floor(rng.next() * POTIONS.length)]; if (potion) { rm.dispatch('addPotion', { potion }); loot.potion = potion; } }
+
     if (node.type === 'boss') { rm.dispatch('setStatus', { status: 'won' }); get().clearSave(); get()._publish(); set({ view: 'over' }); return; }
     // Card reward: each LIVING party member gets its OWN distinct option set, drafted
     // from that member's potential pool (falls back to the combined pool). The player
     // still picks just ONE card total (for whichever character it belongs to).
-    const rng = makeRng((rm.state.rngState ^ 0x6d2b79f5) >>> 0);
     const pools = rm.state.rewardPools || {};
     const offers = rm.state.party
       .filter((m) => m.hp > 0)
@@ -99,7 +110,7 @@ export const useRun = create((set, get) => ({
         return { memberId: m.id, name: m.name, cards: draftRunReward(pool, 3, () => rng.next()) };
       })
       .filter((o) => o.cards.length);
-    rm.dispatch('offerReward', { offers });
+    rm.dispatch('offerReward', { offers, loot });
     get()._publish();
     set({ view: 'reward' });
   },

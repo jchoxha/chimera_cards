@@ -13,9 +13,28 @@ import { currentNode } from '../../engine/run/map.js';
 import { makeRng } from '../../engine/run/rng.js';
 import { RELICS, POTIONS, EVENTS, CURSES } from '../../engine/run/content.js';
 import { draftRunReward } from '../../engine/run/rewards.js';
-import { creatureIcon, creatureColor } from '../../data/axisIcons.js';
+import { creatureIcon, creatureColor, cardIcon as axisCardIcon } from '../../data/axisIcons.js';
 import { cardText } from '../../engine/cards/cardText.js';
+import { cardArt } from '../../data/artPool.js';
+import { frameStyle } from '../combat/frames.js';
 import './run.css';
+
+const RIcon = ({ icon, ...rest }) => <iconify-icon icon={icon} {...rest}></iconify-icon>;
+
+/** A reward card drawn like a hand card (frame + cost + art + name + text). Click selects. */
+function RewardCard({ c, selected, onClick }) {
+  const f = frameStyle({ element: c.element, rarity: c.rarity });
+  const art = cardArt(c);
+  return (
+    <button type="button" className={`rwCard ${f.finish}${selected ? ' sel' : ''}`} style={{ background: f.background }} onClick={onClick}>
+      <span className="rwCost">{c.cost === -1 ? 'X' : c.cost}</span>
+      <span className="rwArt">{art ? <img src={art} alt="" /> : <RIcon icon={axisCardIcon(c)} />}</span>
+      <span className="rwName">{c.name}</span>
+      <span className="rwText">{cardText(c)}</span>
+      <span className="rwRarity">{c.rarity || 'common'}{c.attunement ? ` · ${c.attunement}` : ''}</span>
+    </button>
+  );
+}
 
 // Gold price of a shop card by rarity (REVIEW/tunable).
 const CARD_PRICE = { common: 40, uncommon: 65, rare: 90, epic: 130, mythic: 180, legendary: 240, godly: 300 };
@@ -90,6 +109,7 @@ export default function RunScreen({ onMenu, onNewRun }) {
   const combat = useCombat();
   const snap = run.snap;
   const [target, setTarget] = useState(null);
+  const [sel, setSel] = useState(null); // selected reward { memberId, idx, card }
   if (!snap) return <div className="runWrap"><p>No active run.</p></div>;
   // Which creature receives a chosen/bought card (default: first living member).
   const tgt = target || snap.party.find((m) => m.hp > 0)?.id || snap.party[0]?.id;
@@ -120,10 +140,20 @@ export default function RunScreen({ onMenu, onNewRun }) {
   if (run.view === 'reward') {
     const pending = snap.pendingReward || [];
     const grouped = pending.length > 0 && pending[0] && Array.isArray(pending[0].cards);
+    const loot = snap.pendingLoot;
+    const accept = () => { if (sel) { run.chooseReward(sel.card, sel.memberId); setSel(null); } };
+    const skip = () => { run.skipReward(); setSel(null); };
     return (
-      <div className="runWrap">
+      <div className="runWrap rewardWrap">
         <h2><Icon icon="game-icons:card-pickup" /> Choose ONE card</h2>
-        <p className="rewardHint">Each character has different options — your pick goes to that character.</p>
+        <p className="rewardHint">Each character has its own options — tap a card to select, then confirm.</p>
+        {loot && (loot.relic || loot.potion) && (
+          <div className="lootBanner">
+            <span className="lootLabel"><Icon icon="game-icons:open-treasure-chest" /> Also found:</span>
+            {loot.relic && <span className="lootItem"><Icon icon="game-icons:gem-pendant" /> {loot.relic.name}</span>}
+            {loot.potion && <span className="lootItem"><Icon icon="game-icons:round-potion" /> {loot.potion.name}</span>}
+          </div>
+        )}
         {grouped ? (
           <div className="rewardGroups">
             {pending.map((g) => {
@@ -132,21 +162,30 @@ export default function RunScreen({ onMenu, onNewRun }) {
                 <div className="rewardGroup" key={g.memberId}>
                   <div className="rgHead">{m && <Crest m={m} />}<b>{g.name}</b></div>
                   <div className="rewardCards">
-                    {g.cards.map((c, i) => <CardChip key={i} c={c} onClick={() => run.chooseReward(c, g.memberId)} />)}
+                    {g.cards.map((c, i) => (
+                      <RewardCard key={i} c={c}
+                        selected={sel?.memberId === g.memberId && sel?.idx === i}
+                        onClick={() => setSel({ memberId: g.memberId, idx: i, card: c })} />
+                    ))}
                   </div>
                 </div>
               );
             })}
           </div>
         ) : (
-          <>
-            <MemberPicker snap={snap} target={tgt} setTarget={setTarget} />
-            <div className="rewardCards">
-              {pending.map((c, i) => <CardChip key={i} c={c} onClick={() => run.chooseReward(c, tgt)} />)}
-            </div>
-          </>
+          <div className="rewardCards">
+            {pending.map((c, i) => (
+              <RewardCard key={i} c={c} selected={sel?.idx === i}
+                onClick={() => setSel({ memberId: tgt, idx: i, card: c })} />
+            ))}
+          </div>
         )}
-        <button className="runBtn" onClick={() => run.skipReward()}>Skip</button>
+        <div className="rewardActions">
+          <button className="runBtn" disabled={!sel} onClick={accept}>
+            {sel ? `Add ${sel.card.name} to ${snap.party.find((p) => p.id === sel.memberId)?.name || 'deck'}` : 'Select a card'}
+          </button>
+          <button className="runBtn ghost" onClick={skip}>Skip</button>
+        </div>
       </div>
     );
   }

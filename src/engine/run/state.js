@@ -52,6 +52,7 @@ export function createRunState({ party = [], seed = Date.now(), map = null, rewa
     relics: [],
     potions: [],
     pendingReward: null, // cards offered after a victory, awaiting choose/skip
+    pendingLoot: null,   // bonus relic/potion granted on victory (display only)
     map,
     position: map?.start ?? null,
     floor: 0,
