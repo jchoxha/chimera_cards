@@ -198,3 +198,47 @@ export function previewReactions(target, element, extraStatuses = {}) {
   const score = damage + heal * 0.8 + statusVal * 1.2;
   return { damage, heal, score };
 }
+
+/**
+ * UI-facing, NON-MUTATING forecast of the reactions an attack of `element` would
+ * trigger against `target` — for the player's targeting readout. Mirrors the firing
+ * order; reports per-cell verb + a short magnitude summary. `extraStatuses` folds in
+ * primers a queued action would have applied (statusId→amount).
+ * @returns {{ verb:string, element:string, status:string, damage:number, heal:number,
+ *             applied:{id:string,amount:number}[], consumed:boolean }[]}
+ */
+export function forecastReactions(target, element, extraStatuses = {}) {
+  const el = primaryElement(element);
+  if (!el || !REACTIONS[el] || !target || target.hp <= 0) return [];
+  const cells = REACTIONS[el];
+  const work = {};
+  for (const s of target.statuses || []) if (s.amount > 0) work[s.id] = (work[s.id] || 0) + s.amount;
+  for (const [id, n] of Object.entries(extraStatuses)) if (n > 0) work[id] = (work[id] || 0) + n;
+
+  const out = [];
+  const order = [...Object.keys(extraStatuses), ...(target.statuses || []).map((s) => s.id).reverse()];
+  const seen = new Set();
+  for (const id of order) {
+    if (seen.has(id)) continue;
+    seen.add(id);
+    const cell = cells[id];
+    if (!cell || !(work[id] > 0)) continue;
+    const rec = { verb: cell.verb, element: el, status: id, damage: 0, heal: 0, applied: [], consumed: false };
+    const before = work[id];
+    const ctx = {
+      stacks: work[id], rng: () => 0.5,
+      dmg: (n) => { if (n > 0) rec.damage += Math.round(n); },
+      heal: (n) => { if (n > 0) rec.heal += Math.round(n); },
+      add: (i, n) => { if (n > 0) rec.applied.push({ id: i, amount: n }); },
+      selfAdd: () => {},
+      set: (n) => { work[id] = Math.max(0, n); },
+      consume: () => { work[id] = 0; },
+      others: () => [],
+      spread: (i, n, k = 1) => { if (n > 0) rec.applied.push({ id: i, amount: n, spread: Math.max(1, k) }); },
+    };
+    cell.react(ctx);
+    rec.consumed = work[id] < before;
+    out.push(rec);
+  }
+  return out;
+}

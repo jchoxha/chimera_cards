@@ -1,5 +1,5 @@
 // Smoke test for the §5.2 reaction engine (engine/cards/reactions.js).
-import { fireReactions, previewReactions, REACTIONS, primaryElement } from './reactions.js';
+import { fireReactions, previewReactions, forecastReactions, REACTIONS, primaryElement } from './reactions.js';
 import { createFighter } from '../combat/state.js';
 import { addStatus, stackingFor } from '../combat/resolve.js';
 
@@ -76,6 +76,20 @@ console.log('previewReactions values a queued (setup) primer:');
   const without = previewReactions(def, 'Holy').damage;
   const withP = previewReactions(def, 'Holy', { poison: 4 }).damage;
   ok(without === 0 && withP === 4, `priming Poison 4 makes Holy worth 4 (got ${without} -> ${withP})`); }
+
+console.log('forecastReactions describes what would fire (for the targeting readout):');
+{ const { def } = setup(); give(def, 'poison', 4); give(def, 'soak', 2);
+  const fc = forecastReactions(def, 'Fire');
+  const verbs = fc.map((r) => r.verb);
+  ok(verbs.includes('Combust') && verbs.includes('Steam'), `lists Combust + Steam (got ${verbs.join(', ')})`);
+  const combust = fc.find((r) => r.verb === 'Combust');
+  ok(combust.damage === 8 && combust.consumed, `Combust = 8 dmg, consumes Poison (dmg ${combust.damage}, consumed ${combust.consumed})`);
+  ok(amt(def, 'poison') === 4 && amt(def, 'soak') === 2, 'forecast did not mutate the target'); }
+{ const { def } = setup(); give(def, 'bleed', 3);
+  const fc = forecastReactions(def, 'Frost');
+  const frostbite = fc.find((r) => r.verb === 'Frostbite');
+  ok(frostbite && frostbite.applied.some((a) => a.id === 'bleed') && !frostbite.consumed, 'amplify cell reports applied status, not consumed'); }
+{ ok(forecastReactions({ hp: 10, statuses: [] }, 'Fire').length === 0, 'clean target → empty forecast'); }
 
 console.log(`\nreactions: ${pass} passed, ${fail} failed`);
 if (fail) process.exit(1);

@@ -21,7 +21,7 @@ import { cardArt, creatureArt } from '../../data/artPool.js';
 import { cardText, linkifySegments, KEYWORD_GLOSSARY } from '../../engine/cards/cardText.js';
 import { APP_VERSION } from '../../version.js';
 import { CHANGELOG } from '../../data/changelog.js';
-import { REACTIONS } from '../../engine/cards/reactions.js';
+import { REACTIONS, forecastReactions } from '../../engine/cards/reactions.js';
 import './combat.css';
 
 const ELEMENT_ICON = {
@@ -306,6 +306,12 @@ function cardScope(c) {
     return op?.scope || (op ? 'enemyActiveTarget' : 'selfOnlyTarget');
   }
   return c?.effects?.scope || '';
+}
+
+/** The card's damage element (its attunement) — what its reactions key on. */
+function cardEl(c) {
+  const a = c?.attunement;
+  return (Array.isArray(a) ? a[0] : a) || c?.element || null;
 }
 
 function cardKind(c) {
@@ -897,6 +903,30 @@ export default function CombatScreen({ onMenu, onRestart, embedded } = {}) {
                 ? (validIds?.has(drag.overId) ? 'Release to play' : 'Invalid target')
                 : `Drag onto a ${drag.side === 'enemy' ? 'foe' : 'ally'}`}
           </div>
+          {(() => {
+            // Reaction forecast: if this damaging card's element would react with a
+            // status the hovered target carries, show what fires (verb + magnitude).
+            if (!drag.overId || !validIds?.has(drag.overId) || cardKind(drag.card) !== 'atk') return null;
+            const tgt = [...enemy.fighters, ...player.fighters].find((f) => f.id === drag.overId);
+            const fx = tgt ? forecastReactions(tgt, cardEl(drag.card)) : [];
+            if (!fx.length) return null;
+            return (
+              <div className="dragReact">
+                {fx.map((r, i) => {
+                  const bits = [];
+                  if (r.damage) bits.push(`${r.damage} dmg`);
+                  if (r.heal) bits.push(`heal ${r.heal}`);
+                  for (const a of r.applied) bits.push(`${EFFECT_INFO[a.id]?.name || a.id} +${a.amount}${a.spread ? ' (spread)' : ''}`);
+                  return (
+                    <div className="rx" key={i}>
+                      <Icon icon={ATTUNEMENT_ICON[r.element] || 'game-icons:fire'} style={{ color: ATTUNEMENT_COLOR[r.element] }} />
+                      <b>{r.verb}</b>{bits.length ? <span> · {bits.join(', ')}</span> : null}
+                    </div>
+                  );
+                })}
+              </div>
+            );
+          })()}
         </div>
       )}
 
