@@ -219,7 +219,7 @@ html:has(.cmbt),body:has(.cmbt){height:100%;margin:0;overflow:hidden}
 
 /* art scene — height scales with viewport so the whole card fits */
 .art{position:relative;height:clamp(78px,13vh,140px);display:flex;align-items:center;justify-content:center;
-  filter:drop-shadow(0 6px 10px #000a);overflow:hidden}
+  filter:drop-shadow(0 6px 10px #000a);overflow:hidden;background:#140e26}
 .art .creature{font-size:clamp(48px,8vh,74px);line-height:1;transition:transform .2s ease}
 /* on the big combat card the art is the hero: it flexes to fill all slack so the
    portrait reads as a tall illustration, and every card stays the same height. */

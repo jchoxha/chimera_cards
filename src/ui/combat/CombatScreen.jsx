@@ -398,17 +398,22 @@ function CardFace({ f, side, matchup, onEffect, onInfo, extraClass = '', dataId,
       )}
       <div className="inner">
         <div className="art" onClick={seeCreature} title={seeCreature ? `${f.name} — tap for details` : undefined}>
-          <div className="moon" /><div className="mtn" />
           {(() => {
-            if (f.portrait) return <img className="creature artImg gen" src={f.portrait} style={scale} alt="" />;
+            // Image portraits fill the frame (object-fit handles sizing) — do NOT apply the
+            // emoji/icon transform-scale, and do NOT render the moon/mountain backdrop behind
+            // them (its cream glow would show through any gap → the "white background" bug).
+            if (f.portrait) return <img className="creature artImg gen" src={f.portrait} alt="" />;
             const bio = f.axes?.biology;
             const art = bio ? creatureArt({ id: f.id, biology: bio }) : null;
-            if (art) return <img className="creature artImg" src={art} style={scale} alt="" />;
-            if (f.icon) return <Icon className="creature" icon={f.icon} style={scale} />;
-            if (f.axes && (f.axes.biology || f.axes.attunement || f.axes.class)) {
-              return <Icon className="creature" icon={creatureIcon({ biology: f.axes.biology, attunement: f.axes.attunement, class: f.axes.class, types: f.types })} style={{ ...scale, color: creatureColor({ attunement: f.axes.attunement, types: f.types }) }} />;
-            }
-            return <span className="creature" style={scale}>{f.sprite || (isFoe ? '👾' : '✶')}</span>;
+            if (art) return <img className="creature artImg" src={art} alt="" />;
+            return <>
+              <div className="moon" /><div className="mtn" />
+              {f.icon
+                ? <Icon className="creature" icon={f.icon} style={scale} />
+                : (f.axes && (f.axes.biology || f.axes.attunement || f.axes.class))
+                  ? <Icon className="creature" icon={creatureIcon({ biology: f.axes.biology, attunement: f.axes.attunement, class: f.axes.class, types: f.types })} style={{ ...scale, color: creatureColor({ attunement: f.axes.attunement, types: f.types }) }} />
+                  : <span className="creature" style={scale}>{f.sprite || (isFoe ? '👾' : '✶')}</span>}
+            </>;
           })()}
         </div>
         <div className={`nameBan${seeCreature ? ' clickable' : ''}`} onClick={seeCreature}>{f.name}{f.hp <= 0 ? ' 💀' : ''}</div>
@@ -526,6 +531,22 @@ function LogLine({ ev, nameOf, onEntity }) {
     default:
       return null;
   }
+}
+
+/** Combat-log scroll container: auto-sticks to the bottom ONLY while the user is
+ *  already near the bottom, so scrolling up to read history isn't yanked back down. */
+function LogScroll({ children }) {
+  const ref = useRef(null);
+  const stick = useRef(true);
+  useEffect(() => {
+    const el = ref.current;
+    if (el && stick.current) el.scrollTop = el.scrollHeight;
+  });
+  const onScroll = (e) => {
+    const el = e.currentTarget;
+    stick.current = el.scrollHeight - el.scrollTop - el.clientHeight < 48;
+  };
+  return <div className="logModalBody" ref={ref} onScroll={onScroll}>{children}</div>;
 }
 
 function observedMoves(log, fighterId) {
@@ -1082,7 +1103,7 @@ export default function CombatScreen({ onMenu, onRestart, embedded } = {}) {
             {info.kind === 'log' && (
               <div>
                 <div className="infoHead"><Icon icon="game-icons:scroll-quill" /> Combat Log</div>
-                <div className="logModalBody" ref={(el) => { if (el) el.scrollTop = el.scrollHeight; }}>
+                <LogScroll>
                   {(log ?? []).map((ev, i) => {
                     const content = LogLine({ ev, nameOf, onEntity: setInfo });
                     if (!content) return null;
@@ -1094,7 +1115,7 @@ export default function CombatScreen({ onMenu, onRestart, embedded } = {}) {
                     );
                   })}
                   {!(log ?? []).some((ev) => LogLine({ ev, nameOf, onEntity: setInfo })) && <div className="infoRow dim">No events yet.</div>}
-                </div>
+                </LogScroll>
               </div>
             )}
 

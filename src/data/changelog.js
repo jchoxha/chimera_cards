@@ -6,6 +6,11 @@
 
 /** @type {{version:string, date:string, notes:string[]}[]} newest first */
 export const CHANGELOG = [
+  { version: 'v3.53.0', date: '2026-06-24', notes: [
+    'Combat log no longer yanks itself to the bottom — it only auto-scrolls if you’re already at the bottom, so you can scroll up to read history.',
+    'Fixed creature portraits showing a white edge / wrong size: the decorative “moon” backdrop no longer renders behind a real portrait, and portraits aren’t zoom-scaled.',
+    'Imbue is now spelled out: a card reads “Imbue: also applies Burn” (or Poison, Bleed, …) so it’s clear it inflicts your creature’s element status — which is why it differs between creatures.',
+  ] },
   { version: 'v3.52.1', date: '2026-06-24', notes: [
     'Fixed a game-breaking Shock softlock: when your whole party was Shocked, the energy tax made every card unaffordable — you couldn’t act and died to the Shock damage. The tax is now capped so your cheapest card is always playable.',
   ] },

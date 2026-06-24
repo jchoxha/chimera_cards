@@ -5,6 +5,8 @@
 // ║ UPDATE WHEN: new ops / keywords / statuses need phrasing or glossary.  ║
 // ╚══════════════════════════════════════════════════════════════════╝
 
+import { ATTUNEMENT_SIGNATURE } from '../../data/codex.js';
+
 const STATUS_LABEL = {
   strength: 'Strength', dexterity: 'Dexterity', regen: 'Regen',
   vulnerable: 'Vulnerable', weak: 'Weak', burn: 'Burn', poison: 'Poison',
@@ -101,7 +103,11 @@ export function describeCard(card) {
     text += ` ${(TRIGGER_PHRASE[card.trigger.on] || `On ${card.trigger.on}, `)}${inner}.`;
   }
   if (card.passive) text += ` ${PASSIVE_LABEL[card.passive] || card.passive}.`;
-  if (card.imbue) text += ' Imbue.';
+  if (card.imbue) {
+    const att = Array.isArray(card.attunement) ? card.attunement[0] : card.attunement;
+    const sig = ATTUNEMENT_SIGNATURE[att];
+    text += sig && att !== 'Stone' ? ` Imbue: also applies ${sig}.` : ' Imbue.';
+  }
   for (const kw of card.keywords || []) if (kw !== 'unplayable') text += ` ${cap(kw)}.`;
   return text.trim();
 }
@@ -117,7 +123,7 @@ const PASSIVE_LABEL = { blockAlwaysBraces: 'Your Block always Braces' };
 export const KEYWORD_GLOSSARY = {
   Block: 'Temporary HP shield; absorbs damage, then clears at the start of your turn.',
   Brace: 'Affected Block does NOT decay between turns — it persists until spent.',
-  Imbue: "This card also inflicts your creature's attunement signature status (e.g. Fire→Burn, Nature→Poison, Shadow→Vulnerable). Pure-element attunements add nothing yet.",
+  Imbue: "Beyond its listed damage, this attack also inflicts your creature's ELEMENT signature status — so it differs by attunement: Physical→Bleed, Fire→Burn, Frost→Weak, Water→Soak, Nature→Poison, Air→Expose, Energy→Shock, Shadow→Vulnerable, Holy→Regen(self), Void→Decay, Mind→Confuse, Arcane→Amplify(self). (Stone has none — it imbues nothing.)",
   Strength: 'Increases the damage of each attack by its amount.',
   Dexterity: 'Increases the Block gained by Block effects by its amount.',
   Vulnerable: 'This unit takes +50% damage from attacks.',
