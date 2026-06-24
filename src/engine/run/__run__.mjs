@@ -187,6 +187,17 @@ console.log('Per-member card reward (each character has distinct options):');
   ok(mage.deck.some((c) => c.id === 'fireball') && !warrior.deck.some((c) => c.id === 'fireball'), 'reward routed to the chosen character only');
 }
 
+console.log('Event mechanic — modifyMaxHp (sacrifice / blessing):');
+{
+  const rm = new RunManager(createRun({ party: baseParty, seed: 9, floors: 6 }));
+  const m0 = rm.state.party[0].maxHp, h0 = rm.state.party[0].hp;
+  rm.dispatch('modifyMaxHp', { amount: -7 });
+  ok(rm.state.party[0].maxHp === m0 - 7 && rm.state.party[0].hp <= m0 - 7, `−7 max HP lowers cap + clamps HP (max ${rm.state.party[0].maxHp})`);
+  rm.dispatch('modifyMaxHp', { amount: 10 });
+  ok(rm.state.party[0].maxHp === m0 + 3, `+10 max HP raises cap (max ${rm.state.party[0].maxHp})`);
+  ok(rm.state.party[0].hp > h0 - 7, 'a blessing also heals what it adds');
+}
+
 console.log('Card upgrade (explicit patch + the card\'s own upgrade payload):');
 {
   const rm = new RunManager(createRun({

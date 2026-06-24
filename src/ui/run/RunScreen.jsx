@@ -11,7 +11,7 @@ import { useCombat } from '../../store/combatStore.js';
 import CombatScreen from '../combat/CombatScreen.jsx';
 import { currentNode } from '../../engine/run/map.js';
 import { makeRng } from '../../engine/run/rng.js';
-import { RELICS, POTIONS, EVENTS } from '../../engine/run/content.js';
+import { RELICS, POTIONS, EVENTS, CURSES } from '../../engine/run/content.js';
 import { draftRunReward } from '../../engine/run/rewards.js';
 import { creatureIcon, creatureColor } from '../../data/axisIcons.js';
 import { cardText } from '../../engine/cards/cardText.js';
@@ -203,6 +203,82 @@ export default function RunScreen({ onMenu, onNewRun }) {
 }
 
 // ── Non-combat room views ─────────────────────────────────────────────────────
+// Resolve one event action descriptor into concrete RunManager dispatch(es). The
+// three "meta" actions need run context/RNG (a random item or curse), so they're
+// expanded here rather than stored statically. Returns the result text override (if any).
+function applyEventAction(a, { run, snap, rng }) {
+  const owned = new Set(snap.relics.map((r) => r.id));
+  if (a.type === 'grantRandomRelic') {
+    const pool = RELICS.filter((r) => !owned.has(r.id));
+    const relic = pool.length ? pool[Math.floor(rng() * pool.length)] : null;
+    if (relic) run.dispatch('addRelic', { relic });
+    return relic ? null : 'But there was nothing of worth left to find.';
+  }
+  if (a.type === 'grantRandomPotion') {
+    const potion = POTIONS[Math.floor(rng() * POTIONS.length)];
+    if (potion) run.dispatch('addPotion', { potion });
+    return null;
+  }
+  if (a.type === 'addCurse') {
+    const curse = CURSES[Math.floor(rng() * CURSES.length)];
+    const living = snap.party.filter((m) => m.hp > 0);
+    const m = living[Math.floor(rng() * living.length)];
+    if (curse && m) run.dispatch('addCardToDeck', { memberId: m.id, card: { ...curse, id: `${curse.id}#${snap.floor}` } });
+    return null;
+  }
+  run.dispatch(a.type, a);
+  return null;
+}
+
+function EventRoom({ run, snap }) {
+  const [resolved, setResolved] = useState(null); // { name, result }
+  const ev = roomRng(snap).pick(EVENTS);
+
+  function pick(choice, idx) {
+    // A fresh RNG seeded by floor + choice index so gambles vary but stay deterministic.
+    const rng = makeRng((snap.rngState ^ (snap.floor * 0x9e3779b1) ^ ((idx + 1) * 0x85ebca6b)) >>> 0);
+    if (choice.cost?.gold) run.dispatch('spendGold', { amount: choice.cost.gold });
+    // Pick the outcome: a weighted gamble, or the choice's direct actions/result.
+    let result = choice.result || 'Done.';
+    let actions = choice.actions || [];
+    if (choice.outcomes?.length) {
+      const total = choice.outcomes.reduce((n, o) => n + (o.weight || 1), 0);
+      let roll = rng() * total;
+      const out = choice.outcomes.find((o) => (roll -= (o.weight || 1)) < 0) || choice.outcomes[0];
+      result = out.result; actions = out.actions || [];
+    }
+    for (const a of actions) { const override = applyEventAction(a, { run, snap, rng }); if (override) result = override; }
+    setResolved({ name: ev.name, result });
+  }
+
+  if (resolved) {
+    return (
+      <div className="runWrap">
+        <h2><Icon icon={ev.icon || 'game-icons:suspicious'} /> {resolved.name}</h2>
+        <p className="eventText eventResult">{resolved.result}</p>
+        <button className="runBtn" onClick={() => run.finishRoom()}>Continue</button>
+      </div>
+    );
+  }
+  return (
+    <div className="runWrap">
+      <h2><Icon icon={ev.icon || 'game-icons:suspicious'} /> {ev.name}</h2>
+      <p className="eventText">{ev.text}</p>
+      <div className="roomCol">
+        {ev.choices.map((ch, i) => {
+          const locked = ch.require?.gold != null && snap.gold < ch.require.gold;
+          return (
+            <button key={i} className="runBtn eventChoice" disabled={locked} onClick={() => pick(ch, i)}>
+              <span>{ch.text}</span>
+              {ch.hint && <small className="evHint">{locked ? `Requires ${ch.require.gold} gold` : ch.hint}</small>}
+            </button>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
 function Room({ run, snap, node, target, setTarget }) {
   if (node.type === 'rest') {
     const member = snap.party[0];
@@ -283,20 +359,7 @@ function Room({ run, snap, node, target, setTarget }) {
     );
   }
 
-  if (node.type === 'event') {
-    const ev = roomRng(snap).pick(EVENTS);
-    return (
-      <div className="runWrap">
-        <h2><Icon icon="game-icons:suspicious" /> {ev.name}</h2>
-        <p className="eventText">{ev.text}</p>
-        <div className="roomCol">
-          {ev.choices.map((ch, i) => (
-            <button key={i} className="runBtn" onClick={() => { for (const a of ch.actions) run.dispatch(a.type, a); run.finishRoom(); }}>{ch.text}</button>
-          ))}
-        </div>
-      </div>
-    );
-  }
+  if (node.type === 'event') return <EventRoom run={run} snap={snap} />;
 
   return <div className="runWrap"><p>Unknown room.</p><button className="runBtn" onClick={() => run.finishRoom()}>Continue</button></div>;
 }

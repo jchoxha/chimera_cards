@@ -57,6 +57,18 @@ export const ACTIONS = {
   },
   healMember: (s, { memberId, amount = 0 }) => { const m = member(s, memberId); if (m && m.hp > 0) m.hp = Math.min(m.maxHp, m.hp + amount); },
 
+  // Permanently change max HP (events: sacrifice / blessing). `memberId` omitted → all
+  // living members. maxHp never drops below 1; current HP is clamped (and follows gains).
+  modifyMaxHp: (s, { memberId, amount = 0 }) => {
+    const targets = memberId ? [member(s, memberId)] : s.party.filter((p) => p.hp > 0);
+    for (const m of targets) {
+      if (!m) continue;
+      m.maxHp = Math.max(1, m.maxHp + amount);
+      if (amount > 0) m.hp += amount;          // a blessing also heals what it adds
+      m.hp = Math.max(1, Math.min(m.maxHp, m.hp));
+    }
+  },
+
   // ── combat result fold-back ──
   applyCombatResult: (s, { hpById = {}, won }) => {
     for (const p of s.party) if (hpById[p.id] != null) p.hp = Math.max(0, hpById[p.id]);

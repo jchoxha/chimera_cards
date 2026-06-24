@@ -135,6 +135,12 @@
 .mpBtn.on { background: #5a3f16; border-color: var(--goldB); color: #ffe6a0; }
 
 .eventText { max-width: 540px; margin: 4px auto; color: #c9b58e; text-align: center; }
+.eventResult { font-size: 15px; color: #e8dcc8; padding: 12px; border: 1px solid #4a3a22;
+  border-radius: 12px; background: #1c141099; margin: 14px auto; }
+.eventChoice { display: flex; flex-direction: column; align-items: center; gap: 2px; }
+.eventChoice .evHint { font-family: 'Spectral', serif; font-weight: 400; font-size: 12px;
+  color: #6a4d1b; text-transform: none; letter-spacing: 0; }
+.runBtn:disabled .evHint { color: #8a6a4a; }
 .runHint { color: #9a8a6a; font-size: 13px; text-align: center; font-style: italic; }
 .runActions { display: flex; gap: 10px; justify-content: center; margin-top: 14px; }
 .over { display: grid; place-items: center; text-align: center; min-height: 70vh; }
