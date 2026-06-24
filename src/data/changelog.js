@@ -6,6 +6,9 @@
 
 /** @type {{version:string, date:string, notes:string[]}[]} newest first */
 export const CHANGELOG = [
+  { version: 'v3.52.1', date: '2026-06-24', notes: [
+    'Fixed a game-breaking Shock softlock: when your whole party was Shocked, the energy tax made every card unaffordable — you couldn’t act and died to the Shock damage. The tax is now capped so your cheapest card is always playable.',
+  ] },
   { version: 'v3.52.0', date: '2026-06-24', notes: [
     'Events are richer: more of them, with real choices and consequences — gambles with random outcomes, gold costs, max-HP sacrifices for relics, blessings, and curses. Each choice now shows its outcome before you move on.',
   ] },

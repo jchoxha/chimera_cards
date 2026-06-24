@@ -1043,11 +1043,16 @@ export class VanguardManager {
    * @param {'player'|'enemy'} sideKey
    * @param {'dots'|'regen'|'duration'} type
    */
-  /** Shock v2: card-cost tax = number of living creatures on the side carrying Shock. */
+  /**
+   * Shock v2: card-cost tax = number of living creatures on the side carrying Shock,
+   * CAPPED at 2 so Shock can never fully lock a side out of acting (with the base
+   * energy floor of 3 the cheapest 1-cost card always stays affordable).
+   */
   _shockTax(sideKey) {
-    return this.state[sideKey].fighters.filter(
+    const shocked = this.state[sideKey].fighters.filter(
       (f) => f.hp > 0 && f.statuses.some((s) => s.id === 'shock' && s.amount > 0),
     ).length;
+    return Math.min(2, shocked);
   }
 
   /** Expose v2: a creature is locked out of the Vanguard while its Expose > its HP. */
