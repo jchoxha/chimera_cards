@@ -408,9 +408,9 @@ html:has(.cmbt),body:has(.cmbt){height:100%;margin:0;overflow:hidden}
 .benchBtn iconify-icon{font-size:15px;color:var(--gold4)}
 .benchBtn .benchCount{margin-left:auto;background:#140e26;color:var(--gold1);font-size:10px;border-radius:8px;
   padding:0 6px;line-height:16px;min-width:16px;text-align:center}
-.benchBtn.intent{border-color:#5a2a2a;color:#ffd9d9}
-.benchBtn.intent iconify-icon{color:#ff9c9c}
-.benchBtn.intent.ready{animation:peekGlow 1.6s ease-in-out infinite}
+.benchBtn.intentBtn{border-color:#5a2a2a;color:#ffd9d9}
+.benchBtn.intentBtn iconify-icon{color:#ff9c9c}
+.benchBtn.intentBtn.ready{animation:peekGlow 1.6s ease-in-out infinite}
 /* the Enemy Intent button sits directly UNDER the enemy bench (matching the team
    rail's Combat Log button), not floated to the rail bottom over the player area. */
 

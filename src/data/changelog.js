@@ -6,6 +6,9 @@
 
 /** @type {{version:string, date:string, notes:string[]}[]} newest first */
 export const CHANGELOG = [
+  { version: 'v3.48.1', date: '2026-06-24', notes: [
+    'Actually fixed the Enemy Intent button position — it shared a CSS class with the old floating intent badge, which pinned it (absolutely) over the team rail. It now sits in the foes rail directly under the enemy bench.',
+  ] },
   { version: 'v3.48.0', date: '2026-06-24', notes: [
     'Fixed the Enemy Intent button floating down over the player area — it now sits directly below the enemy bench.',
     'The Enemy Intent modal now shows arrows between the planned steps, making the order of the enemy’s actions clear.',

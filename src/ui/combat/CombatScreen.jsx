@@ -773,7 +773,7 @@ export default function CombatScreen({ onMenu, onRestart, embedded } = {}) {
               />
             ))}
           </div>
-          <button className={`benchBtn intent${canPeek ? ' ready' : ''}`} onClick={() => setInfo({ kind: 'intent' })}>
+          <button className={`benchBtn intentBtn${canPeek ? ' ready' : ''}`} onClick={() => setInfo({ kind: 'intent' })}>
             <Icon icon="game-icons:eye-target" /> Enemy Intent
             <span className="benchCount">{peekCharges}</span>
           </button>
