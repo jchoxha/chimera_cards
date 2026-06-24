@@ -28,8 +28,8 @@ export const useRun = create((set, get) => ({
   hasSave() { try { return !!localStorage.getItem(SAVE_KEY); } catch { return false; } },
   clearSave() { try { localStorage.removeItem(SAVE_KEY); } catch { /* noop */ } },
 
-  startRun({ party, seed, rewardPool = [] }) {
-    const rm = new RunManager(createRun({ party, seed, floors: 10, rewardPool }));
+  startRun({ party, seed, rewardPool = [], rewardPools = {} }) {
+    const rm = new RunManager(createRun({ party, seed, floors: 10, rewardPool, rewardPools }));
     set({ rm, snap: { ...rm.state }, version: 1, view: 'map' });
     get()._save();
   },
@@ -87,9 +87,19 @@ export const useRun = create((set, get) => ({
     rm.dispatch('markVisited', {});
     rm.dispatch('gainGold', { amount: node.type === 'boss' ? 100 : node.type === 'elite' ? 40 : 25 });
     if (node.type === 'boss') { rm.dispatch('setStatus', { status: 'won' }); get().clearSave(); get()._publish(); set({ view: 'over' }); return; }
-    // Draft rewards from the PARTY's own potential pool (archetype + attunement cards).
+    // Card reward: each LIVING party member gets its OWN distinct option set, drafted
+    // from that member's potential pool (falls back to the combined pool). The player
+    // still picks just ONE card total (for whichever character it belongs to).
     const rng = makeRng((rm.state.rngState ^ 0x6d2b79f5) >>> 0);
-    rm.dispatch('offerReward', { cards: draftRunReward(rm.state.rewardPool, 3, () => rng.next()) });
+    const pools = rm.state.rewardPools || {};
+    const offers = rm.state.party
+      .filter((m) => m.hp > 0)
+      .map((m) => {
+        const pool = (pools[m.id] && pools[m.id].length) ? pools[m.id] : rm.state.rewardPool;
+        return { memberId: m.id, name: m.name, cards: draftRunReward(pool, 3, () => rng.next()) };
+      })
+      .filter((o) => o.cards.length);
+    rm.dispatch('offerReward', { offers });
     get()._publish();
     set({ view: 'reward' });
   },

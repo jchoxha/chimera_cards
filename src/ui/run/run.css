@@ -115,6 +115,13 @@
 .cardChip.r-legendary { border-color: #ff9a3d; } .cardChip.r-godly { border-color: #ffd34d; }
 .rewardCards { display: flex; gap: 14px; flex-wrap: wrap; justify-content: center; margin: 14px auto; max-width: 640px; }
 .rewardCards .cardChip { width: 184px; }
+.rewardHint { text-align: center; color: #c9b58e; font-size: 13px; margin: 2px auto 6px; max-width: 560px; }
+.rewardGroups { display: flex; flex-direction: column; gap: 10px; margin: 10px auto; max-width: 700px; }
+.rewardGroup { border: 1px solid #4a3a22; border-radius: 14px; background: #1c1410aa; padding: 6px 10px 12px; }
+.rewardGroup .rewardCards { margin: 8px auto 0; }
+.rgHead { display: flex; align-items: center; gap: 8px; font-family: 'Cinzel', serif; font-size: 14px;
+  color: var(--gold4); padding: 4px 2px; border-bottom: 1px solid #c9a23a33; }
+.rgHead .pCrest { width: 26px; height: 26px; }
 .relicCard { background: linear-gradient(#241a3a, #160f26); border: 1.5px solid var(--goldB); border-radius: 12px;
   padding: 14px; max-width: 380px; margin: 0 auto; box-shadow: 0 6px 16px #0008; }
 .relicCard b { font-family: 'Cinzel', serif; color: var(--gold4); display: flex; align-items: center; gap: 7px; }

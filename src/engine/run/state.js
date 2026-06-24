@@ -25,14 +25,17 @@ import { generateAct } from './map.js';
  * @param {Object} [args.map]
  * @returns {Object} serializable run state
  */
-export function createRunState({ party = [], seed = Date.now(), map = null, rewardPool = [] } = {}) {
+export function createRunState({ party = [], seed = Date.now(), map = null, rewardPool = [], rewardPools = {} } = {}) {
   const seedInt = typeof seed === 'number' ? (seed >>> 0) : hashSeed(seed);
   return {
     seed: seedInt,
     rngState: seedInt,
     // The party's combined potential pool (archetype + attunement cards) — what
-    // card rewards/shops draft from (engine/run/rewards.js). Set at run start.
+    // the SHOP drafts from (engine/run/rewards.js). Set at run start.
     rewardPool: rewardPool.map((c) => ({ ...c })),
+    // Per-member potential pools (memberId → card[]) — post-combat card rewards
+    // draft a DISTINCT option set per character from these (each gets their own).
+    rewardPools: Object.fromEntries(Object.entries(rewardPools).map(([id, pool]) => [id, (pool || []).map((c) => ({ ...c }))])),
     party: party.map((p) => ({
       id: p.id,
       name: p.name,
@@ -62,11 +65,11 @@ export function createRunState({ party = [], seed = Date.now(), map = null, rewa
  * Advances rngState past the map generation so subsequent draws stay deterministic.
  * @param {{ party?: Object[], seed?: number|string, floors?: number }} [args]
  */
-export function createRun({ party = [], seed = Date.now(), floors = 10, rewardPool = [] } = {}) {
+export function createRun({ party = [], seed = Date.now(), floors = 10, rewardPool = [], rewardPools = {} } = {}) {
   const seedInt = typeof seed === 'number' ? (seed >>> 0) : hashSeed(seed);
   const rng = makeRng(seedInt);
   const map = generateAct(rng, { floors, act: 1 });
-  const state = createRunState({ party, seed: seedInt, map, rewardPool });
+  const state = createRunState({ party, seed: seedInt, map, rewardPool, rewardPools });
   state.rngState = rng.state; // continue the sequence after map gen
   return state;
 }

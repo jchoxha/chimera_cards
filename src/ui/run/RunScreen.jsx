@@ -114,15 +114,38 @@ export default function RunScreen({ onMenu, onNewRun }) {
     );
   }
 
-  // ── REWARD ──
+  // ── REWARD ── per-member offer groups: each character has its OWN card options;
+  // pick exactly one (it goes to that character). Falls back to a flat list for
+  // legacy/loaded saves that stored an un-grouped pendingReward.
   if (run.view === 'reward') {
+    const pending = snap.pendingReward || [];
+    const grouped = pending.length > 0 && pending[0] && Array.isArray(pending[0].cards);
     return (
       <div className="runWrap">
-        <h2><Icon icon="game-icons:card-pickup" /> Choose a card</h2>
-        <MemberPicker snap={snap} target={tgt} setTarget={setTarget} />
-        <div className="rewardCards">
-          {(snap.pendingReward || []).map((c, i) => <CardChip key={i} c={c} onClick={() => run.chooseReward(c, tgt)} />)}
-        </div>
+        <h2><Icon icon="game-icons:card-pickup" /> Choose ONE card</h2>
+        <p className="rewardHint">Each character has different options — your pick goes to that character.</p>
+        {grouped ? (
+          <div className="rewardGroups">
+            {pending.map((g) => {
+              const m = snap.party.find((p) => p.id === g.memberId);
+              return (
+                <div className="rewardGroup" key={g.memberId}>
+                  <div className="rgHead">{m && <Crest m={m} />}<b>{g.name}</b></div>
+                  <div className="rewardCards">
+                    {g.cards.map((c, i) => <CardChip key={i} c={c} onClick={() => run.chooseReward(c, g.memberId)} />)}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        ) : (
+          <>
+            <MemberPicker snap={snap} target={tgt} setTarget={setTarget} />
+            <div className="rewardCards">
+              {pending.map((c, i) => <CardChip key={i} c={c} onClick={() => run.chooseReward(c, tgt)} />)}
+            </div>
+          </>
+        )}
         <button className="runBtn" onClick={() => run.skipReward()}>Skip</button>
       </div>
     );

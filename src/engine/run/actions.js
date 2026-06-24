@@ -41,7 +41,9 @@ export const ACTIONS = {
   },
 
   // ── card rewards (offered after a victory; choose adds to a deck, or skip) ──
-  offerReward: (s, { cards = [], rngState }) => { s.pendingReward = cards; if (rngState != null) s.rngState = rngState; },
+  // `offers` = per-member option groups [{memberId,name,cards}]; `cards` = a flat
+  // legacy list (still accepted). pendingReward stores whichever was provided.
+  offerReward: (s, { offers = null, cards = [], rngState }) => { s.pendingReward = offers ?? cards; if (rngState != null) s.rngState = rngState; },
   chooseReward: (s, { memberId, card }) => { const m = member(s, memberId); if (m && card) m.deck.push({ ...card }); s.pendingReward = null; },
   skipReward: (s) => { s.pendingReward = null; },
 

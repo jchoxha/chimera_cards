@@ -93,19 +93,17 @@ export default function App() {
     setView('combat');
   }
 
-  /** Combined potential pool (archetype reskinned + attunement cards) the run drafts
-   *  rewards/shop from — the union over the chosen team. */
-  function partyRewardPool(creatures) {
-    const out = [];
-    for (const c of creatures) {
-      const pool = POOLS[c.class?.[0]] || [];
-      out.push(...reskinDeck(pool, c.attunement), ...attunementCards(c.attunement), ...attunementVariants(pool, c.attunement));
-    }
-    return out;
+  /** A single creature's potential pool (archetype reskinned + attunement cards + variants). */
+  function creatureRewardPool(c) {
+    const pool = POOLS[c.class?.[0]] || [];
+    return [...reskinDeck(pool, c.attunement), ...attunementCards(c.attunement), ...attunementVariants(pool, c.attunement)];
   }
   function startSelectedRun(creatures) {
     if (!creatures.length) return;
-    useRun.getState().startRun({ party: creatures, seed: Date.now(), rewardPool: partyRewardPool(creatures) });
+    // Per-member pools (each character drafts its OWN card rewards) + a combined pool for the shop.
+    const rewardPools = Object.fromEntries(creatures.map((c) => [c.id, creatureRewardPool(c)]));
+    const rewardPool = Object.values(rewardPools).flat();
+    useRun.getState().startRun({ party: creatures, seed: Date.now(), rewardPool, rewardPools });
     setView('run');
   }
   function continueRun() { if (useRun.getState().loadSaved()) setView('run'); }

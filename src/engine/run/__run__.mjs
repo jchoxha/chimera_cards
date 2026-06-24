@@ -168,6 +168,25 @@ console.log('Card reward → deck (offer / choose / skip):');
   ok(rm.state.pendingReward === null && rm.state.party[0].deck.filter((c) => c.id === 'guard').length === 0, 'skip clears offer, adds nothing');
 }
 
+console.log('Per-member card reward (each character has distinct options):');
+{
+  const party = [
+    { id: 'war', name: 'Warrior', attunement: ['Physical'], maxHp: 60, deck: [{ id: 's1', name: 'S', type: 'attack', cost: 1, attunement: 'Physical', effects: [{ op: 'damage', value: 6 }] }] },
+    { id: 'mage', name: 'Mage', attunement: ['Fire'], maxHp: 50, deck: [{ id: 's2', name: 'B', type: 'attack', cost: 1, attunement: 'Fire', effects: [{ op: 'damage', value: 6 }] }] },
+  ];
+  const rm = new RunManager(createRun({ party, seed: 3, floors: 6 }));
+  const offers = [
+    { memberId: 'war', name: 'Warrior', cards: [{ id: 'cleave', name: 'Cleave', type: 'attack', cost: 1, attunement: 'Physical', effects: [{ op: 'damage', value: 8 }] }] },
+    { memberId: 'mage', name: 'Mage', cards: [{ id: 'fireball', name: 'Fireball', type: 'attack', cost: 2, attunement: 'Fire', effects: [{ op: 'damage', value: 10 }] }] },
+  ];
+  rm.dispatch('offerReward', { offers });
+  ok(Array.isArray(rm.state.pendingReward) && rm.state.pendingReward[0].cards, 'offerReward stores per-member groups');
+  // Pick the Mage's option → it lands in the MAGE's deck, not the Warrior's.
+  rm.dispatch('chooseReward', { memberId: 'mage', card: offers[1].cards[0] });
+  const warrior = rm.state.party.find((m) => m.id === 'war'), mage = rm.state.party.find((m) => m.id === 'mage');
+  ok(mage.deck.some((c) => c.id === 'fireball') && !warrior.deck.some((c) => c.id === 'fireball'), 'reward routed to the chosen character only');
+}
+
 console.log('Card upgrade (explicit patch + the card\'s own upgrade payload):');
 {
   const rm = new RunManager(createRun({
