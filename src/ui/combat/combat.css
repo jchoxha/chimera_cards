@@ -70,7 +70,7 @@ html:has(.cmbt),body:has(.cmbt){height:100%;margin:0;overflow:hidden}
 /* ---------- arena: 3 columns filling the rest of the height ---------- */
 .arena{flex:1 1 auto;min-height:0;display:flex;gap:8px}
 .sideCol{flex:0 0 auto;width:clamp(140px,16vw,200px);display:flex;flex-direction:column;
-  gap:6px;min-height:0}
+  gap:6px;min-height:0;overflow:hidden}
 .centerCol{flex:1 1 auto;min-width:0;min-height:0;display:flex;flex-direction:column;gap:6px}
 .colHead{flex:0 0 auto;font-family:'Cinzel',serif;font-weight:700;font-size:11px;letter-spacing:1.5px;
   text-transform:uppercase;color:var(--gold4);display:flex;align-items:center;gap:5px;
@@ -78,7 +78,7 @@ html:has(.cmbt),body:has(.cmbt){height:100%;margin:0;overflow:hidden}
 .foesCol .colHead{color:#ffbcaf}
 
 /* ---------- mini-fighter (side columns; ALL statuses visible) ---------- */
-.miniList{flex:0 0 auto;display:flex;flex-direction:column;gap:5px;overflow:hidden}
+.miniList{flex:0 1 auto;display:flex;flex-direction:column;gap:5px;overflow-y:auto;min-height:0}
 .mf{position:relative;border-radius:9px;padding:5px 7px;cursor:pointer;
   background:#1a1020cc;border:1.5px solid #5a4a2a;transition:border-color .15s,transform .12s}
 .mf.foe{border-color:#5a2a2a;background:#1f1216cc}
@@ -411,8 +411,11 @@ html:has(.cmbt),body:has(.cmbt){height:100%;margin:0;overflow:hidden}
 .benchBtn.intent{border-color:#5a2a2a;color:#ffd9d9}
 .benchBtn.intent iconify-icon{color:#ff9c9c}
 .benchBtn.intent.ready{animation:peekGlow 1.6s ease-in-out infinite}
-/* the Enemy Intent button sits at the BOTTOM of the foes rail */
-.foesCol .benchBtn{margin-top:auto}
+/* the Enemy Intent button + its at-a-glance forecast sit directly UNDER the
+   enemy bench (matching the team rail's Combat Log button), not floated to the
+   rail bottom where they'd ride over the player area. */
+.intentForecast{flex:0 1 auto;min-height:0;overflow-y:auto;display:flex;justify-content:center}
+.intentForecast .actStrip{flex-wrap:wrap;row-gap:3px}
 
 /* arrows + step numbers between forecast actions */
 .intentArrow{display:flex;justify-content:center;color:var(--gold3);font-size:14px;margin:-2px 0}

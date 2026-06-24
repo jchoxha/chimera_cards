@@ -6,6 +6,10 @@
 
 /** @type {{version:string, date:string, notes:string[]}[]} newest first */
 export const CHANGELOG = [
+  { version: 'v3.48.0', date: '2026-06-24', notes: [
+    'Enemy Intent now reads at a glance: the foes rail shows the planned actions in order, connected by arrows (⚔ → 🛡 → ⚔), right under the enemy bench — tap any step (or the Enemy Intent button) for details and Peek.',
+    'Fixed the Enemy Intent button floating down over the player area; it (and the new forecast) now sit directly below the enemy bench.',
+  ] },
   { version: 'v3.47.0', date: '2026-06-24', notes: [
     'Enemy AI difficulty tiers: foes now play at a competence level set by the encounter — early/normal fights are forgiving (simpler, occasionally fumble), while elites and bosses play sharp (seek reactions, swap for type advantage, never misplay).',
   ] },

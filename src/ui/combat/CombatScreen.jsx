@@ -773,6 +773,11 @@ export default function CombatScreen({ onMenu, onRestart, embedded } = {}) {
               />
             ))}
           </div>
+          {enemyPlan.length > 0 && (
+            <div className="intentForecast">
+              <ActionStrip actions={enemyPlan} targetNameOf={planTargetName} onAction={openAction} size="mini" tip />
+            </div>
+          )}
           <button className={`benchBtn intent${canPeek ? ' ready' : ''}`} onClick={() => setInfo({ kind: 'intent' })}>
             <Icon icon="game-icons:eye-target" /> Enemy Intent
             <span className="benchCount">{peekCharges}</span>
