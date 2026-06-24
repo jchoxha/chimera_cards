@@ -6,6 +6,9 @@
 
 /** @type {{version:string, date:string, notes:string[]}[]} newest first */
 export const CHANGELOG = [
+  { version: 'v3.55.0', date: '2026-06-24', notes: [
+    'Card audit: Ranger Traps (Bear Trap, Explosive Trap, Trapper, Deflector) were dead — they only fired when you damaged yourself, never when an enemy hit you. They now correctly trigger on enemy attacks. (All other 162 cards checked out functional.)',
+  ] },
   { version: 'v3.54.0', date: '2026-06-24', notes: [
     'Card rewards now look like real cards (frame, cost, art) — tap to select, then Confirm before it’s added. No more accidental picks.',
     'Combat rewards now also drop loot: a potion drops sometimes after normal fights, and elites & bosses always drop a relic (plus a potion), shown on the reward screen.',

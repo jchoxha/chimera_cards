@@ -144,5 +144,20 @@ console.log('Matchup multiplier keys on the card damage element:');
   ok(foe.hp === before - 9, `Fire→Frost ×1.5 → 6 becomes 9 (foe ${before}→${foe.hp})`);
 }
 
+console.log('Traps fire on ENEMY damage (onDamageTaken during the enemy turn):');
+{
+  const hero = createFighter({ id: 'rg', name: 'Ranger', types: [{ type: 'Nature', weight: 1 }], hp: 50, maxHp: 50, stats: { might: 1, guard: 1, focus: 1, resolve: 1, speed: 0 } });
+  hero.deck.drawPile = ['warrior_strike'].map(card);
+  const foe2 = createFighter({ id: 'foe2', name: 'Biter', hp: 100, maxHp: 100 });
+  foe2.deck.drawPile = Array.from({ length: 6 }, (_, i) => ({ id: `bite${i}`, name: 'Bite', type: 'attack', cost: 1, attunement: 'Physical', effects: [{ op: 'damage', value: 8, scope: 'enemyActiveTarget' }] }));
+  const vm = new VanguardManager({ playerFighters: [hero], enemyFighters: [foe2], room: 'combat', rarity: { offset: -0.05, ascension7: false }, config: { aiSkill: 'basic' } });
+  vm.startCombat();
+  const p = vm.state.player.fighters[vm.state.player.vanguardIndex];
+  p.powers = [{ source: 'trap', on: 'onDamageTaken', effects: [{ op: 'damage', value: 10, scope: 'enemyActiveTarget' }], duration: null, passive: null, attunement: 'Physical' }];
+  const foeHp = foe2.hp;
+  vm.endTurn();   // → enemy turn: foe hits player → trap should fire 10 back
+  ok(foe2.hp <= foeHp - 10, `trap dealt 10+ back when the enemy attacked (foe ${foeHp}→${foe2.hp})`);
+}
+
 console.log(`\ncardturn: ${pass} passed, ${fail} failed`);
 process.exit(fail ? 1 : 0);

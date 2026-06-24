@@ -950,6 +950,13 @@ export class VanguardManager {
     const actor = s.enemy.fighters.find((f) => f.id === action.actor);
     if (!actor || actor.hp <= 0) return;
 
+    // Track player HP across the action so the player's onDamageTaken triggers
+    // (Ranger Traps: Bear/Explosive Trap, Trapper, Deflector) fire when the ENEMY
+    // hits them — previously these only fired on self-inflicted damage, so Traps
+    // never went off.
+    const pHpBefore = sideHp(s.player);
+    const fireTrapsIfHit = () => { if (sideHp(s.player) < pHpBefore) this._fire('player', 'onDamageTaken'); };
+
     if (action.silhouette === 'swap') {
       const targetIdx = s.enemy.fighters.findIndex((f) => f.id === action.detail.incomingFighterId);
       if (targetIdx !== -1 && targetIdx !== s.enemy.vanguardIndex) {
@@ -1032,6 +1039,7 @@ export class VanguardManager {
       }
     }
 
+    fireTrapsIfHit();
     this._emit('intentResolved', { actorId: actor.id, action });
   }
 
