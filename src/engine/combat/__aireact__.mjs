@@ -21,10 +21,11 @@ const debuffCard = (id, name, status, value) => ({
   effects: [{ op: 'debuff', status, value, scope: 'enemyActiveTarget' }],
 });
 
-function build(enemyHand, primeStatus) {
+function build(enemyHand, primeStatus, { aiSkill = 'expert' } = {}) {
   const hero = createFighter({ id: 'hero', name: 'Hero', types: [{ type: 'Physical', weight: 1 }], hp: 60, maxHp: 60 });
   const foe = createFighter({ id: 'foe', name: 'Foe', types: [{ type: 'Physical', weight: 1 }], hp: 60, maxHp: 60 });
-  const vm = new VanguardManager({ playerFighters: [hero], enemyFighters: [foe], room: 'combat', rarity: { offset: 0, ascension7: false } });
+  // Default to `expert` (no misplay, full reaction-seeking) so the reaction tests are deterministic.
+  const vm = new VanguardManager({ playerFighters: [hero], enemyFighters: [foe], room: 'combat', rarity: { offset: 0, ascension7: false }, config: { aiSkill } });
   vm.startCombat();
   if (primeStatus) addStatus(hero.statuses, { id: primeStatus.id, amount: primeStatus.amount, stacking: stackingFor(primeStatus.id) });
   // Force a known enemy hand, then re-plan.
@@ -54,6 +55,21 @@ console.log('Sets up its own primer, then detonates it the same turn:');
   const ids = plan.map((a) => a.detail?.cardId);
   ok(ids[0] === 'pdart', `plays the primer first (got ${ids[0]})`);
   ok(ids.includes('fbolt'), `follows with the Fire detonator (plan: ${ids.join(', ')})`);
+}
+
+console.log('Difficulty tiers gate reaction-seeking:');
+{
+  // A `basic` foe ignores reactions → takes the higher RAW attack despite the primer.
+  const plan = build([atkCard('pstrike', 'Strike', 'Physical', 7), atkCard('fbolt', 'Fire Bolt', 'Fire', 6)],
+    { id: 'poison', amount: 5 }, { aiSkill: 'basic' });
+  // basic also has misplay, but with only two attacks it still won't PREFER the reacting one.
+  ok(plan.length > 0, 'basic foe still acts');
+}
+{
+  // Same scenario at `expert` → seeks the Fire detonation (no misplay at expert).
+  const plan = build([atkCard('pstrike', 'Strike', 'Physical', 7), atkCard('fbolt', 'Fire Bolt', 'Fire', 6)],
+    { id: 'poison', amount: 5 }, { aiSkill: 'expert' });
+  ok(plan[0]?.detail?.cardId === 'fbolt', `expert detonates the primer (got ${plan[0]?.detail?.cardId})`);
 }
 
 console.log(`\naireact: ${pass} passed, ${fail} failed`);

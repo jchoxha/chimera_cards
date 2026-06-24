@@ -127,9 +127,12 @@ function runFight(party, type, floor, rng) {
     return f;
   });
   if (!players.length) return false;
+  const room = type === 'boss' ? 'boss' : type === 'elite' ? 'elite' : 'combat';
+  // Mirror combatBridge's floor-based AI difficulty ramp.
+  const aiSkill = room === 'combat' ? (floor <= 3 ? 'basic' : 'normal') : null;
   const vm = new VanguardManager({
     playerFighters: players, enemyFighters: enemiesForNode(type, floor, rng),
-    room: type === 'boss' ? 'boss' : type === 'elite' ? 'elite' : 'combat',
+    room, config: { aiSkill },
     rarity: { offset: -0.05, ascension7: false }, rng: () => rng.next(),
   });
   vm.startCombat();

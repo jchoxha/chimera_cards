@@ -27,6 +27,7 @@ export const COMBAT_DEFAULTS = Object.freeze({
   handSize: 5,
   peekCharges: 3,
   enemyEnergyFloor: 3,
+  aiSkill: null,      // enemy-AI competence tier; null → derived from `room` (see VanguardManager).
 });
 
 /** @returns {FighterDeck} empty draw/discard/exhaust zones. */
@@ -158,6 +159,7 @@ export function createCombatState({
     peekCharges: cfg.peekCharges,
     peekedThisTurn: false,
     monstersCapturedThisFight: 0,
+    aiSkill: cfg.aiSkill,
     room,
     rarity,
     log,

@@ -49,6 +49,24 @@ function reactionElement(card) {
   return el && REACTIONS[el] ? el : null;
 }
 
+/**
+ * Enemy-AI competence tiers (the AI-behavior master plan, mechanics.md §6). Each tier
+ * gates which planning rules the foe uses + how often it fumbles the optimal line, so
+ * difficulty scales with the encounter: trash mobs are forgiving, bosses play sharp.
+ *   reactions — seek/set up reactions (Rules 1 reaction-count, 3.5 setup, 4 bonus)
+ *   typeSwap  — swap to a type-advantaged bencher (Rule 2)
+ *   defend    — block/fortify when the vanguard is low (Rule 3)
+ *   misplay   — per-action chance to play a RANDOM legal card instead of the best line
+ */
+const AI_SKILL = {
+  basic: { reactions: false, typeSwap: false, defend: false, misplay: 0.30 },
+  normal: { reactions: true, typeSwap: false, defend: true, misplay: 0.12 },
+  sharp: { reactions: true, typeSwap: true, defend: true, misplay: 0.04 },
+  expert: { reactions: true, typeSwap: true, defend: true, misplay: 0.0 },
+};
+/** Default competence by room tier when no explicit `aiSkill` is set on the state. */
+const roomSkill = (room) => (room === 'boss' ? 'expert' : room === 'elite' ? 'sharp' : 'normal');
+
 /** A data-driven CardSpec uses an op-LIST in `effects` (legacy cards use a flat object). */
 const isCardSpec = (card) => Array.isArray(card.effects) || card.type === 'power';
 
@@ -270,6 +288,9 @@ export class VanguardManager {
     // lands in sequence at execution time (the sim doesn't model debuffs onto the foe).
     const plannedPrimers = {};
 
+    // Difficulty tier: explicit state.aiSkill, else derived from the room.
+    const skill = AI_SKILL[s.aiSkill] || AI_SKILL[roomSkill(s.room)];
+
     // 2. Planning loop
     while (true) {
       const simVanguard = simSide.fighters[simSide.vanguardIndex];
@@ -294,16 +315,22 @@ export class VanguardManager {
 
       let decision = null;
 
+      // Rule 0: Misplay — a less-skilled foe sometimes just plays a random legal card
+      // instead of the optimal line (models difficulty without changing raw numbers).
+      if (skill.misplay > 0 && playableCards.length > 0 && this.rng() < skill.misplay) {
+        decision = { type: 'play', card: playableCards[Math.floor(this.rng() * playableCards.length)] };
+      }
+
       // Rule 1: Lethal burst check
       let totalComboDmg = 0;
       let highestDmgAttack = null;
       let highestDmgVal = -1;
 
-      for (const c of playableCards) {
+      for (const c of (decision ? [] : playableCards)) {
         if (effSummary(c).dmg) {
           // Count any reaction BURST the card's element would detonate on the
           // player vanguard (incl. primers this plan already queued) toward lethal.
-          const react = reactionElement(c) ? previewReactions(playerVanguard, c.attunement, plannedPrimers).damage : 0;
+          const react = skill.reactions && reactionElement(c) ? previewReactions(playerVanguard, c.attunement, plannedPrimers).damage : 0;
           const dmg = getExpectedHPLoss(c, simVanguard, playerVanguard, s.player, simSide.energy) + react;
           totalComboDmg += dmg;
           if (dmg > highestDmgVal) {
@@ -319,7 +346,7 @@ export class VanguardManager {
       }
 
       // Rule 2: Swap to type advantage check
-      if (!decision && canSwap && benched.length > 0) {
+      if (!decision && skill.typeSwap && canSwap && benched.length > 0) {
         const currentMult = getMatchupMultiplier(simVanguard, playerVanguard);
         let bestBenchedFighter = null;
         let bestBenchedIdx = -1;
@@ -342,7 +369,7 @@ export class VanguardManager {
       }
 
       // Rule 3: Block/Fortify if HP < 40% check
-      if (!decision) {
+      if (!decision && skill.defend) {
         const hpPct = simVanguard.hp / simVanguard.maxHp;
         if (hpPct < 0.40) {
           let bestDefensiveCard = null;
@@ -366,7 +393,7 @@ export class VanguardManager {
       // Rule 3.5: Set up a reaction primer — if a pure debuff applies a status the
       // hand can DETONATE/AMPLIFY with a follow-up attack, prime it first so the
       // chain lands this turn (the attack scores its reaction once the primer is queued).
-      if (!decision) {
+      if (!decision && skill.reactions) {
         let bestPrimer = null;
         let bestPrimerVal = 0;
         for (const c of playableCards) {
@@ -397,7 +424,7 @@ export class VanguardManager {
         let maxAttackDmg = -1;
         for (const c of playableCards) {
           if (effSummary(c).dmg) {
-            const react = reactionElement(c) ? previewReactions(playerVanguard, c.attunement, plannedPrimers).score : 0;
+            const react = skill.reactions && reactionElement(c) ? previewReactions(playerVanguard, c.attunement, plannedPrimers).score : 0;
             const dmg = getExpectedHPLoss(c, simVanguard, playerVanguard, s.player, simSide.energy) + react;
             if (dmg > maxAttackDmg) {
               maxAttackDmg = dmg;

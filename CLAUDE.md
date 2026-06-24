@@ -239,6 +239,24 @@ status (imbue + own cards) [Stone = Block]. `test:statuses` 27. **Attunements ar
 ready for §5.2 reactions** (Soak = the universal primer). Reaction DESIGN locked in
 `docs/mechanics.md` (master mechanics registry; engine deferred — statuses stand alone).
 
+**🎯 FOUR-FRONT REACTIONS FOLLOW-UP (v3.44.0→v3.47.0, 2026-06-24, Jeton: "do all of those").** A
+sweep across reactions, balance, content, and AI. (1) **Balance harness** — rebuilt the v3.40 harness
+as a COMMITTED tool (`src/engine/run/__balance__.mjs`, `npm run balance`): full-run autoplay sims with
+deck growth + a `--no-react` control. Finding: reactions are net slightly **player-positive** (the side
+that attacks into statuses more — the player — benefits), so the v3.44 reaction-seeking AI did NOT
+regress balance; the greedy bot is a weak lower bound, so no enemy-HP retune. (2) **Player reaction
+preview (v3.45.0)** — `forecastReactions` (non-mutating verb+magnitude) drives a drag-time readout in
+CombatScreen ("Combust · 8 dmg", "Freeze · Expose +3") so reactions are a deliberate player choice, not
+a surprise. (3) **§14.3 variant access (v3.46.0)** — `reskin.js` `attunementVariants` re-elements a
+multi-attunement creature's archetype ATTACKS to its OTHER attunement(s) as distinct `@<Att>` pickable
+cards; wired into the deck-builder + reward pools (Quick Fight stays lean). A [Physical,Fire] Warrior now
+builds either-element strikes. (4) **AI difficulty tiers (v3.47.0)** — `AI_SKILL`
+(basic/normal/sharp/expert) gates reaction-seeking, type-swaps, defensive block + a per-action misplay
+chance; tier derives from room (combat→normal, elite→sharp, boss→expert) with a floor ramp in
+`startRunCombat` (early fights `basic`). New `test:reskin` 9; `test:aireact` 6; `test:reactions` 30; all
+suites green (test:turn pinned to `expert` where it asserts optimal play). Remaining AI-plan threads:
+forecast bluffing + value-of-Peek modelling.
+
 **🧠 AI SEEKS REACTIONS + REACTION TUNING (v3.44.0, 2026-06-24, Jeton).** Follow-up to the reactions
 engine: tuned the matrix and taught the enemy AI to play around it. **Tuning (locked):** (1) **detonate
 consumes / amplify keeps** — burst cells (Combust/Steam/Melt/Ground/Freeze/Purge-Smite/Gale…) consume

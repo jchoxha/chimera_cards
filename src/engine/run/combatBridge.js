@@ -51,11 +51,15 @@ export function partyToFighters(party) {
  */
 export function startRunCombat(runState, enemyFighters, { room = 'combat' } = {}) {
   const combatRng = makeRng((runState.rngState ^ (runState.floor * 0x9e3779b1)) >>> 0);
+  // Difficulty ramp: early normal fights play forgivingly (`basic`), deeper ones
+  // sharpen to `normal`; elites/bosses derive `sharp`/`expert` from their room (null).
+  const aiSkill = room === 'combat' ? ((runState.floor ?? 0) <= 3 ? 'basic' : 'normal') : null;
   const vm = new VanguardManager({
     playerFighters: partyToFighters(runState.party),
     enemyFighters,
     room,
     rarity: { offset: -0.05, ascension7: false },
+    config: { aiSkill },
     rng: () => combatRng.next(),
   });
   vm.startCombat();

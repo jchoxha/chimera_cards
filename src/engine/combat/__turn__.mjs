@@ -153,7 +153,7 @@ console.log('\nVanguardManager (Layer 2 manager loop):');
     enemyFighters: f.enemy,
     room: 'combat',
     rarity: { offset: -0.05, ascension7: false },
-    config: { handSize: 6 },
+    config: { handSize: 6, aiSkill: "expert" },
     rng: seq([0])
   });
 
@@ -252,7 +252,7 @@ console.log('\nSwaps & Displacement (Layer 3 swaps):');
     enemyFighters: f.enemy,
     room: 'combat',
     rarity: { offset: -0.05, ascension7: false },
-    config: { handSize: 6 },
+    config: { handSize: 6, aiSkill: "expert" },
     rng: seq([0])
   });
 
@@ -314,7 +314,7 @@ console.log('\nLayer 4: Peek charges & Version-B AI Planner:');
     enemyFighters: f.enemy,
     room: 'combat',
     rarity: { offset: -0.05, ascension7: false },
-    config: { handSize: 6, peekCharges: 3 },
+    config: { handSize: 6, peekCharges: 3, aiSkill: "expert" },
     rng: seq([0])
   });
 

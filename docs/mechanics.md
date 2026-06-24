@@ -213,12 +213,21 @@ Plus the archetype keywords: **Brace**, **Dexterity** (Warrior); **Stealth**, **
   (which lands in sequence at execution time). Tuning decisions locked 2026-06-24: **detonate
   consumes / amplify keeps**; reaction **magnitude scales with primer stacks**; **Soak stays a
   per-cell primer**, not a universal amplifier. Tests: `test:reactions` (previewReactions +
-  consumption/scaling), `test:aireact` (the planner seeks/sets up reactions). Still TODO on the
-  AI-behavior master plan: difficulty tiers, bluffing with the forecast, value-of-Peek modelling.
-- **Predictive readout system (BUILD — generalize):** a reusable "what will happen"
-  readout, shown when targeting — not just "Fire→Frost ×1.5" but "**will trigger Steam:
-  +X, applies Weak**". Build it generic (matchup breakdown + reaction preview +
-  status-tick preview + lethal check) so it serves many cases, not only reactions.
+  consumption/scaling), `test:aireact` (the planner seeks/sets up reactions).
+- **AI difficulty tiers (DONE v3.47.0):** the planner runs at a competence tier — `AI_SKILL`
+  in `VanguardManager` (`basic`/`normal`/`sharp`/`expert`) gates which rules fire (reaction-
+  seeking, type-advantage swap, defensive block) plus a per-action **misplay** chance (random
+  legal card instead of the best line). Tier = explicit `state.aiSkill` (config) else derived
+  from the room (combat→normal, elite→sharp, boss→expert); `combatBridge.startRunCombat` adds a
+  **floor ramp** (early normal fights `basic`, deeper `normal`), so trash mobs are forgiving and
+  bosses play sharp. `test:aireact` covers the gating; `npm run balance` measures the curve.
+  Still open on the AI master plan: **bluffing with the forecast** (telegraph a plan it won't
+  follow) and **value-of-Peek modelling** (hint whether a Peek charge is worth spending).
+- **Predictive readout system (FIRST PASS DONE v3.45.0 — reactions):** the targeting drag now
+  shows a **reaction forecast** (`forecastReactions` → verb + magnitude, e.g. "Combust · 8 dmg")
+  when an attack would react with a status on the hovered foe. Still to generalize: fold in the
+  matchup breakdown + status-tick preview + lethal check into one reusable "what will happen"
+  readout (not only reactions).
 - **Status improvement pass (IDEAS):** Jeton notes the base statuses "could be further
   improved." Candidates: Poison streak-tracking (enables Combust); Vulnerable scaling;
   making Soak the conductive primer (§4); Confuse interacting with the Peek forecast;
