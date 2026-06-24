@@ -773,11 +773,6 @@ export default function CombatScreen({ onMenu, onRestart, embedded } = {}) {
               />
             ))}
           </div>
-          {enemyPlan.length > 0 && (
-            <div className="intentForecast">
-              <ActionStrip actions={enemyPlan} targetNameOf={planTargetName} onAction={openAction} size="mini" tip />
-            </div>
-          )}
           <button className={`benchBtn intent${canPeek ? ' ready' : ''}`} onClick={() => setInfo({ kind: 'intent' })}>
             <Icon icon="game-icons:eye-target" /> Enemy Intent
             <span className="benchCount">{peekCharges}</span>
@@ -1065,7 +1060,7 @@ export default function CombatScreen({ onMenu, onRestart, embedded } = {}) {
                     const actor = enemyById.get(action.actor);
                     return (
                       <React.Fragment key={i}>
-                        {i > 0 && <div className="intentArrow"><Icon icon="game-icons:down-arrow" /></div>}
+                        {i > 0 && <div className="intentArrow" aria-hidden="true">↓</div>}
                         <button className={`intentRow${action.revealed ? ' revealed' : ''}`} onClick={() => openAction(action)}>
                           <span className="iStep">{i + 1}</span>
                           <Icon className="iIcon" icon={iv.icon} />

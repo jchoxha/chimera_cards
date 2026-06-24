@@ -411,14 +411,12 @@ html:has(.cmbt),body:has(.cmbt){height:100%;margin:0;overflow:hidden}
 .benchBtn.intent{border-color:#5a2a2a;color:#ffd9d9}
 .benchBtn.intent iconify-icon{color:#ff9c9c}
 .benchBtn.intent.ready{animation:peekGlow 1.6s ease-in-out infinite}
-/* the Enemy Intent button + its at-a-glance forecast sit directly UNDER the
-   enemy bench (matching the team rail's Combat Log button), not floated to the
-   rail bottom where they'd ride over the player area. */
-.intentForecast{flex:0 1 auto;min-height:0;overflow-y:auto;display:flex;justify-content:center}
-.intentForecast .actStrip{flex-wrap:wrap;row-gap:3px}
+/* the Enemy Intent button sits directly UNDER the enemy bench (matching the team
+   rail's Combat Log button), not floated to the rail bottom over the player area. */
 
 /* arrows + step numbers between forecast actions */
-.intentArrow{display:flex;justify-content:center;color:var(--gold3);font-size:14px;margin:-2px 0}
+.intentArrow{display:flex;justify-content:center;align-items:center;color:var(--gold2);
+  font-size:18px;font-weight:900;line-height:1;margin:-1px 0}
 .intentRow .iStep{flex:0 0 auto;width:18px;height:18px;border-radius:50%;display:grid;place-items:center;
   background:#140e26;border:1px solid var(--goldB);color:var(--gold1);font-family:'Cinzel',serif;font-weight:700;font-size:10px}
 
