@@ -5,11 +5,16 @@
 .ed {
   font: 14px/1.4 system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
   color: #e8dcc8; min-height: 100vh; background: #16110a;
+  /* tells the browser to render native form controls dark so their text/options
+     stay readable (otherwise selects/options can be dark-on-dark on mobile). */
+  color-scheme: dark;
 }
 .ed input, .ed select, .ed textarea, .ed button {
   font: inherit; color: #e8dcc8; background: #241a10; border: 1px solid #4a3a22;
   border-radius: 6px; padding: 6px 8px;
 }
+.ed option { color: #e8dcc8; background: #241a10; }
+.ed input::placeholder, .ed textarea::placeholder { color: #8a7a5e; }
 .ed input:focus, .ed select:focus, .ed textarea:focus { outline: 1px solid #b88a3e; }
 .ed button { cursor: pointer; background: #2e2213; }
 .ed button:hover { background: #3a2c18; }

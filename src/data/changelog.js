@@ -6,6 +6,9 @@
 
 /** @type {{version:string, date:string, notes:string[]}[]} newest first */
 export const CHANGELOG = [
+  { version: 'v3.61.1', date: '2026-06-25', notes: [
+    'Card editor: forced a dark colour-scheme and explicit dropdown/placeholder colours so form text stays readable (some browsers/mobile rendered select options dark-on-dark).',
+  ] },
   { version: 'v3.61.0', date: '2026-06-25', notes: [
     'Decay reworked (was overpowered): instead of draining HP/Block/powers, it now saps ONE random buff by its stacks — wiping it if Decay ≥ the buff, with any leftover Decay wasted that turn.',
     'When Decay triggers it’s announced both in the combat log and as floating text over the target, naming the buff and how much was removed (or if it was wiped out).',
