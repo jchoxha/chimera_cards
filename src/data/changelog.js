@@ -6,6 +6,9 @@
 
 /** @type {{version:string, date:string, notes:string[]}[]} newest first */
 export const CHANGELOG = [
+  { version: 'v3.63.0', date: '2026-06-25', notes: [
+    'Every card is now upgradable: all 162 cards across the 8 archetypes have a campfire upgrade (was Warrior-only). Attacks/blocks/heals hit harder, debuffs/buffs/draw/energy gain a point, powers strengthen their triggered effect, and effect-less utility cards get cheaper.',
+  ] },
   { version: 'v3.62.0', date: '2026-06-25', notes: [
     'Card Forge redesigned into a visual card gallery (StS2-mod style): every card renders as a real card tile (cost gem, type-coloured name banner, art, auto-text), with a filter sidebar — search, card type, rarity, cost, and A–Z sort. Click a card to edit it in a popup; click + add card to make a new one.',
   ] },

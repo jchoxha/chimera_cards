@@ -3,24 +3,541 @@
   "version": 1,
   "note": "Mage kit (§7). Shape cards; element via attunement re-skin + imbue. Overload = X-cost spend-all. Channel = ops that fire next turn (trigger turnStart, duration thisTurn). Conjure (card-gen) isn't engine-supported, approximated as draw/energy. Tweak later.",
   "cards": [
-    { "id": "mage_zap", "name": "Zap", "class": "Mage", "attunement": "Arcane", "type": "attack", "cost": 1, "rarity": "basic", "imbue": 1, "effects": [{ "op": "damage", "value": 6 }] },
-    { "id": "mage_ward", "name": "Ward", "class": "Mage", "attunement": "Arcane", "type": "skill", "cost": 1, "rarity": "basic", "effects": [{ "op": "block", "value": 5 }] },
-    { "id": "mage_arcane_bolt", "name": "Arcane Bolt", "class": "Mage", "attunement": "Arcane", "type": "attack", "cost": 1, "rarity": "common", "imbue": 1, "effects": [{ "op": "damage", "value": 8 }] },
-    { "id": "mage_magic_missiles", "name": "Magic Missiles", "class": "Mage", "attunement": "Arcane", "type": "attack", "cost": 1, "rarity": "common", "imbue": 1, "effects": [{ "op": "damage", "value": 3, "hits": 2 }] },
-    { "id": "mage_frost_nova", "name": "Frost Nova", "class": "Mage", "attunement": "Arcane", "type": "skill", "cost": 1, "rarity": "common", "effects": [{ "op": "debuff", "status": "weak", "value": 2, "scope": "wholeEnemySide" }] },
-    { "id": "mage_conjure", "name": "Conjure", "class": "Mage", "attunement": "Arcane", "type": "skill", "cost": 0, "rarity": "common", "effects": [{ "op": "draw", "value": 2 }] },
-    { "id": "mage_arcane_study", "name": "Arcane Study", "class": "Mage", "attunement": "Arcane", "type": "skill", "cost": 1, "rarity": "common", "effects": [{ "op": "draw", "value": 2 }, { "op": "energy", "value": 1 }] },
-    { "id": "mage_teleport", "name": "Teleport", "class": "Mage", "attunement": "Arcane", "type": "skill", "cost": 0, "rarity": "common", "effects": [{ "op": "energy", "value": 1 }, { "op": "draw", "value": 1 }] },
-    { "id": "mage_disintegrate", "name": "Disintegrate", "class": "Mage", "attunement": "Arcane", "type": "attack", "cost": 1, "rarity": "uncommon", "imbue": 1, "effects": [{ "op": "damage", "value": 6, "scaleBy": { "event": "cardsPlayed", "per": 3, "window": "thisTurn" } }] },
-    { "id": "mage_overload", "name": "Overload", "class": "Mage", "attunement": "Arcane", "type": "attack", "cost": -1, "rarity": "uncommon", "imbue": 1, "effects": [{ "op": "damage", "value": 7, "hits": "X" }] },
-    { "id": "mage_arcane_blast", "name": "Arcane Blast", "class": "Mage", "attunement": "Arcane", "type": "attack", "cost": 2, "rarity": "uncommon", "imbue": 1, "effects": [{ "op": "damage", "value": 14 }] },
-    { "id": "mage_arcane_barrage", "name": "Arcane Barrage", "class": "Mage", "attunement": "Arcane", "type": "attack", "cost": 2, "rarity": "uncommon", "effects": [{ "op": "damage", "value": 5, "hits": 2, "scope": "wholeEnemySide" }] },
-    { "id": "mage_amplify", "name": "Amplify", "class": "Mage", "attunement": "Arcane", "type": "skill", "cost": 0, "rarity": "uncommon", "effects": [{ "op": "buff", "status": "amplify", "value": 1 }, { "op": "draw", "value": 1 }] },
-    { "id": "mage_empower", "name": "Empower", "class": "Mage", "attunement": "Arcane", "type": "skill", "cost": 1, "rarity": "uncommon", "effects": [{ "op": "energy", "value": 3, "trigger": "turnStart", "duration": "thisTurn" }, { "op": "draw", "value": 2, "trigger": "turnStart", "duration": "thisTurn" }] },
-    { "id": "mage_mana_font", "name": "Mana Font", "class": "Mage", "attunement": "Arcane", "type": "power", "cost": 1, "rarity": "uncommon", "trigger": { "on": "turnStart", "effects": [{ "op": "energy", "value": 1 }] } },
-    { "id": "mage_meteor", "name": "Meteor", "class": "Mage", "attunement": "Arcane", "type": "attack", "cost": 3, "rarity": "rare", "imbue": 1, "effects": [{ "op": "damage", "value": 22 }] },
-    { "id": "mage_channel_inferno", "name": "Channel Inferno", "class": "Mage", "attunement": "Arcane", "type": "skill", "cost": 1, "rarity": "rare", "effects": [{ "op": "damage", "value": 16, "scope": "wholeEnemySide", "trigger": "turnStart", "duration": "thisTurn" }] },
-    { "id": "mage_overheat", "name": "Overheat", "class": "Mage", "attunement": "Arcane", "type": "power", "cost": 1, "rarity": "rare", "trigger": { "on": "turnEnd", "effects": [{ "op": "damage", "value": 3, "scope": "enemyActiveTarget" }] } },
-    { "id": "mage_echo", "name": "Echo", "class": "Mage", "attunement": "Arcane", "type": "power", "cost": 2, "rarity": "epic", "trigger": { "on": "turnStart", "effects": [{ "op": "buff", "status": "amplify", "value": 1 }] } }
+    {
+      "id": "mage_zap",
+      "name": "Zap",
+      "class": "Mage",
+      "attunement": "Arcane",
+      "type": "attack",
+      "cost": 1,
+      "rarity": "basic",
+      "imbue": 1,
+      "effects": [
+        {
+          "op": "damage",
+          "value": 6
+        }
+      ],
+      "upgrade": {
+        "effects": [
+          {
+            "op": "damage",
+            "value": 8
+          }
+        ]
+      }
+    },
+    {
+      "id": "mage_ward",
+      "name": "Ward",
+      "class": "Mage",
+      "attunement": "Arcane",
+      "type": "skill",
+      "cost": 1,
+      "rarity": "basic",
+      "effects": [
+        {
+          "op": "block",
+          "value": 5
+        }
+      ],
+      "upgrade": {
+        "effects": [
+          {
+            "op": "block",
+            "value": 7
+          }
+        ]
+      }
+    },
+    {
+      "id": "mage_arcane_bolt",
+      "name": "Arcane Bolt",
+      "class": "Mage",
+      "attunement": "Arcane",
+      "type": "attack",
+      "cost": 1,
+      "rarity": "common",
+      "imbue": 1,
+      "effects": [
+        {
+          "op": "damage",
+          "value": 8
+        }
+      ],
+      "upgrade": {
+        "effects": [
+          {
+            "op": "damage",
+            "value": 11
+          }
+        ]
+      }
+    },
+    {
+      "id": "mage_magic_missiles",
+      "name": "Magic Missiles",
+      "class": "Mage",
+      "attunement": "Arcane",
+      "type": "attack",
+      "cost": 1,
+      "rarity": "common",
+      "imbue": 1,
+      "effects": [
+        {
+          "op": "damage",
+          "value": 3,
+          "hits": 2
+        }
+      ],
+      "upgrade": {
+        "effects": [
+          {
+            "op": "damage",
+            "value": 5,
+            "hits": 2
+          }
+        ]
+      }
+    },
+    {
+      "id": "mage_frost_nova",
+      "name": "Frost Nova",
+      "class": "Mage",
+      "attunement": "Arcane",
+      "type": "skill",
+      "cost": 1,
+      "rarity": "common",
+      "effects": [
+        {
+          "op": "debuff",
+          "status": "weak",
+          "value": 2,
+          "scope": "wholeEnemySide"
+        }
+      ],
+      "upgrade": {
+        "effects": [
+          {
+            "op": "debuff",
+            "status": "weak",
+            "value": 3,
+            "scope": "wholeEnemySide"
+          }
+        ]
+      }
+    },
+    {
+      "id": "mage_conjure",
+      "name": "Conjure",
+      "class": "Mage",
+      "attunement": "Arcane",
+      "type": "skill",
+      "cost": 0,
+      "rarity": "common",
+      "effects": [
+        {
+          "op": "draw",
+          "value": 2
+        }
+      ],
+      "upgrade": {
+        "effects": [
+          {
+            "op": "draw",
+            "value": 3
+          }
+        ]
+      }
+    },
+    {
+      "id": "mage_arcane_study",
+      "name": "Arcane Study",
+      "class": "Mage",
+      "attunement": "Arcane",
+      "type": "skill",
+      "cost": 1,
+      "rarity": "common",
+      "effects": [
+        {
+          "op": "draw",
+          "value": 2
+        },
+        {
+          "op": "energy",
+          "value": 1
+        }
+      ],
+      "upgrade": {
+        "effects": [
+          {
+            "op": "draw",
+            "value": 3
+          },
+          {
+            "op": "energy",
+            "value": 2
+          }
+        ]
+      }
+    },
+    {
+      "id": "mage_teleport",
+      "name": "Teleport",
+      "class": "Mage",
+      "attunement": "Arcane",
+      "type": "skill",
+      "cost": 0,
+      "rarity": "common",
+      "effects": [
+        {
+          "op": "energy",
+          "value": 1
+        },
+        {
+          "op": "draw",
+          "value": 1
+        }
+      ],
+      "upgrade": {
+        "effects": [
+          {
+            "op": "energy",
+            "value": 2
+          },
+          {
+            "op": "draw",
+            "value": 2
+          }
+        ]
+      }
+    },
+    {
+      "id": "mage_disintegrate",
+      "name": "Disintegrate",
+      "class": "Mage",
+      "attunement": "Arcane",
+      "type": "attack",
+      "cost": 1,
+      "rarity": "uncommon",
+      "imbue": 1,
+      "effects": [
+        {
+          "op": "damage",
+          "value": 6,
+          "scaleBy": {
+            "event": "cardsPlayed",
+            "per": 3,
+            "window": "thisTurn"
+          }
+        }
+      ],
+      "upgrade": {
+        "effects": [
+          {
+            "op": "damage",
+            "value": 8,
+            "scaleBy": {
+              "event": "cardsPlayed",
+              "per": 3,
+              "window": "thisTurn"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "mage_overload",
+      "name": "Overload",
+      "class": "Mage",
+      "attunement": "Arcane",
+      "type": "attack",
+      "cost": -1,
+      "rarity": "uncommon",
+      "imbue": 1,
+      "effects": [
+        {
+          "op": "damage",
+          "value": 7,
+          "hits": "X"
+        }
+      ],
+      "upgrade": {
+        "effects": [
+          {
+            "op": "damage",
+            "value": 10,
+            "hits": "X"
+          }
+        ]
+      }
+    },
+    {
+      "id": "mage_arcane_blast",
+      "name": "Arcane Blast",
+      "class": "Mage",
+      "attunement": "Arcane",
+      "type": "attack",
+      "cost": 2,
+      "rarity": "uncommon",
+      "imbue": 1,
+      "effects": [
+        {
+          "op": "damage",
+          "value": 14
+        }
+      ],
+      "upgrade": {
+        "effects": [
+          {
+            "op": "damage",
+            "value": 20
+          }
+        ]
+      }
+    },
+    {
+      "id": "mage_arcane_barrage",
+      "name": "Arcane Barrage",
+      "class": "Mage",
+      "attunement": "Arcane",
+      "type": "attack",
+      "cost": 2,
+      "rarity": "uncommon",
+      "effects": [
+        {
+          "op": "damage",
+          "value": 5,
+          "hits": 2,
+          "scope": "wholeEnemySide"
+        }
+      ],
+      "upgrade": {
+        "effects": [
+          {
+            "op": "damage",
+            "value": 7,
+            "hits": 2,
+            "scope": "wholeEnemySide"
+          }
+        ]
+      }
+    },
+    {
+      "id": "mage_amplify",
+      "name": "Amplify",
+      "class": "Mage",
+      "attunement": "Arcane",
+      "type": "skill",
+      "cost": 0,
+      "rarity": "uncommon",
+      "effects": [
+        {
+          "op": "buff",
+          "status": "amplify",
+          "value": 1
+        },
+        {
+          "op": "draw",
+          "value": 1
+        }
+      ],
+      "upgrade": {
+        "effects": [
+          {
+            "op": "buff",
+            "status": "amplify",
+            "value": 2
+          },
+          {
+            "op": "draw",
+            "value": 2
+          }
+        ]
+      }
+    },
+    {
+      "id": "mage_empower",
+      "name": "Empower",
+      "class": "Mage",
+      "attunement": "Arcane",
+      "type": "skill",
+      "cost": 1,
+      "rarity": "uncommon",
+      "effects": [
+        {
+          "op": "energy",
+          "value": 3,
+          "trigger": "turnStart",
+          "duration": "thisTurn"
+        },
+        {
+          "op": "draw",
+          "value": 2,
+          "trigger": "turnStart",
+          "duration": "thisTurn"
+        }
+      ],
+      "upgrade": {
+        "effects": [
+          {
+            "op": "energy",
+            "value": 4,
+            "trigger": "turnStart",
+            "duration": "thisTurn"
+          },
+          {
+            "op": "draw",
+            "value": 3,
+            "trigger": "turnStart",
+            "duration": "thisTurn"
+          }
+        ]
+      }
+    },
+    {
+      "id": "mage_mana_font",
+      "name": "Mana Font",
+      "class": "Mage",
+      "attunement": "Arcane",
+      "type": "power",
+      "cost": 1,
+      "rarity": "uncommon",
+      "trigger": {
+        "on": "turnStart",
+        "effects": [
+          {
+            "op": "energy",
+            "value": 1
+          }
+        ]
+      },
+      "upgrade": {
+        "trigger": {
+          "on": "turnStart",
+          "effects": [
+            {
+              "op": "energy",
+              "value": 2
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "mage_meteor",
+      "name": "Meteor",
+      "class": "Mage",
+      "attunement": "Arcane",
+      "type": "attack",
+      "cost": 3,
+      "rarity": "rare",
+      "imbue": 1,
+      "effects": [
+        {
+          "op": "damage",
+          "value": 22
+        }
+      ],
+      "upgrade": {
+        "effects": [
+          {
+            "op": "damage",
+            "value": 31
+          }
+        ]
+      }
+    },
+    {
+      "id": "mage_channel_inferno",
+      "name": "Channel Inferno",
+      "class": "Mage",
+      "attunement": "Arcane",
+      "type": "skill",
+      "cost": 1,
+      "rarity": "rare",
+      "effects": [
+        {
+          "op": "damage",
+          "value": 16,
+          "scope": "wholeEnemySide",
+          "trigger": "turnStart",
+          "duration": "thisTurn"
+        }
+      ],
+      "upgrade": {
+        "effects": [
+          {
+            "op": "damage",
+            "value": 22,
+            "scope": "wholeEnemySide",
+            "trigger": "turnStart",
+            "duration": "thisTurn"
+          }
+        ]
+      }
+    },
+    {
+      "id": "mage_overheat",
+      "name": "Overheat",
+      "class": "Mage",
+      "attunement": "Arcane",
+      "type": "power",
+      "cost": 1,
+      "rarity": "rare",
+      "trigger": {
+        "on": "turnEnd",
+        "effects": [
+          {
+            "op": "damage",
+            "value": 3,
+            "scope": "enemyActiveTarget"
+          }
+        ]
+      },
+      "upgrade": {
+        "trigger": {
+          "on": "turnEnd",
+          "effects": [
+            {
+              "op": "damage",
+              "value": 5,
+              "scope": "enemyActiveTarget"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "mage_echo",
+      "name": "Echo",
+      "class": "Mage",
+      "attunement": "Arcane",
+      "type": "power",
+      "cost": 2,
+      "rarity": "epic",
+      "trigger": {
+        "on": "turnStart",
+        "effects": [
+          {
+            "op": "buff",
+            "status": "amplify",
+            "value": 1
+          }
+        ]
+      },
+      "upgrade": {
+        "trigger": {
+          "on": "turnStart",
+          "effects": [
+            {
+              "op": "buff",
+              "status": "amplify",
+              "value": 2
+            }
+          ]
+        }
+      }
+    }
   ]
 }
