@@ -1,12 +1,13 @@
-/* Card editor — utilitarian dark dev tool. Works on desktop + phone. */
+/* Card editor — utilitarian dark dev tool. Works on desktop + phone.
+   EVERY selector is scoped under `.ed` so that when this stylesheet is loaded
+   inside the app shell (app.html, alongside combat.css/run.css) its generic class
+   names (.body/.list/.form/.grid/.li/.pip/.op/.row…) can't be clobbered by — or
+   clobber — those sheets. The background lives on `.ed` (not `body`) for the same
+   reason: loading the editor in the app must not recolour the menu/combat pages. */
 .ed * { box-sizing: border-box; }
-/* Background lives on .ed (not body) so this stylesheet can be loaded inside the
-   app shell (app.html) without recoloring the menu/combat pages. */
 .ed {
   font: 14px/1.4 system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
   color: #e8dcc8; min-height: 100vh; background: #16110a;
-  /* tells the browser to render native form controls dark so their text/options
-     stay readable (otherwise selects/options can be dark-on-dark on mobile). */
   color-scheme: dark;
 }
 .ed input, .ed select, .ed textarea, .ed button {
@@ -19,73 +20,73 @@
 .ed button { cursor: pointer; background: #2e2213; }
 .ed button:hover { background: #3a2c18; }
 
-.edHead {
+.ed .edHead {
   display: flex; gap: 8px; align-items: center; flex-wrap: wrap;
   padding: 8px 12px; background: #1d1509; border-bottom: 1px solid #4a3a22; position: sticky; top: 0; z-index: 5;
 }
-.edHead .grow { flex: 1; }
-.edHead .save { background: #6a4d1b; border-color: #b88a3e; font-weight: 700; }
-.edHead .save:hover { background: #846023; }
-.badge { font-size: 12px; padding: 3px 8px; border-radius: 999px; border: 1px solid; }
-.badge.ok { color: #9be29b; border-color: #3c6e3c; background: #16240f; }
-.badge.gh { color: #9fd0ff; border-color: #2f5577; background: #0f1a24; }
-.badge.warn { color: #e2c98a; border-color: #6e5a2f; background: #241f0f; }
+.ed .edHead .grow { flex: 1; }
+.ed .edHead .save { background: #6a4d1b; border-color: #b88a3e; font-weight: 700; }
+.ed .edHead .save:hover { background: #846023; }
+.ed .badge { font-size: 12px; padding: 3px 8px; border-radius: 999px; border: 1px solid; }
+.ed .badge.ok { color: #9be29b; border-color: #3c6e3c; background: #16240f; }
+.ed .badge.gh { color: #9fd0ff; border-color: #2f5577; background: #0f1a24; }
+.ed .badge.warn { color: #e2c98a; border-color: #6e5a2f; background: #241f0f; }
 
-.toolbar2 { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; padding: 6px 12px; background: #1a1308; border-bottom: 1px solid #3a2c18; }
-.toolbar2 .t2label { color: #c9b58e; font-size: 13px; }
-.toolbar2 .grow { flex: 1; }
-.toolbar2 button:disabled { opacity: 0.4; cursor: default; }
+.ed .toolbar2 { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; padding: 6px 12px; background: #1a1308; border-bottom: 1px solid #3a2c18; }
+.ed .toolbar2 .t2label { color: #c9b58e; font-size: 13px; }
+.ed .toolbar2 .grow { flex: 1; }
+.ed .toolbar2 button:disabled { opacity: 0.4; cursor: default; }
 
-.settings { padding: 12px; background: #1d1509; border-bottom: 1px solid #4a3a22; }
-.settings p { margin: 0 0 8px; color: #c9b58e; font-size: 12px; max-width: 720px; }
-.settings .row { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 8px; }
-.statusbar { padding: 6px 12px; background: #20180c; border-bottom: 1px solid #4a3a22; font-size: 13px; }
+.ed .settings { padding: 12px; background: #1d1509; border-bottom: 1px solid #4a3a22; }
+.ed .settings p { margin: 0 0 8px; color: #c9b58e; font-size: 12px; max-width: 720px; }
+.ed .settings .row { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 8px; }
+.ed .statusbar { padding: 6px 12px; background: #20180c; border-bottom: 1px solid #4a3a22; font-size: 13px; }
 
-.body { display: grid; grid-template-columns: 260px 1fr; gap: 0; align-items: start; }
-@media (max-width: 720px) { .body { grid-template-columns: 1fr; } }
+.ed .body { display: grid; grid-template-columns: 260px 1fr; gap: 0; align-items: start; }
+@media (max-width: 720px) { .ed .body { grid-template-columns: 1fr; } }
 
-.list { border-right: 1px solid #4a3a22; padding: 8px; min-height: calc(100vh - 50px); }
-.addCard, .addOp { width: 100%; margin-bottom: 8px; border-style: dashed; }
-.li { display: flex; align-items: center; gap: 6px; padding: 6px; border-radius: 6px; cursor: pointer; }
-.li:hover { background: #20180c; }
-.li.sel { background: #2e2213; outline: 1px solid #b88a3e; }
-.li.bad { box-shadow: inset 3px 0 0 #c2553a; }
-.li.bad .liName::after { content: ' ⚠'; color: #e08a5a; }
-.li .liName { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.li .liCost { color: #e2c98a; font-weight: 700; min-width: 14px; text-align: center; }
-.li .del, .op .del { background: transparent; border: none; color: #c77; padding: 2px 6px; }
-.pip { width: 20px; height: 20px; border-radius: 4px; display: grid; place-items: center; font-size: 11px; font-weight: 700; }
-.pip.attack { background: #5a2417; color: #ffb9a0; }
-.pip.skill { background: #1c3a4a; color: #a0d8ff; }
-.pip.power { background: #3a2a52; color: #d0b0ff; }
-.empty { color: #8a7a5e; padding: 10px; }
+.ed .list { border-right: 1px solid #4a3a22; padding: 8px; min-height: calc(100vh - 50px); }
+.ed .addCard, .ed .addOp { width: 100%; margin-bottom: 8px; border-style: dashed; }
+.ed .li { display: flex; align-items: center; gap: 6px; padding: 6px; border-radius: 6px; cursor: pointer; }
+.ed .li:hover { background: #20180c; }
+.ed .li.sel { background: #2e2213; outline: 1px solid #b88a3e; }
+.ed .li.bad { box-shadow: inset 3px 0 0 #c2553a; }
+.ed .li.bad .liName::after { content: ' ⚠'; color: #e08a5a; }
+.ed .li .liName { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ed .li .liCost { color: #e2c98a; font-weight: 700; min-width: 14px; text-align: center; }
+.ed .li .del, .ed .op .del { background: transparent; border: none; color: #c77; padding: 2px 6px; }
+.ed .pip { width: 20px; height: 20px; border-radius: 4px; display: grid; place-items: center; font-size: 11px; font-weight: 700; flex: none; }
+.ed .pip.attack { background: #5a2417; color: #ffb9a0; }
+.ed .pip.skill { background: #1c3a4a; color: #a0d8ff; }
+.ed .pip.power { background: #3a2a52; color: #d0b0ff; }
+.ed .empty { color: #8a7a5e; padding: 10px; }
 
-.form { padding: 14px; }
-.formTop { display: flex; align-items: center; gap: 12px; }
-.formTop h2 { margin: 0; }
-.rawToggle { margin-left: auto; font-size: 13px; color: #c9b58e; }
-.errs { background: #2a1410; border: 1px solid #7a3a2a; border-radius: 6px; padding: 8px; margin: 8px 0; color: #ffb9a0; font-size: 13px; }
+.ed .form { padding: 14px; }
+.ed .formTop { display: flex; align-items: center; gap: 12px; }
+.ed .formTop h2 { margin: 0; }
+.ed .rawToggle { margin-left: auto; font-size: 13px; color: #c9b58e; }
+.ed .errs { background: #2a1410; border: 1px solid #7a3a2a; border-radius: 6px; padding: 8px; margin: 8px 0; color: #ffb9a0; font-size: 13px; }
 
-.grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 10px; margin: 8px 0; }
-.fld { display: flex; flex-direction: column; gap: 3px; font-size: 12px; color: #c9b58e; }
-.fld input, .fld select, .fld textarea { width: 100%; }
-.fld small { color: #8a7a5e; }
-.kwrow { display: flex; gap: 12px; flex-wrap: wrap; padding: 4px 0; }
-.kw { display: inline-flex; align-items: center; gap: 4px; color: #c9b58e; font-size: 13px; }
-.idrow { display: flex; gap: 4px; }
-.idrow input { flex: 1; }
-.cardtext { min-height: 40px; resize: vertical; }
-.autoText { background: #16110a; border: 1px solid #3a2c18; border-radius: 6px; padding: 8px 10px; color: #e2d8c0; font-size: 13px; line-height: 1.5; }
-.artRow { display: flex; gap: 12px; align-items: flex-end; flex-wrap: wrap; margin: 8px 0; }
-.artPreview { width: 110px; height: 84px; object-fit: cover; border: 1px solid #4a3a22; border-radius: 6px; background: #0d0a06; }
+.ed .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 10px; margin: 8px 0; }
+.ed .fld { display: flex; flex-direction: column; gap: 3px; font-size: 12px; color: #c9b58e; }
+.ed .fld input, .ed .fld select, .ed .fld textarea { width: 100%; }
+.ed .fld small { color: #8a7a5e; }
+.ed .kwrow { display: flex; gap: 12px; flex-wrap: wrap; padding: 4px 0; }
+.ed .kw { display: inline-flex; align-items: center; gap: 4px; color: #c9b58e; font-size: 13px; }
+.ed .idrow { display: flex; gap: 4px; }
+.ed .idrow input { flex: 1; }
+.ed .cardtext { min-height: 40px; resize: vertical; }
+.ed .autoText { background: #16110a; border: 1px solid #3a2c18; border-radius: 6px; padding: 8px 10px; color: #e2d8c0; font-size: 13px; line-height: 1.5; }
+.ed .artRow { display: flex; gap: 12px; align-items: flex-end; flex-wrap: wrap; margin: 8px 0; }
+.ed .artPreview { width: 110px; height: 84px; object-fit: cover; border: 1px solid #4a3a22; border-radius: 6px; background: #0d0a06; }
 
-.ops { display: flex; flex-direction: column; gap: 8px; }
-.op { border: 1px solid #4a3a22; border-radius: 8px; padding: 8px; background: #1c150b; }
-.opHead { display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px; }
-.opHead select { font-weight: 700; }
-.opBtns { display: flex; gap: 4px; }
-.opBtns button { padding: 2px 8px; }
-.opFields { display: grid; grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); gap: 8px; }
+.ed .ops { display: flex; flex-direction: column; gap: 8px; }
+.ed .op { border: 1px solid #4a3a22; border-radius: 8px; padding: 8px; background: #1c150b; }
+.ed .opHead { display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px; }
+.ed .opHead select { font-weight: 700; }
+.ed .opBtns { display: flex; gap: 4px; }
+.ed .opBtns button { padding: 2px 8px; }
+.ed .opFields { display: grid; grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); gap: 8px; }
 
-.rawEd textarea { width: 100%; min-height: 360px; font-family: ui-monospace, Menlo, Consolas, monospace; font-size: 13px; }
-.rawEd button { margin-top: 8px; }
+.ed .rawEd textarea { width: 100%; min-height: 360px; font-family: ui-monospace, Menlo, Consolas, monospace; font-size: 13px; }
+.ed .rawEd button { margin-top: 8px; }
