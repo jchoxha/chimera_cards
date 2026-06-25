@@ -33,7 +33,7 @@ export function makeCreature({ id, name, class: klass, biology, attunement, pool
 
   const { hpMult, stats } = biologyStats(bio);
   const maxHp = Math.round(baseHp * hpMult);
-  const deck = starterDeck(reskinDeck(pool, att), deckSize);
+  const deck = starterDeck(reskinDeck(pool, att), att, deckSize);
 
   return {
     id: id || slug(name) || 'creature',

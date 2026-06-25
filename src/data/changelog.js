@@ -6,6 +6,9 @@
 
 /** @type {{version:string, date:string, notes:string[]}[]} newest first */
 export const CHANGELOG = [
+  { version: 'v3.60.0', date: '2026-06-25', notes: [
+    'Every creature now starts with a consistent deck: 3 Strike variants (plain damage in the creature’s element(s), no riders), 3 Defend variants, and up to 3 archetype-specific signature cards.',
+  ] },
   { version: 'v3.59.3', date: '2026-06-25', notes: [
     'Fixed invisible text in the Card Forge when opened from the app menu — its stylesheet wasn’t being loaded there.',
   ] },

@@ -250,20 +250,36 @@ console.log('Potions resolve in combat via useConsumable:');
   ok(v.block === 12, 'Block Potion gave 12 Block');
 }
 
-console.log('Starter deck is capped at 10 with unique instance ids:');
+console.log('Starter deck recipe: 3 Strike + 3 Defend + ≤3 archetype starters:');
 {
   const pool = [
-    { id: 'strike', name: 'Strike', rarity: 'basic', type: 'attack', cost: 1, attunement: 'Physical', effects: [{ op: 'damage', value: 6 }] },
+    { id: 'strike', name: 'Strike', rarity: 'basic', type: 'attack', cost: 1, attunement: 'Physical', imbue: 1, effects: [{ op: 'damage', value: 6, scope: 'enemyActiveTarget' }] },
     { id: 'guard', name: 'Guard', rarity: 'basic', type: 'skill', cost: 1, attunement: 'Physical', effects: [{ op: 'block', value: 5 }] },
     { id: 'cleave', name: 'Cleave', rarity: 'common', type: 'attack', cost: 1, attunement: 'Physical', effects: [{ op: 'damage', value: 8 }] },
     { id: 'pommel', name: 'Pommel', rarity: 'common', type: 'attack', cost: 1, attunement: 'Physical', effects: [{ op: 'damage', value: 7 }] },
     { id: 'rare1', name: 'Rare', rarity: 'rare', type: 'attack', cost: 2, attunement: 'Physical', effects: [{ op: 'damage', value: 20 }] },
   ];
-  const deck = starterDeck(pool, 10);
-  ok(deck.length === 10, `starter deck capped at 10 (got ${deck.length})`);
-  ok(deck.filter((c) => c.id.startsWith('strike#')).length === 4, '4 copies of each basic (Strike)');
-  ok(new Set(deck.map((c) => c.id)).size === 10, 'all 10 instance ids are unique');
+  const deck = starterDeck(pool, ['Physical'], 10);
+  ok(deck.length <= 10 && deck.length >= 6, `starter deck 6–9 cards (got ${deck.length})`);
+  const strikes = deck.filter((c) => c.id.startsWith('strike#'));
+  const defends = deck.filter((c) => c.id.startsWith('guard#'));
+  ok(strikes.length === 3, `3 Strike variants (got ${strikes.length})`);
+  ok(defends.length === 3, `3 Defend variants (got ${defends.length})`);
+  ok(deck.filter((c) => c.rarity === 'common').length >= 1 && deck.filter((c) => c.rarity === 'common').length <= 3, '1–3 archetype starters');
+  ok(new Set(deck.map((c) => c.id)).size === deck.length, 'all instance ids are unique');
   ok(!deck.some((c) => c.id.startsWith('rare')), 'rares excluded from the starter');
+  ok(strikes.every((c) => c.effects.every((o) => o.op === 'damage') && !c.imbue), 'Strike variants are plain damage (no imbue/status)');
+}
+
+console.log('Strike variants cycle damage type across the creature\'s attunements:');
+{
+  const pool = [
+    { id: 'strike', name: 'Strike', rarity: 'basic', type: 'attack', cost: 1, attunement: 'Physical', effects: [{ op: 'damage', value: 6, scope: 'enemyActiveTarget' }] },
+    { id: 'guard', name: 'Guard', rarity: 'basic', type: 'skill', cost: 1, attunement: 'Physical', effects: [{ op: 'block', value: 5 }] },
+  ];
+  const deck = starterDeck(pool, ['Physical', 'Fire'], 10);
+  const strikeEls = deck.filter((c) => c.id.startsWith('strike#')).map((c) => c.attunement);
+  ok(strikeEls.join(',') === 'Physical,Fire,Physical', `strikes cycle P/Fire/P (got ${strikeEls.join(',')})`);
 }
 
 console.log(`\nrun: ${pass} passed, ${fail} failed`);

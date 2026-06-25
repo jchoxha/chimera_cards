@@ -83,14 +83,41 @@ export function createRun({ party = [], seed = Date.now(), floors = 10, rewardPo
  * @param {import('../cards/cardSpec.js').CardSpec[]} cards  the class pool
  * @param {number} [max]
  */
-export function starterDeck(cards, max = 10) {
+export function starterDeck(cards, attunement = ['Physical'], max = 10) {
+  const atts = (Array.isArray(attunement) ? attunement : [attunement]).filter(Boolean);
+  const els = atts.length ? atts : ['Physical'];
+
   const basics = cards.filter((c) => c.rarity === 'basic');
-  const commons = cards.filter((c) => c.rarity === 'common');
+  const strikeBase = basics.find((c) => c.type === 'attack' && (c.effects || []).some((o) => o.op === 'damage'))
+    || cards.find((c) => c.type === 'attack' && (c.effects || []).some((o) => o.op === 'damage'));
+  const defendBase = basics.find((c) => (c.effects || []).some((o) => o.op === 'block'))
+    || cards.find((c) => (c.effects || []).some((o) => o.op === 'block'));
+
+  // A Strike variant: ONLY its damage op(s), no imbue/status/riders — a clean basic
+  // attack. Its damage element cycles through the creature's attunement(s).
+  const plainStrike = (base, el) => ({
+    ...base, attunement: el, imbue: undefined, keywords: undefined, trigger: undefined, passive: undefined,
+    effects: (base.effects || []).filter((o) => o.op === 'damage')
+      .map((o) => ({ op: 'damage', value: o.value ?? 6, ...(o.hits ? { hits: o.hits } : {}), scope: o.scope || 'enemyActiveTarget' })),
+  });
+  // A Defend variant: only its block op(s), nothing else.
+  const plainDefend = (base) => ({
+    ...base, imbue: undefined, trigger: undefined, passive: undefined,
+    effects: (base.effects || []).filter((o) => o.op === 'block').map((o) => ({ ...o })),
+  });
+
   const deck = [];
   let n = 0;
-  const add = (c) => { if (deck.length < max) deck.push({ ...c, id: `${c.id}#${n++}` }); };
-  for (const b of basics) for (let i = 0; i < 4; i++) add(b); // 4 copies of each basic
-  for (const c of commons) add(c);                             // fill with commons
+  const add = (c) => { if (c && deck.length < max) deck.push({ ...c, id: `${c.id}#${n++}` }); };
+
+  // 3 Strike variants (damage type cycles across the creature's attunements).
+  if (strikeBase) for (let i = 0; i < 3; i++) add(plainStrike(strikeBase, els[i % els.length]));
+  // 3 Defend variants.
+  if (defendBase) for (let i = 0; i < 3; i++) add(plainDefend(defendBase));
+  // 1–3 archetype-specific starters: the pool's signature commons (already re-skinned).
+  const signature = cards.filter((c) => c.rarity === 'common' && c.type !== 'curse' && c.type !== 'status');
+  for (const c of signature.slice(0, 3)) add(c);
+
   return deck.slice(0, max);
 }
 

@@ -24,7 +24,8 @@ const pool = [
 { const c = makeCreature({ name: 'Emberfang', class: 'Mage', biology: ['Dragonkin'], attunement: ['Fire'], pool, baseHp: 55 });
   ok(c.maxHp === Math.round(55 * 1.3), `Dragonkin HP scaled (${c.maxHp})`);
   ok(c.class[0] === 'Mage' && c.attunement[0] === 'Fire', 'axes set');
-  ok(c.deck.length >= 8 && c.deck.length <= 10, `starter deck built (${c.deck.length} cards)`);
+  // Recipe: 3 Strike + 3 Defend + 1–3 archetype starters (here the pool has 1 common → 7).
+  ok(c.deck.length >= 6 && c.deck.length <= 10, `starter deck built (${c.deck.length} cards)`);
   ok(c.deck.every((card) => card.id.includes('#')), 'deck copies have unique instance ids');
   // ~75% of cards re-skinned to Fire (a few keep Physical).
   const fire = c.deck.filter((card) => card.attunement === 'Fire').length;
