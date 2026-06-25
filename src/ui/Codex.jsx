@@ -11,9 +11,18 @@ import React, { useState } from 'react';
 import { EFFECT_INFO, AXIS_INFO, ATTUNEMENT_SIGNATURE, SYSTEM_INFO } from '../data/codex.js';
 import { REACTIONS, REACTION_INFO } from '../engine/cards/reactions.js';
 import { KEYWORD_GLOSSARY } from '../engine/cards/cardText.js';
-import { ARCHETYPE_ICON, BIOLOGY_ICON, ATTUNEMENT_ICON, ATTUNEMENT_COLOR } from '../data/axisIcons.js';
+import { ARCHETYPE_ICON, BIOLOGY_ICON, ATTUNEMENT_ICON, ATTUNEMENT_COLOR, creatureIcon, creatureColor } from '../data/axisIcons.js';
 import { CLASS_BASES, BIOLOGY_BASES, ATTUNEMENT_BASES } from '../data/synthesis.js';
+import { buildRoster } from '../data/roster.js';
+import { bestiaryEntry } from '../data/bestiary.js';
+import MonsterPage from './MonsterPage.jsx';
 import './codex.css';
+
+// Bundled archetype pools → the generator → the playable roster (for the Bestiary).
+const BUNDLE = import.meta.glob('../data/cards/*.json', { eager: true });
+const FILES = Object.values(BUNDLE).map((m) => m.default ?? m);
+const POOLS = Object.fromEntries(FILES.map((f) => [f.class, f.cards || []]));
+const ROSTER = buildRoster(POOLS, POOLS.Warrior || []);
 
 const Icon = ({ icon, ...rest }) => <iconify-icon icon={icon} {...rest}></iconify-icon>;
 
@@ -125,8 +134,49 @@ function KeywordsTab() {
   );
 }
 
+function BestiaryTab() {
+  const [sel, setSel] = useState(null);
+  if (sel) {
+    const c = ROSTER.find((r) => r.id === sel);
+    return (
+      <div className="cxBeast">
+        <button className="cxBack cxBeastBack" onClick={() => setSel(null)}><Icon icon="game-icons:previous-button" /> All creatures</button>
+        <MonsterPage creature={c} />
+      </div>
+    );
+  }
+  return (
+    <>
+      <p className="cxIntro">Every creature in the roster — its lore, its role, and how to play it. Tap one to read its page.</p>
+      <div className="cxBeastGrid">
+        {ROSTER.map((c) => {
+          const att = c.attunement?.[0];
+          const color = creatureColor(c);
+          const e = bestiaryEntry(c.id, c.name);
+          return (
+            <button key={c.id} className="cxBeastCard" onClick={() => setSel(c.id)} style={{ '--gl': color }}>
+              <span className="cxBeastArt">
+                {c.meta?.portrait ? <img src={c.meta.portrait} alt="" />
+                  : <Icon icon={creatureIcon(c)} style={{ color }} />}
+              </span>
+              <span className="cxBeastName">{c.name}</span>
+              {e?.title && <span className="cxBeastTitle">{e.title}</span>}
+              <span className="cxBeastAxes">
+                <Icon icon={ARCHETYPE_ICON[c.class?.[0]] || 'game-icons:gladius'} />
+                <Icon icon={BIOLOGY_ICON[c.biology?.[0]] || 'game-icons:dna2'} />
+                <Icon icon={ATTUNEMENT_ICON[att] || 'game-icons:embrace-energy'} style={{ color: ATTUNEMENT_COLOR[att] }} />
+              </span>
+            </button>
+          );
+        })}
+      </div>
+    </>
+  );
+}
+
 const TABS = [
   { id: 'systems', label: 'Combat', icon: 'game-icons:crossed-swords', render: SystemsTab },
+  { id: 'bestiary', label: 'Bestiary', icon: 'game-icons:bestial-fangs', render: BestiaryTab },
   { id: 'statuses', label: 'Statuses', icon: 'game-icons:hazard-sign', render: StatusesTab },
   { id: 'reactions', label: 'Reactions', icon: 'game-icons:fire-ray', render: ReactionsTab },
   { id: 'axes', label: 'Axes', icon: 'game-icons:family-tree', render: AxesTab },

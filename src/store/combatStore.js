@@ -111,7 +111,10 @@ function mapFighter(f, includeDeck = false) {
     stance: f.stance ?? null,
     stats: f.stats ? { ...f.stats } : null,
     axes: { class: f.class ?? null, biology: f.biology ?? null, attunement: f.attunement ?? null },
-    powers: (f.powers ?? []).map((p) => ({ id: p.source ?? p.id, on: p.on ?? null, passive: p.passive ?? null })),
+    powers: (f.powers ?? []).map((p) => ({
+      id: p.source ?? p.id, on: p.on ?? null, passive: p.passive ?? null,
+      attunement: p.attunement ?? null, effects: (p.effects ?? []).map((o) => ({ ...o })),
+    })),
     hand: f.hand.map(cloneCard),
     piles: {
       draw: f.deck.drawPile.length,
@@ -148,14 +151,24 @@ function snapshot(vm) {
       vanguardIndex: s.enemy.vanguardIndex,
       fighters: s.enemy.fighters.map((f) => mapFighter(f, false)),
     },
-    enemyPlan: s.enemyPlan.map((a) => ({
-      silhouette: a.silhouette,
-      revealed: a.revealed,
-      actor: a.actor,
-      detail: a.detail
-        ? { ...a.detail, effects: a.detail.effects ? { ...a.detail.effects } : undefined }
-        : {},
-    })),
+    enemyPlan: s.enemyPlan.map((a) => {
+      // Once an action is revealed (Peeked), expose the ACTUAL card so the UI can
+      // show its full face on click. Hidden actions never leak the card.
+      let card;
+      if (a.revealed && a.detail?.cardId) {
+        const actor = s.enemy.fighters.find((f) => f.id === a.actor);
+        const c = actor?.hand?.find((h) => h.id === a.detail.cardId);
+        if (c) card = cloneCard(c);
+      }
+      return {
+        silhouette: a.silhouette,
+        revealed: a.revealed,
+        actor: a.actor,
+        detail: a.detail
+          ? { ...a.detail, effects: a.detail.effects ? { ...a.detail.effects } : undefined, card }
+          : {},
+      };
+    }),
   };
 }
 

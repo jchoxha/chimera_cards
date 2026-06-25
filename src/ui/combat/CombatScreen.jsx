@@ -23,6 +23,7 @@ import { APP_VERSION } from '../../version.js';
 import { CHANGELOG } from '../../data/changelog.js';
 import { REACTIONS, forecastReactions, REACTION_INFO } from '../../engine/cards/reactions.js';
 import { EFFECT_INFO, AXIS_INFO, ATTUNEMENT_SIGNATURE } from '../../data/codex.js';
+import MonsterPage from '../MonsterPage.jsx';
 import './combat.css';
 
 const ELEMENT_ICON = {
@@ -49,6 +50,22 @@ const STANCE_ICON = {
 };
 const powerLabel = (id) => (id || 'Power').replace(/^[a-z]+_/, '').replace(/[-_]/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
 
+/** Pick a fitting icon for a power from its id keywords (totem/turret/trap/…). */
+function powerIcon(id) {
+  const s = String(id || '').toLowerCase();
+  if (s.includes('totem')) return 'game-icons:totem';
+  if (s.includes('turret') || s.includes('sentry')) return 'game-icons:auto-repair';
+  if (s.includes('drone')) return 'game-icons:delivery-drone';
+  if (s.includes('trap') || s.includes('mine')) return 'game-icons:wolf-trap';
+  if (s.includes('summon') || s.includes('imp') || s.includes('skeleton')) return 'game-icons:summon';
+  if (s.includes('construct') || s.includes('golem') || s.includes('wall')) return 'game-icons:stone-tower';
+  if (s.includes('companion') || s.includes('hawk') || s.includes('wolf')) return 'game-icons:wolf-head';
+  if (s.includes('bloodlust') || s.includes('rage') || s.includes('rampart') || s.includes('juggernaut')) return 'game-icons:enrage';
+  if (s.includes('regen') || s.includes('prayer') || s.includes('faith')) return 'game-icons:prayer';
+  if (s.includes('channel') || s.includes('overload') || s.includes('arcane')) return 'game-icons:magic-swirl';
+  return 'game-icons:embedded-lightning-rune';
+}
+
 /** Stance + registered powers, rendered as their own persistent pips (they ARE statuses). */
 function extraPips(f) {
   if (!f) return [];
@@ -61,7 +78,7 @@ function extraPips(f) {
     // Powers are registered with `source` (the card id), not `id` — using p.id here
     // crashed powerLabel (undefined.replace), so powers never showed on creature cards.
     const pid = p.source ?? p.id;
-    out.push({ key: `pw-${pid}`, cls: 'power', icon: 'game-icons:fist', label: powerLabel(pid) });
+    out.push({ key: `pw-${pid}`, cls: 'power', icon: powerIcon(pid), label: powerLabel(pid), power: { ...p, id: pid } });
   }
   return out;
 }
@@ -127,7 +144,7 @@ function elementBadge(el, onClick) {
   );
 }
 
-function StatChips({ f, onEffect }) {
+function StatChips({ f, onEffect, onPower }) {
   const statuses = f?.statuses ?? [];
   const extras = extraPips(f);
   if (!statuses.length && !extras.length) return null;
@@ -136,15 +153,19 @@ function StatChips({ f, onEffect }) {
       {statuses.map((s) => {
         const m = STATUS_META[s.id] || { cls: '', icon: 'game-icons:hazard-sign' };
         return (
-          <span key={s.id} className={`chip ${m.cls}`} title={s.id}
+          <span key={s.id} className={`chip ${m.cls}${onEffect ? ' clickable' : ''}`} title={s.id}
             onClick={onEffect ? (e) => { e.stopPropagation(); onEffect(s.id); } : undefined}>
             <Icon icon={m.icon} /> {s.amount}
           </span>
         );
       })}
-      {extras.map((x) => (
-        <span key={x.key} className={`chip ${x.cls}`} title={x.label}><Icon icon={x.icon} /> {x.text || ''}</span>
-      ))}
+      {extras.map((x) => {
+        const click = x.power && onPower ? (e) => { e.stopPropagation(); onPower(x.power); } : undefined;
+        return (
+          <span key={x.key} className={`chip ${x.cls}${click ? ' clickable' : ''}`} title={x.label}
+            onClick={click}><Icon icon={x.icon} /> {x.text || ''}</span>
+        );
+      })}
     </>
   );
 }
@@ -213,6 +234,34 @@ function describeEffectsDetailed(fx) {
   if (fx.draw) parts.push(`Draw ${fx.draw}`);
   if (fx.energy) parts.push(`+${fx.energy} Energy`);
   return parts.join(' · ') || '—';
+}
+
+/** When a power's trigger fires, in plain words. */
+const TRIGGER_TIMING = {
+  turnStart: 'At the start of each of its turns', turnEnd: 'At the end of each of its turns',
+  onPlay: 'When played', onDamageTaken: 'When this creature is hit',
+  combatStart: 'At the start of combat', onBlockGained: 'Whenever it gains Block',
+};
+
+/** Describe an op-LIST (a power's trigger effects) in readable text. */
+function describeOps(ops) {
+  if (!Array.isArray(ops) || !ops.length) return '';
+  const cap = (s) => (s ? s[0].toUpperCase() + s.slice(1) : s);
+  const parts = [];
+  for (const o of ops) {
+    switch (o.op) {
+      case 'damage': parts.push(`Deal ${o.value ?? '?'}${o.hits > 1 ? `×${o.hits}` : ''} damage`); break;
+      case 'block': parts.push(`Gain ${o.value ?? '?'} Block`); break;
+      case 'heal': parts.push(`Heal ${o.value ?? '?'}`); break;
+      case 'buff': parts.push(`+${o.value ?? '?'} ${cap(o.stat) || 'Strength'}`); break;
+      case 'debuff': parts.push(`Apply ${o.value ?? ''} ${EFFECT_INFO[o.status]?.name ?? cap(o.status) ?? 'debuff'}`.replace('  ', ' ')); break;
+      case 'applyStatus': parts.push(`Apply ${o.value ?? ''} ${EFFECT_INFO[o.status]?.name ?? cap(o.status)}`.replace('  ', ' ')); break;
+      case 'draw': parts.push(`Draw ${o.value ?? 1}`); break;
+      case 'energy': parts.push(`+${o.value ?? 1} Energy`); break;
+      default: parts.push(cap(o.op));
+    }
+  }
+  return parts.join(' · ');
 }
 
 function planActionView(action) {
@@ -379,12 +428,16 @@ function MiniCard({ c, onClick }) {
 
 // ── the reusable big monster card visual ────────────────────────────────────────
 
-function CardFace({ f, side, matchup, onEffect, onInfo, extraClass = '', dataId, dataSide }) {
+function CardFace({ f, side, matchup, onEffect, onInfo, onName, extraClass = '', dataId, dataSide }) {
   const isFoe = side === 'enemy';
   const fr = frameStyle({ types: f.types, element: f.element, rarity: f.rarity });
   const scale = { transform: `scale(${artScale(f.form)})` };
   const seeCreature = onInfo ? (e) => { e.stopPropagation(); onInfo({ kind: 'creature', id: f.id }); } : undefined;
+  // The name routes to `onName` when given (e.g. the bestiary page from inside the
+  // creature modal); on the combat field it falls back to opening the creature modal.
+  const nameClick = onName ? (e) => { e.stopPropagation(); onName(); } : seeCreature;
   const axisInfo = (axis) => onInfo && onInfo({ kind: 'axis', axis, value: f.axes?.[axis] });
+  const onPower = onInfo ? (p) => onInfo({ kind: 'power', power: p }) : undefined;
   // The attunement element (badge) for a generated creature is its primary attunement.
   const badgeEl = f.element || f.axes?.attunement?.[0] || null;
   return (
@@ -424,7 +477,8 @@ function CardFace({ f, side, matchup, onEffect, onInfo, extraClass = '', dataId,
             </>;
           })()}
         </div>
-        <div className={`nameBan${seeCreature ? ' clickable' : ''}`} onClick={seeCreature}>{f.name}{f.hp <= 0 ? ' 💀' : ''}</div>
+        <div className={`nameBan${nameClick ? ' clickable' : ''}`} onClick={nameClick}
+          title={onName ? `${f.name} — open bestiary page` : (seeCreature ? `${f.name} — tap for details` : undefined)}>{f.name}{f.hp <= 0 ? ' 💀' : ''}</div>
         {f.axes && (f.axes.class || f.axes.biology || f.axes.attunement) && (
           <div className="axesLine">
             {[['class', f.axes.class?.[0]], ['biology', f.axes.biology?.[0]], ['attunement', f.axes.attunement?.[0]]]
@@ -442,7 +496,7 @@ function CardFace({ f, side, matchup, onEffect, onInfo, extraClass = '', dataId,
           onClick={onInfo ? (e) => { e.stopPropagation(); onInfo({ kind: 'matchup', matchup, atk: badgeEl, def: matchup.def }); } : undefined}>
           <Icon icon={matchup.good ? 'tabler:caret-up-filled' : 'tabler:caret-down-filled'} /> {matchup.label}
         </div>}
-        <div className="stats"><StatChips f={f} onEffect={onEffect} /></div>
+        <div className="stats"><StatChips f={f} onEffect={onEffect} onPower={onPower} /></div>
       </div>
     </div>
   );
@@ -1047,7 +1101,10 @@ export default function CombatScreen({ onMenu, onRestart, embedded } = {}) {
                           <div className="axReacts">
                             <b>Reactions</b> (hit a status with {v}):
                             <ul>{rx.map(([st, cell]) => (
-                              <li key={st}><span className="rxVerb">{cell.verb}</span> — vs <FxLink id={st} onEntity={setInfo} /></li>
+                              <li key={st}>
+                                <button className="rxVerb logEnt" onClick={() => setInfo({ kind: 'reaction', verb: cell.verb, element: v, status: st })}>{cell.verb}</button>
+                                {' '}— vs <FxLink id={st} onEntity={setInfo} />
+                              </li>
                             ))}</ul>
                           </div>
                         )}
@@ -1082,6 +1139,27 @@ export default function CombatScreen({ onMenu, onRestart, embedded } = {}) {
                 <p>{REACTION_INFO[info.verb] || 'An elemental reaction — hitting a status with the right element triggers a payoff. Statuses still work on their own; reactions are pure upside.'}</p>
               </div>
             )}
+
+            {info.kind === 'power' && (() => {
+              const p = info.power || {};
+              const timing = TRIGGER_TIMING[p.on] || (p.passive ? 'Passive — an ongoing rule' : 'While active');
+              const eff = describeOps(p.effects);
+              return (
+                <div>
+                  <div className="infoHead"><Icon icon={powerIcon(p.id)} /> {powerLabel(p.id)}</div>
+                  <div className="infoRow"><Icon icon="game-icons:hourglass" /> {timing}</div>
+                  {eff && <p>{eff}.</p>}
+                  {p.passive && <p className="cdHint">Passive rule: {p.passive}.</p>}
+                  {!eff && !p.passive && <p>An ongoing power on this creature.</p>}
+                </div>
+              );
+            })()}
+
+            {info.kind === 'bestiary' && (() => {
+              const f = fightersById.get(info.id);
+              if (!f) return null;
+              return <MonsterPage creature={f} />;
+            })()}
 
             {info.kind === 'matchupNote' && (
               <div>
@@ -1120,12 +1198,15 @@ export default function CombatScreen({ onMenu, onRestart, embedded } = {}) {
                     return (
                       <React.Fragment key={i}>
                         {i > 0 && <div className="intentArrow" aria-hidden="true">↓</div>}
-                        <button className={`intentRow${action.revealed ? ' revealed' : ''}`} onClick={() => openAction(action)}>
+                        <button className={`intentRow${action.revealed ? ' revealed' : ''}`}
+                          title={action.revealed ? 'Tap to see the full card' : 'Peek to reveal'}
+                          onClick={() => (action.revealed && action.detail?.card ? openCard(action.detail.card) : openAction(action))}>
                           <span className="iStep">{i + 1}</span>
                           <Icon className="iIcon" icon={iv.icon} />
                           <span className="iName">{actor?.name || 'Foe'}</span>
-                          <span className="iAct">{actionTitle(action)}</span>
-                          <span className="iTgt"><Icon icon="game-icons:bullseye" /> {planTargetName(action)}{action.revealed && iv.text !== '?' ? ` · ${iv.text}` : ''}</span>
+                          <span className="iAct">{action.revealed ? (action.detail?.cardName || actionTitle(action)) : actionTitle(action)}</span>
+                          <span className="iTgt"><Icon icon="game-icons:bullseye" /> {planTargetName(action)}</span>
+                          {action.revealed && <span className="iNums">{describeEffectsDetailed(action.detail?.effects)}</span>}
                         </button>
                       </React.Fragment>
                     );
@@ -1165,13 +1246,18 @@ export default function CombatScreen({ onMenu, onRestart, embedded } = {}) {
               const idx = player.fighters.findIndex((x) => x.id === f.id);
               const active = isAlly && idx === player.vanguardIndex;
               const swapCost = player.manualSwapsThisTurn + 1;
-              const canSwitch = isAlly && !active && f.hp > 0 && isPlayerTurn && player.energy >= swapCost;
+              const benched = isAlly && !active && f.hp > 0;
+              const canSwitch = benched && isPlayerTurn && player.energy >= swapCost;
+              const switchWhy = !isPlayerTurn ? 'Only on your turn' : player.energy < swapCost ? `Need ${swapCost}⚡ (have ${player.energy})` : '';
               const cards = isAlly ? (f.deck ?? []) : observedMoves(log, f.id);
               return (
                 <div className="infoCreature">
                   <div className="modalCardWrap">
-                    <CardFace f={f} side={isAlly ? 'ally' : 'enemy'} onEffect={(id) => setInfo({ kind: 'effect', id })} />
+                    <CardFace f={f} side={isAlly ? 'ally' : 'enemy'} onInfo={setInfo}
+                      onName={() => setInfo({ kind: 'bestiary', id: f.id })}
+                      onEffect={(id) => setInfo({ kind: 'effect', id })} />
                   </div>
+                  <p className="cdHint" style={{ textAlign: 'center', margin: '2px 0 0' }}>Tap the name for its bestiary page · tap an axis or status for details.</p>
                   <div className="deckLabel">
                     {isAlly ? <><Icon icon="game-icons:card-pickup" /> Deck ({cards.length})</>
                       : <><Icon icon="game-icons:spy" /> Observed moves ({cards.length})</>}
@@ -1179,10 +1265,11 @@ export default function CombatScreen({ onMenu, onRestart, embedded } = {}) {
                   {cards.length === 0
                     ? <div className="infoRow dim">{isAlly ? 'No cards.' : 'No moves observed yet — they reveal as this foe plays them.'}</div>
                     : <div className="deckGrid">{cards.map((c, i) => <MiniCard key={`${c.id}-${i}`} c={c} onClick={openCard} />)}</div>}
-                  {canSwitch && (
-                    <button className="endBtn" style={{ margin: '12px auto 0' }}
-                      onClick={() => { swap(idx); setInfo(null); }}>
-                      <Icon icon="game-icons:cycle" /> SWITCH IN · {swapCost}⚡
+                  {benched && (
+                    <button className="endBtn" style={{ margin: '12px auto 0' }} disabled={!canSwitch}
+                      title={switchWhy || undefined}
+                      onClick={() => { if (canSwitch) { swap(idx); setInfo(null); } }}>
+                      <Icon icon="game-icons:cycle" /> SWITCH IN · {swapCost}⚡{switchWhy ? ` (${switchWhy})` : ''}
                     </button>
                   )}
                 </div>

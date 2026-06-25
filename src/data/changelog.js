@@ -6,6 +6,15 @@
 
 /** @type {{version:string, date:string, notes:string[]}[]} newest first */
 export const CHANGELOG = [
+  { version: 'v3.66.0', date: '2026-06-25', notes: [
+    'New Bestiary: every roster creature has a full codex page (lore + how to play it), in the Codex’s new Bestiary tab AND in combat — tap a creature’s NAME in its info panel to read its page.',
+    'In a creature’s info panel you can now tap its archetype / biology / attunement and its statuses/powers for details (previously only worked on the battlefield card).',
+    'Totems, turrets, traps and other Powers now show a fitting icon (not a generic fist) and are tappable to explain exactly what they do and when they fire.',
+    'Peeked enemy intent now spells out the full numbers for each action inline — no need to tap. Tapping a revealed action shows the actual card being used.',
+    'Switch In is back and always visible for a benched ally — greyed with the reason when you can’t (wrong turn / not enough energy).',
+    'Reaction names in the attunement panel are now tappable to read what the reaction does.',
+    'Fixed the reward card jumping/stretching when selected, and the white gap at the bottom of the run-over screen.',
+  ] },
   { version: 'v3.65.0', date: '2026-06-25', notes: [
     'Card Forge now shows archetypes by name (not file names) and lets you toggle several at once — click an archetype to show + focus it, double-click to hide; the gallery pools the cards of every shown archetype, and Save writes them all.',
     'Forge cards are now the EXACT same card you see in combat (shared card component), instead of a separate editor-only tile.',

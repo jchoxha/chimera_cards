@@ -69,6 +69,9 @@ html:has(.cmbt),body:has(.cmbt){height:100%;margin:0;overflow:hidden}
 .axReacts ul{margin:4px 0 0;padding-left:16px}
 .axReacts li{margin:2px 0;line-height:1.4}
 .axReacts .rxVerb{color:#ffd34d;font-weight:700;font-family:'Cinzel',serif}
+.axReacts button.rxVerb{background:none;border:none;padding:0;cursor:pointer;text-decoration:underline;text-decoration-style:dotted;text-underline-offset:2px}
+.axReacts button.rxVerb:hover{color:#fff3d6}
+.chip.clickable{cursor:pointer}.chip.clickable:hover{filter:brightness(1.2)}
 
 /* ---------- arena: 3 columns filling the rest of the height ---------- */
 .arena{flex:1 1 auto;min-height:0;display:flex;gap:8px}
@@ -389,7 +392,10 @@ html:has(.cmbt),body:has(.cmbt){height:100%;margin:0;overflow:hidden}
    outside combat (e.g. in the editor). */
 .move.display{flex:0 0 auto;width:124px;margin:0;cursor:pointer;transform:none!important;
   border:none;appearance:none;text-align:left;transform-origin:center}
-.move.display:hover:not(.unplayable){transform:translateY(-5px)!important;transition:transform .12s}
+.move.display:hover:not(.unplayable),.move.display:focus:not(.unplayable){transform:translateY(-5px)!important;transition:transform .12s}
+/* a picked reward/shop card lifts + keeps the gold ring (the global .move :focus
+   rule would otherwise yank it up -20px and scale it). */
+.move.display.sel{transform:translateY(-5px)!important}
 .move.display.unplayable{cursor:default}
 .move.display .micon img.artImg{width:30px;height:30px;object-fit:cover;image-rendering:pixelated}
 .move.display .mPrice{display:flex;align-items:center;justify-content:center;gap:4px;
@@ -451,13 +457,15 @@ html:has(.cmbt),body:has(.cmbt){height:100%;margin:0;overflow:hidden}
 
 /* intent modal — one row per forecast action */
 .intentList{display:flex;flex-direction:column;gap:6px;margin-top:8px}
-.intentRow{display:flex;align-items:center;gap:8px;width:100%;text-align:left;cursor:pointer;font:inherit;
+.intentRow{display:flex;align-items:center;flex-wrap:wrap;gap:6px 8px;width:100%;text-align:left;cursor:pointer;font:inherit;
   padding:7px 9px;border-radius:8px;border:1px solid #4a3f63;background:#1a1230;color:#c9b88a}
 .intentRow.revealed{border-color:var(--gold1);background:#2a1a0a;color:var(--cream)}
 .intentRow .iIcon{font-size:18px;color:#ffd34d;flex:0 0 auto}
 .intentRow .iName{font-family:'Cinzel',serif;font-weight:700;color:var(--cream)}
 .intentRow .iAct{color:#cdbff0}
 .intentRow .iTgt{margin-left:auto;display:flex;align-items:center;gap:3px;font-size:11px;color:#ffd9b0;white-space:nowrap}
+/* revealed numbers get their own full-width line so they’re readable without a click */
+.intentRow .iNums{flex:0 0 100%;font-size:11.5px;color:#9af0bf;border-top:1px dashed #4a3f6388;padding-top:4px}
 
 /* log modal — scrollable history */
 .logModalBody{max-height:46vh;overflow-y:auto;margin-top:8px;padding:6px 9px;border-radius:8px;

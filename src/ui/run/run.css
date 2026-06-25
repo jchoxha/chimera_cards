@@ -175,7 +175,9 @@
 .runBtn:disabled .evHint { color: #8a6a4a; }
 .runHint { color: #9a8a6a; font-size: 13px; text-align: center; font-style: italic; }
 .runActions { display: flex; gap: 10px; justify-content: center; margin-top: 14px; }
-.over { display: grid; place-items: center; text-align: center; min-height: 70vh; }
+/* fill the viewport (the run background paints to the bottom) and centre the
+   content — min-height:70vh used to leave a white strip below on tall screens. */
+.over { display: grid; place-items: center; text-align: center; min-height: 100vh; }
 
 /* Combat is a full-screen replacement. height:100% would depend on every
    ancestor resolving a height (fragile through the app shell), so pin the
