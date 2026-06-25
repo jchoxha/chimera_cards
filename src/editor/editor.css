@@ -102,3 +102,63 @@
 
 .ed .rawEd textarea { width: 100%; min-height: 360px; font-family: ui-monospace, Menlo, Consolas, monospace; font-size: 13px; }
 .ed .rawEd button { margin-top: 8px; }
+
+/* ── Gallery view: filter sidebar + visual card grid (StS2-mod style) ── */
+.ed .galleryWrap { display: flex; align-items: stretch; min-height: 0; }
+.ed .filters { flex: 0 0 220px; padding: 12px; border-right: 1px solid #4a3a22;
+  display: flex; flex-direction: column; gap: 12px; overflow-y: auto; max-height: calc(100vh - 96px); }
+.ed .fSearch { position: relative; }
+.ed .fSearch input { width: 100%; }
+.ed .fClear { position: absolute; right: 4px; top: 50%; transform: translateY(-50%); border: none; background: transparent; color: #c9b58e; padding: 2px 6px; }
+.ed .fAdd { width: 100%; border-style: dashed; }
+.ed .fGroup { display: flex; flex-direction: column; gap: 5px; }
+.ed .fLabel { font-family: 'Cinzel', serif; font-size: 12px; letter-spacing: .6px; color: #c9a23a; text-transform: uppercase; }
+.ed .fRow { display: flex; flex-wrap: wrap; gap: 5px; }
+.ed .fChip, .ed .fCost { padding: 4px 9px; font-size: 12px; text-transform: capitalize; }
+.ed .fCost { min-width: 30px; text-align: center; }
+.ed .fChip.on, .ed .fCost.on, .ed .fSort.on { background: #6a4d1b; border-color: #b88a3e; color: #fff3d6; }
+.ed .fCheck { display: flex; align-items: center; gap: 6px; font-size: 12px; color: #c9b58e; text-transform: capitalize; cursor: pointer; }
+.ed .fCheck input { width: auto; }
+.ed .fSort { font-size: 12px; }
+.ed .fCount { font-size: 11px; color: #8a7a5e; margin-top: auto; }
+@media (max-width: 720px) {
+  .ed .galleryWrap { flex-direction: column; }
+  .ed .filters { flex: 0 0 auto; max-height: none; border-right: none; border-bottom: 1px solid #4a3a22; }
+}
+
+.ed .gallery { flex: 1 1 auto; min-width: 0; display: grid; align-content: start;
+  grid-template-columns: repeat(auto-fill, minmax(186px, 1fr)); gap: 16px; padding: 16px;
+  overflow-y: auto; max-height: calc(100vh - 96px); }
+
+/* a single rendered card tile */
+.ed .gcard { position: relative; display: flex; flex-direction: column; cursor: pointer;
+  background: linear-gradient(#2a2012, #19120a); border: 3px solid #c9a23a; border-radius: 14px;
+  overflow: hidden; box-shadow: 0 6px 16px #000a; transition: transform .1s ease, box-shadow .1s ease; }
+.ed .gcard:hover { transform: translateY(-4px); box-shadow: 0 12px 26px #000c, 0 0 14px #c9a23a55; }
+.ed .gcard.bad { border-color: #c2553a; }
+.ed .gCost { position: absolute; top: 6px; left: 6px; width: 30px; height: 30px; border-radius: 50%; z-index: 3;
+  display: grid; place-items: center; font-family: 'Cinzel', serif; font-weight: 900; color: #fff;
+  background: radial-gradient(circle at 38% 30%, #ffd27a, #c0531f); border: 2px solid #ffe6a8; box-shadow: 0 2px 6px #000a; }
+.ed .gDel { position: absolute; top: 6px; right: 6px; z-index: 3; width: 22px; height: 22px; border-radius: 50%;
+  border: none; background: #6a1f14; color: #ffb9a0; font-size: 11px; line-height: 1; padding: 0; opacity: 0; transition: opacity .1s; }
+.ed .gcard:hover .gDel { opacity: 1; }
+.ed .gName { font-family: 'Cinzel', serif; font-weight: 700; font-size: 13px; text-align: center; line-height: 1.15;
+  color: #fff3d6; padding: 6px 26px; background: #3a2c12; text-shadow: 0 1px 2px #000; }
+.ed .gcard.k-attack .gName { background: linear-gradient(#7a2417, #561a10); }
+.ed .gcard.k-skill .gName { background: linear-gradient(#1c4a5a, #133646); }
+.ed .gcard.k-power .gName { background: linear-gradient(#3a2a52, #271a3e); }
+.ed .gArt { height: 96px; background: #0d0a06; display: grid; place-items: center; overflow: hidden; }
+.ed .gArt img { width: 100%; height: 100%; object-fit: cover; image-rendering: pixelated; }
+.ed .gNoArt { font-family: 'Cinzel', serif; font-size: 30px; color: #6a5a3a; }
+.ed .gType { text-align: center; font-size: 10px; letter-spacing: 1.5px; text-transform: uppercase; color: #d8b24a; padding: 3px; background: #241a10; }
+.ed .gText { flex: 1 1 auto; min-height: 50px; font-size: 11px; line-height: 1.3; padding: 7px 8px;
+  background: linear-gradient(#efe2bd, #dccba0); color: #3a2c12; }
+
+/* ── Edit modal (opens when a card is clicked) ── */
+.ed .editModal { position: fixed; inset: 0; background: #0a0710e0; z-index: 50; display: grid; place-items: center; padding: 18px; }
+.ed .editPanel { position: relative; width: min(760px, 96vw); max-height: 92vh;
+  background: linear-gradient(#241a10, #15100a); border: 2px solid #b88a3e; border-radius: 14px; box-shadow: 0 24px 70px #000d; }
+.ed .editClose { position: absolute; top: 10px; right: 10px; z-index: 3; width: 30px; height: 30px; border-radius: 50%;
+  background: #2e2213; border: 1px solid #6a4d1b; color: #e8dcc8; font-size: 14px; padding: 0; }
+.ed .editPanel .form { max-height: 92vh; overflow-y: auto; padding: 18px 18px 22px; }
+.ed .editPanel .form h2 { padding-right: 36px; }

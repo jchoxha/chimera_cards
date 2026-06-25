@@ -14,6 +14,7 @@ import {
 // Trigger options shown per effect op (onPlay = immediate; 'passive' is power-only).
 const OP_TRIGGERS = ['onPlay', ...TRIGGER_EVENTS.filter((e) => e !== 'onPlay' && e !== 'passive')];
 import { describeCard } from '../engine/cards/cardText.js';
+import { cardArt } from '../data/artPool.js';
 import { APP_VERSION } from '../version.js';
 import { STANCES } from '../engine/combat/stances.js';
 import { TARGET_SCOPES, RARITIES } from '../engine/types.js';
@@ -171,6 +172,23 @@ function OpList({ ops, onChange }) {
   );
 }
 
+/** A rendered card tile for the gallery — frame + cost + name banner + art + type + auto-text. */
+function GalleryCard({ c, bad, onClick, onDelete }) {
+  const art = (c.art && resolveArt(c.art)) || cardArt(c);
+  const kind = c.type || 'skill';
+  const cost = c.cost === -1 ? 'X' : c.cost === -2 ? '—' : (c.cost ?? 0);
+  return (
+    <div className={`gcard k-${kind}${bad ? ' bad' : ''}`} onClick={onClick} title="Click to edit">
+      <span className="gCost">{cost}</span>
+      <button className="gDel" title="Delete card" onClick={(e) => { e.stopPropagation(); onDelete(); }}>✕</button>
+      <div className="gName">{c.name || '(unnamed)'}</div>
+      <div className="gArt">{art ? <img src={art} alt="" /> : <span className="gNoArt">{(kind[0] || '?').toUpperCase()}</span>}</div>
+      <div className="gType">{kind}</div>
+      <div className="gText">{describeCard(c) || c.text || '—'}</div>
+    </div>
+  );
+}
+
 export function CardEditor({ onMenu } = {}) {
   const [files, setFiles] = useState(() => clone(BASE_FILES));
   const [activeFile, setActiveFile] = useState(() => Object.keys(BASE_FILES)[0] || 'warrior.json');
@@ -186,8 +204,21 @@ export function CardEditor({ onMenu } = {}) {
   const [presets, setPresets] = useState(() => listPresets(activeFile));
   const [presetSel, setPresetSel] = useState('');
   const [artLib, setArtLib] = useState(() => listArt());
+  // Gallery view: filters + the edit form opens as a modal when a card is clicked.
+  const [editing, setEditing] = useState(false);
+  const [q, setQ] = useState('');
+  const [fTypes, setFTypes] = useState(() => new Set());
+  const [fRarities, setFRarities] = useState(() => new Set());
+  const [fCosts, setFCosts] = useState(() => new Set());
+  const [sortAZ, setSortAZ] = useState(false);
 
   useEffect(() => { detectDevWrite().then(setDevAvailable); }, []);
+  useEffect(() => {
+    if (!editing) return undefined;
+    const onKey = (e) => { if (e.key === 'Escape') setEditing(false); };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [editing]);
   useEffect(() => { setPresets(listPresets(activeFile)); setPresetSel(''); }, [activeFile]);
 
   useEffect(() => {
@@ -203,6 +234,23 @@ export function CardEditor({ onMenu } = {}) {
   const card = cards[cardIdx] || null;
   const errors = useMemo(() => (card ? validateCard(card) : []), [card]);
 
+  // Gallery filtering/sorting — keeps each card's ORIGINAL index so edits map back.
+  const costKey = (c) => (c.cost === -1 ? 'X' : (c.cost ?? 0) >= 3 ? '3+' : String(c.cost ?? 0));
+  const view = useMemo(() => {
+    const ql = q.trim().toLowerCase();
+    let v = cards.map((c, i) => ({ c, i })).filter(({ c }) => {
+      if (ql && !(c.name || '').toLowerCase().includes(ql) && !(c.id || '').toLowerCase().includes(ql)) return false;
+      if (fTypes.size && !fTypes.has(c.type)) return false;
+      if (fRarities.size && !fRarities.has(c.rarity || 'common')) return false;
+      if (fCosts.size && !fCosts.has(costKey(c))) return false;
+      return true;
+    });
+    if (sortAZ) v = [...v].sort((a, b) => (a.c.name || '').localeCompare(b.c.name || ''));
+    return v;
+  }, [cards, q, fTypes, fRarities, fCosts, sortAZ]);
+  const toggleIn = (setFn, val) => setFn((s) => { const n = new Set(s); if (n.has(val)) n.delete(val); else n.add(val); return n; });
+  const openCardForEdit = (i) => { setCardIdx(i); setRaw(false); setEditing(true); };
+
   useEffect(() => { if (card) { setRawText(JSON.stringify(card, null, 2)); setRawErr(''); } }, [cardIdx, raw, card]);
 
   function updateCard(patch) {
@@ -217,6 +265,8 @@ export function CardEditor({ onMenu } = {}) {
     const blank = { id: `${slug(cls) || 'card'}_new_${cards.length + 1}`, name: 'New Card', class: cls || undefined, attunement: 'Physical', type: 'attack', cost: 1, rarity: 'common', keywords: [], text: '', effects: [{ ...EFFECT_OPS.damage.default }] };
     setWorking((w) => ({ ...w, cards: [...w.cards, blank] }));
     setCardIdx(cards.length);
+    setRaw(false);
+    setEditing(true);
   }
   function deleteCard(i) {
     if (!confirm(`Delete "${cards[i]?.name}"?`)) return;
@@ -336,22 +386,58 @@ export function CardEditor({ onMenu } = {}) {
 
       {status && <div className="statusbar">{status}</div>}
 
-      <div className="body">
-        <aside className="list">
-          <button className="addCard" onClick={addCard}>+ add card</button>
-          {cards.map((c, i) => (
-            <div key={c.id || i} className={`li ${i === cardIdx ? 'sel' : ''} ${validateCard(c).length ? 'bad' : ''}`} onClick={() => { setCardIdx(i); setRaw(false); }}>
-              <span className={`pip ${c.type}`}>{(c.type || '?')[0].toUpperCase()}</span>
-              <span className="liName">{c.name || '(unnamed)'}</span>
-              <span className="liCost">{c.cost === -1 ? 'X' : c.cost}</span>
-              <button className="del" onClick={(e) => { e.stopPropagation(); deleteCard(i); }}>✕</button>
+      <div className="galleryWrap">
+        <aside className="filters">
+          <div className="fSearch">
+            <input placeholder="Search…" value={q} onChange={(e) => setQ(e.target.value)} />
+            {q && <button className="fClear" onClick={() => setQ('')} title="Clear">✕</button>}
+          </div>
+          <button className="addCard fAdd" onClick={addCard}>+ add card</button>
+
+          <div className="fGroup">
+            <div className="fLabel">Card Type</div>
+            <div className="fRow">
+              {CARD_TYPES.map((t) => (
+                <button key={t} className={`fChip ${fTypes.has(t) ? 'on' : ''}`} onClick={() => toggleIn(setFTypes, t)}>{t}</button>
+              ))}
             </div>
-          ))}
-          {cards.length === 0 && <p className="empty">No cards yet. Add one.</p>}
+          </div>
+
+          <div className="fGroup">
+            <div className="fLabel">Rarity</div>
+            {RARITIES.map((r) => (
+              <label key={r} className="fCheck"><input type="checkbox" checked={fRarities.has(r)} onChange={() => toggleIn(setFRarities, r)} /> {r}</label>
+            ))}
+          </div>
+
+          <div className="fGroup">
+            <div className="fLabel">Cost</div>
+            <div className="fRow">
+              {['0', '1', '2', '3+', 'X'].map((c) => (
+                <button key={c} className={`fCost ${fCosts.has(c) ? 'on' : ''}`} onClick={() => toggleIn(setFCosts, c)}>{c}</button>
+              ))}
+            </div>
+          </div>
+
+          <button className={`fSort ${sortAZ ? 'on' : ''}`} onClick={() => setSortAZ((s) => !s)}>A–Z sort {sortAZ ? '✓' : ''}</button>
+          <div className="fCount">{view.length} / {cards.length} cards</div>
         </aside>
 
-        <main className="form">
-          {!card ? <p className="empty">Select or add a card.</p> : (
+        <div className="gallery">
+          {view.map(({ c, i }) => (
+            <GalleryCard key={c.id || i} c={c} bad={validateCard(c).length > 0}
+              onClick={() => openCardForEdit(i)} onDelete={() => deleteCard(i)} />
+          ))}
+          {view.length === 0 && <p className="empty">{cards.length ? 'No cards match these filters.' : 'No cards yet — add one.'}</p>}
+        </div>
+      </div>
+
+      {editing && card && (
+        <div className="editModal" onClick={() => setEditing(false)}>
+          <div className="editPanel" onClick={(e) => e.stopPropagation()}>
+            <button className="editClose" title="Close (Esc)" onClick={() => setEditing(false)}>✕</button>
+            <main className="form">
+              {!card ? <p className="empty">Select or add a card.</p> : (
             <>
               <div className="formTop">
                 <h2>{card.name}</h2>
@@ -449,8 +535,10 @@ export function CardEditor({ onMenu } = {}) {
               )}
             </>
           )}
-        </main>
-      </div>
+            </main>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
