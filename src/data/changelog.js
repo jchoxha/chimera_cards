@@ -6,6 +6,9 @@
 
 /** @type {{version:string, date:string, notes:string[]}[]} newest first */
 export const CHANGELOG = [
+  { version: 'v3.61.3', date: '2026-06-25', notes: [
+    'Card editor: fixed the card list pushing the edit form off-screen — the list is now a fixed, scrolling sidebar (or a height-capped panel on narrow screens) instead of a full-height column.',
+  ] },
   { version: 'v3.61.2', date: '2026-06-25', notes: [
     'Card editor: scoped all of its styles under .ed so its generic class names (list/form/grid/pip…) can’t be overridden by the game’s stylesheets when the Forge is opened from the app — fixes the editor body rendering blank/invisible there.',
   ] },

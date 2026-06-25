@@ -42,10 +42,16 @@
 .ed .settings .row { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 8px; }
 .ed .statusbar { padding: 6px 12px; background: #20180c; border-bottom: 1px solid #4a3a22; font-size: 13px; }
 
-.ed .body { display: grid; grid-template-columns: 260px 1fr; gap: 0; align-items: start; }
-@media (max-width: 720px) { .ed .body { grid-template-columns: 1fr; } }
-
-.ed .list { border-right: 1px solid #4a3a22; padding: 8px; min-height: calc(100vh - 50px); }
+/* Flex row: a fixed list sidebar + a flexible form. The list scrolls within its
+   own height and NEVER pushes the form (its old min-height:100vh did exactly that
+   whenever the layout went single-column, shoving the form off the bottom). */
+.ed .body { display: flex; align-items: stretch; }
+.ed .list { flex: 0 0 248px; border-right: 1px solid #4a3a22; padding: 8px; align-self: stretch;
+  max-height: calc(100vh - 50px); overflow-y: auto; }
+@media (max-width: 720px) {
+  .ed .body { flex-direction: column; }
+  .ed .list { flex: 0 0 auto; max-height: 38vh; border-right: none; border-bottom: 1px solid #4a3a22; }
+}
 .ed .addCard, .ed .addOp { width: 100%; margin-bottom: 8px; border-style: dashed; }
 .ed .li { display: flex; align-items: center; gap: 6px; padding: 6px; border-radius: 6px; cursor: pointer; }
 .ed .li:hover { background: #20180c; }
@@ -61,7 +67,7 @@
 .ed .pip.power { background: #3a2a52; color: #d0b0ff; }
 .ed .empty { color: #8a7a5e; padding: 10px; }
 
-.ed .form { padding: 14px; }
+.ed .form { flex: 1 1 auto; min-width: 0; padding: 14px; max-height: calc(100vh - 50px); overflow-y: auto; }
 .ed .formTop { display: flex; align-items: center; gap: 12px; }
 .ed .formTop h2 { margin: 0; }
 .ed .rawToggle { margin-left: auto; font-size: 13px; color: #c9b58e; }
