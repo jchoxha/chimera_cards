@@ -10,10 +10,12 @@
 // ╚══════════════════════════════════════════════════════════════════╝
 
 import manifest from './placeholderArt.json';
+import genCards from './cardGenArt.json';
 
 const BASE = (import.meta.env && import.meta.env.BASE_URL) || '/';
 const ITEMS = manifest.items || [];
 const BEINGS = manifest.beings || [];
+const GEN_CARDS = new Set(genCards || []);
 
 const itemUrl = (f) => `${BASE}art/items/${f}`;
 const beingUrl = (f) => `${BASE}art/beings/${f}`;
@@ -54,6 +56,9 @@ const CLASS_WEAPON = {
 export function cardArt(card) {
   if (!card) return null;
   if (typeof card.art === 'string' && /^(https?:|\/)/.test(card.art)) return card.art;
+  // Prefer generated Variant-B ability art (scripts/gen_cards.py) when it exists.
+  const baseId = card.id && String(card.id).replace(/#\d+$/, '');
+  if (baseId && GEN_CARDS.has(baseId)) return `${BASE}art/gen/cards/${baseId}.png`;
 
   const ops = Array.isArray(card.effects) ? card.effects : [];
   const flat = (!Array.isArray(card.effects) && card.effects) || {};

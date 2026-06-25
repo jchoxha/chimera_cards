@@ -25,7 +25,8 @@
             "value": 9
           }
         ]
-      }
+      },
+      "artPrompt": "\"Strike\": a battle-scarred warrior unleashing a single brutal, focused offensive strike, rendered with raw kinetic force — dust, motion lines and steel-grey impact."
     },
     {
       "id": "warrior_guard",
@@ -48,7 +49,8 @@
             "value": 8
           }
         ]
-      }
+      },
+      "artPrompt": "\"Guard\": a battle-scarred warrior bracing behind a glowing wall of protective guard, rendered with raw kinetic force — dust, motion lines and steel-grey impact."
     },
     {
       "id": "warrior_cleave",
@@ -72,7 +74,8 @@
             "value": 11
           }
         ]
-      }
+      },
+      "artPrompt": "\"Cleave\": a battle-scarred warrior unleashing a single brutal, focused offensive strike, rendered with raw kinetic force — dust, motion lines and steel-grey impact."
     },
     {
       "id": "warrior_pommel_strike",
@@ -104,7 +107,8 @@
             "value": 1
           }
         ]
-      }
+      },
+      "artPrompt": "\"Pommel Strike\": a battle-scarred warrior unleashing a single brutal, focused offensive strike, rendered with raw kinetic force — dust, motion lines and steel-grey impact."
     },
     {
       "id": "warrior_reckless_swing",
@@ -135,7 +139,8 @@
             "block": 4
           }
         ]
-      }
+      },
+      "artPrompt": "\"Reckless Swing\": a battle-scarred warrior unleashing a single brutal, focused offensive strike, rendered with raw kinetic force — dust, motion lines and steel-grey impact."
     },
     {
       "id": "warrior_execute",
@@ -166,7 +171,8 @@
             "bonusMult": 2
           }
         ]
-      }
+      },
+      "artPrompt": "\"Execute\": a battle-scarred warrior unleashing a single brutal, focused offensive strike, rendered with raw kinetic force — dust, motion lines and steel-grey impact."
     },
     {
       "id": "warrior_sunder",
@@ -199,7 +205,8 @@
             "value": 3
           }
         ]
-      }
+      },
+      "artPrompt": "\"Sunder\": a battle-scarred warrior unleashing a single brutal, focused offensive strike, rendered with raw kinetic force — dust, motion lines and steel-grey impact."
     },
     {
       "id": "warrior_earthshaker",
@@ -225,7 +232,8 @@
             "scope": "wholeEnemySide"
           }
         ]
-      }
+      },
+      "artPrompt": "\"Earthshaker\": a battle-scarred warrior unleashing a single brutal, focused offensive strike, rendered with raw kinetic force — dust, motion lines and steel-grey impact."
     },
     {
       "id": "warrior_whirlwind",
@@ -251,7 +259,8 @@
             "hits": "X"
           }
         ]
-      }
+      },
+      "artPrompt": "\"Whirlwind\": a battle-scarred warrior unleashing a single brutal, focused offensive strike, rendered with raw kinetic force — dust, motion lines and steel-grey impact."
     },
     {
       "id": "warrior_rampage_slam",
@@ -283,7 +292,8 @@
             "bonusAdd": 8
           }
         ]
-      }
+      },
+      "artPrompt": "\"Rampage Slam\": a battle-scarred warrior unleashing a single brutal, focused offensive strike, rendered with raw kinetic force — dust, motion lines and steel-grey impact."
     },
     {
       "id": "warrior_crushing_weight",
@@ -307,7 +317,8 @@
             "valueFrom": "selfBlock"
           }
         ]
-      }
+      },
+      "artPrompt": "\"Crushing Weight\": a battle-scarred warrior unleashing a single brutal, focused offensive strike, rendered with raw kinetic force — dust, motion lines and steel-grey impact."
     },
     {
       "id": "warrior_shield_wall",
@@ -330,7 +341,8 @@
             "value": 11
           }
         ]
-      }
+      },
+      "artPrompt": "\"Shield Wall\": a battle-scarred warrior bracing behind a glowing wall of protective guard, rendered with raw kinetic force — dust, motion lines and steel-grey impact."
     },
     {
       "id": "warrior_bulwark",
@@ -355,7 +367,8 @@
             "brace": true
           }
         ]
-      }
+      },
+      "artPrompt": "\"Bulwark\": a battle-scarred warrior bracing behind a glowing wall of protective guard, rendered with raw kinetic force — dust, motion lines and steel-grey impact."
     },
     {
       "id": "warrior_iron_will",
@@ -380,7 +393,8 @@
             "value": 3
           }
         ]
-      }
+      },
+      "artPrompt": "\"Iron Will\": a battle-scarred warrior surging with empowering energy, muscles and aura flaring, rendered with raw kinetic force — dust, motion lines and steel-grey impact."
     },
     {
       "id": "warrior_second_wind",
@@ -405,7 +419,8 @@
             "bonusPerDexterity": 1
           }
         ]
-      }
+      },
+      "artPrompt": "\"Second Wind\": a battle-scarred warrior bracing behind a glowing wall of protective guard, rendered with raw kinetic force — dust, motion lines and steel-grey impact."
     },
     {
       "id": "warrior_advance",
@@ -442,7 +457,8 @@
             "value": 2
           }
         ]
-      }
+      },
+      "artPrompt": "\"Advance\": a battle-scarred warrior settling into a charged, ready combat stance, weapon poised, rendered with raw kinetic force — dust, motion lines and steel-grey impact."
     },
     {
       "id": "warrior_brace_up",
@@ -479,7 +495,8 @@
             "value": 7
           }
         ]
-      }
+      },
+      "artPrompt": "\"Brace Up\": a battle-scarred warrior settling into a charged, ready combat stance, weapon poised, rendered with raw kinetic force — dust, motion lines and steel-grey impact."
     },
     {
       "id": "warrior_berserk",
@@ -511,7 +528,8 @@
             "value": 1
           }
         ]
-      }
+      },
+      "artPrompt": "\"Berserk\": a battle-scarred warrior settling into a charged, ready combat stance, weapon poised, rendered with raw kinetic force — dust, motion lines and steel-grey impact."
     },
     {
       "id": "warrior_fortify",
@@ -544,7 +562,8 @@
             "brace": true
           }
         ]
-      }
+      },
+      "artPrompt": "\"Fortify\": a battle-scarred warrior settling into a charged, ready combat stance, weapon poised, rendered with raw kinetic force — dust, motion lines and steel-grey impact."
     },
     {
       "id": "warrior_war_cry",
@@ -569,7 +588,8 @@
             "value": 3
           }
         ]
-      }
+      },
+      "artPrompt": "\"War Cry\": a battle-scarred warrior surging with empowering energy, muscles and aura flaring, rendered with raw kinetic force — dust, motion lines and steel-grey impact."
     },
     {
       "id": "warrior_flex",
@@ -597,7 +617,8 @@
             "value": 4
           }
         ]
-      }
+      },
+      "artPrompt": "\"Flex\": a battle-scarred warrior surging with empowering energy, muscles and aura flaring, rendered with raw kinetic force — dust, motion lines and steel-grey impact."
     },
     {
       "id": "warrior_battle_trance",
@@ -620,7 +641,8 @@
             "value": 3
           }
         ]
-      }
+      },
+      "artPrompt": "\"Battle Trance\": a battle-scarred warrior drawing a focusing surge of insight, cards and motes swirling close, rendered with raw kinetic force — dust, motion lines and steel-grey impact."
     },
     {
       "id": "warrior_bloodlust",
@@ -652,7 +674,8 @@
             }
           ]
         }
-      }
+      },
+      "artPrompt": "\"Bloodlust\": a battle-scarred warrior conjuring a lingering, glowing construct that hovers ready on the battlefield, rendered with raw kinetic force — dust, motion lines and steel-grey impact."
     },
     {
       "id": "warrior_rampart",
@@ -666,7 +689,8 @@
       "passive": "blockAlwaysBraces",
       "upgrade": {
         "cost": 1
-      }
+      },
+      "artPrompt": "\"Rampart\": a battle-scarred warrior conjuring a lingering, glowing construct that hovers ready on the battlefield, rendered with raw kinetic force — dust, motion lines and steel-grey impact."
     },
     {
       "id": "warrior_juggernaut",
@@ -698,7 +722,8 @@
             }
           ]
         }
-      }
+      },
+      "artPrompt": "\"Juggernaut\": a battle-scarred warrior conjuring a lingering, glowing construct that hovers ready on the battlefield, rendered with raw kinetic force — dust, motion lines and steel-grey impact."
     },
     {
       "id": "warrior_endless_stamina",
@@ -720,7 +745,8 @@
       },
       "upgrade": {
         "cost": 0
-      }
+      },
+      "artPrompt": "\"Endless Stamina\": a battle-scarred warrior conjuring a lingering, glowing construct that hovers ready on the battlefield, rendered with raw kinetic force — dust, motion lines and steel-grey impact."
     }
   ]
 }

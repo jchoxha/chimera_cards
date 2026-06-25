@@ -25,7 +25,8 @@
             "value": 8
           }
         ]
-      }
+      },
+      "artPrompt": "\"Smite\": a radiant robed priest unleashing a single brutal, focused offensive strike, rendered with radiant golden light, warm divine glow and soft haloes."
     },
     {
       "id": "priest_sanctuary",
@@ -48,7 +49,8 @@
             "value": 7
           }
         ]
-      }
+      },
+      "artPrompt": "\"Sanctuary\": a radiant robed priest bracing behind a glowing wall of protective guard, rendered with radiant golden light, warm divine glow and soft haloes."
     },
     {
       "id": "priest_heal",
@@ -71,7 +73,8 @@
             "value": 11
           }
         ]
-      }
+      },
+      "artPrompt": "\"Heal\": a radiant robed priest channeling restorative energy that knits wounds closed, rendered with radiant golden light, warm divine glow and soft haloes."
     },
     {
       "id": "priest_renew",
@@ -96,7 +99,8 @@
             "value": 4
           }
         ]
-      }
+      },
+      "artPrompt": "\"Renew\": a radiant robed priest surging with empowering energy, muscles and aura flaring, rendered with radiant golden light, warm divine glow and soft haloes."
     },
     {
       "id": "priest_divine_shield",
@@ -119,7 +123,8 @@
             "value": 11
           }
         ]
-      }
+      },
+      "artPrompt": "\"Divine Shield\": a radiant robed priest bracing behind a glowing wall of protective guard, rendered with radiant golden light, warm divine glow and soft haloes."
     },
     {
       "id": "priest_purify",
@@ -150,7 +155,8 @@
             "value": 2
           }
         ]
-      }
+      },
+      "artPrompt": "\"Purify\": a radiant robed priest channeling restorative energy that knits wounds closed, rendered with radiant golden light, warm divine glow and soft haloes."
     },
     {
       "id": "priest_holy_fire",
@@ -174,7 +180,8 @@
             "value": 8
           }
         ]
-      }
+      },
+      "artPrompt": "\"Holy Fire\": a radiant robed priest unleashing a single brutal, focused offensive strike, rendered with radiant golden light, warm divine glow and soft haloes."
     },
     {
       "id": "priest_conviction",
@@ -198,7 +205,8 @@
             "value": 10
           }
         ]
-      }
+      },
+      "artPrompt": "\"Conviction\": a radiant robed priest unleashing a single brutal, focused offensive strike, rendered with radiant golden light, warm divine glow and soft haloes."
     },
     {
       "id": "priest_inspire",
@@ -223,7 +231,8 @@
             "value": 3
           }
         ]
-      }
+      },
+      "artPrompt": "\"Inspire\": a radiant robed priest surging with empowering energy, muscles and aura flaring, rendered with radiant golden light, warm divine glow and soft haloes."
     },
     {
       "id": "priest_lay_on_hands",
@@ -246,7 +255,8 @@
             "value": 20
           }
         ]
-      }
+      },
+      "artPrompt": "\"Lay on Hands\": a radiant robed priest channeling restorative energy that knits wounds closed, rendered with radiant golden light, warm divine glow and soft haloes."
     },
     {
       "id": "priest_sanctify",
@@ -269,7 +279,8 @@
             "value": 14
           }
         ]
-      }
+      },
+      "artPrompt": "\"Sanctify\": a radiant robed priest bracing behind a glowing wall of protective guard, rendered with radiant golden light, warm divine glow and soft haloes."
     },
     {
       "id": "priest_condemn",
@@ -293,7 +304,8 @@
             "value": 14
           }
         ]
-      }
+      },
+      "artPrompt": "\"Condemn\": a radiant robed priest unleashing a single brutal, focused offensive strike, rendered with radiant golden light, warm divine glow and soft haloes."
     },
     {
       "id": "priest_holy_wrath",
@@ -317,7 +329,8 @@
             "value": 13
           }
         ]
-      }
+      },
+      "artPrompt": "\"Holy Wrath\": a radiant robed priest unleashing a single brutal, focused offensive strike, rendered with radiant golden light, warm divine glow and soft haloes."
     },
     {
       "id": "priest_searing_light",
@@ -342,7 +355,8 @@
             "scope": "wholeEnemySide"
           }
         ]
-      }
+      },
+      "artPrompt": "\"Searing Light\": a radiant robed priest unleashing a single brutal, focused offensive strike, rendered with radiant golden light, warm divine glow and soft haloes."
     },
     {
       "id": "priest_holy_nova",
@@ -367,7 +381,8 @@
             "scope": "wholeEnemySide"
           }
         ]
-      }
+      },
+      "artPrompt": "\"Holy Nova\": a radiant robed priest unleashing a single brutal, focused offensive strike, rendered with radiant golden light, warm divine glow and soft haloes."
     },
     {
       "id": "priest_benediction",
@@ -400,7 +415,8 @@
             "value": 2
           }
         ]
-      }
+      },
+      "artPrompt": "\"Benediction\": a radiant robed priest bracing behind a glowing wall of protective guard, rendered with radiant golden light, warm divine glow and soft haloes."
     },
     {
       "id": "priest_halo",
@@ -431,7 +447,8 @@
             }
           ]
         }
-      }
+      },
+      "artPrompt": "\"Halo\": a radiant robed priest conjuring a lingering, glowing construct that hovers ready on the battlefield, rendered with radiant golden light, warm divine glow and soft haloes."
     },
     {
       "id": "priest_judgment",
@@ -455,7 +472,8 @@
             "value": 17
           }
         ]
-      }
+      },
+      "artPrompt": "\"Judgment\": a radiant robed priest unleashing a single brutal, focused offensive strike, rendered with radiant golden light, warm divine glow and soft haloes."
     },
     {
       "id": "priest_faith",
@@ -486,7 +504,8 @@
             }
           ]
         }
-      }
+      },
+      "artPrompt": "\"Faith\": a radiant robed priest conjuring a lingering, glowing construct that hovers ready on the battlefield, rendered with radiant golden light, warm divine glow and soft haloes."
     },
     {
       "id": "priest_divinity",
@@ -515,7 +534,8 @@
             }
           ]
         }
-      }
+      },
+      "artPrompt": "\"Divinity\": a radiant robed priest conjuring a lingering, glowing construct that hovers ready on the battlefield, rendered with radiant golden light, warm divine glow and soft haloes."
     }
   ]
 }

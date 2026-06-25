@@ -25,7 +25,8 @@
             "value": 8
           }
         ]
-      }
+      },
+      "artPrompt": "\"Quick Shot\": a keen-eyed ranger unleashing a single brutal, focused offensive strike, rendered with raw kinetic force — dust, motion lines and steel-grey impact."
     },
     {
       "id": "ranger_roll",
@@ -48,7 +49,8 @@
             "value": 7
           }
         ]
-      }
+      },
+      "artPrompt": "\"Roll\": a keen-eyed ranger bracing behind a glowing wall of protective guard, rendered with raw kinetic force — dust, motion lines and steel-grey impact."
     },
     {
       "id": "ranger_hunters_mark",
@@ -81,7 +83,8 @@
             "value": 2
           }
         ]
-      }
+      },
+      "artPrompt": "\"Hunter's Mark\": a keen-eyed ranger hurling a withering hex toward an unseen foe, rendered with raw kinetic force — dust, motion lines and steel-grey impact."
     },
     {
       "id": "ranger_precision",
@@ -105,7 +108,8 @@
             "value": 11
           }
         ]
-      }
+      },
+      "artPrompt": "\"Precision\": a keen-eyed ranger unleashing a single brutal, focused offensive strike, rendered with raw kinetic force — dust, motion lines and steel-grey impact."
     },
     {
       "id": "ranger_hunt",
@@ -131,7 +135,8 @@
             "scope": "piercingEnemyTarget"
           }
         ]
-      }
+      },
+      "artPrompt": "\"Hunt\": a keen-eyed ranger unleashing a single brutal, focused offensive strike, rendered with raw kinetic force — dust, motion lines and steel-grey impact."
     },
     {
       "id": "ranger_camouflage",
@@ -154,7 +159,8 @@
             "value": 11
           }
         ]
-      }
+      },
+      "artPrompt": "\"Camouflage\": a keen-eyed ranger bracing behind a glowing wall of protective guard, rendered with raw kinetic force — dust, motion lines and steel-grey impact."
     },
     {
       "id": "ranger_natural_remedy",
@@ -179,7 +185,8 @@
             "value": 4
           }
         ]
-      }
+      },
+      "artPrompt": "\"Natural Remedy\": a keen-eyed ranger surging with empowering energy, muscles and aura flaring, rendered with raw kinetic force — dust, motion lines and steel-grey impact."
     },
     {
       "id": "ranger_caltrops",
@@ -204,7 +211,8 @@
             "value": 3
           }
         ]
-      }
+      },
+      "artPrompt": "\"Caltrops\": a keen-eyed ranger hurling a withering hex toward an unseen foe, rendered with raw kinetic force — dust, motion lines and steel-grey impact."
     },
     {
       "id": "ranger_aimed_shot",
@@ -230,7 +238,8 @@
             "scope": "flexEnemyTarget"
           }
         ]
-      }
+      },
+      "artPrompt": "\"Aimed Shot\": a keen-eyed ranger unleashing a single brutal, focused offensive strike, rendered with raw kinetic force — dust, motion lines and steel-grey impact."
     },
     {
       "id": "ranger_multishot",
@@ -255,7 +264,8 @@
             "scope": "wholeEnemySide"
           }
         ]
-      }
+      },
+      "artPrompt": "\"Multishot\": a keen-eyed ranger unleashing a single brutal, focused offensive strike, rendered with raw kinetic force — dust, motion lines and steel-grey impact."
     },
     {
       "id": "ranger_volley",
@@ -280,7 +290,8 @@
             "scope": "wholeEnemySide"
           }
         ]
-      }
+      },
+      "artPrompt": "\"Volley\": a keen-eyed ranger unleashing a single brutal, focused offensive strike, rendered with raw kinetic force — dust, motion lines and steel-grey impact."
     },
     {
       "id": "ranger_bear_trap",
@@ -321,7 +332,8 @@
             }
           ]
         }
-      }
+      },
+      "artPrompt": "\"Bear Trap\": a keen-eyed ranger conjuring a lingering, glowing construct that hovers ready on the battlefield, rendered with raw kinetic force — dust, motion lines and steel-grey impact."
     },
     {
       "id": "ranger_summon_hawk",
@@ -352,7 +364,8 @@
             }
           ]
         }
-      }
+      },
+      "artPrompt": "\"Summon Hawk\": a keen-eyed ranger conjuring a lingering, glowing construct that hovers ready on the battlefield, rendered with raw kinetic force — dust, motion lines and steel-grey impact."
     },
     {
       "id": "ranger_track",
@@ -383,7 +396,8 @@
             "value": 2
           }
         ]
-      }
+      },
+      "artPrompt": "\"Track\": a keen-eyed ranger drawing a focusing surge of insight, cards and motes swirling close, rendered with raw kinetic force — dust, motion lines and steel-grey impact."
     },
     {
       "id": "ranger_trapper",
@@ -414,7 +428,8 @@
             }
           ]
         }
-      }
+      },
+      "artPrompt": "\"Trapper\": a keen-eyed ranger conjuring a lingering, glowing construct that hovers ready on the battlefield, rendered with raw kinetic force — dust, motion lines and steel-grey impact."
     },
     {
       "id": "ranger_rapid_fire",
@@ -440,7 +455,8 @@
             "hits": "X"
           }
         ]
-      }
+      },
+      "artPrompt": "\"Rapid Fire\": a keen-eyed ranger unleashing a single brutal, focused offensive strike, rendered with raw kinetic force — dust, motion lines and steel-grey impact."
     },
     {
       "id": "ranger_explosive_trap",
@@ -471,7 +487,8 @@
             }
           ]
         }
-      }
+      },
+      "artPrompt": "\"Explosive Trap\": a keen-eyed ranger conjuring a lingering, glowing construct that hovers ready on the battlefield, rendered with raw kinetic force — dust, motion lines and steel-grey impact."
     },
     {
       "id": "ranger_summon_wolf",
@@ -502,7 +519,8 @@
             }
           ]
         }
-      }
+      },
+      "artPrompt": "\"Summon Wolf\": a keen-eyed ranger conjuring a lingering, glowing construct that hovers ready on the battlefield, rendered with raw kinetic force — dust, motion lines and steel-grey impact."
     },
     {
       "id": "ranger_open_season",
@@ -533,7 +551,8 @@
             }
           ]
         }
-      }
+      },
+      "artPrompt": "\"Open Season\": a keen-eyed ranger conjuring a lingering, glowing construct that hovers ready on the battlefield, rendered with raw kinetic force — dust, motion lines and steel-grey impact."
     }
   ]
 }

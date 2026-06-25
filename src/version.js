@@ -1,3 +1,3 @@
 // App version — bump on every gameplay edit (see golden rules).
-export const APP_VERSION = "v3.63.0";
+export const APP_VERSION = "v3.64.0";
 

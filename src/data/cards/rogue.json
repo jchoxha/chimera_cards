@@ -25,7 +25,8 @@
             "value": 8
           }
         ]
-      }
+      },
+      "artPrompt": "\"Dagger\": a lithe hooded rogue unleashing a single brutal, focused offensive strike, rendered with raw kinetic force — dust, motion lines and steel-grey impact."
     },
     {
       "id": "rogue_dodge",
@@ -48,7 +49,8 @@
             "value": 7
           }
         ]
-      }
+      },
+      "artPrompt": "\"Dodge\": a lithe hooded rogue bracing behind a glowing wall of protective guard, rendered with raw kinetic force — dust, motion lines and steel-grey impact."
     },
     {
       "id": "rogue_backstab",
@@ -72,7 +74,8 @@
             "value": 13
           }
         ]
-      }
+      },
+      "artPrompt": "\"Backstab\": a lithe hooded rogue unleashing a single brutal, focused offensive strike, rendered with raw kinetic force — dust, motion lines and steel-grey impact."
     },
     {
       "id": "rogue_shiv",
@@ -96,7 +99,8 @@
             "value": 6
           }
         ]
-      }
+      },
+      "artPrompt": "\"Shiv\": a lithe hooded rogue unleashing a single brutal, focused offensive strike, rendered with raw kinetic force — dust, motion lines and steel-grey impact."
     },
     {
       "id": "rogue_fan_of_knives",
@@ -122,7 +126,8 @@
             "hits": 2
           }
         ]
-      }
+      },
+      "artPrompt": "\"Fan of Knives\": a lithe hooded rogue unleashing a single brutal, focused offensive strike, rendered with raw kinetic force — dust, motion lines and steel-grey impact."
     },
     {
       "id": "rogue_quick_slash",
@@ -153,7 +158,8 @@
             "value": 2
           }
         ]
-      }
+      },
+      "artPrompt": "\"Quick Slash\": a lithe hooded rogue unleashing a single brutal, focused offensive strike, rendered with raw kinetic force — dust, motion lines and steel-grey impact."
     },
     {
       "id": "rogue_crippling_cut",
@@ -186,7 +192,8 @@
             "value": 3
           }
         ]
-      }
+      },
+      "artPrompt": "\"Crippling Cut\": a lithe hooded rogue unleashing a single brutal, focused offensive strike, rendered with raw kinetic force — dust, motion lines and steel-grey impact."
     },
     {
       "id": "rogue_vanish",
@@ -217,7 +224,8 @@
             "value": 2
           }
         ]
-      }
+      },
+      "artPrompt": "\"Vanish\": a lithe hooded rogue drawing a focusing surge of insight, cards and motes swirling close, rendered with raw kinetic force — dust, motion lines and steel-grey impact."
     },
     {
       "id": "rogue_smoke_bomb",
@@ -248,7 +256,8 @@
             "value": 2
           }
         ]
-      }
+      },
+      "artPrompt": "\"Smoke Bomb\": a lithe hooded rogue bracing behind a glowing wall of protective guard, rendered with raw kinetic force — dust, motion lines and steel-grey impact."
     },
     {
       "id": "rogue_envenom",
@@ -273,7 +282,8 @@
             "value": 5
           }
         ]
-      }
+      },
+      "artPrompt": "\"Envenom\": a lithe hooded rogue hurling a withering hex toward an unseen foe, rendered with raw kinetic force — dust, motion lines and steel-grey impact."
     },
     {
       "id": "rogue_expose_weakness",
@@ -306,7 +316,8 @@
             "value": 2
           }
         ]
-      }
+      },
+      "artPrompt": "\"Expose Weakness\": a lithe hooded rogue hurling a withering hex toward an unseen foe, rendered with raw kinetic force — dust, motion lines and steel-grey impact."
     },
     {
       "id": "rogue_preparation",
@@ -329,7 +340,8 @@
             "value": 3
           }
         ]
-      }
+      },
+      "artPrompt": "\"Preparation\": a lithe hooded rogue drawing a focusing surge of insight, cards and motes swirling close, rendered with raw kinetic force — dust, motion lines and steel-grey impact."
     },
     {
       "id": "rogue_ambush",
@@ -363,7 +375,8 @@
             "value": 3
           }
         ]
-      }
+      },
+      "artPrompt": "\"Ambush\": a lithe hooded rogue unleashing a single brutal, focused offensive strike, rendered with raw kinetic force — dust, motion lines and steel-grey impact."
     },
     {
       "id": "rogue_shadowstep",
@@ -394,7 +407,8 @@
             "value": 2
           }
         ]
-      }
+      },
+      "artPrompt": "\"Shadowstep\": a lithe hooded rogue drawing a focusing surge of insight, cards and motes swirling close, rendered with raw kinetic force — dust, motion lines and steel-grey impact."
     },
     {
       "id": "rogue_eviscerate",
@@ -428,7 +442,8 @@
             }
           }
         ]
-      }
+      },
+      "artPrompt": "\"Eviscerate\": a lithe hooded rogue unleashing a single brutal, focused offensive strike, rendered with raw kinetic force — dust, motion lines and steel-grey impact."
     },
     {
       "id": "rogue_finishing_move",
@@ -459,7 +474,8 @@
             "bonusMult": 2
           }
         ]
-      }
+      },
+      "artPrompt": "\"Finishing Move\": a lithe hooded rogue unleashing a single brutal, focused offensive strike, rendered with raw kinetic force — dust, motion lines and steel-grey impact."
     },
     {
       "id": "rogue_toxic_blades",
@@ -492,7 +508,8 @@
             "value": 4
           }
         ]
-      }
+      },
+      "artPrompt": "\"Toxic Blades\": a lithe hooded rogue unleashing a single brutal, focused offensive strike, rendered with raw kinetic force — dust, motion lines and steel-grey impact."
     },
     {
       "id": "rogue_adrenaline",
@@ -523,7 +540,8 @@
             "value": 2
           }
         ]
-      }
+      },
+      "artPrompt": "\"Adrenaline\": a lithe hooded rogue drawing a focusing surge of insight, cards and motes swirling close, rendered with raw kinetic force — dust, motion lines and steel-grey impact."
     },
     {
       "id": "rogue_deadly_momentum",
@@ -552,7 +570,8 @@
             }
           ]
         }
-      }
+      },
+      "artPrompt": "\"Deadly Momentum\": a lithe hooded rogue conjuring a lingering, glowing construct that hovers ready on the battlefield, rendered with raw kinetic force — dust, motion lines and steel-grey impact."
     },
     {
       "id": "rogue_toxicology",
@@ -583,7 +602,8 @@
             }
           ]
         }
-      }
+      },
+      "artPrompt": "\"Toxicology\": a lithe hooded rogue conjuring a lingering, glowing construct that hovers ready on the battlefield, rendered with raw kinetic force — dust, motion lines and steel-grey impact."
     },
     {
       "id": "rogue_killing_spree",
@@ -609,7 +629,8 @@
             "hits": "X"
           }
         ]
-      }
+      },
+      "artPrompt": "\"Killing Spree\": a lithe hooded rogue unleashing a single brutal, focused offensive strike, rendered with raw kinetic force — dust, motion lines and steel-grey impact."
     },
     {
       "id": "rogue_thousand_cuts",
@@ -640,7 +661,8 @@
             }
           ]
         }
-      }
+      },
+      "artPrompt": "\"Thousand Cuts\": a lithe hooded rogue conjuring a lingering, glowing construct that hovers ready on the battlefield, rendered with raw kinetic force — dust, motion lines and steel-grey impact."
     }
   ]
 }

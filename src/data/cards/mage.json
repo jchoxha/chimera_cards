@@ -25,7 +25,8 @@
             "value": 8
           }
         ]
-      }
+      },
+      "artPrompt": "\"Zap\": a robed arcane mage unleashing a single brutal, focused offensive strike, rendered with shimmering violet arcane energy, glowing runes and geometric sigils."
     },
     {
       "id": "mage_ward",
@@ -48,7 +49,8 @@
             "value": 7
           }
         ]
-      }
+      },
+      "artPrompt": "\"Ward\": a robed arcane mage bracing behind a glowing wall of protective guard, rendered with shimmering violet arcane energy, glowing runes and geometric sigils."
     },
     {
       "id": "mage_arcane_bolt",
@@ -72,7 +74,8 @@
             "value": 11
           }
         ]
-      }
+      },
+      "artPrompt": "\"Arcane Bolt\": a robed arcane mage unleashing a single brutal, focused offensive strike, rendered with shimmering violet arcane energy, glowing runes and geometric sigils."
     },
     {
       "id": "mage_magic_missiles",
@@ -98,7 +101,8 @@
             "hits": 2
           }
         ]
-      }
+      },
+      "artPrompt": "\"Magic Missiles\": a robed arcane mage unleashing a single brutal, focused offensive strike, rendered with shimmering violet arcane energy, glowing runes and geometric sigils."
     },
     {
       "id": "mage_frost_nova",
@@ -125,7 +129,8 @@
             "scope": "wholeEnemySide"
           }
         ]
-      }
+      },
+      "artPrompt": "\"Frost Nova\": a robed arcane mage hurling a withering hex toward an unseen foe, rendered with shimmering violet arcane energy, glowing runes and geometric sigils."
     },
     {
       "id": "mage_conjure",
@@ -148,7 +153,8 @@
             "value": 3
           }
         ]
-      }
+      },
+      "artPrompt": "\"Conjure\": a robed arcane mage drawing a focusing surge of insight, cards and motes swirling close, rendered with shimmering violet arcane energy, glowing runes and geometric sigils."
     },
     {
       "id": "mage_arcane_study",
@@ -179,7 +185,8 @@
             "value": 2
           }
         ]
-      }
+      },
+      "artPrompt": "\"Arcane Study\": a robed arcane mage drawing a focusing surge of insight, cards and motes swirling close, rendered with shimmering violet arcane energy, glowing runes and geometric sigils."
     },
     {
       "id": "mage_teleport",
@@ -210,7 +217,8 @@
             "value": 2
           }
         ]
-      }
+      },
+      "artPrompt": "\"Teleport\": a robed arcane mage drawing a focusing surge of insight, cards and motes swirling close, rendered with shimmering violet arcane energy, glowing runes and geometric sigils."
     },
     {
       "id": "mage_disintegrate",
@@ -244,7 +252,8 @@
             }
           }
         ]
-      }
+      },
+      "artPrompt": "\"Disintegrate\": a robed arcane mage unleashing a single brutal, focused offensive strike, rendered with shimmering violet arcane energy, glowing runes and geometric sigils."
     },
     {
       "id": "mage_overload",
@@ -270,7 +279,8 @@
             "hits": "X"
           }
         ]
-      }
+      },
+      "artPrompt": "\"Overload\": a robed arcane mage unleashing a single brutal, focused offensive strike, rendered with shimmering violet arcane energy, glowing runes and geometric sigils."
     },
     {
       "id": "mage_arcane_blast",
@@ -294,7 +304,8 @@
             "value": 20
           }
         ]
-      }
+      },
+      "artPrompt": "\"Arcane Blast\": a robed arcane mage unleashing a single brutal, focused offensive strike, rendered with shimmering violet arcane energy, glowing runes and geometric sigils."
     },
     {
       "id": "mage_arcane_barrage",
@@ -321,7 +332,8 @@
             "scope": "wholeEnemySide"
           }
         ]
-      }
+      },
+      "artPrompt": "\"Arcane Barrage\": a robed arcane mage unleashing a single brutal, focused offensive strike, rendered with shimmering violet arcane energy, glowing runes and geometric sigils."
     },
     {
       "id": "mage_amplify",
@@ -354,7 +366,8 @@
             "value": 2
           }
         ]
-      }
+      },
+      "artPrompt": "\"Amplify\": a robed arcane mage surging with empowering energy, muscles and aura flaring, rendered with shimmering violet arcane energy, glowing runes and geometric sigils."
     },
     {
       "id": "mage_empower",
@@ -393,7 +406,8 @@
             "duration": "thisTurn"
           }
         ]
-      }
+      },
+      "artPrompt": "\"Empower\": a robed arcane mage drawing a focusing surge of insight, cards and motes swirling close, rendered with shimmering violet arcane energy, glowing runes and geometric sigils."
     },
     {
       "id": "mage_mana_font",
@@ -422,7 +436,8 @@
             }
           ]
         }
-      }
+      },
+      "artPrompt": "\"Mana Font\": a robed arcane mage conjuring a lingering, glowing construct that hovers ready on the battlefield, rendered with shimmering violet arcane energy, glowing runes and geometric sigils."
     },
     {
       "id": "mage_meteor",
@@ -446,7 +461,8 @@
             "value": 31
           }
         ]
-      }
+      },
+      "artPrompt": "\"Meteor\": a robed arcane mage unleashing a single brutal, focused offensive strike, rendered with shimmering violet arcane energy, glowing runes and geometric sigils."
     },
     {
       "id": "mage_channel_inferno",
@@ -475,7 +491,8 @@
             "duration": "thisTurn"
           }
         ]
-      }
+      },
+      "artPrompt": "\"Channel Inferno\": a robed arcane mage unleashing a single brutal, focused offensive strike, rendered with shimmering violet arcane energy, glowing runes and geometric sigils."
     },
     {
       "id": "mage_overheat",
@@ -506,7 +523,8 @@
             }
           ]
         }
-      }
+      },
+      "artPrompt": "\"Overheat\": a robed arcane mage conjuring a lingering, glowing construct that hovers ready on the battlefield, rendered with shimmering violet arcane energy, glowing runes and geometric sigils."
     },
     {
       "id": "mage_echo",
@@ -537,7 +555,8 @@
             }
           ]
         }
-      }
+      },
+      "artPrompt": "\"Echo\": a robed arcane mage conjuring a lingering, glowing construct that hovers ready on the battlefield, rendered with shimmering violet arcane energy, glowing runes and geometric sigils."
     }
   ]
 }

@@ -6,6 +6,9 @@
 
 /** @type {{version:string, date:string, notes:string[]}[]} newest first */
 export const CHANGELOG = [
+  { version: 'v3.64.0', date: '2026-06-25', notes: [
+    'Every card now carries an art description (artPrompt) written for an image generator — a per-card scene derived from its archetype, element, and effect, ready to hand-refine. A new batch script (scripts/gen_cards.py) feeds these to the Variant-B art pipeline and the game prefers any generated card art over the pixel placeholder.',
+  ] },
   { version: 'v3.63.0', date: '2026-06-25', notes: [
     'Every card is now upgradable: all 162 cards across the 8 archetypes have a campfire upgrade (was Warrior-only). Attacks/blocks/heals hit harder, debuffs/buffs/draw/energy gain a point, powers strengthen their triggered effect, and effect-less utility cards get cheaper.',
   ] },

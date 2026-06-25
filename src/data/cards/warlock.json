@@ -25,7 +25,8 @@
             "value": 8
           }
         ]
-      }
+      },
+      "artPrompt": "\"Shadow Bolt\": a sinister dark warlock unleashing a single brutal, focused offensive strike, rendered with swirling inky-black shadow shot through with wisps of purple gloom."
     },
     {
       "id": "warlock_shroud",
@@ -48,7 +49,8 @@
             "value": 7
           }
         ]
-      }
+      },
+      "artPrompt": "\"Shroud\": a sinister dark warlock bracing behind a glowing wall of protective guard, rendered with swirling inky-black shadow shot through with wisps of purple gloom."
     },
     {
       "id": "warlock_curse_of_weakness",
@@ -73,7 +75,8 @@
             "value": 4
           }
         ]
-      }
+      },
+      "artPrompt": "\"Curse of Weakness\": a sinister dark warlock hurling a withering hex toward an unseen foe, rendered with swirling inky-black shadow shot through with wisps of purple gloom."
     },
     {
       "id": "warlock_curse_of_agony",
@@ -98,7 +101,8 @@
             "value": 6
           }
         ]
-      }
+      },
+      "artPrompt": "\"Curse of Agony\": a sinister dark warlock hurling a withering hex toward an unseen foe, rendered with swirling inky-black shadow shot through with wisps of purple gloom."
     },
     {
       "id": "warlock_corruption",
@@ -131,7 +135,8 @@
             "value": 2
           }
         ]
-      }
+      },
+      "artPrompt": "\"Corruption\": a sinister dark warlock hurling a withering hex toward an unseen foe, rendered with swirling inky-black shadow shot through with wisps of purple gloom."
     },
     {
       "id": "warlock_hex",
@@ -165,7 +170,8 @@
             "value": 3
           }
         ]
-      }
+      },
+      "artPrompt": "\"Hex\": a sinister dark warlock unleashing a single brutal, focused offensive strike, rendered with swirling inky-black shadow shot through with wisps of purple gloom."
     },
     {
       "id": "warlock_drain_life",
@@ -197,7 +203,8 @@
             "value": 6
           }
         ]
-      }
+      },
+      "artPrompt": "\"Drain Life\": a sinister dark warlock unleashing a single brutal, focused offensive strike, rendered with swirling inky-black shadow shot through with wisps of purple gloom."
     },
     {
       "id": "warlock_dark_pact",
@@ -236,7 +243,8 @@
             "value": 2
           }
         ]
-      }
+      },
+      "artPrompt": "\"Dark Pact\": a sinister dark warlock drawing a focusing surge of insight, cards and motes swirling close, rendered with swirling inky-black shadow shot through with wisps of purple gloom."
     },
     {
       "id": "warlock_summon_imp",
@@ -267,7 +275,8 @@
             }
           ]
         }
-      }
+      },
+      "artPrompt": "\"Summon Imp\": a sinister dark warlock conjuring a lingering, glowing construct that hovers ready on the battlefield, rendered with swirling inky-black shadow shot through with wisps of purple gloom."
     },
     {
       "id": "warlock_siphon_soul",
@@ -299,7 +308,8 @@
             "value": 7
           }
         ]
-      }
+      },
+      "artPrompt": "\"Siphon Soul\": a sinister dark warlock unleashing a single brutal, focused offensive strike, rendered with swirling inky-black shadow shot through with wisps of purple gloom."
     },
     {
       "id": "warlock_demonic_power",
@@ -332,7 +342,8 @@
             "value": 4
           }
         ]
-      }
+      },
+      "artPrompt": "\"Demonic Power\": a sinister dark warlock surging with empowering energy, muscles and aura flaring, rendered with swirling inky-black shadow shot through with wisps of purple gloom."
     },
     {
       "id": "warlock_soul_harvest",
@@ -363,7 +374,8 @@
             "value": 4
           }
         ]
-      }
+      },
+      "artPrompt": "\"Soul Harvest\": a sinister dark warlock drawing a focusing surge of insight, cards and motes swirling close, rendered with swirling inky-black shadow shot through with wisps of purple gloom."
     },
     {
       "id": "warlock_raise_thrall",
@@ -392,7 +404,8 @@
             }
           ]
         }
-      }
+      },
+      "artPrompt": "\"Raise Thrall\": a sinister dark warlock conjuring a lingering, glowing construct that hovers ready on the battlefield, rendered with swirling inky-black shadow shot through with wisps of purple gloom."
     },
     {
       "id": "warlock_summon_voidling",
@@ -423,7 +436,8 @@
             }
           ]
         }
-      }
+      },
+      "artPrompt": "\"Summon Voidling\": a sinister dark warlock conjuring a lingering, glowing construct that hovers ready on the battlefield, rendered with swirling inky-black shadow shot through with wisps of purple gloom."
     },
     {
       "id": "warlock_malefic_vision",
@@ -454,7 +468,8 @@
             }
           ]
         }
-      }
+      },
+      "artPrompt": "\"Malefic Vision\": a sinister dark warlock conjuring a lingering, glowing construct that hovers ready on the battlefield, rendered with swirling inky-black shadow shot through with wisps of purple gloom."
     },
     {
       "id": "warlock_doom",
@@ -483,7 +498,8 @@
             "duration": "thisTurn"
           }
         ]
-      }
+      },
+      "artPrompt": "\"Doom\": a sinister dark warlock unleashing a single brutal, focused offensive strike, rendered with swirling inky-black shadow shot through with wisps of purple gloom."
     },
     {
       "id": "warlock_soul_leech",
@@ -516,7 +532,8 @@
             "value": 5
           }
         ]
-      }
+      },
+      "artPrompt": "\"Soul Leech\": a sinister dark warlock unleashing a single brutal, focused offensive strike, rendered with swirling inky-black shadow shot through with wisps of purple gloom."
     },
     {
       "id": "warlock_nightfall",
@@ -549,7 +566,8 @@
             }
           ]
         }
-      }
+      },
+      "artPrompt": "\"Nightfall\": a sinister dark warlock conjuring a lingering, glowing construct that hovers ready on the battlefield, rendered with swirling inky-black shadow shot through with wisps of purple gloom."
     },
     {
       "id": "warlock_soul_link",
@@ -580,7 +598,8 @@
             }
           ]
         }
-      }
+      },
+      "artPrompt": "\"Soul Link\": a sinister dark warlock conjuring a lingering, glowing construct that hovers ready on the battlefield, rendered with swirling inky-black shadow shot through with wisps of purple gloom."
     }
   ]
 }

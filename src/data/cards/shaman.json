@@ -25,7 +25,8 @@
             "value": 8
           }
         ]
-      }
+      },
+      "artPrompt": "\"Lightning Jolt\": a primal vine-wreathed shaman unleashing a single brutal, focused offensive strike, rendered with verdant vines and broad leaves, creeping thorns and toxic green spores."
     },
     {
       "id": "shaman_stoneskin",
@@ -48,7 +49,8 @@
             "value": 7
           }
         ]
-      }
+      },
+      "artPrompt": "\"Stoneskin\": a primal vine-wreathed shaman bracing behind a glowing wall of protective guard, rendered with verdant vines and broad leaves, creeping thorns and toxic green spores."
     },
     {
       "id": "shaman_searing_totem",
@@ -79,7 +81,8 @@
             }
           ]
         }
-      }
+      },
+      "artPrompt": "\"Searing Totem\": a primal vine-wreathed shaman conjuring a lingering, glowing construct that hovers ready on the battlefield, rendered with verdant vines and broad leaves, creeping thorns and toxic green spores."
     },
     {
       "id": "shaman_stoneclaw_totem",
@@ -108,7 +111,8 @@
             }
           ]
         }
-      }
+      },
+      "artPrompt": "\"Stoneclaw Totem\": a primal vine-wreathed shaman conjuring a lingering, glowing construct that hovers ready on the battlefield, rendered with verdant vines and broad leaves, creeping thorns and toxic green spores."
     },
     {
       "id": "shaman_poison_spit",
@@ -141,7 +145,8 @@
             "value": 4
           }
         ]
-      }
+      },
+      "artPrompt": "\"Poison Spit\": a primal vine-wreathed shaman unleashing a single brutal, focused offensive strike, rendered with verdant vines and broad leaves, creeping thorns and toxic green spores."
     },
     {
       "id": "shaman_frostbrand",
@@ -174,7 +179,8 @@
             "value": 2
           }
         ]
-      }
+      },
+      "artPrompt": "\"Frostbrand\": a primal vine-wreathed shaman unleashing a single brutal, focused offensive strike, rendered with verdant vines and broad leaves, creeping thorns and toxic green spores."
     },
     {
       "id": "shaman_earth_shock",
@@ -198,7 +204,8 @@
             "value": 8
           }
         ]
-      }
+      },
+      "artPrompt": "\"Earth Shock\": a primal vine-wreathed shaman unleashing a single brutal, focused offensive strike, rendered with verdant vines and broad leaves, creeping thorns and toxic green spores."
     },
     {
       "id": "shaman_soak",
@@ -223,7 +230,8 @@
             "value": 4
           }
         ]
-      }
+      },
+      "artPrompt": "\"Soak\": a primal vine-wreathed shaman hurling a withering hex toward an unseen foe, rendered with verdant vines and broad leaves, creeping thorns and toxic green spores."
     },
     {
       "id": "shaman_regrowth",
@@ -256,7 +264,8 @@
             "value": 6
           }
         ]
-      }
+      },
+      "artPrompt": "\"Regrowth\": a primal vine-wreathed shaman bracing behind a glowing wall of protective guard, rendered with verdant vines and broad leaves, creeping thorns and toxic green spores."
     },
     {
       "id": "shaman_ancestral_aid",
@@ -279,7 +288,8 @@
             "value": 3
           }
         ]
-      }
+      },
+      "artPrompt": "\"Ancestral Aid\": a primal vine-wreathed shaman drawing a focusing surge of insight, cards and motes swirling close, rendered with verdant vines and broad leaves, creeping thorns and toxic green spores."
     },
     {
       "id": "shaman_healing_totem",
@@ -308,7 +318,8 @@
             }
           ]
         }
-      }
+      },
+      "artPrompt": "\"Healing Totem\": a primal vine-wreathed shaman conjuring a lingering, glowing construct that hovers ready on the battlefield, rendered with verdant vines and broad leaves, creeping thorns and toxic green spores."
     },
     {
       "id": "shaman_windfury_totem",
@@ -337,7 +348,8 @@
             }
           ]
         }
-      }
+      },
+      "artPrompt": "\"Windfury Totem\": a primal vine-wreathed shaman conjuring a lingering, glowing construct that hovers ready on the battlefield, rendered with verdant vines and broad leaves, creeping thorns and toxic green spores."
     },
     {
       "id": "shaman_lava_burst",
@@ -370,7 +382,8 @@
             "value": 4
           }
         ]
-      }
+      },
+      "artPrompt": "\"Lava Burst\": a primal vine-wreathed shaman unleashing a single brutal, focused offensive strike, rendered with verdant vines and broad leaves, creeping thorns and toxic green spores."
     },
     {
       "id": "shaman_chain_lightning",
@@ -395,7 +408,8 @@
             "scope": "wholeEnemySide"
           }
         ]
-      }
+      },
+      "artPrompt": "\"Chain Lightning\": a primal vine-wreathed shaman unleashing a single brutal, focused offensive strike, rendered with verdant vines and broad leaves, creeping thorns and toxic green spores."
     },
     {
       "id": "shaman_tremor",
@@ -420,7 +434,8 @@
             "scope": "wholeEnemySide"
           }
         ]
-      }
+      },
+      "artPrompt": "\"Tremor\": a primal vine-wreathed shaman unleashing a single brutal, focused offensive strike, rendered with verdant vines and broad leaves, creeping thorns and toxic green spores."
     },
     {
       "id": "shaman_spirit_surge",
@@ -451,7 +466,8 @@
             "value": 2
           }
         ]
-      }
+      },
+      "artPrompt": "\"Spirit Surge\": a primal vine-wreathed shaman drawing a focusing surge of insight, cards and motes swirling close, rendered with verdant vines and broad leaves, creeping thorns and toxic green spores."
     },
     {
       "id": "shaman_overgrowth",
@@ -482,7 +498,8 @@
             }
           ]
         }
-      }
+      },
+      "artPrompt": "\"Overgrowth\": a primal vine-wreathed shaman conjuring a lingering, glowing construct that hovers ready on the battlefield, rendered with verdant vines and broad leaves, creeping thorns and toxic green spores."
     },
     {
       "id": "shaman_elemental_mastery",
@@ -513,7 +530,8 @@
             }
           ]
         }
-      }
+      },
+      "artPrompt": "\"Elemental Mastery\": a primal vine-wreathed shaman conjuring a lingering, glowing construct that hovers ready on the battlefield, rendered with verdant vines and broad leaves, creeping thorns and toxic green spores."
     }
   ]
 }

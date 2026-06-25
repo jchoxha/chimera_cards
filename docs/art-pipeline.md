@@ -46,8 +46,13 @@ Placeholders come from the game data (`src/data/*`).
 
 - **Monster portrait** (`art/monsters/<dexNumber>-<slug>.webp`):
   `Trading-card creature illustration of "{name}", a {element}-element monster. {lore||desc}. {STYLE}`
-- **Move art** (`art/moves/<id>.webp`):
-  `Fantasy ability-card art depicting "{name}": {text}. Dynamic {attack=impact/skill=defensive aura/power=glowing empowerment} action, {element} palette. {STYLE}`
+- **Move/card art** (`art/gen/cards/<id>.png`): every card in
+  `src/data/cards/*.json` now carries a per-card **`artPrompt`** scene (baked by
+  `scripts/bake_card_art_prompts.mjs`, hand-refinable in the Card Forge). The
+  generator-ready brief = `cardArtPrompt(card)` (`src/data/cardArtPrompt.js`) =
+  `artPrompt` + the locked `CARD_ART_STYLE`. Batch-generate with
+  `python scripts/gen_cards.py`; generated ids land in `src/data/cardGenArt.json`
+  and `cardArt()` (`src/data/artPool.js`) prefers them over the pixel placeholder.
 - **Item** (`art/items/<id>.webp`):
   `Game item illustration of "{name}": {text}. Single object centered on a simple soft background. {STYLE}`
 - **Material** (`art/materials/<id>.webp`):

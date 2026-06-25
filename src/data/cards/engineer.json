@@ -25,7 +25,8 @@
             "value": 8
           }
         ]
-      }
+      },
+      "artPrompt": "\"Wrench Strike\": a goggled tinker-engineer unleashing a single brutal, focused offensive strike, rendered with raw kinetic force — dust, motion lines and steel-grey impact."
     },
     {
       "id": "engineer_plating",
@@ -48,7 +49,8 @@
             "value": 7
           }
         ]
-      }
+      },
+      "artPrompt": "\"Plating\": a goggled tinker-engineer bracing behind a glowing wall of protective guard, rendered with raw kinetic force — dust, motion lines and steel-grey impact."
     },
     {
       "id": "engineer_reinforce",
@@ -71,7 +73,8 @@
             "value": 11
           }
         ]
-      }
+      },
+      "artPrompt": "\"Reinforce\": a goggled tinker-engineer bracing behind a glowing wall of protective guard, rendered with raw kinetic force — dust, motion lines and steel-grey impact."
     },
     {
       "id": "engineer_overcharge_shield",
@@ -94,7 +97,8 @@
             "value": 14
           }
         ]
-      }
+      },
+      "artPrompt": "\"Overcharge Shield\": a goggled tinker-engineer bracing behind a glowing wall of protective guard, rendered with raw kinetic force — dust, motion lines and steel-grey impact."
     },
     {
       "id": "engineer_piston_punch",
@@ -118,7 +122,8 @@
             "value": 10
           }
         ]
-      }
+      },
+      "artPrompt": "\"Piston Punch\": a goggled tinker-engineer unleashing a single brutal, focused offensive strike, rendered with raw kinetic force — dust, motion lines and steel-grey impact."
     },
     {
       "id": "engineer_deploy_turret",
@@ -149,7 +154,8 @@
             }
           ]
         }
-      }
+      },
+      "artPrompt": "\"Deploy Turret\": a goggled tinker-engineer conjuring a lingering, glowing construct that hovers ready on the battlefield, rendered with raw kinetic force — dust, motion lines and steel-grey impact."
     },
     {
       "id": "engineer_deploy_shield_drone",
@@ -178,7 +184,8 @@
             }
           ]
         }
-      }
+      },
+      "artPrompt": "\"Deploy Shield Drone\": a goggled tinker-engineer conjuring a lingering, glowing construct that hovers ready on the battlefield, rendered with raw kinetic force — dust, motion lines and steel-grey impact."
     },
     {
       "id": "engineer_overdrive",
@@ -209,7 +216,8 @@
             "block": 3
           }
         ]
-      }
+      },
+      "artPrompt": "\"Overdrive\": a goggled tinker-engineer drawing a focusing surge of insight, cards and motes swirling close, rendered with raw kinetic force — dust, motion lines and steel-grey impact."
     },
     {
       "id": "engineer_barricade",
@@ -234,7 +242,8 @@
             "brace": true
           }
         ]
-      }
+      },
+      "artPrompt": "\"Barricade\": a goggled tinker-engineer bracing behind a glowing wall of protective guard, rendered with raw kinetic force — dust, motion lines and steel-grey impact."
     },
     {
       "id": "engineer_deflector",
@@ -265,7 +274,8 @@
             }
           ]
         }
-      }
+      },
+      "artPrompt": "\"Deflector\": a goggled tinker-engineer conjuring a lingering, glowing construct that hovers ready on the battlefield, rendered with raw kinetic force — dust, motion lines and steel-grey impact."
     },
     {
       "id": "engineer_repair_bot",
@@ -294,7 +304,8 @@
             }
           ]
         }
-      }
+      },
+      "artPrompt": "\"Repair Bot\": a goggled tinker-engineer conjuring a lingering, glowing construct that hovers ready on the battlefield, rendered with raw kinetic force — dust, motion lines and steel-grey impact."
     },
     {
       "id": "engineer_sentry",
@@ -325,7 +336,8 @@
             }
           ]
         }
-      }
+      },
+      "artPrompt": "\"Sentry\": a goggled tinker-engineer conjuring a lingering, glowing construct that hovers ready on the battlefield, rendered with raw kinetic force — dust, motion lines and steel-grey impact."
     },
     {
       "id": "engineer_recycle",
@@ -356,7 +368,8 @@
             "value": 6
           }
         ]
-      }
+      },
+      "artPrompt": "\"Recycle\": a goggled tinker-engineer bracing behind a glowing wall of protective guard, rendered with raw kinetic force — dust, motion lines and steel-grey impact."
     },
     {
       "id": "engineer_flamethrower",
@@ -393,7 +406,8 @@
             "scope": "wholeEnemySide"
           }
         ]
-      }
+      },
+      "artPrompt": "\"Flamethrower\": a goggled tinker-engineer unleashing a single brutal, focused offensive strike, rendered with raw kinetic force — dust, motion lines and steel-grey impact."
     },
     {
       "id": "engineer_auto_defense",
@@ -422,7 +436,8 @@
             }
           ]
         }
-      }
+      },
+      "artPrompt": "\"Auto-Defense\": a goggled tinker-engineer conjuring a lingering, glowing construct that hovers ready on the battlefield, rendered with raw kinetic force — dust, motion lines and steel-grey impact."
     },
     {
       "id": "engineer_railgun",
@@ -456,7 +471,8 @@
             }
           }
         ]
-      }
+      },
+      "artPrompt": "\"Railgun\": a goggled tinker-engineer unleashing a single brutal, focused offensive strike, rendered with raw kinetic force — dust, motion lines and steel-grey impact."
     },
     {
       "id": "engineer_deploy_bombard",
@@ -487,7 +503,8 @@
             }
           ]
         }
-      }
+      },
+      "artPrompt": "\"Deploy Bombard\": a goggled tinker-engineer conjuring a lingering, glowing construct that hovers ready on the battlefield, rendered with raw kinetic force — dust, motion lines and steel-grey impact."
     },
     {
       "id": "engineer_mass_production",
@@ -516,7 +533,8 @@
             }
           ]
         }
-      }
+      },
+      "artPrompt": "\"Mass Production\": a goggled tinker-engineer conjuring a lingering, glowing construct that hovers ready on the battlefield, rendered with raw kinetic force — dust, motion lines and steel-grey impact."
     },
     {
       "id": "engineer_overclock",
@@ -545,7 +563,8 @@
             }
           ]
         }
-      }
+      },
+      "artPrompt": "\"Overclock\": a goggled tinker-engineer conjuring a lingering, glowing construct that hovers ready on the battlefield, rendered with raw kinetic force — dust, motion lines and steel-grey impact."
     }
   ]
 }
