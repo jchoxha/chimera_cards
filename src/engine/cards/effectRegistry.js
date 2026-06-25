@@ -214,10 +214,11 @@ export const EFFECT_OPS = {
         const typeMult = matchupOf(env.card?.attunement, t);
         const mult = typeMult * ampMult * soakMult;
         const ts = sideOf(env.state, t);
+        const dmgEl = Array.isArray(env.card?.attunement) ? env.card.attunement[0] : env.card?.attunement;
         let landed = false;
         for (let i = 0; i < hits; i++) {
           if (t.hp <= 0) break;
-          applyDamage(t, scaledDamage(v, env.caster, t, mult), env.emit, false, ts, { matchup: typeMult });
+          applyDamage(t, scaledDamage(v, env.caster, t, mult), env.emit, false, ts, { matchup: typeMult, element: dmgEl });
           connected = true;
           landed = true;
         }

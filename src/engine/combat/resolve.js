@@ -214,7 +214,9 @@ export function applyDamage(target, amount, emit, dot = false, side = null, meta
     absorbedBraced,
     absorbedFortify,
     // Type-matchup multiplier (>1 super effective, <1 resisted) for the combat-log note.
-    matchup: meta?.matchup ?? null
+    matchup: meta?.matchup ?? null,
+    // The attack's damage element (attunement), for the combat-log "N <Element> damage".
+    element: meta?.element ?? null
   });
   if (target.hp === 0) emit?.('death', { fighterId: target.id });
 }

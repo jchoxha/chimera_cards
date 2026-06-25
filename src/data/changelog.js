@@ -6,6 +6,12 @@
 
 /** @type {{version:string, date:string, notes:string[]}[]} newest first */
 export const CHANGELOG = [
+  { version: 'v3.57.0', date: '2026-06-25', notes: [
+    'Combat log now names the damage type ("takes 6 Fire damage"), clickable to explain that element.',
+    'Combat log modal is wider, and wrapped lines now hang-indent under the message instead of sliding under the timestamp.',
+    'Info popups (creatures, statuses, reactions…) opened from the combat log now layer OVER it — closing one (X or tap-out) returns you to the log instead of closing everything.',
+    'Fixed the friendly/enemy bench occasionally showing a horizontal scrollbar.',
+  ] },
   { version: 'v3.56.0', date: '2026-06-25', notes: [
     'Combat log now spells out each play in full: “(enemy) Voltfang played Cleave against (friendly) Ironhide” — with the actor, their side, the move, and the target all named and clickable.',
   ] },

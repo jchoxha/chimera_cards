@@ -520,7 +520,11 @@ function LogLine({ ev, nameOf, sideOf, onEntity }) {
         : !p.dot && p.matchup > 0 && p.matchup < 1
           ? <button className="logEnt res" onClick={() => onEntity({ kind: 'matchupNote', good: false })}> — resisted</button>
           : null;
-      if (p.hpLoss > 0) return <span className="dmg"><CrLink id={p.targetId} nameOf={nameOf} onEntity={onEntity} /> takes {p.hpLoss} damage{p.dot ? ' (over time)' : ''}{mNote}.</span>;
+      // Name the damage type (the attack's element), clickable to explain it.
+      const elNote = p.element
+        ? <> <button className="logEnt elt" onClick={() => onEntity({ kind: 'axis', axis: 'attunement', value: [p.element] })}>{p.element}</button></>
+        : null;
+      if (p.hpLoss > 0) return <span className="dmg"><CrLink id={p.targetId} nameOf={nameOf} onEntity={onEntity} /> takes {p.hpLoss}{elNote} damage{p.dot ? ' (over time)' : ''}{mNote}.</span>;
       if (p.absorbedCreature > 0 || p.absorbedFortify > 0) return <span><CrLink id={p.targetId} nameOf={nameOf} onEntity={onEntity} /> blocks the hit.</span>;
       return null;
     }
@@ -580,7 +584,10 @@ const DRAG_THRESHOLD = 6; // px the pointer must move before a tap becomes a dra
 export default function CombatScreen({ onMenu, onRestart, embedded } = {}) {
   const { snap, log, startCombat, play, swap, peekAll, endTurn, reward, rollReward, startedAt } = useCombat();
   const [nowTick, setNowTick] = useState(() => Date.now());
-  const [info, setInfo] = useState(null);   // unified modal: effect/action/card/creature/axis/matchup/intent/log
+  // Unified info modal is a STACK: opening a modal (or clicking a link inside one)
+  // PUSHES on top; closing (X / click-out) POPS one level back to the modal beneath.
+  const [infoStack, setInfoStack] = useState([]);
+  const setInfo = (x) => setInfoStack((s) => (x ? [...s, x] : s.slice(0, -1)));
   const [kwTerm, setKwTerm] = useState(null);  // glossary keyword selected inside the card modal
   const [notice, setNotice] = useState(null);
   const [drag, setDrag] = useState(null);   // { card, side, validIds, x, y, overId, moved }
@@ -636,7 +643,7 @@ export default function CombatScreen({ onMenu, onRestart, embedded } = {}) {
     });
     return () => { cancelAnimationFrame(raf); timers.forEach(clearTimeout); };
   }, [log]);
-  useEffect(() => { setKwTerm(null); }, [info]);  // reset keyword popup when the modal target changes
+  useEffect(() => { setKwTerm(null); }, [infoStack.length]);  // reset keyword popup when the modal stack changes
   useEffect(() => {
     if (!notice) return undefined;
     const t = setTimeout(() => setNotice(null), 2400);
@@ -961,9 +968,10 @@ export default function CombatScreen({ onMenu, onRestart, embedded } = {}) {
         </div>
       )}
 
-      {/* unified info popup */}
-      {info && (
-        <div className="miniModalWrap" onClick={() => setInfo(null)}>
+      {/* unified info popup — a STACK; each level renders OVER the one beneath it,
+          and X / click-out pops just the top level back to the modal below. */}
+      {infoStack.map((info, _depth) => (
+        <div key={_depth} className="miniModalWrap" style={{ zIndex: 80 + _depth * 2 }} onClick={() => setInfo(null)}>
           <div className="miniModal" onClick={(e) => e.stopPropagation()}>
             <button className="modalClose" onClick={() => setInfo(null)}><Icon icon="game-icons:cancel" /></button>
 
@@ -1166,7 +1174,7 @@ export default function CombatScreen({ onMenu, onRestart, embedded } = {}) {
             })()}
           </div>
         </div>
-      )}
+      ))}
 
       {/* victory / defeat — suppressed when embedded (the run host owns end-of-fight) */}
       {over && !embedded && (

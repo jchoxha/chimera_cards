@@ -47,8 +47,11 @@ html:has(.cmbt),body:has(.cmbt){height:100%;margin:0;overflow:hidden}
 .topbar .pill.ver.clickable:hover{border-color:var(--goldB);background:#00000077}
 
 /* log timestamps (playtime · local clock) */
-.logModalBody .logTime{display:inline-block;min-width:84px;color:#7a6a48;font-variant-numeric:tabular-nums;
-  font-size:10px;margin-right:6px}
+.logModalBody .logTime{flex:0 0 76px;color:#7a6a48;font-variant-numeric:tabular-nums;font-size:10px}
+/* the message column flows next to the time and wraps WITHIN itself, so wrapped
+   lines hang-indent under the start of the message — not under the timestamp. */
+.logModalBody .logRow{display:flex;gap:8px;align-items:baseline}
+.logModalBody .logRow > *:not(.logTime){flex:1 1 auto;min-width:0;overflow-wrap:anywhere}
 
 /* changelog modal */
 .changelog{max-height:54vh;overflow-y:auto;margin-top:8px;display:flex;flex-direction:column;gap:12px}
@@ -78,7 +81,10 @@ html:has(.cmbt),body:has(.cmbt){height:100%;margin:0;overflow:hidden}
 .foesCol .colHead{color:#ffbcaf}
 
 /* ---------- mini-fighter (side columns; ALL statuses visible) ---------- */
-.miniList{flex:0 1 auto;display:flex;flex-direction:column;gap:5px;overflow-y:auto;min-height:0}
+/* overflow-x:hidden stops the swap badge (positioned at -6px) from forcing a
+   horizontal scrollbar; the small padding keeps those peeking badges visible. */
+.miniList{flex:0 1 auto;display:flex;flex-direction:column;gap:5px;overflow-y:auto;overflow-x:hidden;
+  min-height:0;padding:7px 8px 2px}
 .mf{position:relative;border-radius:9px;padding:5px 7px;cursor:pointer;
   background:#1a1020cc;border:1.5px solid #5a4a2a;transition:border-color .15s,transform .12s}
 .mf.foe{border-color:#5a2a2a;background:#1f1216cc}
@@ -400,6 +406,7 @@ html:has(.cmbt),body:has(.cmbt){height:100%;margin:0;overflow:hidden}
 .logEnt.rxv{color:#1d6e56}
 .logEnt.eff{color:#b8741a}
 .logEnt.res{color:#5a6a86}
+.logEnt.elt{color:#7a4a8a}
 .logEnt:hover{filter:brightness(1.25);text-decoration-style:solid}
 .logSide{font-family:'Cinzel',serif;font-size:9px;font-weight:700;letter-spacing:.3px;text-transform:uppercase;opacity:.85}
 .logSide.friendly{color:#2e8a63}
@@ -481,7 +488,9 @@ html:has(.cmbt),body:has(.cmbt){height:100%;margin:0;overflow:hidden}
 .infoRow.dim{color:#8a7a5a;font-style:italic}
 .infoChips{display:flex;flex-wrap:wrap;gap:5px;margin-top:8px}
 .infoCard{display:flex;flex-direction:column;align-items:center}
-.miniModal{max-width:380px;max-height:88vh;overflow-y:auto}
+.miniModal{max-width:440px;width:min(440px,92vw);max-height:88vh;overflow-y:auto}
+/* the combat log holds long, wrapping lines — give it more width */
+.miniModal:has(.logModalBody){max-width:580px;width:min(580px,94vw)}
 .modalCardWrap{display:flex;justify-content:center;margin:2px 0 4px;height:clamp(300px,52vh,420px)}
 /* give the modal card a definite height so its flex art doesn't collapse */
 .modalCardWrap .combat{width:clamp(150px,42vw,180px);height:100%;max-height:100%}
