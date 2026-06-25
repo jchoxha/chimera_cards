@@ -6,6 +6,9 @@
 
 /** @type {{version:string, date:string, notes:string[]}[]} newest first */
 export const CHANGELOG = [
+  { version: 'v3.56.0', date: '2026-06-25', notes: [
+    'Combat log now spells out each play in full: “(enemy) Voltfang played Cleave against (friendly) Ironhide” — with the actor, their side, the move, and the target all named and clickable.',
+  ] },
   { version: 'v3.55.0', date: '2026-06-24', notes: [
     'Card audit: Ranger Traps (Bear Trap, Explosive Trap, Trapper, Deflector) were dead — they only fired when you damaged yourself, never when an enemy hit you. They now correctly trigger on enemy attacks. (All other 162 cards checked out functional.)',
   ] },

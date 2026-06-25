@@ -488,18 +488,32 @@ function MiniFighter({ f, side, vanguard, swapCost, swappable, droppable, dropHo
 function CrLink({ id, nameOf, onEntity }) {
   return <button className="logEnt cr" onClick={() => onEntity({ kind: 'creature', id })}>{nameOf(id)}</button>;
 }
+/** A small "(friendly)" / "(enemy)" side tag for log lines. */
+function SideTag({ side }) {
+  return <span className={`logSide ${side}`}>({side})</span>;
+}
 function FxLink({ id, onEntity }) {
   const nm = EFFECT_INFO[id]?.name ?? id;
   return <button className="logEnt fx" onClick={() => onEntity({ kind: 'effect', id })}>{nm}</button>;
 }
 
-function LogLine({ ev, nameOf, onEntity }) {
+function LogLine({ ev, nameOf, sideOf, onEntity }) {
   const p = ev.payload ?? {};
   switch (ev.type) {
-    case 'play':
-      return p.card
-        ? <span><button className="logEnt mv" onClick={() => onEntity({ kind: 'card', card: p.card })}>{p.card.name}</button> played.</span>
-        : null;
+    case 'play': {
+      if (!p.card) return null;
+      const actorSide = p.side === 'player' ? 'friendly' : 'enemy';
+      const move = <button className="logEnt mv" onClick={() => onEntity({ kind: 'card', card: p.card })}>{p.card.name}</button>;
+      // "(enemy) Voltfang played Cleave against (friendly) Ironhide."
+      return (
+        <span>
+          {p.actorId ? <><SideTag side={actorSide} /> <CrLink id={p.actorId} nameOf={nameOf} onEntity={onEntity} /> played {move}</> : <>{move} played</>}
+          {p.targetId && p.targetId !== p.actorId
+            ? <> against <SideTag side={sideOf(p.targetId)} /> <CrLink id={p.targetId} nameOf={nameOf} onEntity={onEntity} /></>
+            : null}.
+        </span>
+      );
+    }
     case 'damage': {
       const mNote = !p.dot && p.matchup > 1
         ? <button className="logEnt eff" onClick={() => onEntity({ kind: 'matchupNote', good: true })}> — super effective!</button>
@@ -664,6 +678,7 @@ export default function CombatScreen({ onMenu, onRestart, embedded } = {}) {
   const fightersById = new Map(allFighters.map((f) => [f.id, f]));
   const playerIds = new Set(player.fighters.map((f) => f.id));
   const nameOf = (id) => fightersById.get(id)?.name ?? 'Someone';
+  const sideOf = (id) => (playerIds.has(id) ? 'friendly' : 'enemy');
   const enemyById = new Map(enemy.fighters.map((f) => [f.id, f]));
 
   const hand = activeMon?.hand ?? [];
@@ -1105,7 +1120,7 @@ export default function CombatScreen({ onMenu, onRestart, embedded } = {}) {
                 <div className="infoHead"><Icon icon="game-icons:scroll-quill" /> Combat Log</div>
                 <LogScroll>
                   {(log ?? []).map((ev, i) => {
-                    const content = LogLine({ ev, nameOf, onEntity: setInfo });
+                    const content = LogLine({ ev, nameOf, sideOf, onEntity: setInfo });
                     if (!content) return null;
                     return (
                       <div key={i} className="logRow">
@@ -1114,7 +1129,7 @@ export default function CombatScreen({ onMenu, onRestart, embedded } = {}) {
                       </div>
                     );
                   })}
-                  {!(log ?? []).some((ev) => LogLine({ ev, nameOf, onEntity: setInfo })) && <div className="infoRow dim">No events yet.</div>}
+                  {!(log ?? []).some((ev) => LogLine({ ev, nameOf, sideOf, onEntity: setInfo })) && <div className="infoRow dim">No events yet.</div>}
                 </LogScroll>
               </div>
             )}
