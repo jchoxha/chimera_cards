@@ -6,6 +6,11 @@
 
 /** @type {{version:string, date:string, notes:string[]}[]} newest first */
 export const CHANGELOG = [
+  { version: 'v3.67.0', date: '2026-06-25', notes: [
+    'Team assembly is now its own screen from the main menu (“Assemble Your Team”). The team you build is saved and used for BOTH roguelike runs and playtest fights.',
+    'The team screen shows your current team at the top, split into the Active Vanguard and the Bench — remove a member, or promote any bench creature to Vanguard.',
+    'New menu flow: assemble once, then “Begin Run” or “Test Fight” (a sandbox bout vs a Target Dummy) use your saved team. The old single-hero deck knobs are now under “Card / Deck Tuning”.',
+  ] },
   { version: 'v3.66.0', date: '2026-06-25', notes: [
     'New Bestiary: every roster creature has a full codex page (lore + how to play it), in the Codex’s new Bestiary tab AND in combat — tap a creature’s NAME in its info panel to read its page.',
     'In a creature’s info panel you can now tap its archetype / biology / attunement and its statuses/powers for details (previously only worked on the battlefield card).',

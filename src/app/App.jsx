@@ -32,8 +32,15 @@ const FILE_NAMES = Object.keys(FILES);
 const POOLS = Object.fromEntries(Object.values(FILES).map((f) => [f.class, f.cards || []]));
 const ROSTER = buildRoster(POOLS, POOLS.Warrior || []);
 
+const TEAM_KEY = 'chimera.team';
+function loadTeamIds() {
+  try { const v = JSON.parse(localStorage.getItem(TEAM_KEY)); return Array.isArray(v) ? v : []; } catch { return []; }
+}
+
 export default function App() {
   const [view, setView] = useState('menu');
+  const [teamIds, setTeamIds] = useState(loadTeamIds);
+  const [combatKind, setCombatKind] = useState('deck'); // 'deck' (tuning) | 'team' (your team)
   const [deckFile, setDeckFile] = useState(FILE_NAMES[0] || 'warrior.json');
   const [enemyHp, setEnemyHp] = useState(200);
   // Attunement playtest controls: your creature's attunement (drives imbue) + the
@@ -77,11 +84,21 @@ export default function App() {
     return [...poolForFile(), ...attunementVariants(cards, heroAttunement())];
   }
 
-  /** Launch a playtest. `deck` = a built CardSpec[]; omitted → the full pool (quick fight). */
+  // The chosen team (ordered; index 0 = vanguard), resolved to roster creatures.
+  const team = teamIds.map((id) => ROSTER.find((c) => c.id === id)).filter(Boolean);
+  function saveTeam(creatures) {
+    const ids = creatures.map((c) => c.id);
+    setTeamIds(ids);
+    try { localStorage.setItem(TEAM_KEY, JSON.stringify(ids)); } catch { /* ignore */ }
+    setView('menu');
+  }
+
+  /** Launch a deck-tuning playtest. `deck` = a built CardSpec[]; omitted → the full pool. */
   function launchCombat(deck) {
     const file = loadDraft(deckFile) || FILES[deckFile] || { cards: [] };
     const cards = (deck && deck.length) ? deck : poolForFile();
     setLastDeck(cards);
+    setCombatKind('deck');
     useCombat.getState().startPlaytest({
       playerCards: cards,
       playerName: file.class || 'Hero',
@@ -94,13 +111,28 @@ export default function App() {
     setView('combat');
   }
 
+  /** Test-fight your chosen TEAM (vanguard + bench) against a target dummy. */
+  function testFightTeam() {
+    if (!team.length) return;
+    setCombatKind('team');
+    useCombat.getState().startPlaytest({
+      party: team,
+      enemyAttunement: dummyAtt ? [dummyAtt] : undefined,
+      enemyBiology: dummyBio ? [dummyBio] : undefined,
+      enemyHp: Number(enemyHp) || 200,
+    });
+    setView('combat');
+  }
+  const restartCombat = () => (combatKind === 'team' ? testFightTeam() : launchCombat(lastDeck));
+
   /** A single creature's potential pool (archetype reskinned + attunement cards + variants). */
   function creatureRewardPool(c) {
     const pool = POOLS[c.class?.[0]] || [];
     return [...reskinDeck(pool, c.attunement), ...attunementCards(c.attunement), ...attunementVariants(pool, c.attunement)];
   }
-  function startSelectedRun(creatures) {
-    if (!creatures.length) return;
+  function beginRun() {
+    const creatures = team;
+    if (!creatures.length) { setView('select'); return; }
     // Per-member pools (each character drafts its OWN card rewards) + a combined pool for the shop.
     const rewardPools = Object.fromEntries(creatures.map((c) => [c.id, creatureRewardPool(c)]));
     const rewardPool = Object.values(rewardPools).flat();
@@ -111,9 +143,9 @@ export default function App() {
 
   if (view === 'codex') return <Codex onMenu={() => setView('menu')} />;
   if (view === 'editor') return <CardEditor onMenu={() => setView('menu')} />;
-  if (view === 'combat') return <CombatScreen onMenu={() => setView('menu')} onRestart={() => launchCombat(lastDeck)} />;
+  if (view === 'combat') return <CombatScreen onMenu={() => setView('menu')} onRestart={restartCombat} />;
   if (view === 'run') return <RunScreen onMenu={() => setView('menu')} onNewRun={() => setView('select')} />;
-  if (view === 'select') return <SelectScreen roster={ROSTER} onConfirm={startSelectedRun} onCancel={() => setView('menu')} />;
+  if (view === 'select') return <SelectScreen roster={ROSTER} initial={teamIds} onConfirm={saveTeam} onCancel={() => setView('menu')} />;
   if (view === 'deckbuild') return (
     <DeckBuilder
       pool={builderPool()}
@@ -132,10 +164,28 @@ export default function App() {
           <button className="menuVersion" onClick={() => setShowChangelog(true)} title="View changelog">{APP_VERSION}</button>
         </p>
 
-        {/* Primary: descend */}
+        {/* Your team — used for runs AND playtest fights */}
+        <div className="teamSummary">
+          {team.length === 0
+            ? <span className="teamNone">No team assembled yet.</span>
+            : <>
+                <span className="tsTag">★ {team[0].name}</span>
+                {team.slice(1).map((c) => <span key={c.id} className="tsTag bench">{c.name}</span>)}
+              </>}
+        </div>
         <button className="menuBtn big" onClick={() => setView('select')}>
-          ⚔ Choose Your Team &amp; Descend
+          ⚔ Assemble Your Team
         </button>
+        <div className="menuRow">
+          <button className="menuBtn big" onClick={beginRun} disabled={!team.length}
+            title={team.length ? 'Start a roguelike run with your team' : 'Assemble a team first'}>
+            ▶ Begin Run
+          </button>
+          <button className="menuBtn" onClick={testFightTeam} disabled={!team.length}
+            title={team.length ? 'Sandbox fight vs a Target Dummy with your team' : 'Assemble a team first'}>
+            🛡 Test Fight
+          </button>
+        </div>
         {useRun.getState().hasSave() && (
           <button className="menuBtn" onClick={continueRun}>↻ Continue Saved Run</button>
         )}
@@ -150,7 +200,7 @@ export default function App() {
 
         {/* Advanced: playtest knobs, collapsed by default */}
         <button className="menuToggle" onClick={() => setShowPlaytest((v) => !v)} aria-expanded={showPlaytest}>
-          <span>⚔ Playtest Combat</span>
+          <span>🔧 Card / Deck Tuning (single hero)</span>
           <span className="menuChevron">{showPlaytest ? '▾' : '▸'}</span>
         </button>
         {showPlaytest && (

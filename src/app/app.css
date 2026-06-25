@@ -60,6 +60,12 @@
   font: inherit; font-size: 14px; color: #e8dcc8; background: #241a10; border: 1px solid #4a3a22;
   border-radius: 6px; padding: 6px 8px; min-width: 140px;
 }
+/* team summary chips on the menu */
+.teamSummary { display: flex; flex-wrap: wrap; gap: 6px; justify-content: center; margin: 6px 0 8px; min-height: 24px; }
+.teamNone { color: #8a7a5e; font-size: 13px; font-style: italic; }
+.tsTag { font-family: 'Cinzel', serif; font-size: 12px; padding: 3px 10px; border-radius: 999px;
+  background: #2e2213; border: 1px solid #6a4d1b; color: #f3ead0; }
+.tsTag.bench { background: #1c1810; color: #c9b58e; }
 .menuRow { display: flex; gap: 8px; margin-top: 4px; }
 .menuRow .menuBtn { margin: 4px 0; }
 .menuRow .menuBtn.big { flex: 1; }
