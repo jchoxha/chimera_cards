@@ -9,50 +9,13 @@ import React, { useState } from 'react';
 import { useRun } from '../../store/runStore.js';
 import { useCombat } from '../../store/combatStore.js';
 import CombatScreen from '../combat/CombatScreen.jsx';
+import MoveCard from '../combat/MoveCard.jsx';
 import { currentNode } from '../../engine/run/map.js';
 import { makeRng } from '../../engine/run/rng.js';
 import { RELICS, POTIONS, EVENTS, CURSES } from '../../engine/run/content.js';
 import { draftRunReward } from '../../engine/run/rewards.js';
-import { creatureIcon, creatureColor, cardIcon as axisCardIcon } from '../../data/axisIcons.js';
-import { cardText } from '../../engine/cards/cardText.js';
-import { cardArt } from '../../data/artPool.js';
-import { frameStyle } from '../combat/frames.js';
+import { creatureIcon, creatureColor } from '../../data/axisIcons.js';
 import './run.css';
-
-const RIcon = ({ icon, ...rest }) => <iconify-icon icon={icon} {...rest}></iconify-icon>;
-
-/** atk/def/util — same buckets the in-hand card uses for its art tile tint. */
-function cardKind(c) {
-  const e = Array.isArray(c?.effects) ? c.effects : [];
-  if (e.some((o) => o.op === 'damage')) return 'atk';
-  if (e.some((o) => o.op === 'block')) return 'def';
-  return 'util';
-}
-
-/**
- * A move card rendered with the EXACT same structure + classes as an in-hand combat
- * card (.frame.move with cost/inner/micon/mn/mt) — combat.css is global here (RunScreen
- * imports CombatScreen), so it styles identically. The `display` modifier swaps the
- * fan sizing/transform for a static, clickable card. Used for rewards AND shop stock.
- */
-function MoveCard({ c, selected, disabled, price, onClick }) {
-  const f = frameStyle({ element: c.element, rarity: c.rarity });
-  const art = cardArt(c);
-  return (
-    <button type="button" disabled={disabled}
-      className={`frame move display ${f.finish}${selected ? ' sel' : ''}${disabled ? ' unplayable' : ''}`}
-      style={{ background: f.background }} onClick={onClick}>
-      {f.holo && <div className="holo" />}
-      <div className="cost">{c.cost === -1 ? 'X' : c.cost === -2 ? '—' : c.cost}</div>
-      <div className="inner">
-        <div className={`micon ${cardKind(c)}`}>{art ? <img className="artImg" src={art} alt="" /> : <RIcon icon={axisCardIcon(c)} />}</div>
-        <div className="mn">{c.name}</div>
-        <div className="mt">{cardText(c)}</div>
-        {price != null && <div className="mPrice"><RIcon icon="game-icons:two-coins" /> {price}g</div>}
-      </div>
-    </button>
-  );
-}
 
 // Gold price of a shop card by rarity (REVIEW/tunable).
 const CARD_PRICE = { common: 40, uncommon: 65, rare: 90, epic: 130, mythic: 180, legendary: 240, godly: 300 };

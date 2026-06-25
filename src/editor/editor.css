@@ -106,7 +106,7 @@
 /* ── Gallery view: filter sidebar + visual card grid (StS2-mod style) ── */
 .ed .galleryWrap { display: flex; align-items: stretch; min-height: 0; }
 .ed .filters { flex: 0 0 220px; padding: 12px; border-right: 1px solid #4a3a22;
-  display: flex; flex-direction: column; gap: 12px; overflow-y: auto; max-height: calc(100vh - 96px); }
+  display: flex; flex-direction: column; gap: 12px; overflow-y: auto; max-height: calc(100vh - 132px); }
 .ed .fSearch { position: relative; }
 .ed .fSearch input { width: 100%; }
 .ed .fClear { position: absolute; right: 4px; top: 50%; transform: translateY(-50%); border: none; background: transparent; color: #c9b58e; padding: 2px 6px; }
@@ -126,33 +126,31 @@
   .ed .filters { flex: 0 0 auto; max-height: none; border-right: none; border-bottom: 1px solid #4a3a22; }
 }
 
-.ed .gallery { flex: 1 1 auto; min-width: 0; display: grid; align-content: start;
-  grid-template-columns: repeat(auto-fill, minmax(186px, 1fr)); gap: 16px; padding: 16px;
-  overflow-y: auto; max-height: calc(100vh - 96px); }
+/* The card grid: real combat cards (shared MoveCard, .move.display = 124px) laid
+   out with a little breathing room for the hover-lift. */
+.ed .gallery { flex: 1 1 auto; min-width: 0; display: flex; flex-wrap: wrap; align-content: start;
+  gap: 18px 14px; padding: 20px 16px; overflow-y: auto; max-height: calc(100vh - 132px); }
 
-/* a single rendered card tile */
-.ed .gcard { position: relative; display: flex; flex-direction: column; cursor: pointer;
-  background: linear-gradient(#2a2012, #19120a); border: 3px solid #c9a23a; border-radius: 14px;
-  overflow: hidden; box-shadow: 0 6px 16px #000a; transition: transform .1s ease, box-shadow .1s ease; }
-.ed .gcard:hover { transform: translateY(-4px); box-shadow: 0 12px 26px #000c, 0 0 14px #c9a23a55; }
-.ed .gcard.bad { border-color: #c2553a; }
-.ed .gCost { position: absolute; top: 6px; left: 6px; width: 30px; height: 30px; border-radius: 50%; z-index: 3;
-  display: grid; place-items: center; font-family: 'Cinzel', serif; font-weight: 900; color: #fff;
-  background: radial-gradient(circle at 38% 30%, #ffd27a, #c0531f); border: 2px solid #ffe6a8; box-shadow: 0 2px 6px #000a; }
-.ed .gDel { position: absolute; top: 6px; right: 6px; z-index: 3; width: 22px; height: 22px; border-radius: 50%;
-  border: none; background: #6a1f14; color: #ffb9a0; font-size: 11px; line-height: 1; padding: 0; opacity: 0; transition: opacity .1s; }
-.ed .gcard:hover .gDel { opacity: 1; }
-.ed .gName { font-family: 'Cinzel', serif; font-weight: 700; font-size: 13px; text-align: center; line-height: 1.15;
-  color: #fff3d6; padding: 6px 26px; background: #3a2c12; text-shadow: 0 1px 2px #000; }
-.ed .gcard.k-attack .gName { background: linear-gradient(#7a2417, #561a10); }
-.ed .gcard.k-skill .gName { background: linear-gradient(#1c4a5a, #133646); }
-.ed .gcard.k-power .gName { background: linear-gradient(#3a2a52, #271a3e); }
-.ed .gArt { height: 96px; background: #0d0a06; display: grid; place-items: center; overflow: hidden; }
-.ed .gArt img { width: 100%; height: 100%; object-fit: cover; image-rendering: pixelated; }
-.ed .gNoArt { font-family: 'Cinzel', serif; font-size: 30px; color: #6a5a3a; }
-.ed .gType { text-align: center; font-size: 10px; letter-spacing: 1.5px; text-transform: uppercase; color: #d8b24a; padding: 3px; background: #241a10; }
-.ed .gText { flex: 1 1 auto; min-height: 50px; font-size: 11px; line-height: 1.3; padding: 7px 8px;
-  background: linear-gradient(#efe2bd, #dccba0); color: #3a2c12; }
+/* Each tile = the MoveCard + editor overlays (delete, validation flag). */
+.ed .gtile { position: relative; flex: 0 0 auto; }
+.ed .gtile .gDel { position: absolute; top: -8px; right: -8px; z-index: 8; width: 22px; height: 22px; border-radius: 50%;
+  border: 1px solid #ffb9a0; background: #6a1f14; color: #ffd9cf; font-size: 11px; line-height: 1; padding: 0;
+  opacity: 0; transition: opacity .1s; box-shadow: 0 2px 6px #000a; }
+.ed .gtile:hover .gDel { opacity: 1; }
+.ed .gtile .gBad { position: absolute; top: -8px; left: -8px; z-index: 8; width: 22px; height: 22px; border-radius: 50%;
+  display: grid; place-items: center; background: #7a3a2a; color: #ffd27a; font-size: 12px; box-shadow: 0 2px 6px #000a; }
+.ed .gtile.bad .move.display { outline: 2px solid #c2553a; outline-offset: 1px; border-radius: 14px; }
+
+/* Archetype toggle bar (multi-select; replaces the single filename dropdown). */
+.ed .archBar { display: flex; gap: 7px; align-items: center; flex-wrap: wrap; padding: 8px 12px;
+  background: #1a1308; border-bottom: 1px solid #3a2c18; }
+.ed .archBar .t2label { color: #c9b58e; font-size: 13px; }
+.ed .archChip { padding: 5px 12px; font-family: 'Cinzel', serif; font-size: 13px; opacity: .55; }
+.ed .archChip.on { opacity: 1; background: #3a2c12; border-color: #6a4d1b; color: #fff3d6; }
+.ed .archChip.focus { background: #6a4d1b; border-color: #b88a3e; box-shadow: 0 0 0 1px #b88a3e inset; }
+.ed .archNew { border-style: dashed; font-size: 13px; }
+.ed .fFocus { display: flex; flex-direction: column; gap: 3px; font-size: 11px; color: #c9b58e; }
+.ed .fFocus select { width: 100%; }
 
 /* ── Edit modal (opens when a card is clicked) ── */
 .ed .editModal { position: fixed; inset: 0; background: #0a0710e0; z-index: 50; display: grid; place-items: center; padding: 18px; }

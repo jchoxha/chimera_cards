@@ -6,6 +6,11 @@
 
 /** @type {{version:string, date:string, notes:string[]}[]} newest first */
 export const CHANGELOG = [
+  { version: 'v3.65.0', date: '2026-06-25', notes: [
+    'Card Forge now shows archetypes by name (not file names) and lets you toggle several at once — click an archetype to show + focus it, double-click to hide; the gallery pools the cards of every shown archetype, and Save writes them all.',
+    'Forge cards are now the EXACT same card you see in combat (shared card component), instead of a separate editor-only tile.',
+    'Each card in the Forge has an editable "art prompt" field (with the auto-derived prompt shown as a placeholder) for feeding to the image generator.',
+  ] },
   { version: 'v3.64.0', date: '2026-06-25', notes: [
     'Every card now carries an art description (artPrompt) written for an image generator — a per-card scene derived from its archetype, element, and effect, ready to hand-refine. A new batch script (scripts/gen_cards.py) feeds these to the Variant-B art pipeline and the game prefers any generated card art over the pixel placeholder.',
   ] },

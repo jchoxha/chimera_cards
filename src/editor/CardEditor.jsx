@@ -14,7 +14,8 @@ import {
 // Trigger options shown per effect op (onPlay = immediate; 'passive' is power-only).
 const OP_TRIGGERS = ['onPlay', ...TRIGGER_EVENTS.filter((e) => e !== 'onPlay' && e !== 'passive')];
 import { describeCard } from '../engine/cards/cardText.js';
-import { cardArt } from '../data/artPool.js';
+import { cardArtScene } from '../data/cardArtPrompt.js';
+import MoveCard from '../ui/combat/MoveCard.jsx';
 import { APP_VERSION } from '../version.js';
 import { STANCES } from '../engine/combat/stances.js';
 import { TARGET_SCOPES, RARITIES } from '../engine/types.js';
@@ -25,6 +26,7 @@ import {
   listPresets, savePreset, loadPreset, deletePreset,
   listArt, saveArt, resolveArt,
 } from './persistence.js';
+import '../ui/combat/combat.css';
 import './editor.css';
 
 const clone = (o) => JSON.parse(JSON.stringify(o));
@@ -172,28 +174,33 @@ function OpList({ ops, onChange }) {
   );
 }
 
-/** A rendered card tile for the gallery — frame + cost + name banner + art + type + auto-text. */
-function GalleryCard({ c, bad, onClick, onDelete }) {
-  const art = (c.art && resolveArt(c.art)) || cardArt(c);
-  const kind = c.type || 'skill';
-  const cost = c.cost === -1 ? 'X' : c.cost === -2 ? '—' : (c.cost ?? 0);
+/**
+ * One gallery entry: the real combat card (shared MoveCard, so it looks EXACTLY
+ * like an in-hand card) plus editor affordances (delete, validation flag). The
+ * delete button is a sibling overlay — never nested inside MoveCard's <button>.
+ */
+function GalleryTile({ c, bad, onClick, onDelete }) {
+  // A card override-art (lib:/key) wins; otherwise MoveCard resolves placeholder/gen art.
+  const ov = c.art && resolveArt(c.art);
+  const display = ov ? { ...c, art: ov } : c;
   return (
-    <div className={`gcard k-${kind}${bad ? ' bad' : ''}`} onClick={onClick} title="Click to edit">
-      <span className="gCost">{cost}</span>
-      <button className="gDel" title="Delete card" onClick={(e) => { e.stopPropagation(); onDelete(); }}>✕</button>
-      <div className="gName">{c.name || '(unnamed)'}</div>
-      <div className="gArt">{art ? <img src={art} alt="" /> : <span className="gNoArt">{(kind[0] || '?').toUpperCase()}</span>}</div>
-      <div className="gType">{kind}</div>
-      <div className="gText">{describeCard(c) || c.text || '—'}</div>
+    <div className={`gtile${bad ? ' bad' : ''}`}>
+      <MoveCard c={display} onClick={onClick} />
+      <button className="gDel" title="Delete card" onClick={onDelete}>✕</button>
+      {bad && <span className="gBad" title="This card has validation errors">⚠</span>}
     </div>
   );
 }
 
 export function CardEditor({ onMenu } = {}) {
   const [files, setFiles] = useState(() => clone(BASE_FILES));
-  const [activeFile, setActiveFile] = useState(() => Object.keys(BASE_FILES)[0] || 'warrior.json');
-  const [working, setWorking] = useState(null);
-  const [cardIdx, setCardIdx] = useState(0);
+  const allFiles = Object.keys(files);
+  // Multi-archetype: a SET of toggled files + a `focus` file for add/presets/revert.
+  const [active, setActive] = useState(() => new Set([allFiles[0]].filter(Boolean)));
+  const [focusFile, setFocusFile] = useState(() => allFiles[0] || 'warrior.json');
+  const [workings, setWorkings] = useState({});           // file -> working draft
+  const [edit, setEdit] = useState(null);                  // {file, idx} being edited
+  const [editing, setEditing] = useState(false);
   const [raw, setRaw] = useState(false);
   const [rawText, setRawText] = useState('');
   const [rawErr, setRawErr] = useState('');
@@ -201,16 +208,22 @@ export function CardEditor({ onMenu } = {}) {
   const [gh, setGh] = useState(loadGitHubSettings);
   const [showSettings, setShowSettings] = useState(false);
   const [status, setStatus] = useState('');
-  const [presets, setPresets] = useState(() => listPresets(activeFile));
+  const [presets, setPresets] = useState(() => listPresets(focusFile));
   const [presetSel, setPresetSel] = useState('');
   const [artLib, setArtLib] = useState(() => listArt());
-  // Gallery view: filters + the edit form opens as a modal when a card is clicked.
-  const [editing, setEditing] = useState(false);
+  // Gallery filters.
   const [q, setQ] = useState('');
   const [fTypes, setFTypes] = useState(() => new Set());
   const [fRarities, setFRarities] = useState(() => new Set());
   const [fCosts, setFCosts] = useState(() => new Set());
   const [sortAZ, setSortAZ] = useState(false);
+
+  // Display name for a file = its archetype name (the file's `class`), never the filename.
+  const nameOf = (file) => {
+    const cls = workings[file]?.class ?? files[file]?.class;
+    if (cls) return Array.isArray(cls) ? cls.join('/') : cls;
+    return slug(file).replace(/_json$/, '').replace(/^\w/, (ch) => ch.toUpperCase());
+  };
 
   useEffect(() => { detectDevWrite().then(setDevAvailable); }, []);
   useEffect(() => {
@@ -219,110 +232,153 @@ export function CardEditor({ onMenu } = {}) {
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
   }, [editing]);
-  useEffect(() => { setPresets(listPresets(activeFile)); setPresetSel(''); }, [activeFile]);
+  useEffect(() => { setPresets(listPresets(focusFile)); setPresetSel(''); }, [focusFile]);
 
+  // Load a working draft for every active file (and the focus file).
   useEffect(() => {
-    const base = files[activeFile] || { class: slug(activeFile).replace('_json', ''), version: 1, cards: [] };
-    const draft = loadDraft(activeFile);
-    setWorking(draft || clone(base));
-    setCardIdx(0);
-  }, [activeFile, files]);
+    setWorkings((prev) => {
+      const next = { ...prev };
+      for (const f of [...active, focusFile]) {
+        if (!f || next[f]) continue;
+        const base = files[f] || { class: slug(f).replace('_json', ''), version: 1, cards: [] };
+        next[f] = loadDraft(f) || clone(base);
+      }
+      return next;
+    });
+  }, [active, focusFile, files]);
 
-  useEffect(() => { if (working) saveDraft(activeFile, working); }, [working, activeFile]);
+  // Keep focus on an active file.
+  useEffect(() => {
+    if (!active.has(focusFile)) { const first = [...active][0]; if (first) setFocusFile(first); }
+  }, [active, focusFile]);
 
-  const cards = working?.cards ?? [];
-  const card = cards[cardIdx] || null;
-  const errors = useMemo(() => (card ? validateCard(card) : []), [card]);
+  // Persist drafts as they change.
+  useEffect(() => { for (const [f, w] of Object.entries(workings)) if (w) saveDraft(f, w); }, [workings]);
 
-  // Gallery filtering/sorting — keeps each card's ORIGINAL index so edits map back.
+  const setWorkingFile = (file, updater) => setWorkings((ws) => ({ ...ws, [file]: updater(ws[file]) }));
+
+  const focusWorking = workings[focusFile];
+  const editCard = edit && workings[edit.file]?.cards?.[edit.idx] || null;
+  const card = editCard;   // alias used throughout the edit form
+  const errors = useMemo(() => (editCard ? validateCard(editCard) : []), [editCard]);
+
+  // Gallery aggregates cards from ALL active files, each tagged with its source file.
   const costKey = (c) => (c.cost === -1 ? 'X' : (c.cost ?? 0) >= 3 ? '3+' : String(c.cost ?? 0));
+  const totalActive = useMemo(() => {
+    let n = 0; for (const f of active) n += workings[f]?.cards?.length || 0; return n;
+  }, [active, workings]);
   const view = useMemo(() => {
     const ql = q.trim().toLowerCase();
-    let v = cards.map((c, i) => ({ c, i })).filter(({ c }) => {
-      if (ql && !(c.name || '').toLowerCase().includes(ql) && !(c.id || '').toLowerCase().includes(ql)) return false;
-      if (fTypes.size && !fTypes.has(c.type)) return false;
-      if (fRarities.size && !fRarities.has(c.rarity || 'common')) return false;
-      if (fCosts.size && !fCosts.has(costKey(c))) return false;
-      return true;
-    });
-    if (sortAZ) v = [...v].sort((a, b) => (a.c.name || '').localeCompare(b.c.name || ''));
-    return v;
-  }, [cards, q, fTypes, fRarities, fCosts, sortAZ]);
-  const toggleIn = (setFn, val) => setFn((s) => { const n = new Set(s); if (n.has(val)) n.delete(val); else n.add(val); return n; });
-  const openCardForEdit = (i) => { setCardIdx(i); setRaw(false); setEditing(true); };
+    const out = [];
+    for (const f of allFiles) {
+      if (!active.has(f)) continue;
+      const w = workings[f]; if (!w) continue;
+      w.cards.forEach((c, i) => {
+        if (ql && !(c.name || '').toLowerCase().includes(ql) && !(c.id || '').toLowerCase().includes(ql)) return;
+        if (fTypes.size && !fTypes.has(c.type)) return;
+        if (fRarities.size && !fRarities.has(c.rarity || 'common')) return;
+        if (fCosts.size && !fCosts.has(costKey(c))) return;
+        out.push({ file: f, c, i });
+      });
+    }
+    if (sortAZ) out.sort((a, b) => (a.c.name || '').localeCompare(b.c.name || ''));
+    return out;
+  }, [active, allFiles, workings, q, fTypes, fRarities, fCosts, sortAZ]);
 
-  useEffect(() => { if (card) { setRawText(JSON.stringify(card, null, 2)); setRawErr(''); } }, [cardIdx, raw, card]);
+  const toggleIn = (setFn, val) => setFn((s) => { const n = new Set(s); if (n.has(val)) n.delete(val); else n.add(val); return n; });
+  const toggleArchetype = (file) => setActive((s) => {
+    const n = new Set(s);
+    if (n.has(file)) { if (n.size === 1) return n; n.delete(file); } else { n.add(file); }
+    return n;
+  });
+  const openCardForEdit = (file, i) => { setEdit({ file, idx: i }); setFocusFile(file); setRaw(false); setEditing(true); };
+
+  useEffect(() => { if (editCard) { setRawText(JSON.stringify(editCard, null, 2)); setRawErr(''); } }, [edit, raw, editCard]);
 
   function updateCard(patch) {
-    setWorking((w) => ({ ...w, cards: w.cards.map((c, i) => (i === cardIdx ? { ...c, ...patch } : c)) }));
+    if (!edit) return;
+    setWorkingFile(edit.file, (w) => ({ ...w, cards: w.cards.map((c, i) => (i === edit.idx ? { ...c, ...patch } : c)) }));
   }
   function applyRaw() {
-    try { const parsed = JSON.parse(rawText); setRawErr(''); setWorking((w) => ({ ...w, cards: w.cards.map((c, i) => (i === cardIdx ? parsed : c)) })); }
+    if (!edit) return;
+    try { const parsed = JSON.parse(rawText); setRawErr(''); setWorkingFile(edit.file, (w) => ({ ...w, cards: w.cards.map((c, i) => (i === edit.idx ? parsed : c)) })); }
     catch (e) { setRawErr(String(e.message || e)); }
   }
   function addCard() {
-    const cls = working.class || '';
-    const blank = { id: `${slug(cls) || 'card'}_new_${cards.length + 1}`, name: 'New Card', class: cls || undefined, attunement: 'Physical', type: 'attack', cost: 1, rarity: 'common', keywords: [], text: '', effects: [{ ...EFFECT_OPS.damage.default }] };
-    setWorking((w) => ({ ...w, cards: [...w.cards, blank] }));
-    setCardIdx(cards.length);
+    const file = focusFile;
+    const w = workings[file]; if (!w) return;
+    const cls = w.class || '';
+    const blank = { id: `${slug(cls) || 'card'}_new_${w.cards.length + 1}`, name: 'New Card', class: cls || undefined, attunement: 'Physical', type: 'attack', cost: 1, rarity: 'common', keywords: [], text: '', effects: [{ ...EFFECT_OPS.damage.default }] };
+    const idx = w.cards.length;
+    setWorkingFile(file, (w2) => ({ ...w2, cards: [...w2.cards, blank] }));
+    setEdit({ file, idx });
     setRaw(false);
     setEditing(true);
   }
-  function deleteCard(i) {
-    if (!confirm(`Delete "${cards[i]?.name}"?`)) return;
-    setWorking((w) => ({ ...w, cards: w.cards.filter((_, j) => j !== i) }));
-    setCardIdx((idx) => Math.max(0, Math.min(idx, cards.length - 2)));
+  function deleteCard(file, i) {
+    const w = workings[file]; if (!w) return;
+    if (!confirm(`Delete "${w.cards[i]?.name}"?`)) return;
+    setWorkingFile(file, (w2) => ({ ...w2, cards: w2.cards.filter((_, j) => j !== i) }));
+    if (edit && edit.file === file && edit.idx === i) { setEditing(false); setEdit(null); }
   }
-  function regenId() { updateCard({ id: `${slug(card.class || working.class || 'card')}_${slug(card.name)}` }); }
+  function regenId() { if (editCard) updateCard({ id: `${slug(editCard.class || workings[edit.file]?.class || 'card')}_${slug(editCard.name)}` }); }
 
   async function doSave() {
     try {
-      setStatus('saving…');
-      const res = await persist(activeFile, working, { devAvailable, gh });
-      setFiles((f) => ({ ...f, [activeFile]: clone(working) }));
-      clearDraft(activeFile);
-      setStatus(res.via === 'dev' ? `✓ saved to disk (${activeFile})`
-        : res.via === 'github' ? `✓ committed to GitHub (${activeFile})`
-        : `✓ downloaded ${activeFile} — drop it in src/data/cards/`);
+      setStatus(`saving ${active.size} archetype${active.size > 1 ? 's' : ''}…`);
+      const saved = [];
+      let via = 'download';
+      for (const f of active) {
+        const w = workings[f]; if (!w) continue;
+        const res = await persist(f, w, { devAvailable, gh });
+        setFiles((fs) => ({ ...fs, [f]: clone(w) }));
+        clearDraft(f);
+        saved.push(nameOf(f));
+        via = res.via;
+      }
+      const where = via === 'dev' ? 'to disk' : via === 'github' ? 'to GitHub' : '— downloaded, drop into src/data/cards/';
+      setStatus(`✓ saved ${saved.join(', ')} ${where}`);
     } catch (e) { setStatus(`✗ ${e.message || e}`); }
   }
   function newFile() {
-    const cls = prompt('New class file — class name (e.g. Rogue):');
+    const cls = prompt('New archetype — name (e.g. Rogue):');
     if (!cls) return;
     const fn = `${slug(cls)}.json`;
     setFiles((f) => ({ ...f, [fn]: { class: cls, version: 1, cards: [] } }));
-    setActiveFile(fn);
+    setActive((s) => new Set([...s, fn]));
+    setFocusFile(fn);
   }
 
-  // ── Presets + revert-to-vanilla ──
+  // ── Presets + revert-to-vanilla (operate on the focus archetype) ──
   function doSavePreset() {
     const name = prompt('Preset name:', presetSel || 'My preset');
-    if (!name) return;
-    savePreset(activeFile, name, working);
-    setPresets(listPresets(activeFile)); setPresetSel(name);
-    setStatus(`✓ saved preset "${name}"`);
+    if (!name || !focusWorking) return;
+    savePreset(focusFile, name, focusWorking);
+    setPresets(listPresets(focusFile)); setPresetSel(name);
+    setStatus(`✓ saved preset "${name}" for ${nameOf(focusFile)}`);
   }
   function doLoadPreset() {
     if (!presetSel) return;
-    const obj = loadPreset(activeFile, presetSel);
-    if (obj) { setWorking(clone(obj)); setCardIdx(0); setStatus(`loaded preset "${presetSel}"`); }
+    const obj = loadPreset(focusFile, presetSel);
+    if (obj) { setWorkingFile(focusFile, () => clone(obj)); setStatus(`loaded preset "${presetSel}"`); }
   }
   function doDeletePreset() {
     if (!presetSel || !confirm(`Delete preset "${presetSel}"?`)) return;
-    deletePreset(activeFile, presetSel); setPresets(listPresets(activeFile)); setPresetSel('');
+    deletePreset(focusFile, presetSel); setPresets(listPresets(focusFile)); setPresetSel('');
     setStatus('preset deleted');
   }
   function revertFile() {
-    if (!confirm('Revert ALL cards in this file to the bundled (vanilla) version? Discards unsaved edits.')) return;
-    const base = BASE_FILES[activeFile];
-    if (!base) { setStatus('no bundled version for this file'); return; }
-    setWorking(clone(base)); clearDraft(activeFile); setCardIdx(0);
-    setStatus('reverted file to vanilla');
+    if (!confirm(`Revert ALL ${nameOf(focusFile)} cards to the bundled (vanilla) version? Discards unsaved edits.`)) return;
+    const base = BASE_FILES[focusFile];
+    if (!base) { setStatus('no bundled version for this archetype'); return; }
+    setWorkingFile(focusFile, () => clone(base)); clearDraft(focusFile);
+    setStatus(`reverted ${nameOf(focusFile)} to vanilla`);
   }
   function revertCard() {
-    const base = (BASE_FILES[activeFile]?.cards || []).find((c) => c.id === card.id);
+    if (!editCard) return;
+    const base = (BASE_FILES[edit.file]?.cards || []).find((c) => c.id === editCard.id);
     if (!base) { setStatus('no bundled version for this card'); return; }
-    setWorking((w) => ({ ...w, cards: w.cards.map((c, i) => (i === cardIdx ? clone(base) : c)) }));
+    setWorkingFile(edit.file, (w) => ({ ...w, cards: w.cards.map((c, i) => (i === edit.idx ? clone(base) : c)) }));
     setStatus(`reverted "${base.name}" to vanilla`);
   }
   function handleArtUpload(e) {
@@ -338,7 +394,7 @@ export function CardEditor({ onMenu } = {}) {
 
   const backend = devAvailable ? 'dev-write (disk)' : gh.token ? 'GitHub commit' : 'download / localStorage';
 
-  if (!working) return <div className="ed"><p style={{ padding: 20 }}>Loading…</p></div>;
+  if (!focusWorking) return <div className="ed"><p style={{ padding: 20 }}>Loading…</p></div>;
 
   return (
     <div className="ed">
@@ -346,16 +402,26 @@ export function CardEditor({ onMenu } = {}) {
         {onMenu && <button onClick={onMenu} title="Back to menu">≡ Menu</button>}
         <strong>🃏 Chimera Card Editor</strong>
         <span className="edVer">{APP_VERSION}</span>
-        <select value={activeFile} onChange={(e) => setActiveFile(e.target.value)}>
-          {Object.keys(files).map((f) => <option key={f} value={f}>{f}</option>)}
-        </select>
-        <button onClick={newFile}>+ file</button>
         <span className={`badge ${devAvailable ? 'ok' : gh.token ? 'gh' : 'warn'}`}>{backend}</span>
         <span className="grow" />
-        <button onClick={() => downloadJSON(activeFile, working)}>Export</button>
+        <button onClick={() => downloadJSON(focusFile, focusWorking)} title={`Export ${nameOf(focusFile)}`}>Export</button>
         <button onClick={() => setShowSettings((s) => !s)}>⚙ GitHub</button>
-        <button className="save" onClick={doSave}>Save</button>
+        <button className="save" onClick={doSave} title="Save all toggled archetypes">Save</button>
       </header>
+
+      <div className="archBar">
+        <span className="t2label">Archetypes:</span>
+        {allFiles.map((f) => (
+          <button key={f}
+            className={`archChip${active.has(f) ? ' on' : ''}${f === focusFile ? ' focus' : ''}`}
+            title={active.has(f) ? (f === focusFile ? 'Focused — new cards / presets target this archetype' : 'Click to focus; double-click to hide') : 'Click to show this archetype'}
+            onClick={() => { if (!active.has(f)) { toggleArchetype(f); setFocusFile(f); } else { setFocusFile(f); } }}
+            onDoubleClick={() => active.has(f) && toggleArchetype(f)}>
+            {nameOf(f)}
+          </button>
+        ))}
+        <button className="archNew" onClick={newFile} title="New archetype">+ new</button>
+      </div>
 
       <div className="toolbar2">
         <span className="t2label">Presets:</span>
@@ -392,7 +458,14 @@ export function CardEditor({ onMenu } = {}) {
             <input placeholder="Search…" value={q} onChange={(e) => setQ(e.target.value)} />
             {q && <button className="fClear" onClick={() => setQ('')} title="Clear">✕</button>}
           </div>
-          <button className="addCard fAdd" onClick={addCard}>+ add card</button>
+          {active.size > 1 && (
+            <label className="fFocus"><span>New cards →</span>
+              <select value={focusFile} onChange={(e) => setFocusFile(e.target.value)}>
+                {allFiles.filter((f) => active.has(f)).map((f) => <option key={f} value={f}>{nameOf(f)}</option>)}
+              </select>
+            </label>
+          )}
+          <button className="addCard fAdd" onClick={addCard}>+ add card to {nameOf(focusFile)}</button>
 
           <div className="fGroup">
             <div className="fLabel">Card Type</div>
@@ -420,15 +493,15 @@ export function CardEditor({ onMenu } = {}) {
           </div>
 
           <button className={`fSort ${sortAZ ? 'on' : ''}`} onClick={() => setSortAZ((s) => !s)}>A–Z sort {sortAZ ? '✓' : ''}</button>
-          <div className="fCount">{view.length} / {cards.length} cards</div>
+          <div className="fCount">{view.length} / {totalActive} cards · {active.size} archetype{active.size > 1 ? 's' : ''}</div>
         </aside>
 
         <div className="gallery">
-          {view.map(({ c, i }) => (
-            <GalleryCard key={c.id || i} c={c} bad={validateCard(c).length > 0}
-              onClick={() => openCardForEdit(i)} onDelete={() => deleteCard(i)} />
+          {view.map(({ file, c, i }) => (
+            <GalleryTile key={`${file}:${c.id || i}`} c={c} bad={validateCard(c).length > 0}
+              onClick={() => openCardForEdit(file, i)} onDelete={() => deleteCard(file, i)} />
           ))}
-          {view.length === 0 && <p className="empty">{cards.length ? 'No cards match these filters.' : 'No cards yet — add one.'}</p>}
+          {view.length === 0 && <p className="empty">{totalActive ? 'No cards match these filters.' : 'No cards yet — add one.'}</p>}
         </div>
       </div>
 
@@ -481,6 +554,12 @@ export function CardEditor({ onMenu } = {}) {
                   </Field>
                   <Field label="auto text (shown in-game)"><div className="autoText">{describeCard(card) || '(define effects to generate text)'}</div></Field>
                   <Field label="text override (optional)"><textarea className="cardtext" value={card.text || ''} placeholder="(leave blank — the auto text above is used)" onChange={(e) => updateCard({ text: e.target.value || undefined })} /></Field>
+                  <Field label="art prompt (fed to the image generator)">
+                    <textarea className="cardtext" value={card.artPrompt || ''}
+                      placeholder={cardArtScene({ ...card, artPrompt: undefined })}
+                      onChange={(e) => updateCard({ artPrompt: e.target.value || undefined })} />
+                    <small>Describe the scene for AI art. Blank = the auto-derived prompt shown faded above. Generate with <code>python scripts/gen_cards.py</code>.</small>
+                  </Field>
 
                   <div className="artRow">
                     <Field label="art library">
