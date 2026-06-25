@@ -326,6 +326,8 @@ html:has(.cmbt),body:has(.cmbt){height:100%;margin:0;overflow:hidden}
 .floatNum.block{color:#bfe0ff}
 .floatNum.react{color:#ffd34d;font-family:'Cinzel',serif;font-size:clamp(15px,2.6vw,22px);letter-spacing:1px;
   text-shadow:0 2px 4px #000,0 0 12px #ffae3a}
+.floatNum.decay{color:#c89bff;font-size:clamp(13px,2.3vw,19px);letter-spacing:.5px;white-space:nowrap;
+  text-shadow:0 2px 4px #000,0 0 12px #7a3fb0}
 @keyframes floatUp{
   0%{opacity:0;transform:translate(-50%,-28%) scale(.7)}
   18%{opacity:1;transform:translate(-50%,-62%) scale(1.12)}

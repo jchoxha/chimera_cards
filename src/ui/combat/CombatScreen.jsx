@@ -552,6 +552,9 @@ function LogLine({ ev, nameOf, sideOf, onEntity }) {
         : <span>{p.side === 'player' ? 'You swap in a new vanguard' : 'Enemy swaps vanguard'} (cost {p.cost}).</span>;
     case 'reaction':
       return <span className="rx"><button className="logEnt rxv" onClick={() => onEntity({ kind: 'reaction', verb: p.verb, element: p.element, status: p.status })}>{p.verb}!</button> {p.element} reacts with <FxLink id={p.status} onEntity={onEntity} /> on <CrLink id={p.targetId} nameOf={nameOf} onEntity={onEntity} />.</span>;
+    case 'decay':
+      if (!p.buff) return <span className="rx"><FxLink id="decay" onEntity={onEntity} /> finds no buff to sap on <CrLink id={p.targetId} nameOf={nameOf} onEntity={onEntity} />.</span>;
+      return <span className="rx"><FxLink id="decay" onEntity={onEntity} /> saps {p.removed} <FxLink id={p.buff} onEntity={onEntity} /> from <CrLink id={p.targetId} nameOf={nameOf} onEntity={onEntity} />{p.wiped ? ' — wiped out!' : '.'}</span>;
     case 'peek':
       return <span className="pk">You Peek the enemy’s plan.</span>;
     default:
@@ -634,6 +637,11 @@ export default function CombatScreen({ onMenu, onRestart, embedded } = {}) {
         else if (ev.type === 'heal' && p.amount > 0) { text = `+${p.amount}`; kind = 'heal'; }
         else if (ev.type === 'block' && p.amount > 0) { text = `+${p.amount}`; kind = 'block'; }
         else if (ev.type === 'reaction') { text = `${p.verb}!`; kind = 'react'; }
+        else if (ev.type === 'decay') {
+          const nm = EFFECT_INFO[p.buff]?.name || p.buff;
+          text = !p.buff ? 'Decay fizzles' : p.wiped ? `${nm} wiped!` : `−${p.removed} ${nm}`;
+          kind = 'decay';
+        }
         else continue;
         const id = p.targetId;
         if (!id) continue;

@@ -113,6 +113,9 @@ function effSummary(card) {
 /** Total living HP on a side (for damage-dealt/taken trigger detection). */
 const sideHp = (side) => side.fighters.reduce((n, f) => n + Math.max(0, f.hp), 0);
 
+/** Buff statuses Decay can sap (Void §5.1). */
+const DECAY_BUFFS = ['strength', 'dexterity', 'regen', 'amplify'];
+
 /** @typedef {import('../types.js').CombatState} CombatState */
 /** @typedef {import('../types.js').Fighter} Fighter */
 /** @typedef {import('../types.js').PlannedAction} PlannedAction */
@@ -1121,19 +1124,21 @@ export class VanguardManager {
           if (hits > 0) { applyDamage(f, bl.amount * hits, emit, true); bl.amount -= 1; }
           else bl.amount = 0;
         }
-        // Decay (Void): lose HP AND Block = stacks, strip 1 stack of EVERY buff, and
-        // strip one active power; then decay by 1. (Devastating vs buff/power decks.)
+        // Decay (Void): saps ONE random buff on the target by however much Decay it
+        // has — removes min(decay, buffStacks); if Decay ≥ the buff it is wiped, and
+        // any excess Decay is wasted this turn. Announced in the log + as a floater.
+        // Decay itself ticks down 1/turn.
         const dec = f.statuses.find((x) => x.id === 'decay');
         if (dec && dec.amount > 0) {
-          applyDamage(f, dec.amount, emit, true);
-          if (f.block > 0) f.block = Math.max(0, f.block - dec.amount);
-          for (const id of ['strength', 'dexterity', 'regen', 'amplify']) {
-            const b = f.statuses.find((x) => x.id === id);
-            if (b && b.amount > 0) { b.amount -= 1; emit('status', { targetId: f.id, id, amount: b.amount }); }
-          }
-          if (Array.isArray(f.powers) && f.powers.length > 0) {
-            const removed = f.powers.pop();
-            emit('powerStripped', { targetId: f.id, source: removed && removed.source });
+          const present = f.statuses.filter((x) => DECAY_BUFFS.includes(x.id) && x.amount > 0);
+          if (present.length) {
+            const buff = present[Math.floor(this.rng() * present.length)];
+            const removed = Math.min(dec.amount, buff.amount);
+            buff.amount -= removed;
+            emit('status', { targetId: f.id, id: buff.id, amount: buff.amount });
+            emit('decay', { targetId: f.id, buff: buff.id, removed, wiped: buff.amount <= 0, decay: dec.amount });
+          } else {
+            emit('decay', { targetId: f.id, buff: null, removed: 0, wiped: false, decay: dec.amount });
           }
           dec.amount -= 1;
         }

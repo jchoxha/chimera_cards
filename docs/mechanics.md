@@ -32,7 +32,7 @@ the **carrier's own** turn-end. `intensity` = a magnitude that's consumed/ticked
 | **Burn** (Fire) | debuff | HP = stacks/turn; decays 1 | yes |
 | **Poison** (Nature) | debuff | HP = stacks/turn; persists | yes |
 | **Bleed** (Physical) | debuff | HP = stacks × times-hit-that-turn; 0 hits → falls off; else decay 1 | yes |
-| **Decay** (Void) | debuff | HP+Block = stacks/turn, strips 1 of every buff + 1 power; decays 1 | yes |
+| **Decay** (Void) | debuff | turn-end: saps ONE random buff by its stacks (wipes if Decay ≥ it; excess wasted); decays 1. Announced via log + floater | yes |
 | **Weak / Chill** (Frost) | debuff | −25% attack damage; counts down | yes |
 | **Vulnerable** (Shadow) | debuff | +50% damage taken; counts down | yes |
 | **Soak** (Water) | debuff | *(reframe pending — see §4)* currently +25%/stack to next hit | yes |

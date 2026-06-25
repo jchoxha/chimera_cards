@@ -60,14 +60,25 @@ console.log('Bleed (Physical): damage = stacks × times hit; falls off if not hi
 { const { m, foe } = setup(); addSt(foe, 'bleed', 3); m.endTurn(); // not hit this turn
   ok(amt(foe, 'bleed') === 0, 'Bleed falls off to 0 when the carrier is not hit'); }
 
-console.log('Decay (Void): strips HP, Block, a buff stack, AND a power:');
-{ const { m, foe } = setup(); foe.block = 5; addSt(foe, 'decay', 3); addSt(foe, 'strength', 2); foe.powers = [{ source: 'pw1' }];
-  const b = foe.hp; m._tickStatuses('enemy', 'dots'); // isolate the tick (endTurn would also block-decay)
-  ok(foe.hp === b - 3, `-3 HP (hp ${foe.hp})`);
-  ok(foe.block === 2, `-3 Block (block ${foe.block})`);
-  ok(amt(foe, 'strength') === 1, `stripped 1 Strength (now ${amt(foe, 'strength')})`);
-  ok(foe.powers.length === 0, 'stripped a power card');
-  ok(amt(foe, 'decay') === 2, 'decayed 1'); }
+console.log('Decay (Void): saps a random buff by its stacks; HP/Block/powers untouched:');
+{ const { m, foe } = setup(); foe.block = 5; addSt(foe, 'decay', 3); addSt(foe, 'strength', 5); foe.powers = [{ source: 'pw1' }];
+  const b = foe.hp; m._tickStatuses('enemy', 'dots');
+  ok(foe.hp === b, `HP untouched (hp ${foe.hp})`);
+  ok(foe.block === 5, `Block untouched (block ${foe.block})`);
+  ok(amt(foe, 'strength') === 2, `Strength 5 − 3 Decay = 2 (now ${amt(foe, 'strength')})`);
+  ok(foe.powers.length === 1, 'powers untouched');
+  ok(amt(foe, 'decay') === 2, 'Decay ticked down 1'); }
+
+console.log('Decay wipes a buff when Decay ≥ its stacks (excess wasted):');
+{ const { m, foe } = setup(); addSt(foe, 'decay', 4); addSt(foe, 'regen', 2);
+  m._tickStatuses('enemy', 'dots');
+  ok(amt(foe, 'regen') === 0, `Regen wiped (now ${amt(foe, 'regen')})`);
+  ok(amt(foe, 'decay') === 3, 'Decay still ticks down 1, excess wasted'); }
+
+console.log('Decay with no buff does nothing but tick down:');
+{ const { m, foe } = setup(); addSt(foe, 'decay', 2);
+  const b = foe.hp; m._tickStatuses('enemy', 'dots');
+  ok(foe.hp === b && amt(foe, 'decay') === 1, 'no buff → only Decay ticks down'); }
 
 console.log('Shock (Energy): cost tax + DoT + spread growth:');
 { const { m, p } = setup(); addSt(p, 'shock', 2); m.state.player.energy = 5; p.hand = [strike()]; m.play('s');
