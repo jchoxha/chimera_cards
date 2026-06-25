@@ -6,6 +6,9 @@
 
 /** @type {{version:string, date:string, notes:string[]}[]} newest first */
 export const CHANGELOG = [
+  { version: 'v3.61.4', date: '2026-06-25', notes: [
+    'Card editor: show the build version in the header, and hard-neutralise any animation/transform the game styles leak onto list rows (a leaked transform can paint a row over the form).',
+  ] },
   { version: 'v3.61.3', date: '2026-06-25', notes: [
     'Card editor: fixed the card list pushing the edit form off-screen — the list is now a fixed, scrolling sidebar (or a height-capped panel on narrow screens) instead of a full-height column.',
   ] },

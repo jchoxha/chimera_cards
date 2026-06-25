@@ -53,6 +53,12 @@
   .ed .list { flex: 0 0 auto; max-height: 38vh; border-right: none; border-bottom: 1px solid #4a3a22; }
 }
 .ed .addCard, .ed .addOp { width: 100%; margin-bottom: 8px; border-style: dashed; }
+.ed .edVer { font-size: 11px; color: #9c8a64; font-weight: 400; }
+/* Hard-neutralise anything the game's stylesheets apply to these generic classes
+   in the app shell — a leaked transform/animation creates a stacking context that
+   can paint a list row OVER the form. */
+.ed .li, .ed .li *, .ed .pip { animation: none !important; transform: none !important; }
+.ed .li { position: static; z-index: auto; }
 .ed .li { display: flex; align-items: center; gap: 6px; padding: 6px; border-radius: 6px; cursor: pointer; }
 .ed .li:hover { background: #20180c; }
 .ed .li.sel { background: #2e2213; outline: 1px solid #b88a3e; }

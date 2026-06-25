@@ -14,6 +14,7 @@ import {
 // Trigger options shown per effect op (onPlay = immediate; 'passive' is power-only).
 const OP_TRIGGERS = ['onPlay', ...TRIGGER_EVENTS.filter((e) => e !== 'onPlay' && e !== 'passive')];
 import { describeCard } from '../engine/cards/cardText.js';
+import { APP_VERSION } from '../version.js';
 import { STANCES } from '../engine/combat/stances.js';
 import { TARGET_SCOPES, RARITIES } from '../engine/types.js';
 import { ATTUNEMENT_BASES, CLASS_BASES, BIOLOGY_BASES } from '../data/synthesis.js';
@@ -294,6 +295,7 @@ export function CardEditor({ onMenu } = {}) {
       <header className="edHead">
         {onMenu && <button onClick={onMenu} title="Back to menu">≡ Menu</button>}
         <strong>🃏 Chimera Card Editor</strong>
+        <span className="edVer">{APP_VERSION}</span>
         <select value={activeFile} onChange={(e) => setActiveFile(e.target.value)}>
           {Object.keys(files).map((f) => <option key={f} value={f}>{f}</option>)}
         </select>
