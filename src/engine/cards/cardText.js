@@ -94,7 +94,9 @@ function clausePhrase(op, ctx = {}) {
 export function describeCard(card) {
   if (!card) return '';
   const ctx = { element: card.attunement };
-  const clauses = (card.effects || []).map((o) => clausePhrase(o, ctx)).filter(Boolean);
+  // Guard: power cards have no `effects` array (only a trigger); a clone step may
+  // even leave `effects` as {} — never call .map on a non-array (it crashes the UI).
+  const clauses = (Array.isArray(card.effects) ? card.effects : []).map((o) => clausePhrase(o, ctx)).filter(Boolean);
   let text = clauses.join('. ');
   if (text) text += '.';
 

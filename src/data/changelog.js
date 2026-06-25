@@ -6,6 +6,9 @@
 
 /** @type {{version:string, date:string, notes:string[]}[]} newest first */
 export const CHANGELOG = [
+  { version: 'v3.59.2', date: '2026-06-25', notes: [
+    'Fixed a black screen when playing power-heavy creatures (e.g. the Shaman): a card-clone step turned a power card’s empty effects into {} and the text generator crashed trying to read it.',
+  ] },
   { version: 'v3.59.1', date: '2026-06-25', notes: [
     'Fixed power cards (Shaman Totems, Engineer Turrets/Drones, Ranger Traps, Warlock Summons, Mage/Priest powers…) showing blank description text — the combat UI was routing them to the wrong describer. They now show their full text everywhere.',
   ] },

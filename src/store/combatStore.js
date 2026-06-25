@@ -60,9 +60,7 @@ function buildCardFighter({ id, name, attunement, biology, klass, cards = [], st
   if (klass) f.class = klass;
   if (biology) f.biology = biology;
   if (attunement) f.attunement = attunement;
-  f.deck.drawPile = cards.map((c) => ({
-    ...c, effects: Array.isArray(c.effects) ? c.effects.map((o) => ({ ...o })) : { ...c.effects },
-  }));
+  f.deck.drawPile = cards.map((c) => ({ ...c, effects: cloneEffects(c.effects) }));
   return f;
 }
 
@@ -86,10 +84,16 @@ function buildDummy({ hp = 200, name = 'Target Dummy', attunement, biology } = {
  *   only — enemy decks stay hidden; the UI surfaces only enemy moves seen via
  *   the combat log).
  */
-// Clone a card safely whether it's a data-driven CardSpec (op-LIST effects) or a
-// legacy adapted card (flat effects object).
+// Clone a card safely whether it's a data-driven CardSpec (op-LIST effects), a power
+// card (no `effects` — trigger/passive only), or a legacy adapted card (flat effects
+// object). Preserve the shape: an array clones to an array, an object to an object,
+// and undefined/null stay as-is (turning a power's undefined into {} broke its text).
+function cloneEffects(e) {
+  if (Array.isArray(e)) return e.map((o) => ({ ...o }));
+  return e ? { ...e } : e;
+}
 function cloneCard(c) {
-  return { ...c, effects: Array.isArray(c.effects) ? c.effects.map((o) => ({ ...o })) : { ...c.effects } };
+  return { ...c, effects: cloneEffects(c.effects) };
 }
 
 function mapFighter(f, includeDeck = false) {
@@ -274,7 +278,7 @@ export const useCombat = create((set, get) => ({
   rollReward(count = 3) {
     const { vm } = get();
     if (!vm) return;
-    const reward = vm.generateReward(count).map((c) => ({ ...c, effects: { ...c.effects } }));
+    const reward = vm.generateReward(count).map((c) => ({ ...c, effects: cloneEffects(c.effects) }));
     set({ reward });
   },
 }));
