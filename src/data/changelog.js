@@ -6,6 +6,10 @@
 
 /** @type {{version:string, date:string, notes:string[]}[]} newest first */
 export const CHANGELOG = [
+  { version: 'v3.59.0', date: '2026-06-25', notes: [
+    'Card audit pass: fixed Powers not showing on creature cards (a stale field crashed their pip) — Bloodlust, Totems, Turrets, etc. now display.',
+    'Cleaned up stale Warrior card text so every card’s description is generated from what it actually does (one even mislabeled its target). All 162 cards verified: valid effects, accurate text, statuses shown as pips.',
+  ] },
   { version: 'v3.58.0', date: '2026-06-25', notes: [
     'Shop cards are now per-character: each party member has its own cards to buy, purchasable only for that member (like combat rewards).',
     'Reward and shop cards now use the exact same card display as the cards in your hand during combat.',

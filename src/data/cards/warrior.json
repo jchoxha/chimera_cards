@@ -12,7 +12,6 @@
       "type": "attack",
       "cost": 1,
       "rarity": "basic",
-      "text": "Deal 6 damage.",
       "effects": [
         {
           "op": "damage",
@@ -36,7 +35,6 @@
       "type": "skill",
       "cost": 1,
       "rarity": "basic",
-      "text": "Gain 5 Block.",
       "effects": [
         {
           "op": "block",
@@ -61,7 +59,6 @@
       "type": "attack",
       "cost": 1,
       "rarity": "common",
-      "text": "Deal 8 damage.",
       "effects": [
         {
           "op": "damage",
@@ -86,7 +83,6 @@
       "type": "attack",
       "cost": 1,
       "rarity": "common",
-      "text": "Deal 7 damage; draw 1.",
       "effects": [
         {
           "op": "damage",
@@ -118,7 +114,6 @@
       "type": "attack",
       "cost": 1,
       "rarity": "common",
-      "text": "Deal 13 damage; lose 4 Block (then HP).",
       "effects": [
         {
           "op": "damage",
@@ -150,7 +145,6 @@
       "type": "attack",
       "cost": 2,
       "rarity": "uncommon",
-      "text": "Deal 10 damage; double vs a target under 50% HP.",
       "effects": [
         {
           "op": "damage",
@@ -182,7 +176,6 @@
       "type": "attack",
       "cost": 2,
       "rarity": "uncommon",
-      "text": "Deal 8 damage; apply 2 Vulnerable.",
       "effects": [
         {
           "op": "damage",
@@ -217,7 +210,6 @@
       "type": "attack",
       "cost": 2,
       "rarity": "uncommon",
-      "text": "Deal 6 damage to all enemies.",
       "effects": [
         {
           "op": "damage",
@@ -244,7 +236,6 @@
       "type": "attack",
       "cost": -1,
       "rarity": "uncommon",
-      "text": "Deal 5 damage X times.",
       "effects": [
         {
           "op": "damage",
@@ -271,7 +262,6 @@
       "type": "attack",
       "cost": 2,
       "rarity": "uncommon",
-      "text": "Deal 14 damage; +6 if in Rampage.",
       "effects": [
         {
           "op": "damage",
@@ -303,7 +293,6 @@
       "type": "attack",
       "cost": 1,
       "rarity": "rare",
-      "text": "Deal damage equal to your current Block.",
       "effects": [
         {
           "op": "damage",
@@ -328,7 +317,6 @@
       "type": "skill",
       "cost": 1,
       "rarity": "common",
-      "text": "Gain 8 Block.",
       "effects": [
         {
           "op": "block",
@@ -352,7 +340,6 @@
       "type": "skill",
       "cost": 2,
       "rarity": "uncommon",
-      "text": "Gain 10 Block; it gains Brace.",
       "effects": [
         {
           "op": "block",
@@ -378,7 +365,6 @@
       "type": "skill",
       "cost": 1,
       "rarity": "common",
-      "text": "Gain 2 Dexterity.",
       "effects": [
         {
           "op": "buff",
@@ -404,7 +390,6 @@
       "type": "skill",
       "cost": 1,
       "rarity": "uncommon",
-      "text": "Gain Block equal to 4 + 2x Dexterity.",
       "effects": [
         {
           "op": "block",
@@ -430,7 +415,6 @@
       "type": "skill",
       "cost": 0,
       "rarity": "common",
-      "text": "Shift 1 step toward offense; gain 1 energy.",
       "effects": [
         {
           "op": "stance",
@@ -468,7 +452,6 @@
       "type": "skill",
       "cost": 0,
       "rarity": "common",
-      "text": "Shift 1 step toward defense; gain 4 Block.",
       "effects": [
         {
           "op": "stance",
@@ -506,7 +489,6 @@
       "type": "skill",
       "cost": 1,
       "rarity": "uncommon",
-      "text": "Snap to Rampage; draw 1.",
       "effects": [
         {
           "op": "stance",
@@ -539,7 +521,6 @@
       "type": "skill",
       "cost": 1,
       "rarity": "uncommon",
-      "text": "Snap to Full Guard; gain 6 Block (Braced).",
       "effects": [
         {
           "op": "stance",
@@ -573,7 +554,6 @@
       "type": "skill",
       "cost": 1,
       "rarity": "common",
-      "text": "Gain 2 Strength.",
       "effects": [
         {
           "op": "buff",
@@ -602,7 +582,6 @@
       "keywords": [
         "exhaust"
       ],
-      "text": "Gain 3 Strength. Exhaust.",
       "effects": [
         {
           "op": "buff",
@@ -628,7 +607,6 @@
       "type": "skill",
       "cost": 0,
       "rarity": "uncommon",
-      "text": "Draw 2.",
       "effects": [
         {
           "op": "draw",
@@ -652,7 +630,6 @@
       "type": "power",
       "cost": 2,
       "rarity": "uncommon",
-      "text": "Start of each turn: gain 1 Strength.",
       "effects": [],
       "trigger": {
         "on": "turnStart",
@@ -685,7 +662,6 @@
       "type": "power",
       "cost": 2,
       "rarity": "epic",
-      "text": "Your Block always Braces.",
       "effects": [],
       "passive": "blockAlwaysBraces",
       "upgrade": {
@@ -700,7 +676,6 @@
       "type": "power",
       "cost": 2,
       "rarity": "epic",
-      "text": "Whenever you gain Block, deal 3 damage to a random enemy.",
       "effects": [],
       "trigger": {
         "on": "onGainBlock",
@@ -733,7 +708,6 @@
       "type": "power",
       "cost": 1,
       "rarity": "uncommon",
-      "text": "At the start of each turn, gain 1 energy.",
       "effects": [],
       "trigger": {
         "on": "turnStart",

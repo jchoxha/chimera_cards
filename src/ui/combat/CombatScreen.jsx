@@ -47,7 +47,7 @@ const STANCE_ICON = {
   Rampage: 'game-icons:enrage', Offensive: 'game-icons:sword-brandish', Balanced: 'game-icons:balance',
   Defensive: 'game-icons:shield', 'Full Guard': 'game-icons:fortress',
 };
-const powerLabel = (id) => id.replace(/^[a-z]+_/, '').replace(/[-_]/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
+const powerLabel = (id) => (id || 'Power').replace(/^[a-z]+_/, '').replace(/[-_]/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
 
 /** Stance + registered powers, rendered as their own persistent pips (they ARE statuses). */
 function extraPips(f) {
@@ -58,7 +58,10 @@ function extraPips(f) {
     out.push({ key: 'stance', cls: 'stance', icon: STANCE_ICON[f.stance] || 'game-icons:sword-brandish', label: `Stance: ${f.stance}`, text: f.stance });
   }
   for (const p of f.powers || []) {
-    out.push({ key: `pw-${p.id}`, cls: 'power', icon: 'game-icons:fist', label: powerLabel(p.id) });
+    // Powers are registered with `source` (the card id), not `id` — using p.id here
+    // crashed powerLabel (undefined.replace), so powers never showed on creature cards.
+    const pid = p.source ?? p.id;
+    out.push({ key: `pw-${pid}`, cls: 'power', icon: 'game-icons:fist', label: powerLabel(pid) });
   }
   return out;
 }
