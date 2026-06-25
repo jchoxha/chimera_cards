@@ -271,12 +271,16 @@ function ActionStrip({ actions, targetNameOf, onAction, size = '', tip = false }
 
 // These helpers are tolerant of BOTH the legacy flat-effects shape and the
 // data-driven CardSpec op-list (Array effects + type/text/attunement).
-const isSpec = (c) => Array.isArray(c?.effects);
+// data-driven CardSpec: an op-LIST in `effects` OR a power (trigger/passive only,
+// no `effects` array). Must match the engine's isCardSpec, or power cards (totems,
+// turrets, …) get routed to the legacy describer and render with NO text.
+const isSpec = (c) => Array.isArray(c?.effects) || c?.type === 'power';
 
 /** Effective target scope of a card (both shapes). */
 function cardScope(c) {
   if (isSpec(c)) {
-    const op = c.effects.find((o) => o.scope) || c.effects.find((o) => o.op === 'damage' || o.op === 'debuff');
+    const eff = c.effects || [];   // power cards have no `effects` array
+    const op = eff.find((o) => o.scope) || eff.find((o) => o.op === 'damage' || o.op === 'debuff');
     return op?.scope || (op ? 'enemyActiveTarget' : 'selfOnlyTarget');
   }
   return c?.effects?.scope || '';
@@ -290,8 +294,9 @@ function cardEl(c) {
 
 function cardKind(c) {
   if (isSpec(c)) {
-    if (c.effects.some((o) => o.op === 'damage')) return 'atk';
-    if (c.effects.some((o) => o.op === 'block')) return 'def';
+    const eff = c.effects || c.trigger?.effects || [];   // fall back to a power's trigger ops
+    if (eff.some((o) => o.op === 'damage')) return 'atk';
+    if (eff.some((o) => o.op === 'block')) return 'def';
     return 'util';
   }
   const fx = c.effects ?? {};
@@ -330,7 +335,7 @@ function cardTargetSide(c) {
   const sc = cardScope(c);
   if (/enemy/i.test(sc)) return 'enemy';
   if (/friendly|self/i.test(sc)) return 'ally';
-  if (isSpec(c)) return c.effects.some((o) => o.op === 'damage' || o.op === 'debuff') ? 'enemy' : 'ally';
+  if (isSpec(c)) return (c.effects || []).some((o) => o.op === 'damage' || o.op === 'debuff') ? 'enemy' : 'ally';
   if (c?.effects?.dmg || c?.effects?.applyStatus) return 'enemy';
   return 'ally';
 }

@@ -6,6 +6,9 @@
 
 /** @type {{version:string, date:string, notes:string[]}[]} newest first */
 export const CHANGELOG = [
+  { version: 'v3.59.1', date: '2026-06-25', notes: [
+    'Fixed power cards (Shaman Totems, Engineer Turrets/Drones, Ranger Traps, Warlock Summons, Mage/Priest powers…) showing blank description text — the combat UI was routing them to the wrong describer. They now show their full text everywhere.',
+  ] },
   { version: 'v3.59.0', date: '2026-06-25', notes: [
     'Card audit pass: fixed Powers not showing on creature cards (a stale field crashed their pip) — Bloodlust, Totems, Turrets, etc. now display.',
     'Cleaned up stale Warrior card text so every card’s description is generated from what it actually does (one even mislabeled its target). All 162 cards verified: valid effects, accurate text, statuses shown as pips.',
