@@ -23,6 +23,7 @@ import {
   listPresets, savePreset, loadPreset, deletePreset,
   listArt, saveArt, resolveArt,
 } from './persistence.js';
+import './editor.css';
 
 const clone = (o) => JSON.parse(JSON.stringify(o));
 const slug = (s) => String(s || '').toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_|_$/g, '');

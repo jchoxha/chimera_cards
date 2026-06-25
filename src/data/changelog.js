@@ -6,6 +6,9 @@
 
 /** @type {{version:string, date:string, notes:string[]}[]} newest first */
 export const CHANGELOG = [
+  { version: 'v3.59.3', date: '2026-06-25', notes: [
+    'Fixed invisible text in the Card Forge when opened from the app menu — its stylesheet wasn’t being loaded there.',
+  ] },
   { version: 'v3.59.2', date: '2026-06-25', notes: [
     'Fixed a black screen when playing power-heavy creatures (e.g. the Shaman): a card-clone step turned a power card’s empty effects into {} and the text generator crashed trying to read it.',
   ] },
