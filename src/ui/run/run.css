@@ -113,8 +113,20 @@
 .cardChip.r-uncommon { border-color: #7ee787; } .cardChip.r-rare { border-color: #4d9fff; }
 .cardChip.r-epic { border-color: #a571ff; } .cardChip.r-mythic { border-color: #ff5a4d; }
 .cardChip.r-legendary { border-color: #ff9a3d; } .cardChip.r-godly { border-color: #ffd34d; }
-.rewardCards { display: flex; gap: 14px; flex-wrap: wrap; justify-content: center; margin: 14px auto; max-width: 660px; }
-.rewardCards .cardChip { width: 184px; }
+.rewardCards { display: flex; gap: 14px; flex-wrap: wrap; justify-content: center; margin: 14px auto; max-width: 720px; }
+
+/* Reward/shop cards reuse the in-hand move-card classes (.frame.move from combat.css);
+   the `display` modifier shows them statically (no fan/transform) and adds a price tag.
+   The art-image size rule is duplicated here because combat.css scopes it under .cmbt. */
+.move.display { flex: 0 0 auto; width: 124px; margin: 0; cursor: pointer; transform: none !important;
+  border: none; appearance: none; text-align: left; transform-origin: center; }
+.move.display:hover:not(.unplayable) { transform: translateY(-5px) !important; transition: transform .12s; }
+.move.display.unplayable { cursor: default; }
+.move.display .micon img.artImg { width: 30px; height: 30px; object-fit: cover; image-rendering: pixelated; }
+.move.display .mPrice { display: flex; align-items: center; justify-content: center; gap: 4px;
+  font-family: 'Cinzel', serif; font-weight: 700; font-size: 10px; color: #3a2c12;
+  background: linear-gradient(#f3d98a, #e0b85a); padding: 2px 0 1px; }
+.move.display .mPrice iconify-icon { width: 1em; height: 1em; }
 
 /* reward cards drawn like hand cards */
 .rwCard { position: relative; width: 150px; min-height: 210px; border-radius: 13px; padding: 9px 8px 8px;

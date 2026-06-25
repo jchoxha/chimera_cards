@@ -21,17 +21,35 @@ import './run.css';
 
 const RIcon = ({ icon, ...rest }) => <iconify-icon icon={icon} {...rest}></iconify-icon>;
 
-/** A reward card drawn like a hand card (frame + cost + art + name + text). Click selects. */
-function RewardCard({ c, selected, onClick }) {
+/** atk/def/util — same buckets the in-hand card uses for its art tile tint. */
+function cardKind(c) {
+  const e = Array.isArray(c?.effects) ? c.effects : [];
+  if (e.some((o) => o.op === 'damage')) return 'atk';
+  if (e.some((o) => o.op === 'block')) return 'def';
+  return 'util';
+}
+
+/**
+ * A move card rendered with the EXACT same structure + classes as an in-hand combat
+ * card (.frame.move with cost/inner/micon/mn/mt) — combat.css is global here (RunScreen
+ * imports CombatScreen), so it styles identically. The `display` modifier swaps the
+ * fan sizing/transform for a static, clickable card. Used for rewards AND shop stock.
+ */
+function MoveCard({ c, selected, disabled, price, onClick }) {
   const f = frameStyle({ element: c.element, rarity: c.rarity });
   const art = cardArt(c);
   return (
-    <button type="button" className={`rwCard ${f.finish}${selected ? ' sel' : ''}`} style={{ background: f.background }} onClick={onClick}>
-      <span className="rwCost">{c.cost === -1 ? 'X' : c.cost}</span>
-      <span className="rwArt">{art ? <img src={art} alt="" /> : <RIcon icon={axisCardIcon(c)} />}</span>
-      <span className="rwName">{c.name}</span>
-      <span className="rwText">{cardText(c)}</span>
-      <span className="rwRarity">{c.rarity || 'common'}{c.attunement ? ` · ${c.attunement}` : ''}</span>
+    <button type="button" disabled={disabled}
+      className={`frame move display ${f.finish}${selected ? ' sel' : ''}${disabled ? ' unplayable' : ''}`}
+      style={{ background: f.background }} onClick={onClick}>
+      {f.holo && <div className="holo" />}
+      <div className="cost">{c.cost === -1 ? 'X' : c.cost === -2 ? '—' : c.cost}</div>
+      <div className="inner">
+        <div className={`micon ${cardKind(c)}`}>{art ? <img className="artImg" src={art} alt="" /> : <RIcon icon={axisCardIcon(c)} />}</div>
+        <div className="mn">{c.name}</div>
+        <div className="mt">{cardText(c)}</div>
+        {price != null && <div className="mPrice"><RIcon icon="game-icons:two-coins" /> {price}g</div>}
+      </div>
     </button>
   );
 }
@@ -39,19 +57,6 @@ function RewardCard({ c, selected, onClick }) {
 // Gold price of a shop card by rarity (REVIEW/tunable).
 const CARD_PRICE = { common: 40, uncommon: 65, rare: 90, epic: 130, mythic: 180, legendary: 240, godly: 300 };
 const priceOf = (c) => CARD_PRICE[c.rarity] || 50;
-
-/** Pick which party creature receives a bought/chosen card (≥2 living members). */
-function MemberPicker({ snap, target, setTarget }) {
-  const living = snap.party.filter((m) => m.hp > 0);
-  if (living.length <= 1) return null;
-  return (
-    <div className="memberPick">Give to:
-      {living.map((m) => (
-        <button key={m.id} className={`mpBtn${target === m.id ? ' on' : ''}`} onClick={() => setTarget(m.id)}>{m.name}</button>
-      ))}
-    </div>
-  );
-}
 
 const Icon = ({ icon, ...rest }) => <iconify-icon icon={icon} {...rest}></iconify-icon>;
 
@@ -90,17 +95,6 @@ function PartyBar({ snap }) {
       <span className="runRelics">{snap.relics.map((r) => <Icon key={r.id} icon="game-icons:gem-pendant" title={r.text} />)}</span>
       <span className="runPotions">{snap.potions.map((p, i) => <Icon key={i} icon="game-icons:round-potion" title={p.text} />)}</span>
     </div>
-  );
-}
-
-function CardChip({ c, onClick, disabled, price }) {
-  return (
-    <button className={`cardChip r-${c.rarity || 'common'}`} onClick={onClick} disabled={disabled}>
-      <div className="ccTop"><span className="ccCost">{c.cost === -1 ? 'X' : c.cost}</span><b>{c.name}</b>
-        {price != null && <span className="ccPrice">{price}g</span>}</div>
-      <div className="ccText">{cardText(c)}</div>
-      <div className="ccRarity">{c.rarity || 'common'}{c.attunement ? ` · ${c.attunement}` : ''}</div>
-    </button>
   );
 }
 
@@ -163,7 +157,7 @@ export default function RunScreen({ onMenu, onNewRun }) {
                   <div className="rgHead">{m && <Crest m={m} />}<b>{g.name}</b></div>
                   <div className="rewardCards">
                     {g.cards.map((c, i) => (
-                      <RewardCard key={i} c={c}
+                      <MoveCard key={i} c={c}
                         selected={sel?.memberId === g.memberId && sel?.idx === i}
                         onClick={() => setSel({ memberId: g.memberId, idx: i, card: c })} />
                     ))}
@@ -175,7 +169,7 @@ export default function RunScreen({ onMenu, onNewRun }) {
         ) : (
           <div className="rewardCards">
             {pending.map((c, i) => (
-              <RewardCard key={i} c={c} selected={sel?.idx === i}
+              <MoveCard key={i} c={c} selected={sel?.idx === i}
                 onClick={() => setSel({ memberId: tgt, idx: i, card: c })} />
             ))}
           </div>
@@ -319,6 +313,8 @@ function EventRoom({ run, snap }) {
 }
 
 function Room({ run, snap, node, target, setTarget }) {
+  // Tracks shop cards already bought this visit (Room remounts per room → resets).
+  const [bought, setBought] = useState(() => new Set());
   if (node.type === 'rest') {
     const member = snap.party[0];
     const upgradable = (member?.deck || []).filter((c) => !c.upgraded);
@@ -365,22 +361,41 @@ function Room({ run, snap, node, target, setTarget }) {
     const owned = new Set(snap.relics.map((r) => r.id));
     const relicStock = RELICS.filter((r) => !owned.has(r.id)).slice(0, 2);
     const potionStock = POTIONS.slice(0, 3);
-    // Card stock drafted from the PARTY's own pool (same source as rewards).
+    // Card stock is PER-MEMBER: each living creature has its own 2 cards drafted from
+    // its own pool, buyable only for that creature (like the post-combat rewards).
     const shopRng = roomRng(snap);
-    const cardStock = draftRunReward(snap.rewardPool || [], 4, () => shopRng.next());
-    const tgt = target || snap.party.find((m) => m.hp > 0)?.id || snap.party[0]?.id;
+    const pools = snap.rewardPools || {};
+    const living = snap.party.filter((m) => m.hp > 0);
+    const memberStock = living.map((m) => {
+      const pool = (pools[m.id] && pools[m.id].length) ? pools[m.id] : (snap.rewardPool || []);
+      return { member: m, cards: draftRunReward(pool, 2, () => shopRng.next()) };
+    });
+    const buy = (m, c, sid) => {
+      const price = priceOf(c);
+      if (snap.gold < price || bought.has(sid)) return;
+      run.dispatch('buyCard', { memberId: m.id, card: c, cost: price });
+      setBought((b) => new Set(b).add(sid));
+    };
     return (
       <div className="runWrap">
         <h2><Icon icon="game-icons:swap-bag" /> Shop <span className="runGold"><Icon icon="game-icons:two-coins" /> {snap.gold}</span></h2>
-        {cardStock.length > 0 && <>
-          <MemberPicker snap={snap} target={tgt} setTarget={setTarget} />
-          <div className="rewardCards">
-            {cardStock.map((c, i) => (
-              <CardChip key={i} c={c} price={priceOf(c)} disabled={snap.gold < priceOf(c)}
-                onClick={() => run.dispatch('buyCard', { memberId: tgt, card: c, cost: priceOf(c) })} />
+        {memberStock.some((g) => g.cards.length) && (
+          <div className="rewardGroups">
+            {memberStock.map(({ member, cards }) => (
+              <div className="rewardGroup" key={member.id}>
+                <div className="rgHead"><Crest m={member} /><b>{member.name}</b></div>
+                <div className="rewardCards">
+                  {cards.map((c, i) => {
+                    const sid = `${member.id}:${i}:${c.id}`;
+                    return <MoveCard key={sid} c={c} price={priceOf(c)}
+                      disabled={bought.has(sid) || snap.gold < priceOf(c)}
+                      onClick={() => buy(member, c, sid)} />;
+                  })}
+                </div>
+              </div>
             ))}
           </div>
-        </>}
+        )}
         <div className="roomCol">
           {relicStock.map((r) => (
             <button key={r.id} className="shopItem" disabled={snap.gold < r.cost} onClick={() => run.dispatch('buyRelic', { relic: r, cost: r.cost })}>

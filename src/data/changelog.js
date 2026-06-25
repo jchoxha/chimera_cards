@@ -6,6 +6,10 @@
 
 /** @type {{version:string, date:string, notes:string[]}[]} newest first */
 export const CHANGELOG = [
+  { version: 'v3.58.0', date: '2026-06-25', notes: [
+    'Shop cards are now per-character: each party member has its own cards to buy, purchasable only for that member (like combat rewards).',
+    'Reward and shop cards now use the exact same card display as the cards in your hand during combat.',
+  ] },
   { version: 'v3.57.0', date: '2026-06-25', notes: [
     'Combat log now names the damage type ("takes 6 Fire damage"), clickable to explain that element.',
     'Combat log modal is wider, and wrapped lines now hang-indent under the message instead of sliding under the timestamp.',
