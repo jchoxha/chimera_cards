@@ -160,3 +160,34 @@
   background: #2e2213; border: 1px solid #6a4d1b; color: #e8dcc8; font-size: 14px; padding: 0; }
 .ed .editPanel .form { max-height: 92vh; overflow-y: auto; padding: 18px 18px 22px; }
 .ed .editPanel .form h2 { padding-right: 36px; }
+
+/* ── Collections bar + status (replaces the archetype chips) ── */
+.ed .colBar { display: flex; gap: 7px; align-items: center; flex-wrap: wrap; padding: 8px 12px;
+  background: #1a1308; border-bottom: 1px solid #3a2c18; }
+.ed .colBar .t2label { color: #c9b58e; font-size: 13px; }
+.ed .colChip { display: inline-flex; align-items: center; gap: 6px; padding: 5px 12px; border-radius: 8px;
+  font-family: 'Cinzel', serif; font-size: 13px; color: #e8dcc8; background: #241a10; border: 1px solid #4a3a22; cursor: pointer; }
+.ed .colChip.on { background: #6a4d1b; border-color: #b88a3e; color: #fff3d6; box-shadow: 0 0 0 1px #b88a3e inset; }
+.ed .colChip.wrap { padding: 3px 6px 3px 10px; cursor: default; }
+.ed .colChip .colName { background: none; border: none; color: inherit; font: inherit; cursor: pointer; padding: 2px 0; }
+.ed .colChip .colRO { font-family: system-ui, sans-serif; font-size: 9px; letter-spacing: .5px; text-transform: uppercase; color: #9c8a64; }
+.ed .colChip .colEnable { display: inline-flex; }
+.ed .colChip .colEnable input { width: auto; margin: 0; }
+.ed .colChip .colDel { background: transparent; border: none; color: #c77; padding: 0 4px; cursor: pointer; }
+.ed .colNew { border-style: dashed; font-size: 13px; padding: 5px 12px; }
+.ed .colHint { padding: 6px 12px; font-size: 12px; color: #c9b58e; background: #16110a; border-bottom: 1px solid #3a2c18; }
+.ed .colHint b { color: #f0c84a; }
+.ed .impBtn { display: inline-flex; align-items: center; cursor: pointer; background: #2e2213; border: 1px solid #4a3a22;
+  border-radius: 6px; padding: 6px 8px; color: #e8dcc8; font: inherit; }
+.ed .impBtn:hover { background: #3a2c18; }
+
+/* card-origin badges in the gallery */
+.ed .gtile .gOrigin { position: absolute; bottom: -7px; left: 50%; transform: translateX(-50%); z-index: 8;
+  font-family: 'Cinzel', serif; font-size: 8px; letter-spacing: 1px; padding: 1px 7px; border-radius: 8px; box-shadow: 0 2px 5px #000a; }
+.ed .gtile .gOrigin.new { background: #1c4a2a; color: #b6f0c0; border: 1px solid #3c8a52; }
+.ed .gtile .gOrigin.override { background: #4a3a12; color: #ffe6a8; border: 1px solid #b88a3e; }
+
+.ed .roBanner { display: flex; align-items: center; gap: 10px; color: #e2c98a; background: #241f0f; border-color: #6e5a2f; }
+.ed .roBanner button { background: #6a4d1b; border-color: #b88a3e; color: #fff3d6; }
+.ed .formFields { border: none; padding: 0; margin: 0; min-width: 0; }
+.ed .restoreBtn { margin-top: 14px; background: #2e2213; border: 1px solid #6a4d1b; }

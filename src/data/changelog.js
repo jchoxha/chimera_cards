@@ -6,6 +6,12 @@
 
 /** @type {{version:string, date:string, notes:string[]}[]} newest first */
 export const CHANGELOG = [
+  { version: 'v3.77.0', date: '2026-06-26', notes: [
+    'Card Forge reworked around Collections (card packs): the base game cards are a read-only “Default Collection”, and you author changes inside your own named collections that overlay it — override base cards, add new ones, or hide cards, without ever touching the base.',
+    'Creating/editing/deleting a card now happens inside a collection; if you have none, you’re prompted to create one first. Each card shows whether it’s NEW or EDITED.',
+    'Archetype selection moved into the filter sidebar as checkboxes (you no longer pick a file). Collections can be enabled/disabled in-game, exported as shareable packs, imported, and (advanced) published into the base game.',
+    'Enabled collections’ cards now flow into runs, practice and deck-building (applied at app start).',
+  ] },
   { version: 'v3.76.0', date: '2026-06-26', notes: [
     'Card Forge: archetype chips now toggle show/hide on a single click (no more double-click), and you can hide all of them.',
   ] },

@@ -17,6 +17,7 @@ import { ATTUNEMENT_BASES, BIOLOGY_BASES, legalAttunements } from '../data/synth
 import { attunementCards } from '../engine/cards/attunementPool.js';
 import { reskinDeck, attunementVariants } from '../engine/cards/reskin.js';
 import { makeCreature } from '../engine/content/generate.js';
+import { resolvePools } from '../data/collections.js';
 import { buildRoster, buildDummyCreature } from '../data/roster.js';
 import { APP_VERSION } from '../version.js';
 import { CHANGELOG } from '../data/changelog.js';
@@ -24,13 +25,9 @@ import './app.css';
 
 const slug = (s) => String(s || '').toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_|_$/g, '');
 
-// Bundled card files (the editor saves drafts on top of these in localStorage).
-const BUNDLE = import.meta.glob('../data/cards/*.json', { eager: true });
-const FILES = Object.fromEntries(
-  Object.entries(BUNDLE).map(([p, m]) => [p.split('/').pop(), (m.default ?? m)]),
-);
-// Archetype card pools keyed by class name, for the generator + reward pools.
-const POOLS = Object.fromEntries(Object.values(FILES).map((f) => [f.class, f.cards || []]));
+// Archetype card pools keyed by class name — base game overlaid by any ENABLED
+// collections (player card packs). Resolved fresh each session start.
+const POOLS = resolvePools();
 const ARCHETYPES = Object.keys(POOLS);                 // archetypes that have a card kit
 const ROSTER = buildRoster(POOLS, POOLS.Warrior || []);
 const DUMMY = buildDummyCreature();

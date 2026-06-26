@@ -1,8 +1,9 @@
 // ╔══════════════════════════════════════════════════════════════════╗
-// ║ MODULE: editor/CardEditor — the in-engine card editor UI. The effect  ║
-// ║ form is driven by engine/cards/effectRegistry metadata, so any new op  ║
-// ║ appears automatically. Persists via the dual backend. See              ║
-// ║ docs/card-editor.md.                                                  ║
+// ║ MODULE: editor/CardEditor — the Card Forge. Cards are authored into     ║
+// ║ COLLECTIONS (data/collections) layered over the read-only Default game   ║
+// ║ cards; the archetype-file split is hidden (archetype is just a filter +  ║
+// ║ a card field). Enabled collections merge into the gameplay pools. The    ║
+// ║ effect form is driven by engine/cards/effectRegistry metadata.           ║
 // ╚══════════════════════════════════════════════════════════════════╝
 
 import React, { useEffect, useMemo, useState } from 'react';
@@ -21,22 +22,18 @@ import { STANCES } from '../engine/combat/stances.js';
 import { TARGET_SCOPES, RARITIES } from '../engine/types.js';
 import { ATTUNEMENT_BASES, CLASS_BASES, BIOLOGY_BASES } from '../data/synthesis.js';
 import {
-  detectDevWrite, persist, loadDraft, saveDraft, clearDraft,
-  loadGitHubSettings, saveGitHubSettings, downloadJSON,
-  listPresets, savePreset, loadPreset, deletePreset,
+  detectDevWrite, persist, loadGitHubSettings, saveGitHubSettings, downloadJSON,
   listArt, saveArt, resolveArt,
 } from './persistence.js';
+import {
+  ARCHETYPES, ARCHETYPE_FILE, BASE_FILES, baseCard, archetypeOf,
+  listCollections, getCollection, createCollection, deleteCollection, renameCollection,
+  saveCollection, setEnabled, getEditId, setEditId, putCard, removeCard, restoreCard, resolveView,
+} from '../data/collections.js';
 import '../ui/combat/combat.css';
 import './editor.css';
 
-const clone = (o) => JSON.parse(JSON.stringify(o));
 const slug = (s) => String(s || '').toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_|_$/g, '');
-
-// Bundle the on-disk card files as the base content.
-const BUNDLE = import.meta.glob('../data/cards/*.json', { eager: true });
-const BASE_FILES = Object.fromEntries(
-  Object.entries(BUNDLE).map(([path, mod]) => [path.split('/').pop(), (mod.default ?? mod)]),
-);
 
 // ── dot-path get/set (ops have shallow nesting: bonusIf.stance, shift.dir) ─────
 function getIn(obj, path) { return path.split('.').reduce((o, k) => (o == null ? undefined : o[k]), obj); }
@@ -179,27 +176,25 @@ function OpList({ ops, onChange }) {
  * like an in-hand card) plus editor affordances (delete, validation flag). The
  * delete button is a sibling overlay — never nested inside MoveCard's <button>.
  */
-function GalleryTile({ c, bad, onClick, onDelete }) {
+function GalleryTile({ c, bad, origin, onClick, onDelete }) {
   // A card override-art (lib:/key) wins; otherwise MoveCard resolves placeholder/gen art.
   const ov = c.art && resolveArt(c.art);
   const display = ov ? { ...c, art: ov } : c;
   return (
-    <div className={`gtile${bad ? ' bad' : ''}`}>
+    <div className={`gtile${bad ? ' bad' : ''} o-${origin || 'base'}`}>
       <MoveCard c={display} onClick={onClick} />
-      <button className="gDel" title="Delete card" onClick={onDelete}>✕</button>
+      {onDelete && <button className="gDel" title="Delete / hide card" onClick={onDelete}>✕</button>}
       {bad && <span className="gBad" title="This card has validation errors">⚠</span>}
+      {origin && origin !== 'base' && <span className={`gOrigin ${origin}`}>{origin === 'new' ? 'NEW' : 'EDITED'}</span>}
     </div>
   );
 }
 
 export function CardEditor({ onMenu } = {}) {
-  const [files, setFiles] = useState(() => clone(BASE_FILES));
-  const allFiles = Object.keys(files);
-  // Multi-archetype: a SET of toggled files + a `focus` file for add/presets/revert.
-  const [active, setActive] = useState(() => new Set([allFiles[0]].filter(Boolean)));
-  const [focusFile, setFocusFile] = useState(() => allFiles[0] || 'warrior.json');
-  const [workings, setWorkings] = useState({});           // file -> working draft
-  const [edit, setEdit] = useState(null);                  // {file, idx} being edited
+  const [cols, setCols] = useState(() => listCollections());
+  const [colId, setColId] = useState(() => { const id = getEditId(); return getCollection(id) ? id : null; });
+  const [stamp, setStamp] = useState(0);                   // bump to re-read collections
+  const [editId, setEditId2] = useState(null);             // card id being edited
   const [editing, setEditing] = useState(false);
   const [raw, setRaw] = useState(false);
   const [rawText, setRawText] = useState('');
@@ -208,179 +203,169 @@ export function CardEditor({ onMenu } = {}) {
   const [gh, setGh] = useState(loadGitHubSettings);
   const [showSettings, setShowSettings] = useState(false);
   const [status, setStatus] = useState('');
-  const [presets, setPresets] = useState(() => listPresets(focusFile));
-  const [presetSel, setPresetSel] = useState('');
   const [artLib, setArtLib] = useState(() => listArt());
   // Gallery filters.
   const [q, setQ] = useState('');
+  const [fArch, setFArch] = useState(() => new Set());
   const [fTypes, setFTypes] = useState(() => new Set());
   const [fRarities, setFRarities] = useState(() => new Set());
   const [fCosts, setFCosts] = useState(() => new Set());
   const [sortAZ, setSortAZ] = useState(false);
 
-  // Display name for a file = its archetype name (the file's `class`), never the filename.
-  const nameOf = (file) => {
-    const cls = workings[file]?.class ?? files[file]?.class;
-    if (cls) return Array.isArray(cls) ? cls.join('/') : cls;
-    return slug(file).replace(/_json$/, '').replace(/^\w/, (ch) => ch.toUpperCase());
-  };
-
+  const refresh = () => { setCols(listCollections()); setStamp((s) => s + 1); };
   useEffect(() => { detectDevWrite().then(setDevAvailable); }, []);
+  useEffect(() => { setEditId(colId); }, [colId]);   // persist the edit target
   useEffect(() => {
     if (!editing) return undefined;
     const onKey = (e) => { if (e.key === 'Escape') setEditing(false); };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
   }, [editing]);
-  useEffect(() => { setPresets(listPresets(focusFile)); setPresetSel(''); }, [focusFile]);
 
-  // Load a working draft for every active file (and the focus file).
-  useEffect(() => {
-    setWorkings((prev) => {
-      const next = { ...prev };
-      for (const f of [...active, focusFile]) {
-        if (!f || next[f]) continue;
-        const base = files[f] || { class: slug(f).replace('_json', ''), version: 1, cards: [] };
-        next[f] = loadDraft(f) || clone(base);
-      }
-      return next;
-    });
-  }, [active, focusFile, files]);
+  const col = colId ? getCollection(colId) : null;        // null = Default (read-only)
+  const readOnly = !colId;
+  const collName = col ? col.name : 'Default Collection';
 
-  // Keep focus on an active file.
-  useEffect(() => {
-    if (!active.has(focusFile)) { const first = [...active][0]; if (first) setFocusFile(first); }
-  }, [active, focusFile]);
+  // The effective card list for the current collection (base overlaid), tagged.
+  const viewAll = useMemo(() => resolveView(colId), [colId, stamp]);
+  const rowById = useMemo(() => Object.fromEntries(viewAll.map((r) => [r.card.id, r])), [viewAll]);
+  const editRow = editId ? rowById[editId] : null;
+  const card = editRow?.card || null;
+  const errors = useMemo(() => (card ? validateCard(card) : []), [card]);
 
-  // Persist drafts as they change.
-  useEffect(() => { for (const [f, w] of Object.entries(workings)) if (w) saveDraft(f, w); }, [workings]);
-
-  const setWorkingFile = (file, updater) => setWorkings((ws) => ({ ...ws, [file]: updater(ws[file]) }));
-
-  const focusWorking = workings[focusFile];
-  const editCard = edit && workings[edit.file]?.cards?.[edit.idx] || null;
-  const card = editCard;   // alias used throughout the edit form
-  const errors = useMemo(() => (editCard ? validateCard(editCard) : []), [editCard]);
-
-  // Gallery aggregates cards from ALL active files, each tagged with its source file.
+  const archetypes = ARCHETYPES;
   const costKey = (c) => (c.cost === -1 ? 'X' : (c.cost ?? 0) >= 3 ? '3+' : String(c.cost ?? 0));
-  const totalActive = useMemo(() => {
-    let n = 0; for (const f of active) n += workings[f]?.cards?.length || 0; return n;
-  }, [active, workings]);
   const view = useMemo(() => {
     const ql = q.trim().toLowerCase();
-    const out = [];
-    for (const f of allFiles) {
-      if (!active.has(f)) continue;
-      const w = workings[f]; if (!w) continue;
-      w.cards.forEach((c, i) => {
-        if (ql && !(c.name || '').toLowerCase().includes(ql) && !(c.id || '').toLowerCase().includes(ql)) return;
-        if (fTypes.size && !fTypes.has(c.type)) return;
-        if (fRarities.size && !fRarities.has(c.rarity || 'common')) return;
-        if (fCosts.size && !fCosts.has(costKey(c))) return;
-        out.push({ file: f, c, i });
-      });
-    }
-    if (sortAZ) out.sort((a, b) => (a.c.name || '').localeCompare(b.c.name || ''));
-    return out;
-  }, [active, allFiles, workings, q, fTypes, fRarities, fCosts, sortAZ]);
+    let v = viewAll.filter(({ card: c }) => {
+      if (ql && !(c.name || '').toLowerCase().includes(ql) && !(c.id || '').toLowerCase().includes(ql)) return false;
+      if (fArch.size && !fArch.has(archetypeOf(c))) return false;
+      if (fTypes.size && !fTypes.has(c.type)) return false;
+      if (fRarities.size && !fRarities.has(c.rarity || 'common')) return false;
+      if (fCosts.size && !fCosts.has(costKey(c))) return false;
+      return true;
+    });
+    if (sortAZ) v = [...v].sort((a, b) => (a.card.name || '').localeCompare(b.card.name || ''));
+    return v;
+  }, [viewAll, q, fArch, fTypes, fRarities, fCosts, sortAZ]);
 
   const toggleIn = (setFn, val) => setFn((s) => { const n = new Set(s); if (n.has(val)) n.delete(val); else n.add(val); return n; });
-  const toggleArchetype = (file) => setActive((s) => {
-    const n = new Set(s);
-    if (n.has(file)) n.delete(file); else n.add(file);   // single click toggles; zero is allowed
-    return n;
-  });
-  const openCardForEdit = (file, i) => { setEdit({ file, idx: i }); setFocusFile(file); setRaw(false); setEditing(true); };
 
-  useEffect(() => { if (editCard) { setRawText(JSON.stringify(editCard, null, 2)); setRawErr(''); } }, [edit, raw, editCard]);
+  useEffect(() => { if (card) { setRawText(JSON.stringify(card, null, 2)); setRawErr(''); } }, [editId, raw, card]);
 
+  // ── collection management ──
+  function ensureCollection() {
+    if (colId) return colId;
+    const name = prompt('Editing happens inside a collection (the Default game cards are read-only).\n\nName your new collection:', 'My Cards');
+    if (!name) { setStatus('Create a collection to edit.'); return null; }
+    const c = createCollection(name);
+    setCols(listCollections()); setColId(c.id);
+    setStatus(`created collection "${c.name}"`);
+    return c.id;
+  }
+  function newCollection() {
+    const name = prompt('Name your new collection:', 'My Cards');
+    if (!name) return;
+    const c = createCollection(name);
+    setCols(listCollections()); setColId(c.id); setStatus(`created collection "${c.name}"`);
+  }
+  function removeCollection(id) {
+    const c = getCollection(id);
+    if (!c || !confirm(`Delete collection "${c.name}"? Its card changes are lost (the base game is untouched).`)) return;
+    deleteCollection(id); if (colId === id) setColId(null); refresh();
+  }
+  function doRename(id) {
+    const c = getCollection(id); if (!c) return;
+    const name = prompt('Rename collection:', c.name);
+    if (name) { renameCollection(id, name); refresh(); }
+  }
+  function toggleEnabled(id) {
+    const c = getCollection(id); if (!c) return;
+    setEnabled(id, !c.enabled); refresh();
+  }
+  function exportCollection() {
+    if (!col) { setStatus('Select a collection to export.'); return; }
+    downloadJSON(`${slug(col.name) || 'collection'}.chimera.json`, col);
+    setStatus(`exported "${col.name}"`);
+  }
+  function importCollection(e) {
+    const file = e.target.files?.[0]; if (!file) return;
+    const reader = new FileReader();
+    reader.onload = () => {
+      try {
+        const obj = JSON.parse(reader.result);
+        const c = createCollection(obj.name || 'Imported');
+        const full = { ...getCollection(c.id), cards: obj.cards || {}, deleted: obj.deleted || [] };
+        saveCollection(full);
+        setCols(listCollections()); setColId(c.id); setStatus(`imported "${full.name}"`);
+      } catch (err) { setStatus(`✗ import failed: ${err.message || err}`); }
+    };
+    reader.readAsText(file);
+    e.target.value = '';
+  }
+
+  // ── card editing (writes to the active collection) ──
   function updateCard(patch) {
-    if (!edit) return;
-    setWorkingFile(edit.file, (w) => ({ ...w, cards: w.cards.map((c, i) => (i === edit.idx ? { ...c, ...patch } : c)) }));
+    if (readOnly || !card) { if (readOnly) setStatus('Pick or create a collection to edit.'); return; }
+    const next = { ...card, ...patch };
+    if (patch.id && patch.id !== card.id && editRow.origin === 'new') { removeCard(colId, card.id); setEditId2(next.id); }
+    putCard(colId, next); refresh();
   }
   function applyRaw() {
-    if (!edit) return;
-    try { const parsed = JSON.parse(rawText); setRawErr(''); setWorkingFile(edit.file, (w) => ({ ...w, cards: w.cards.map((c, i) => (i === edit.idx ? parsed : c)) })); }
-    catch (e) { setRawErr(String(e.message || e)); }
+    if (readOnly || !card) return;
+    try {
+      const parsed = JSON.parse(rawText); setRawErr('');
+      if (parsed.id !== card.id && editRow.origin === 'new') { removeCard(colId, card.id); setEditId2(parsed.id); }
+      putCard(colId, parsed); refresh();
+    } catch (e) { setRawErr(String(e.message || e)); }
   }
   function addCard() {
-    const file = focusFile;
-    const w = workings[file]; if (!w) return;
-    const cls = w.class || '';
-    const blank = { id: `${slug(cls) || 'card'}_new_${w.cards.length + 1}`, name: 'New Card', class: cls || undefined, attunement: 'Physical', type: 'attack', cost: 1, rarity: 'common', keywords: [], text: '', effects: [{ ...EFFECT_OPS.damage.default }] };
-    const idx = w.cards.length;
-    setWorkingFile(file, (w2) => ({ ...w2, cards: [...w2.cards, blank] }));
-    setEdit({ file, idx });
-    setRaw(false);
-    setEditing(true);
+    const cid = ensureCollection(); if (!cid) return;
+    const arch = [...fArch][0] || archetypes[0];
+    const base = `${slug(arch) || 'card'}_new`;
+    let id = base, n = 1; const existing = new Set(resolveView(cid).map((r) => r.card.id));
+    while (existing.has(id)) id = `${base}_${++n}`;
+    const blank = { id, name: 'New Card', class: arch, attunement: 'Physical', type: 'attack', cost: 1, rarity: 'common', keywords: [], effects: [{ ...EFFECT_OPS.damage.default }] };
+    putCard(cid, blank); refresh();
+    setEditId2(id); setRaw(false); setEditing(true);
   }
-  function deleteCard(file, i) {
-    const w = workings[file]; if (!w) return;
-    if (!confirm(`Delete "${w.cards[i]?.name}"?`)) return;
-    setWorkingFile(file, (w2) => ({ ...w2, cards: w2.cards.filter((_, j) => j !== i) }));
-    if (edit && edit.file === file && edit.idx === i) { setEditing(false); setEdit(null); }
+  function deleteCard(cardId) {
+    if (readOnly) { setStatus('Editing requires a collection — base cards can only be hidden from within one.'); return; }
+    const c = rowById[cardId]?.card;
+    if (!confirm(`${baseCard(cardId) ? 'Hide' : 'Delete'} "${c?.name}" in "${collName}"? (The base game is untouched.)`)) return;
+    removeCard(colId, cardId); refresh();
+    if (editId === cardId) { setEditing(false); }
   }
-  function regenId() { if (editCard) updateCard({ id: `${slug(editCard.class || workings[edit.file]?.class || 'card')}_${slug(editCard.name)}` }); }
+  function openCardForEdit(cardId) { setEditId2(cardId); setRaw(false); setEditing(true); }
+  function regenId() { if (card && editRow.origin === 'new') updateCard({ id: `${slug(card.class || 'card')}_${slug(card.name)}` }); }
+  function restoreToDefault() {
+    if (readOnly || !card) return;
+    restoreCard(colId, card.id); refresh(); setEditing(false);
+    setStatus(`restored "${card.name}" to default`);
+  }
 
-  async function doSave() {
+  // ── advanced: publish the active collection into the base game files (dev/GitHub) ──
+  async function publishToBase() {
+    if (!col) { setStatus('Select a collection to publish.'); return; }
+    if (!confirm(`Publish "${col.name}" INTO the base game files? This bakes its changes into the bundled cards.`)) return;
     try {
-      setStatus(`saving ${active.size} archetype${active.size > 1 ? 's' : ''}…`);
-      const saved = [];
-      let via = 'download';
-      for (const f of active) {
-        const w = workings[f]; if (!w) continue;
-        const res = await persist(f, w, { devAvailable, gh });
-        setFiles((fs) => ({ ...fs, [f]: clone(w) }));
-        clearDraft(f);
-        saved.push(nameOf(f));
-        via = res.via;
+      setStatus('publishing…');
+      // Group the collection's effective cards by archetype, rebuild each touched file.
+      const touched = new Set();
+      for (const c of Object.values(col.cards)) touched.add(archetypeOf(c));
+      for (const id of col.deleted) { const b = baseCard(id); if (b) touched.add(archetypeOf(b)); }
+      for (const arch of touched) {
+        const file = ARCHETYPE_FILE[arch]; if (!file) continue;
+        const baseObj = BASE_FILES[file] || { class: arch, version: 1, cards: [] };
+        const deleted = new Set(col.deleted);
+        const cards = (baseObj.cards || []).filter((c) => !deleted.has(c.id)).map((c) => col.cards[c.id] || c);
+        for (const c of Object.values(col.cards)) if (archetypeOf(c) === arch && !cards.some((x) => x.id === c.id)) cards.push(c);
+        const res = await persist(file, { ...baseObj, cards }, { devAvailable, gh });
+        setStatus(res.via === 'dev' ? `✓ published to disk (${file})` : res.via === 'github' ? `✓ committed (${file})` : `✓ downloaded ${file}`);
       }
-      const where = via === 'dev' ? 'to disk' : via === 'github' ? 'to GitHub' : '— downloaded, drop into src/data/cards/';
-      setStatus(`✓ saved ${saved.join(', ')} ${where}`);
     } catch (e) { setStatus(`✗ ${e.message || e}`); }
   }
-  function newFile() {
-    const cls = prompt('New archetype — name (e.g. Rogue):');
-    if (!cls) return;
-    const fn = `${slug(cls)}.json`;
-    setFiles((f) => ({ ...f, [fn]: { class: cls, version: 1, cards: [] } }));
-    setActive((s) => new Set([...s, fn]));
-    setFocusFile(fn);
-  }
 
-  // ── Presets + revert-to-vanilla (operate on the focus archetype) ──
-  function doSavePreset() {
-    const name = prompt('Preset name:', presetSel || 'My preset');
-    if (!name || !focusWorking) return;
-    savePreset(focusFile, name, focusWorking);
-    setPresets(listPresets(focusFile)); setPresetSel(name);
-    setStatus(`✓ saved preset "${name}" for ${nameOf(focusFile)}`);
-  }
-  function doLoadPreset() {
-    if (!presetSel) return;
-    const obj = loadPreset(focusFile, presetSel);
-    if (obj) { setWorkingFile(focusFile, () => clone(obj)); setStatus(`loaded preset "${presetSel}"`); }
-  }
-  function doDeletePreset() {
-    if (!presetSel || !confirm(`Delete preset "${presetSel}"?`)) return;
-    deletePreset(focusFile, presetSel); setPresets(listPresets(focusFile)); setPresetSel('');
-    setStatus('preset deleted');
-  }
-  function revertFile() {
-    if (!confirm(`Revert ALL ${nameOf(focusFile)} cards to the bundled (vanilla) version? Discards unsaved edits.`)) return;
-    const base = BASE_FILES[focusFile];
-    if (!base) { setStatus('no bundled version for this archetype'); return; }
-    setWorkingFile(focusFile, () => clone(base)); clearDraft(focusFile);
-    setStatus(`reverted ${nameOf(focusFile)} to vanilla`);
-  }
-  function revertCard() {
-    if (!editCard) return;
-    const base = (BASE_FILES[edit.file]?.cards || []).find((c) => c.id === editCard.id);
-    if (!base) { setStatus('no bundled version for this card'); return; }
-    setWorkingFile(edit.file, (w) => ({ ...w, cards: w.cards.map((c, i) => (i === edit.idx ? clone(base) : c)) }));
-    setStatus(`reverted "${base.name}" to vanilla`);
-  }
   function handleArtUpload(e) {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -393,59 +378,56 @@ export function CardEditor({ onMenu } = {}) {
   }
 
   const backend = devAvailable ? 'dev-write (disk)' : gh.token ? 'GitHub commit' : 'download / localStorage';
-
-  if (!focusWorking) return <div className="ed"><p style={{ padding: 20 }}>Loading…</p></div>;
+  const enabledCount = cols.filter((c) => c.enabled).length;
 
   return (
     <div className="ed">
       <header className="edHead">
         {onMenu && <button onClick={onMenu} title="Back to menu">≡ Menu</button>}
-        <strong>🃏 Chimera Card Editor</strong>
+        <strong>🃏 Chimera Card Forge</strong>
         <span className="edVer">{APP_VERSION}</span>
         <span className={`badge ${devAvailable ? 'ok' : gh.token ? 'gh' : 'warn'}`}>{backend}</span>
         <span className="grow" />
-        <button onClick={() => downloadJSON(focusFile, focusWorking)} title={`Export ${nameOf(focusFile)}`}>Export</button>
-        <button onClick={() => setShowSettings((s) => !s)}>⚙ GitHub</button>
-        <button className="save" onClick={doSave} title="Save all toggled archetypes">Save</button>
+        <button onClick={exportCollection} disabled={!col} title="Export this collection as a shareable pack">Export</button>
+        <label className="impBtn" title="Import a collection pack">Import<input type="file" accept=".json,application/json" onChange={importCollection} hidden /></label>
+        <button onClick={() => setShowSettings((s) => !s)}>⚙ Advanced</button>
       </header>
 
-      <div className="archBar">
-        <span className="t2label">Archetypes:</span>
-        {allFiles.map((f) => (
-          <button key={f}
-            className={`archChip${active.has(f) ? ' on' : ''}${f === focusFile ? ' focus' : ''}`}
-            title={active.has(f) ? 'Showing — click to hide' : 'Hidden — click to show'}
-            onClick={() => { const willShow = !active.has(f); toggleArchetype(f); if (willShow) setFocusFile(f); }}>
-            {nameOf(f)}
-          </button>
+      {/* Collections bar — Default (read-only) + your packs + new */}
+      <div className="colBar">
+        <span className="t2label">Collection:</span>
+        <button className={`colChip${!colId ? ' on' : ''}`} onClick={() => setColId(null)} title="The base game cards — read-only">
+          Default Collection <span className="colRO">read-only</span>
+        </button>
+        {cols.map((c) => (
+          <span key={c.id} className={`colChip wrap${colId === c.id ? ' on' : ''}`}>
+            <button className="colName" onClick={() => setColId(c.id)} onDoubleClick={() => doRename(c.id)} title="Click to edit · double-click to rename">{c.name}</button>
+            <label className="colEnable" title={c.enabled ? 'Enabled in-game' : 'Disabled'}><input type="checkbox" checked={!!c.enabled} onChange={() => toggleEnabled(c.id)} /></label>
+            {colId === c.id && <button className="colDel" title="Delete collection" onClick={() => removeCollection(c.id)}>✕</button>}
+          </span>
         ))}
-        <button className="archNew" onClick={newFile} title="New archetype">+ new</button>
+        <button className="colNew" onClick={newCollection} title="New collection">+ new</button>
       </div>
 
-      <div className="toolbar2">
-        <span className="t2label">Presets:</span>
-        <select value={presetSel} onChange={(e) => setPresetSel(e.target.value)}>
-          <option value="">(select)</option>
-          {presets.map((p) => <option key={p} value={p}>{p}</option>)}
-        </select>
-        <button onClick={doLoadPreset} disabled={!presetSel}>Load</button>
-        <button onClick={doSavePreset}>Save preset</button>
-        <button onClick={doDeletePreset} disabled={!presetSel}>Delete</button>
-        <span className="grow" />
-        <button onClick={revertCard}>⟲ Revert card</button>
-        <button onClick={revertFile}>⟲ Revert file → vanilla</button>
+      <div className="colHint">
+        {readOnly
+          ? <>Viewing the <b>Default</b> game cards (read-only). To change or add cards, pick or create a collection.</>
+          : <>Editing <b>{collName}</b>{col?.enabled ? '' : ' (disabled in-game)'} — changes overlay the base game; the base is never touched. {enabledCount} collection{enabledCount === 1 ? '' : 's'} enabled in-game.</>}
       </div>
 
       {showSettings && (
         <div className="settings">
-          <p>For saving from a phone / deployed editor: a GitHub <b>fine-grained PAT</b> with <code>Contents: read/write</code> on this repo. Stored only in this browser; never committed. The repo is public — don't paste a token with broad scopes.</p>
+          <p>Advanced: bake the active collection into the base game files (for the developer), or set a GitHub PAT to commit. Players don’t need this — collections already apply in-game.</p>
           <div className="row">
             <Field label="owner"><input value={gh.owner} onChange={(e) => setGh({ ...gh, owner: e.target.value })} /></Field>
             <Field label="repo"><input value={gh.repo} onChange={(e) => setGh({ ...gh, repo: e.target.value })} /></Field>
             <Field label="branch"><input value={gh.branch} onChange={(e) => setGh({ ...gh, branch: e.target.value })} /></Field>
             <Field label="token"><input type="password" value={gh.token} onChange={(e) => setGh({ ...gh, token: e.target.value })} /></Field>
           </div>
-          <button onClick={() => { saveGitHubSettings(gh); setStatus('GitHub settings saved'); }}>Save settings</button>
+          <div className="row">
+            <button onClick={() => { saveGitHubSettings(gh); setStatus('GitHub settings saved'); }}>Save settings</button>
+            <button onClick={publishToBase} disabled={!col}>⬆ Publish collection to base game</button>
+          </div>
         </div>
       )}
 
@@ -457,14 +439,14 @@ export function CardEditor({ onMenu } = {}) {
             <input placeholder="Search…" value={q} onChange={(e) => setQ(e.target.value)} />
             {q && <button className="fClear" onClick={() => setQ('')} title="Clear">✕</button>}
           </div>
-          {active.size > 1 && (
-            <label className="fFocus"><span>New cards →</span>
-              <select value={focusFile} onChange={(e) => setFocusFile(e.target.value)}>
-                {allFiles.filter((f) => active.has(f)).map((f) => <option key={f} value={f}>{nameOf(f)}</option>)}
-              </select>
-            </label>
-          )}
-          <button className="addCard fAdd" onClick={addCard}>+ add card to {nameOf(focusFile)}</button>
+          <button className="addCard fAdd" onClick={addCard}>+ add card</button>
+
+          <div className="fGroup">
+            <div className="fLabel">Archetype</div>
+            {archetypes.map((a) => (
+              <label key={a} className="fCheck"><input type="checkbox" checked={fArch.has(a)} onChange={() => toggleIn(setFArch, a)} /> {a}</label>
+            ))}
+          </div>
 
           <div className="fGroup">
             <div className="fLabel">Card Type</div>
@@ -492,15 +474,15 @@ export function CardEditor({ onMenu } = {}) {
           </div>
 
           <button className={`fSort ${sortAZ ? 'on' : ''}`} onClick={() => setSortAZ((s) => !s)}>A–Z sort {sortAZ ? '✓' : ''}</button>
-          <div className="fCount">{view.length} / {totalActive} cards · {active.size} archetype{active.size > 1 ? 's' : ''}</div>
+          <div className="fCount">{view.length} / {viewAll.length} cards</div>
         </aside>
 
         <div className="gallery">
-          {view.map(({ file, c, i }) => (
-            <GalleryTile key={`${file}:${c.id || i}`} c={c} bad={validateCard(c).length > 0}
-              onClick={() => openCardForEdit(file, i)} onDelete={() => deleteCard(file, i)} />
+          {view.map(({ card: c, origin }) => (
+            <GalleryTile key={c.id} c={c} origin={origin} bad={validateCard(c).length > 0}
+              onClick={() => openCardForEdit(c.id)} onDelete={readOnly ? undefined : () => deleteCard(c.id)} />
           ))}
-          {view.length === 0 && <p className="empty">{totalActive ? 'No cards match these filters.' : 'No cards yet — add one.'}</p>}
+          {view.length === 0 && <p className="empty">No cards match these filters.</p>}
         </div>
       </div>
 
@@ -509,29 +491,30 @@ export function CardEditor({ onMenu } = {}) {
           <div className="editPanel" onClick={(e) => e.stopPropagation()}>
             <button className="editClose" title="Close (Esc)" onClick={() => setEditing(false)}>✕</button>
             <main className="form">
-              {!card ? <p className="empty">Select or add a card.</p> : (
-            <>
               <div className="formTop">
                 <h2>{card.name}</h2>
-                <label className="rawToggle"><input type="checkbox" checked={raw} onChange={(e) => setRaw(e.target.checked)} /> raw JSON</label>
+                {!readOnly && <label className="rawToggle"><input type="checkbox" checked={raw} onChange={(e) => setRaw(e.target.checked)} /> raw JSON</label>}
               </div>
+              {readOnly && (
+                <div className="errs roBanner">This is a base game card (read-only). <button onClick={() => { const id = ensureCollection(); if (id) setStatus(`now editing in "${getCollection(id).name}"`); }}>Edit it in a collection →</button></div>
+              )}
               {errors.length > 0 && <div className="errs">{errors.map((e, i) => <div key={i}>⚠ {e}</div>)}</div>}
 
-              {raw ? (
+              {raw && !readOnly ? (
                 <div className="rawEd">
                   <textarea value={rawText} onChange={(e) => setRawText(e.target.value)} spellCheck={false} />
                   {rawErr && <div className="errs"><div>⚠ {rawErr}</div></div>}
                   <button onClick={applyRaw}>Apply JSON</button>
                 </div>
               ) : (
-                <>
+                <fieldset className="formFields" disabled={readOnly} style={readOnly ? { opacity: 0.85 } : undefined}>
                   <div className="grid">
                     <Field label="name"><input value={card.name || ''} onChange={(e) => updateCard({ name: e.target.value })} /></Field>
-                    <Field label="id"><div className="idrow"><input value={card.id || ''} onChange={(e) => updateCard({ id: e.target.value })} /><button onClick={regenId} title="regenerate from name">⟳</button></div></Field>
+                    <Field label="id"><div className="idrow"><input value={card.id || ''} disabled={editRow.origin !== 'new'} onChange={(e) => updateCard({ id: e.target.value })} />{editRow.origin === 'new' && <button onClick={regenId} title="regenerate from name">⟳</button>}</div></Field>
                     <Field label="type"><select value={card.type} onChange={(e) => updateCard({ type: e.target.value })}>{CARD_TYPES.map((t) => <option key={t}>{t}</option>)}</select></Field>
                     <Field label="cost"><input type="number" value={card.cost ?? 0} onChange={(e) => updateCard({ cost: Number(e.target.value) })} /><small>-1 = X</small></Field>
                     <Field label="attunement"><select value={card.attunement} onChange={(e) => updateCard({ attunement: e.target.value })}>{ATTUNEMENT_BASES.map((a) => <option key={a}>{a}</option>)}</select></Field>
-                    <Field label="class"><select value={card.class || ''} onChange={(e) => updateCard({ class: e.target.value || undefined })}><option value="">(none)</option>{CLASS_BASES.map((c) => <option key={c}>{c}</option>)}</select></Field>
+                    <Field label="archetype (class)"><select value={card.class || ''} onChange={(e) => updateCard({ class: e.target.value || undefined })}><option value="">(none)</option>{CLASS_BASES.map((c) => <option key={c}>{c}</option>)}</select></Field>
                     <Field label="biology"><select value={card.biology || ''} onChange={(e) => updateCard({ biology: e.target.value || undefined })}><option value="">(none)</option>{BIOLOGY_BASES.map((b) => <option key={b}>{b}</option>)}</select></Field>
                     <Field label="rarity"><select value={card.rarity || 'common'} onChange={(e) => updateCard({ rarity: e.target.value })}>{RARITIES.map((r) => <option key={r}>{r}</option>)}</select></Field>
                     <Field label="replay count"><input type="number" value={card.replayCount ?? ''} onChange={(e) => updateCard({ replayCount: e.target.value === '' ? undefined : Number(e.target.value) })} /></Field>
@@ -557,7 +540,7 @@ export function CardEditor({ onMenu } = {}) {
                     <textarea className="cardtext" value={card.artPrompt || ''}
                       placeholder={cardArtScene({ ...card, artPrompt: undefined })}
                       onChange={(e) => updateCard({ artPrompt: e.target.value || undefined })} />
-                    <small>Describe the scene for AI art. Blank = the auto-derived prompt shown faded above. Generate with <code>python scripts/gen_cards.py</code>.</small>
+                    <small>Describe the scene for AI art. Blank = the auto-derived prompt shown faded above.</small>
                   </Field>
 
                   <div className="artRow">
@@ -609,10 +592,12 @@ export function CardEditor({ onMenu } = {}) {
                       )}
                     </>
                   )}
-                </>
+
+                  {!readOnly && (editRow.origin === 'override' || baseCard(card.id)) && (
+                    <button className="restoreBtn" onClick={restoreToDefault}>⟲ Restore this card to default (drop my changes)</button>
+                  )}
+                </fieldset>
               )}
-            </>
-          )}
             </main>
           </div>
         </div>
