@@ -6,6 +6,9 @@
 
 /** @type {{version:string, date:string, notes:string[]}[]} newest first */
 export const CHANGELOG = [
+  { version: 'v3.69.0', date: '2026-06-26', notes: [
+    'Campfire upgrade redesigned: instead of a flat list, switch between your characters, browse that creature’s actual deck as cards, pick one, see a before→after preview, then confirm the upgrade.',
+  ] },
   { version: 'v3.68.1', date: '2026-06-26', notes: [
     'Cards in hand now show their EFFECTIVE energy cost while Shocked — the Shock tax (+1 per Shocked ally) is added to the gem (which turns red) so you can see the real cost before playing.',
   ] },

@@ -278,25 +278,58 @@ function EventRoom({ run, snap }) {
 function Room({ run, snap, node, target, setTarget }) {
   // Tracks shop cards already bought this visit (Room remounts per room → resets).
   const [bought, setBought] = useState(() => new Set());
+  // Campfire: which party member's deck we're browsing + the card picked to upgrade.
+  const living = snap.party.filter((m) => m.hp > 0);
+  const [restMemberId, setRestMemberId] = useState(() => (living[0] || snap.party[0])?.id);
+  const [restSel, setRestSel] = useState(null);
+
   if (node.type === 'rest') {
-    const member = snap.party[0];
-    const upgradable = (member?.deck || []).filter((c) => !c.upgraded);
+    const member = snap.party.find((m) => m.id === restMemberId) || snap.party[0];
+    const deck = member?.deck || [];
+    const selCard = deck.find((c) => c.id === restSel) || null;
+    const upgradePreview = selCard && selCard.upgrade
+      ? { ...selCard, ...selCard.upgrade, name: selCard.name.endsWith('+') ? selCard.name : `${selCard.name}+`, upgraded: true }
+      : null;
     return (
       <div className="runWrap">
         <h2><Icon icon="game-icons:campfire" /> Campfire</h2>
         <PartyBar snap={snap} />
-        <div className="roomCol">
+        <div className="roomCol restCol">
           <button className="runBtn" onClick={() => { run.dispatch('healParty', { pct: 0.3 }); run.finishRoom(); }}>Rest — heal 30% HP</button>
-          <div className="upgradeList">
-            <p>…or upgrade a card:</p>
-            {upgradable.map((c) => (
-              <button key={c.id} className="cardChip" onClick={() => { run.dispatch('upgradeCard', { memberId: member.id, cardId: c.id }); run.finishRoom(); }}>
-                <div className="ccTop"><span className="ccCost">{c.cost === -1 ? 'X' : c.cost}</span><b>{c.name}</b></div>
-                <div className="ccText">{c.text || ''}</div>
+          <p className="restHint">…or upgrade a card — pick a character, review their deck, choose a card:</p>
+
+          <div className="memberTabs">
+            {snap.party.map((m) => (
+              <button key={m.id} className={`memberTab${m.id === member?.id ? ' on' : ''}${m.hp <= 0 ? ' dead' : ''}`}
+                onClick={() => { setRestMemberId(m.id); setRestSel(null); }}>
+                <Crest m={m} /> <b>{m.name}</b>
               </button>
             ))}
-            {!upgradable.length && <p className="runHint">All cards upgraded.</p>}
           </div>
+
+          <div className="restDeck">
+            {deck.map((c, i) => (
+              <MoveCard key={`${c.id}-${i}`} c={c} selected={c.id === restSel} disabled={c.upgraded}
+                onClick={() => { if (!c.upgraded) setRestSel(c.id); }} />
+            ))}
+            {deck.length === 0 && <p className="runHint">No cards in this deck.</p>}
+          </div>
+
+          {selCard && (
+            <div className="restConfirm">
+              {upgradePreview && (
+                <div className="upgPreview">
+                  <MoveCard c={selCard} />
+                  <Icon className="upgArrow" icon="game-icons:upgrade" />
+                  <MoveCard c={upgradePreview} />
+                </div>
+              )}
+              <button className="runBtn" disabled={!selCard.upgrade}
+                onClick={() => { run.dispatch('upgradeCard', { memberId: member.id, cardId: selCard.id }); run.finishRoom(); }}>
+                {selCard.upgrade ? `Upgrade ${selCard.name}` : 'This card has no upgrade'}
+              </button>
+            </div>
+          )}
         </div>
       </div>
     );

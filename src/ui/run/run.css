@@ -187,3 +187,18 @@
    the combat log scrolls within its panel instead of growing unbounded.
    The end-of-fight overlay is itself position:fixed, so it still layers on top. */
 .runCombat { position: fixed; inset: 0; z-index: 1; }
+
+/* ── Campfire: per-character deck browser + upgrade ── */
+.restCol { max-width: 760px; }
+.restHint { color: #c9b58e; font-size: 13px; margin: 4px 0; text-align: center; }
+.memberTabs { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; margin: 6px 0; }
+.memberTab { display: flex; align-items: center; gap: 7px; padding: 5px 12px; border-radius: 999px;
+  background: #1c1410; border: 1px solid #4a3a22; color: #e8dcc8; cursor: pointer; font: inherit; }
+.memberTab .pCrest { width: 24px; height: 24px; }
+.memberTab.on { background: #3a2c12; border-color: #c9a23a; color: #fff3d6; box-shadow: 0 0 10px #c9a23a55; }
+.memberTab.dead { opacity: .5; }
+.restDeck { display: flex; flex-wrap: wrap; align-items: flex-start; gap: 12px; justify-content: center;
+  margin: 8px auto; max-height: 46vh; overflow-y: auto; padding: 4px; }
+.restConfirm { display: flex; flex-direction: column; align-items: center; gap: 10px; margin-top: 8px; }
+.upgPreview { display: flex; align-items: center; gap: 12px; }
+.upgPreview .upgArrow { font-size: 26px; color: #9be29b; }
