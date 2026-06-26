@@ -6,6 +6,10 @@
 
 /** @type {{version:string, date:string, notes:string[]}[]} newest first */
 export const CHANGELOG = [
+  { version: 'v3.73.0', date: '2026-06-26', notes: [
+    'Clicking a creature on the Assemble screen now opens a detail modal — the same card you see in combat — with an Add to Team / Remove from Team button (and Make Vanguard), plus a link to its Bestiary page.',
+    'A creature’s deck is now an expandable dropdown (collapsed by default) in both the combat info panel and the team modal, instead of always being shown.',
+  ] },
   { version: 'v3.72.0', date: '2026-06-26', notes: [
     'The playtime timer no longer resets when you leave and resume a run or practice fight — it now accumulates and is saved with the run.',
     'Shock’s side-wide energy tax is now shown on the energy orb (e.g. “⚡ +2”), so you can see the whole team is being taxed by Shocked allies — not just the one wearing the Shock pip. (Each Shocked creature already shows its own pip on the vanguard AND the bench.)',

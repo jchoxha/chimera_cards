@@ -8,7 +8,23 @@
 // ╚══════════════════════════════════════════════════════════════════╝
 import React, { useState } from 'react';
 import { ARCHETYPE_ICON, BIOLOGY_ICON, ATTUNEMENT_ICON, ATTUNEMENT_COLOR, creatureIcon, creatureColor } from '../data/axisIcons.js';
+import { CardFace } from '../ui/combat/creatureVisuals.jsx';
+import DeckDropdown from '../ui/combat/DeckDropdown.jsx';
+import MonsterPage from '../ui/MonsterPage.jsx';
+import '../ui/combat/combat.css';
 import './select.css';
+
+/** Map a roster creature to the shape CardFace expects (a static, full-HP "fighter"). */
+function toFace(c) {
+  return {
+    id: c.id, name: c.name, hp: c.maxHp, maxHp: c.maxHp, block: 0, statuses: [], powers: [],
+    axes: { class: c.class, biology: c.biology, attunement: c.attunement },
+    element: c.attunement?.[0] || null,
+    types: (c.attunement || []).map((a) => ({ type: a, weight: 1 })),
+    stats: c.stats, portrait: c.meta?.portrait ?? c.portrait ?? null,
+    form: 'regular', rarity: 'common',
+  };
+}
 
 const MAX = 3;
 const STAT_LABEL = { might: 'MGT', guard: 'GRD', focus: 'FOC', resolve: 'RSV', speed: 'SPD' };
@@ -47,6 +63,8 @@ export default function SelectScreen({
   // Ordered list of ids; index 0 = vanguard. Seed from the saved team.
   const [picked, setPicked] = useState(() => initial.filter((id) => roster.some((c) => c.id === id)).slice(0, MAX));
   const [teamOpen, setTeamOpen] = useState(true);
+  const [modalId, setModalId] = useState(null);   // creature whose modal is open
+  const [bestiaryId, setBestiaryId] = useState(null); // creature whose codex page is open
   const byId = (id) => roster.find((c) => c.id === id);
   const toggle = (id) => setPicked((p) => p.includes(id) ? p.filter((x) => x !== id) : (p.length < MAX ? [...p, id] : p));
   const remove = (id) => setPicked((p) => p.filter((x) => x !== id));
@@ -117,7 +135,7 @@ export default function SelectScreen({
           const chosen = order >= 0;
           const color = creatureColor(c);
           return (
-            <button key={c.id} className={`selCard${chosen ? ' chosen' : ''}`} onClick={() => toggle(c.id)}
+            <button key={c.id} className={`selCard${chosen ? ' chosen' : ''}`} onClick={() => setModalId(c.id)}
               style={{ borderColor: chosen ? color : undefined }}>
               <div className="selArt" style={{ '--gl': color }}>
                 {c.meta?.portrait
@@ -142,6 +160,49 @@ export default function SelectScreen({
           );
         })}
       </div>
+
+      {/* Creature modal — the same CardFace as combat, plus add/remove + a deck dropdown. */}
+      {modalId && (() => {
+        const c = byId(modalId); if (!c) return null;
+        const inTeam = picked.includes(c.id);
+        const isVan = picked[0] === c.id;
+        return (
+          <div className="selModalWrap" onClick={() => setModalId(null)}>
+            <div className="selModal" onClick={(e) => e.stopPropagation()}>
+              <button className="selModalClose" onClick={() => setModalId(null)}>✕</button>
+              <div className="modalCardWrap">
+                <CardFace f={toFace(c)} side="ally" onName={() => setBestiaryId(c.id)} />
+              </div>
+              <DeckDropdown cards={c.deck || []} label="Deck" empty="Auto-generated at run start." />
+              <div className="selModalActions">
+                {inTeam
+                  ? <>
+                      {!isVan && <button className="selBtn" onClick={() => { promote(c.id); }}>★ Make Vanguard</button>}
+                      <button className="selBtn rm" onClick={() => { remove(c.id); setModalId(null); }}>Remove from Team</button>
+                    </>
+                  : <button className="selBtn go" disabled={picked.length >= MAX}
+                      onClick={() => { toggle(c.id); setModalId(null); }}>
+                      {picked.length >= MAX ? 'Team full (max 3)' : 'Add to Team'}
+                    </button>}
+              </div>
+              <button className="selBtn ghost selModalCodex" onClick={() => setBestiaryId(c.id)}>📖 Bestiary page</button>
+            </div>
+          </div>
+        );
+      })()}
+
+      {/* Bestiary (codex) page for a creature — opens over the creature modal. */}
+      {bestiaryId && (() => {
+        const c = byId(bestiaryId); if (!c) return null;
+        return (
+          <div className="selModalWrap" style={{ zIndex: 60 }} onClick={() => setBestiaryId(null)}>
+            <div className="selModal wide" onClick={(e) => e.stopPropagation()}>
+              <button className="selModalClose" onClick={() => setBestiaryId(null)}>✕</button>
+              <MonsterPage creature={c} />
+            </div>
+          </div>
+        );
+      })()}
     </div>
   );
 }

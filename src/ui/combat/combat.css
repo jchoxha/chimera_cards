@@ -629,3 +629,13 @@ html:has(.cmbt),body:has(.cmbt){height:100%;margin:0;overflow:hidden}
   .orb b{font-size:14px}
   .endBtn{padding:9px 8px;font-size:12px;box-shadow:0 4px 0 #8a6a18,0 6px 12px #0008}
 }
+
+/* expandable deck dropdown (combat creature modal + team assembler modal) */
+.deckDrop{margin:8px 0 2px;width:100%}
+.deckDropHead{display:flex;align-items:center;gap:7px;width:100%;font:inherit;cursor:pointer;
+  font-family:'Cinzel',serif;font-size:13px;color:var(--gold4,#e8c878);background:#00000033;
+  border:1px solid #4a3a22;border-radius:8px;padding:8px 11px}
+.deckDropHead:hover{border-color:var(--goldB)}
+.deckDropHead .ddChev{margin-left:auto;color:#c9b58e}
+.deckDropGrid{display:flex;flex-wrap:wrap;gap:10px;justify-content:center;padding:10px 2px}
+.ddEmpty{color:#8a7a5e;font-size:12px;padding:8px 2px}

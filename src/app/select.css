@@ -84,3 +84,16 @@
   border-style: dashed; border-color: #6a5d9a; background: linear-gradient(180deg, #1d1633, #140e22); min-height: 240px; }
 .selCreate:hover { border-color: #9b8de0; }
 .selCreatePlus { font-size: 56px; line-height: 1; color: #9b8de0; font-weight: 300; }
+
+/* Creature modal (assemble screen) — reuses the combat CardFace + deck dropdown */
+.selModalWrap { position: fixed; inset: 0; z-index: 50; background: #0a0710e0; display: grid; place-items: center; padding: 18px; }
+.selModal { position: relative; width: min(440px, 94vw); max-height: 90vh; overflow-y: auto;
+  background: linear-gradient(#1d1633, #120d1d); border: 2px solid #6a5d9a; border-radius: 16px; box-shadow: 0 24px 70px #000d; padding: 18px; }
+.selModal.wide { width: min(680px, 94vw); }
+.selModalClose { position: absolute; top: 10px; right: 10px; z-index: 3; width: 30px; height: 30px; border-radius: 50%;
+  background: #241c3c; border: 1px solid #4a4370; color: #e8e0f4; font-size: 14px; cursor: pointer; }
+.selModal .modalCardWrap { display: flex; justify-content: center; }
+.selModal .modalCardWrap .combat { width: clamp(150px, 60vw, 188px); height: auto; max-height: none; }
+.selModalActions { display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; margin-top: 12px; }
+.selModalActions .selBtn.rm { background: #3a1c1c; border-color: #7a3a3a; color: #ffb9b9; }
+.selModalCodex { display: block; margin: 10px auto 0; }
