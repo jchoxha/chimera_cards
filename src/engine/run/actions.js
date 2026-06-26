@@ -6,6 +6,7 @@
 // ╚══════════════════════════════════════════════════════════════════╝
 
 import { reachableFrom, nodeById } from './map.js';
+import { evolve } from '../content/evolve.js';
 
 const member = (s, id) => s.party.find((p) => p.id === id) || s.party[0] || null;
 
@@ -56,6 +57,17 @@ export const ACTIONS = {
   offerReward: (s, { offers = null, cards = [], loot = null, rngState }) => { s.pendingReward = offers ?? cards; s.pendingLoot = loot; if (rngState != null) s.rngState = rngState; },
   chooseReward: (s, { memberId, card }) => { const m = member(s, memberId); if (m && card) m.deck.push({ ...card }); s.pendingReward = null; s.pendingLoot = null; },
   skipReward: (s) => { s.pendingReward = null; s.pendingLoot = null; },
+
+  // Evolve a party member one size up the ladder (re-scales maxHp + Might).
+  // The added HP is granted to current HP too — evolution is a boon. No-op if terminal.
+  evolveMember: (s, { memberId }) => {
+    const m = member(s, memberId); if (!m) return;
+    const ev = evolve(m); if (!ev) return;
+    m.size = ev.to;
+    m.maxHp = ev.newMaxHp;
+    m.hp = Math.max(1, Math.min(m.maxHp, m.hp + Math.max(0, ev.hpGain)));
+    m.stats = { ...(m.stats || {}), might: (m.stats?.might ?? 1) + ev.mightDelta };
+  },
 
   // ── party / health ──
   healParty: (s, { amount, pct }) => {

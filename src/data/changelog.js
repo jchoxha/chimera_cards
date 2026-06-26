@@ -6,6 +6,9 @@
 
 /** @type {{version:string, date:string, notes:string[]}[]} newest first */
 export const CHANGELOG = [
+  { version: 'v3.84.0', date: '2026-06-26', notes: [
+    'Creature EVOLUTION (first cut): at a Campfire you can now evolve a party member one size up the ladder (Baby → Small → Regular → Large). It permanently gains HP and Might, and the added HP heals it. Elite and Boss are terminal and can’t evolve. Explained in the Codex.',
+  ] },
   { version: 'v3.83.0', date: '2026-06-26', notes: [
     'The Card Forge is now the “Editor” — a tabbed admin tool with a Cards page (the old collections forge) and a new Monsters page. The Monsters page lists your custom creatures and lets you create/edit/delete them: name, lore, physical description, matrix typings, size, and an optional hand-built deck (the per-monster deck building that was removed from team assembly lives here).',
     'Monsters built in the Editor appear in your roster on the Assemble Team screen.',

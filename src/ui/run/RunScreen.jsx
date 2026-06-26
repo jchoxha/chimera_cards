@@ -15,6 +15,7 @@ import { makeRng } from '../../engine/run/rng.js';
 import { RELICS, POTIONS, EVENTS, CURSES } from '../../engine/run/content.js';
 import { draftRunReward } from '../../engine/run/rewards.js';
 import { creatureIcon, creatureColor } from '../../data/axisIcons.js';
+import { evolve, sizeLabel } from '../../engine/content/evolve.js';
 import TeamManager from '../TeamManager.jsx';
 import './run.css';
 
@@ -312,6 +313,25 @@ function Room({ run, snap, node, target, setTarget }) {
         <PartyBar snap={snap} />
         <div className="roomCol restCol">
           <button className="runBtn" onClick={() => { run.dispatch('healParty', { pct: 0.3 }); run.finishRoom(); }}>Rest — heal 30% HP</button>
+
+          <p className="restHint">…or evolve a creature — it grows one size (more HP &amp; Might):</p>
+          <div className="evolveRow">
+            {living.map((m) => {
+              const ev = evolve(m);
+              return (
+                <div key={m.id} className="evolveCard">
+                  <Crest m={m} /> <b>{m.name}</b>
+                  <span className="evolveSize">{sizeLabel(m.size)}</span>
+                  {ev
+                    ? <button className="runBtn small" onClick={() => { run.dispatch('evolveMember', { memberId: m.id }); run.finishRoom(); }}>
+                        Evolve → {sizeLabel(ev.to)} (+{ev.hpGain} HP{ev.mightDelta ? `, +${ev.mightDelta} Might` : ''})
+                      </button>
+                    : <span className="evolveMax">Max size</span>}
+                </div>
+              );
+            })}
+          </div>
+
           <p className="restHint">…or upgrade a card — pick a character, review their deck, choose a card:</p>
 
           <div className="memberTabs">
