@@ -6,6 +6,11 @@
 
 /** @type {{version:string, date:string, notes:string[]}[]} newest first */
 export const CHANGELOG = [
+  { version: 'v3.70.0', date: '2026-06-26', notes: [
+    'Practice Fight (renamed from Test Fight) now lets you choose the opponents — pick any creatures to spar against, with a passive Target Dummy as the default. Begin Run and Practice Fight are now equal-size buttons.',
+    'The Target Dummy is now a selectable character (a high-HP punching bag that barely fights back).',
+    'Your practice setup is remembered — a “Continue Practice Fight” option resumes the same matchup, like continuing a run.',
+  ] },
   { version: 'v3.69.0', date: '2026-06-26', notes: [
     'Campfire upgrade redesigned: instead of a flat list, switch between your characters, browse that creature’s actual deck as cards, pick one, see a before→after preview, then confirm the upgrade.',
   ] },

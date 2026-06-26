@@ -53,3 +53,20 @@ export function buildRoster(poolsByClass = {}, fallbackPool = []) {
     return c;
   });
 }
+
+/**
+ * A passive Target Dummy as a selectable creature — used as the default practice
+ * opponent. Big HP, an EMPTY deck (does nothing on its turn). Not part of the
+ * playable roster; offered only when choosing practice opponents.
+ */
+export function buildDummyCreature() {
+  const portrait = `${BASE}art/gen/training-dummy.png`;
+  return {
+    id: 'dummy', name: 'Target Dummy',
+    class: ['Construct'], biology: ['Mechanical'], attunement: ['Physical'],
+    stats: { might: 1, guard: 5, focus: 1, resolve: 5, speed: 0 },
+    maxHp: 250, hp: 250, deck: [], signatureCards: [],
+    blurb: 'A practice dummy — soaks hits and barely fights back.',
+    portrait, meta: { portrait },
+  };
+}

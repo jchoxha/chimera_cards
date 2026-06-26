@@ -208,15 +208,19 @@ export const useCombat = create((set, get) => ({
    * (defaults to a no-axis target dummy with lots of HP). Feeds the editor's
    * author→playtest loop. `playerCards` are CardSpec objects (e.g. warrior.json).
    */
-  startPlaytest({ party, playerCards = [], playerName = 'Warrior', stats, attunement, biology, klass, enemyHp = 200, enemyName, enemyAttunement, enemyBiology } = {}) {
+  startPlaytest({ party, enemyParty, playerCards = [], playerName = 'Warrior', stats, attunement, biology, klass, enemyHp = 200, enemyName, enemyAttunement, enemyBiology } = {}) {
     const events = [];
     // A chosen TEAM (vanguard + bench) takes precedence; else a single card-built hero.
     const playerFighters = (party && party.length)
       ? partyToFighters(party)
       : [buildCardFighter({ id: 'player', name: playerName, attunement, biology, klass, cards: playerCards, stats })];
+    // A chosen OPPONENT team (e.g. a practice fight) takes precedence over the dummy.
+    const enemyFighters = (enemyParty && enemyParty.length)
+      ? partyToFighters(enemyParty)
+      : [buildDummy({ hp: enemyHp, name: enemyName, attunement: enemyAttunement, biology: enemyBiology })];
     const vm = new VanguardManager({
       playerFighters,
-      enemyFighters: [buildDummy({ hp: enemyHp, name: enemyName, attunement: enemyAttunement, biology: enemyBiology })],
+      enemyFighters,
       room: 'combat',
       rarity: { offset: -0.05, ascension7: false },
       pickCard: POOL.pick,

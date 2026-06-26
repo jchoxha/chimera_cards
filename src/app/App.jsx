@@ -17,7 +17,7 @@ import { loadDraft } from '../editor/persistence.js';
 import { ATTUNEMENT_BASES, BIOLOGY_BASES, legalAttunements } from '../data/synthesis.js';
 import { attunementCards } from '../engine/cards/attunementPool.js';
 import { reskinDeck, attunementVariants } from '../engine/cards/reskin.js';
-import { buildRoster } from '../data/roster.js';
+import { buildRoster, buildDummyCreature } from '../data/roster.js';
 import { APP_VERSION } from '../version.js';
 import { CHANGELOG } from '../data/changelog.js';
 import './app.css';
@@ -31,18 +31,26 @@ const FILE_NAMES = Object.keys(FILES);
 // Archetype card pools keyed by class name, for the generator + reward pools.
 const POOLS = Object.fromEntries(Object.values(FILES).map((f) => [f.class, f.cards || []]));
 const ROSTER = buildRoster(POOLS, POOLS.Warrior || []);
+const DUMMY = buildDummyCreature();
+// Practice opponents can be any roster creature OR the passive Target Dummy.
+const OPP_ROSTER = [...ROSTER, DUMMY];
 
 if (import.meta.env.DEV && typeof window !== 'undefined') { window.__useRun = useRun; window.__useCombat = useCombat; }
 
 const TEAM_KEY = 'chimera.team';
-function loadTeamIds() {
-  try { const v = JSON.parse(localStorage.getItem(TEAM_KEY)); return Array.isArray(v) ? v : []; } catch { return []; }
+const PRACTICE_KEY = 'chimera.practiceOpp';
+const PRACTICE_ACTIVE_KEY = 'chimera.practiceActive';
+function loadIds(key, fallback) {
+  try { const v = JSON.parse(localStorage.getItem(key)); return Array.isArray(v) ? v : fallback; } catch { return fallback; }
 }
+const loadTeamIds = () => loadIds(TEAM_KEY, []);
 
 export default function App() {
   const [view, setView] = useState('menu');
   const [teamIds, setTeamIds] = useState(loadTeamIds);
-  const [combatKind, setCombatKind] = useState('deck'); // 'deck' (tuning) | 'team' (your team)
+  const [practiceOppIds, setPracticeOppIds] = useState(() => loadIds(PRACTICE_KEY, ['dummy']));
+  const [practiceActive, setPracticeActive] = useState(() => !!localStorage.getItem(PRACTICE_ACTIVE_KEY));
+  const [combatKind, setCombatKind] = useState('deck'); // 'deck' (tuning) | 'team' | 'practice'
   const [deckFile, setDeckFile] = useState(FILE_NAMES[0] || 'warrior.json');
   const [enemyHp, setEnemyHp] = useState(200);
   // Attunement playtest controls: your creature's attunement (drives imbue) + the
@@ -113,19 +121,24 @@ export default function App() {
     setView('combat');
   }
 
-  /** Test-fight your chosen TEAM (vanguard + bench) against a target dummy. */
-  function testFightTeam() {
+  // Practice fight: your team vs a chosen OPPONENT team (Target Dummy by default).
+  const practiceOpp = practiceOppIds.map((id) => OPP_ROSTER.find((c) => c.id === id)).filter(Boolean);
+  function launchPractice(oppCreatures) {
     if (!team.length) return;
-    setCombatKind('team');
-    useCombat.getState().startPlaytest({
-      party: team,
-      enemyAttunement: dummyAtt ? [dummyAtt] : undefined,
-      enemyBiology: dummyBio ? [dummyBio] : undefined,
-      enemyHp: Number(enemyHp) || 200,
-    });
+    const opp = (oppCreatures && oppCreatures.length) ? oppCreatures : (practiceOpp.length ? practiceOpp : [DUMMY]);
+    setCombatKind('practice');
+    setPracticeActive(true);
+    try { localStorage.setItem(PRACTICE_ACTIVE_KEY, '1'); } catch { /* ignore */ }
+    useCombat.getState().startPlaytest({ party: team, enemyParty: opp });
     setView('combat');
   }
-  const restartCombat = () => (combatKind === 'team' ? testFightTeam() : launchCombat(lastDeck));
+  function confirmPracticeOpponents(oppCreatures) {
+    const ids = (oppCreatures && oppCreatures.length ? oppCreatures : [DUMMY]).map((c) => c.id);
+    setPracticeOppIds(ids);
+    try { localStorage.setItem(PRACTICE_KEY, JSON.stringify(ids)); } catch { /* ignore */ }
+    launchPractice(oppCreatures);
+  }
+  const restartCombat = () => (combatKind === 'practice' ? launchPractice() : combatKind === 'team' ? launchPractice() : launchCombat(lastDeck));
 
   /** A single creature's potential pool (archetype reskinned + attunement cards + variants). */
   function creatureRewardPool(c) {
@@ -148,6 +161,12 @@ export default function App() {
   if (view === 'combat') return <CombatScreen onMenu={() => setView('menu')} onRestart={restartCombat} />;
   if (view === 'run') return <RunScreen onMenu={() => setView('menu')} onNewRun={() => setView('select')} />;
   if (view === 'select') return <SelectScreen roster={ROSTER} initial={teamIds} onConfirm={saveTeam} onCancel={() => setView('menu')} />;
+  if (view === 'practice') return (
+    <SelectScreen roster={OPP_ROSTER} initial={practiceOppIds} onConfirm={confirmPracticeOpponents} onCancel={() => setView('menu')}
+      title="Choose Practice Opponents"
+      intro="Pick up to 3 creatures to spar against — the Target Dummy (last in the list) is a passive punching bag. Your own team fights them."
+      teamLabel="Opponents" confirmLabel="Start Practice ⚔" />
+  );
   if (view === 'deckbuild') return (
     <DeckBuilder
       pool={builderPool()}
@@ -183,13 +202,19 @@ export default function App() {
             title={team.length ? 'Start a roguelike run with your team' : 'Assemble a team first'}>
             ▶ Begin Run
           </button>
-          <button className="menuBtn" onClick={testFightTeam} disabled={!team.length}
-            title={team.length ? 'Sandbox fight vs a Target Dummy with your team' : 'Assemble a team first'}>
-            🛡 Test Fight
+          <button className="menuBtn big" onClick={() => setView('practice')} disabled={!team.length}
+            title={team.length ? 'Spar with your team vs opponents you choose' : 'Assemble a team first'}>
+            🛡 Practice Fight
           </button>
         </div>
         {useRun.getState().hasSave() && (
           <button className="menuBtn" onClick={continueRun}>↻ Continue Saved Run</button>
+        )}
+        {practiceActive && team.length > 0 && (
+          <button className="menuBtn" onClick={() => launchPractice()}
+            title={`Resume your practice fight vs ${practiceOpp.map((c) => c.name).join(', ') || 'Target Dummy'}`}>
+            ↻ Continue Practice Fight
+          </button>
         )}
 
         {/* Secondary: forge + codex */}

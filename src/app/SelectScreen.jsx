@@ -38,7 +38,12 @@ function TeamSlot({ c, role, onRemove, onPromote }) {
   );
 }
 
-export default function SelectScreen({ roster = [], initial = [], onConfirm, onCancel }) {
+export default function SelectScreen({
+  roster = [], initial = [], onConfirm, onCancel,
+  title = 'Assemble Your Team',
+  intro = 'Choose up to 3 creatures — they fight as an Active Vanguard + a bench you swap between. This team is used for your runs and playtest fights.',
+  confirmLabel = 'Save Team ✓', teamLabel = 'Your Team',
+} = {}) {
   // Ordered list of ids; index 0 = vanguard. Seed from the saved team.
   const [picked, setPicked] = useState(() => initial.filter((id) => roster.some((c) => c.id === id)).slice(0, MAX));
   const [teamOpen, setTeamOpen] = useState(true);
@@ -54,12 +59,12 @@ export default function SelectScreen({ roster = [], initial = [], onConfirm, onC
   return (
     <div className="selScreen">
       <header className="selHead">
-        <h1>Assemble Your Team</h1>
-        <p>Choose up to {MAX} creatures — they fight as an Active Vanguard + a bench you swap between. This team is used for your runs <b>and</b> playtest fights.</p>
+        <h1>{title}</h1>
+        <p>{intro}</p>
 
         {/* Current team, split vanguard vs bench — collapsible to free up grid room */}
         <button className="teamToggle" onClick={() => setTeamOpen((v) => !v)} aria-expanded={teamOpen}>
-          <span className="teamToggleLbl">Your Team</span>
+          <span className="teamToggleLbl">{teamLabel}</span>
           {!teamOpen && (
             <span className="teamMini">
               {vanguard ? <span className="tmTag van">★ {vanguard.name}</span> : <span className="tmTag none">empty</span>}
@@ -93,7 +98,7 @@ export default function SelectScreen({ roster = [], initial = [], onConfirm, onC
           {onCancel && <button className="selBtn ghost" onClick={onCancel}>Back</button>}
           <button className="selBtn go" disabled={picked.length === 0}
             onClick={() => onConfirm?.(teamCreatures)}>
-            Save Team ✓
+            {confirmLabel}
           </button>
         </div>
       </header>
