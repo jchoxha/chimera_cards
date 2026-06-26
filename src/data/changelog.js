@@ -6,6 +6,9 @@
 
 /** @type {{version:string, date:string, notes:string[]}[]} newest first */
 export const CHANGELOG = [
+  { version: 'v3.81.0', date: '2026-06-26', notes: [
+    'Stats are now fully implemented + explained. Might (damage), Guard (block), Focus (effects on others) and Resolve (own buffs/heals + debuff resist) already mattered; Speed now does too — it’s tempo: the active Vanguard draws extra cards per turn equal to its Speed (Beasts/Humanoids +1, Giants −1). All five are documented in the Codex and explained on hover in a creature’s stat line.',
+  ] },
   { version: 'v3.80.0', date: '2026-06-26', notes: [
     'Creature SIZES are in: Baby · Small · Regular · Large · Elite · Boss, shown as a badge top-left of the card. Size scales HP and Might (Baby ½ HP/−1 Might … Boss 2× HP/+3). Ironhide is Large, Emberwisp is Small; elite/boss enemies now wear Elite/Boss badges. Explained in the Codex.',
   ] },

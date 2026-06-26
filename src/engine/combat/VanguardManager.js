@@ -34,6 +34,10 @@ import { canAttack, stanceSide } from './stances.js';
 import { describeScope } from './scopes.js';
 import { previewReactions, REACTIONS, primaryElement } from '../cards/reactions.js';
 
+// SPEED (tempo stat): the active Vanguard draws base hand + its Speed (clamped ≥3),
+// so fast creatures (Beasts/Humanoids) see more cards and slow ones (Giants) fewer.
+const effHandSize = (base, vanguard) => Math.max(3, (base || 5) + (vanguard?.stats?.speed ?? 0));
+
 /** Does this scope token deliver an effect to the OPPOSING (player) side? */
 function scopeHitsEnemy(scope) {
   if (!scope) return false;
@@ -214,10 +218,11 @@ export class VanguardManager {
     // Symmetrically, draw cards for enemy Vanguard before generating plan
     const eVanguard = vanguard(s.enemy);
     if (eVanguard) {
+      const eHand = effHandSize(s.enemy.handSize, eVanguard);
       if (s.turn === 1) {
-        drawFreshHand(eVanguard, s.enemy.handSize, this.rng);
+        drawFreshHand(eVanguard, eHand, this.rng);
       } else {
-        const toDraw = Math.max(0, s.enemy.handSize - eVanguard.hand.length);
+        const toDraw = Math.max(0, eHand - eVanguard.hand.length);
         drawCards(eVanguard, toDraw, this.rng);
       }
       this._emit('draw', { side: 'enemy', hand: eVanguard.hand.slice() });
@@ -540,7 +545,7 @@ export class VanguardManager {
         discardWholeHand(simVanguard);
         simSide.vanguardIndex = chosenIdx;
         
-        drawFreshHand(incoming, simSide.handSize, this.rng);
+        drawFreshHand(incoming, effHandSize(simSide.handSize, incoming), this.rng);
 
         const allCards = [
           ...incoming.deck.drawPile,
@@ -602,10 +607,11 @@ export class VanguardManager {
     const pVanguard = vanguard(s.player);
     if (pVanguard) {
       const handBefore = pVanguard.hand.length;
+      const pHand = effHandSize(s.player.handSize, pVanguard);
       if (s.turn === 1) {
-        drawFreshHand(pVanguard, s.player.handSize, this.rng);
+        drawFreshHand(pVanguard, pHand, this.rng);
       } else {
-        const toDraw = Math.max(0, s.player.handSize - pVanguard.hand.length);
+        const toDraw = Math.max(0, pHand - pVanguard.hand.length);
         drawCards(pVanguard, toDraw, this.rng);
       }
       this._count('player', 'cardsDrawn', pVanguard.hand.length - handBefore);

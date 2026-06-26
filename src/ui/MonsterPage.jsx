@@ -13,7 +13,13 @@ import { bestiaryEntry } from '../data/bestiary.js';
 import './MonsterPage.css';
 
 const Icon = ({ icon, ...rest }) => <iconify-icon icon={icon} {...rest}></iconify-icon>;
-const STAT = [['might', 'MGT'], ['guard', 'GRD'], ['focus', 'FOC'], ['resolve', 'RSV'], ['speed', 'SPD']];
+const STAT = [
+  ['might', 'MGT', 'Might — multiplies the damage this creature deals'],
+  ['guard', 'GRD', 'Guard — multiplies the Block it gains'],
+  ['focus', 'FOC', 'Focus — strengthens statuses/buffs it applies to others'],
+  ['resolve', 'RSV', 'Resolve — strengthens its own buffs/heals + resists debuffs'],
+  ['speed', 'SPD', 'Speed — tempo: extra cards drawn per turn'],
+];
 const arr = (v) => (Array.isArray(v) ? v : v != null ? [v] : []);
 
 /** Normalise a roster creature OR a combat Fighter snapshot into one shape. */
@@ -70,8 +76,8 @@ export default function MonsterPage({ creature, entry }) {
       {(m.maxHp || m.stats) && (
         <div className="mpStats">
           {m.maxHp != null && <span className="mpStat hp" title="Max HP">❤ {m.maxHp}</span>}
-          {m.stats && STAT.map(([k, lbl]) => (
-            <span key={k} className="mpStat" title={k}>{lbl} {m.stats[k] ?? (k === 'speed' ? 0 : 1)}</span>
+          {m.stats && STAT.map(([k, lbl, tip]) => (
+            <span key={k} className="mpStat" title={tip}>{lbl} {m.stats[k] ?? (k === 'speed' ? 0 : 1)}</span>
           ))}
         </div>
       )}
