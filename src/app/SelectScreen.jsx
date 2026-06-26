@@ -41,6 +41,7 @@ function TeamSlot({ c, role, onRemove, onPromote }) {
 export default function SelectScreen({ roster = [], initial = [], onConfirm, onCancel }) {
   // Ordered list of ids; index 0 = vanguard. Seed from the saved team.
   const [picked, setPicked] = useState(() => initial.filter((id) => roster.some((c) => c.id === id)).slice(0, MAX));
+  const [teamOpen, setTeamOpen] = useState(true);
   const byId = (id) => roster.find((c) => c.id === id);
   const toggle = (id) => setPicked((p) => p.includes(id) ? p.filter((x) => x !== id) : (p.length < MAX ? [...p, id] : p));
   const remove = (id) => setPicked((p) => p.filter((x) => x !== id));
@@ -51,29 +52,41 @@ export default function SelectScreen({ roster = [], initial = [], onConfirm, onC
   const bench = teamCreatures.slice(1);
 
   return (
-    <div className="sel">
+    <div className="selScreen">
       <header className="selHead">
         <h1>Assemble Your Team</h1>
         <p>Choose up to {MAX} creatures — they fight as an Active Vanguard + a bench you swap between. This team is used for your runs <b>and</b> playtest fights.</p>
 
-        {/* Current team, split vanguard vs bench */}
-        <div className="teamBar">
-          <div className="teamGroup">
-            <div className="teamLbl">Vanguard</div>
-            {vanguard
-              ? <TeamSlot c={vanguard} role="vanguard" onRemove={() => remove(vanguard.id)} />
-              : <div className="teamEmpty">Pick a creature →</div>}
-          </div>
-          <div className="teamGroup grow">
-            <div className="teamLbl">Bench ({bench.length}/{MAX - 1})</div>
-            <div className="teamBench">
-              {bench.length === 0 && <div className="teamEmpty">No bench yet.</div>}
-              {bench.map((c) => (
-                <TeamSlot key={c.id} c={c} role="bench" onRemove={() => remove(c.id)} onPromote={() => promote(c.id)} />
-              ))}
+        {/* Current team, split vanguard vs bench — collapsible to free up grid room */}
+        <button className="teamToggle" onClick={() => setTeamOpen((v) => !v)} aria-expanded={teamOpen}>
+          <span className="teamToggleLbl">Your Team</span>
+          {!teamOpen && (
+            <span className="teamMini">
+              {vanguard ? <span className="tmTag van">★ {vanguard.name}</span> : <span className="tmTag none">empty</span>}
+              {bench.map((c) => <span key={c.id} className="tmTag">{c.name}</span>)}
+            </span>
+          )}
+          <span className="teamChevron">{teamOpen ? '▾' : '▸'}</span>
+        </button>
+        {teamOpen && (
+          <div className="teamBar">
+            <div className="teamGroup">
+              <div className="teamLbl">Vanguard</div>
+              {vanguard
+                ? <TeamSlot c={vanguard} role="vanguard" onRemove={() => remove(vanguard.id)} />
+                : <div className="teamEmpty">Pick a creature →</div>}
+            </div>
+            <div className="teamGroup grow">
+              <div className="teamLbl">Bench ({bench.length}/{MAX - 1})</div>
+              <div className="teamBench">
+                {bench.length === 0 && <div className="teamEmpty">No bench yet.</div>}
+                {bench.map((c) => (
+                  <TeamSlot key={c.id} c={c} role="bench" onRemove={() => remove(c.id)} onPromote={() => promote(c.id)} />
+                ))}
+              </div>
             </div>
           </div>
-        </div>
+        )}
 
         <div className="selActions">
           <span className="selCount">{picked.length} / {MAX} chosen</span>

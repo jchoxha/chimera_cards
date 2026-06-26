@@ -6,6 +6,11 @@
 
 /** @type {{version:string, date:string, notes:string[]}[]} newest first */
 export const CHANGELOG = [
+  { version: 'v3.68.0', date: '2026-06-26', notes: [
+    'Fixed the reward screen bug where the selected card was torn to the far left and stretched full-height — a CSS class name (“sel”) collided with the team-select screen. Selected cards now simply highlight in place.',
+    'Bestiary is now the first tab in the Codex.',
+    'The current-team panel on the Assemble screen is collapsible, giving the creature grid more room.',
+  ] },
   { version: 'v3.67.0', date: '2026-06-25', notes: [
     'Team assembly is now its own screen from the main menu (“Assemble Your Team”). The team you build is saved and used for BOTH roguelike runs and playtest fights.',
     'The team screen shows your current team at the top, split into the Active Vanguard and the Bench — remove a member, or promote any bench creature to Vanguard.',

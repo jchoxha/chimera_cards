@@ -32,6 +32,8 @@ const FILE_NAMES = Object.keys(FILES);
 const POOLS = Object.fromEntries(Object.values(FILES).map((f) => [f.class, f.cards || []]));
 const ROSTER = buildRoster(POOLS, POOLS.Warrior || []);
 
+if (import.meta.env.DEV && typeof window !== 'undefined') { window.__useRun = useRun; window.__useCombat = useCombat; }
+
 const TEAM_KEY = 'chimera.team';
 function loadTeamIds() {
   try { const v = JSON.parse(localStorage.getItem(TEAM_KEY)); return Array.isArray(v) ? v : []; } catch { return []; }

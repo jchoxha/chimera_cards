@@ -175,8 +175,8 @@ function BestiaryTab() {
 }
 
 const TABS = [
-  { id: 'systems', label: 'Combat', icon: 'game-icons:crossed-swords', render: SystemsTab },
   { id: 'bestiary', label: 'Bestiary', icon: 'game-icons:bestial-fangs', render: BestiaryTab },
+  { id: 'systems', label: 'Combat', icon: 'game-icons:crossed-swords', render: SystemsTab },
   { id: 'statuses', label: 'Statuses', icon: 'game-icons:hazard-sign', render: StatusesTab },
   { id: 'reactions', label: 'Reactions', icon: 'game-icons:fire-ray', render: ReactionsTab },
   { id: 'axes', label: 'Axes', icon: 'game-icons:family-tree', render: AxesTab },
@@ -184,7 +184,7 @@ const TABS = [
 ];
 
 export default function Codex({ onMenu }) {
-  const [tab, setTab] = useState('systems');
+  const [tab, setTab] = useState('bestiary');
   const Active = (TABS.find((t) => t.id === tab) || TABS[0]).render;
   return (
     <div className="codex">
