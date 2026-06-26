@@ -113,7 +113,9 @@
 .cardChip.r-uncommon { border-color: #7ee787; } .cardChip.r-rare { border-color: #4d9fff; }
 .cardChip.r-epic { border-color: #a571ff; } .cardChip.r-mythic { border-color: #ff5a4d; }
 .cardChip.r-legendary { border-color: #ff9a3d; } .cardChip.r-godly { border-color: #ffd34d; }
-.rewardCards { display: flex; gap: 14px; flex-wrap: wrap; justify-content: center; margin: 14px auto; max-width: 720px; }
+/* align-items:flex-start so a card never stretches to the row's cross height
+   (the flex default `stretch` could blow a selected/odd card up vertically). */
+.rewardCards { display: flex; gap: 14px; flex-wrap: wrap; align-items: flex-start; justify-content: center; margin: 14px auto; max-width: 720px; }
 
 /* Reward/shop cards reuse the in-hand move-card classes via the shared MoveCard
    component; the `.move.display` modifier (static, no fan/transform + price tag)
