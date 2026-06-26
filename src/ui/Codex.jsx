@@ -15,7 +15,11 @@ import { ARCHETYPE_ICON, BIOLOGY_ICON, ATTUNEMENT_ICON, ATTUNEMENT_COLOR, creatu
 import { CLASS_BASES, BIOLOGY_BASES, ATTUNEMENT_BASES } from '../data/synthesis.js';
 import { buildRoster } from '../data/roster.js';
 import { bestiaryEntry } from '../data/bestiary.js';
+import { describeCard } from '../engine/cards/cardText.js';
+import { attunementCards } from '../engine/cards/attunementPool.js';
 import MonsterPage from './MonsterPage.jsx';
+import MoveCard from './combat/MoveCard.jsx';
+import './combat/combat.css';
 import './codex.css';
 
 // Bundled archetype pools → the generator → the playable roster (for the Bestiary).
@@ -23,6 +27,13 @@ const BUNDLE = import.meta.glob('../data/cards/*.json', { eager: true });
 const FILES = Object.values(BUNDLE).map((m) => m.default ?? m);
 const POOLS = Object.fromEntries(FILES.map((f) => [f.class, f.cards || []]));
 const ROSTER = buildRoster(POOLS, POOLS.Warrior || []);
+
+// Every card the player can encounter, grouped: one group per archetype + an
+// "Elemental" group for the attunement signature cards (§14.3).
+const CARD_GROUPS = [
+  ...FILES.map((f) => ({ key: f.class, label: f.class, cards: (f.cards || []) })),
+  { key: 'Elemental', label: 'Elemental', cards: attunementCards(ATTUNEMENT_BASES) },
+];
 
 const Icon = ({ icon, ...rest }) => <iconify-icon icon={icon} {...rest}></iconify-icon>;
 
@@ -174,8 +185,77 @@ function BestiaryTab() {
   );
 }
 
+function CardDetail({ card, onBack }) {
+  const att = Array.isArray(card.attunement) ? card.attunement.join('/') : card.attunement;
+  const text = describeCard(card) || card.text || '';
+  const kws = (card.keywords || []);
+  return (
+    <div className="cxCardDetail">
+      <button className="cxBack cxBeastBack" onClick={onBack}><Icon icon="game-icons:previous-button" /> All cards</button>
+      <div className="cxCardDetailBody">
+        <div className="cxCardBig"><MoveCard c={card} /></div>
+        <div className="cxCardMeta">
+          <h2>{card.name}</h2>
+          <div className="cxCardTags">
+            <span className="cxCardTag">{card.type || 'card'}</span>
+            <span className="cxCardTag">{card.rarity || 'common'}</span>
+            {att && <span className="cxCardTag" style={{ color: ATTUNEMENT_COLOR[Array.isArray(card.attunement) ? card.attunement[0] : card.attunement] }}>{att}</span>}
+            <span className="cxCardTag">Cost {card.cost === -1 ? 'X' : card.cost}</span>
+          </div>
+          <p className="cxCardText">{text}</p>
+          {card.imbue ? <p className="cxCardText"><b>Imbue</b> — also applies the caster’s attunement status.</p> : null}
+          {kws.length > 0 && (
+            <div className="cxCardKws">
+              {kws.map((k) => KEYWORD_GLOSSARY[k] && (
+                <div className="cxKw" key={k}><b>{k}</b><span>{KEYWORD_GLOSSARY[k]}</span></div>
+              ))}
+            </div>
+          )}
+          {card.upgrade && <p className="cxCardText cxDim">This card can be upgraded at a campfire.</p>}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function CardsTab() {
+  const [group, setGroup] = useState('all');
+  const [q, setQ] = useState('');
+  const [sel, setSel] = useState(null);
+  if (sel) return <CardDetail card={sel} onBack={() => setSel(null)} />;
+  const ql = q.trim().toLowerCase();
+  const groups = CARD_GROUPS
+    .filter((g) => group === 'all' || g.key === group)
+    .map((g) => ({ ...g, cards: g.cards.filter((c) => !ql || (c.name || '').toLowerCase().includes(ql) || (describeCard(c) || '').toLowerCase().includes(ql)) }))
+    .filter((g) => g.cards.length);
+  return (
+    <>
+      <p className="cxIntro">Every card in the game. Search or filter by archetype, and tap a card for its full rules + keywords.</p>
+      <div className="cxCardBar">
+        <input className="cxSearch" placeholder="Search cards…" value={q} onChange={(e) => setQ(e.target.value)} />
+        <div className="cxGroupChips">
+          <button className={`cxChipBtn${group === 'all' ? ' on' : ''}`} onClick={() => setGroup('all')}>All</button>
+          {CARD_GROUPS.map((g) => (
+            <button key={g.key} className={`cxChipBtn${group === g.key ? ' on' : ''}`} onClick={() => setGroup(g.key)}>{g.label}</button>
+          ))}
+        </div>
+      </div>
+      {groups.map((g) => (
+        <div className="cxCardGroup" key={g.key}>
+          <div className="cxCardGroupHead">{g.label} <span>({g.cards.length})</span></div>
+          <div className="cxCardGrid">
+            {g.cards.map((c, i) => <MoveCard key={`${c.id}-${i}`} c={c} onClick={() => setSel(c)} />)}
+          </div>
+        </div>
+      ))}
+      {groups.length === 0 && <p className="cxIntro">No cards match.</p>}
+    </>
+  );
+}
+
 const TABS = [
   { id: 'bestiary', label: 'Bestiary', icon: 'game-icons:bestial-fangs', render: BestiaryTab },
+  { id: 'cards', label: 'Cards', icon: 'game-icons:card-pickup', render: CardsTab },
   { id: 'systems', label: 'Combat', icon: 'game-icons:crossed-swords', render: SystemsTab },
   { id: 'statuses', label: 'Statuses', icon: 'game-icons:hazard-sign', render: StatusesTab },
   { id: 'reactions', label: 'Reactions', icon: 'game-icons:fire-ray', render: ReactionsTab },
@@ -183,13 +263,13 @@ const TABS = [
   { id: 'keywords', label: 'Keywords', icon: 'game-icons:book-cover', render: KeywordsTab },
 ];
 
-export default function Codex({ onMenu }) {
-  const [tab, setTab] = useState('bestiary');
+export default function Codex({ onMenu, initialTab, backLabel = 'Menu' }) {
+  const [tab, setTab] = useState(initialTab && TABS.some((t) => t.id === initialTab) ? initialTab : 'bestiary');
   const Active = (TABS.find((t) => t.id === tab) || TABS[0]).render;
   return (
     <div className="codex">
       <div className="cxBar">
-        {onMenu && <button className="cxBack" onClick={onMenu}><Icon icon="game-icons:hamburger-menu" /> Menu</button>}
+        {onMenu && <button className="cxBack" onClick={onMenu}><Icon icon="game-icons:hamburger-menu" /> {backLabel}</button>}
         <h1><Icon icon="game-icons:book-cover" /> Codex</h1>
       </div>
       <div className="cxTabs">

@@ -62,7 +62,7 @@ function PartyBar({ snap }) {
   );
 }
 
-export default function RunScreen({ onMenu, onNewRun }) {
+export default function RunScreen({ onMenu, onNewRun, onCodex }) {
   const run = useRun();
   const combat = useCombat();
   const snap = run.snap;
@@ -82,7 +82,7 @@ export default function RunScreen({ onMenu, onNewRun }) {
     const won = combat.snap?.phase === 'victory';
     return (
       <div className="runCombat">
-        <CombatScreen embedded onMenu={onMenu} />
+        <CombatScreen embedded onMenu={onMenu} onCodex={onCodex} />
         {over && (
           <div className="overlay"><div className="panel">
             <h1 className={won ? '' : 'lose'}>{won ? 'VICTORY' : 'DEFEAT'}</h1>

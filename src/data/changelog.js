@@ -6,6 +6,10 @@
 
 /** @type {{version:string, date:string, notes:string[]}[]} newest first */
 export const CHANGELOG = [
+  { version: 'v3.75.0', date: '2026-06-26', notes: [
+    'New Codex “Cards” section: browse every card in the game (by archetype + the elemental cards), search them, and tap one for its full rules + keyword glossary.',
+    'Info panels in combat now have an “Open in Codex” link that jumps straight to the matching Codex page (status, axis, reaction, card, creature…) and back — your fight is right where you left it.',
+  ] },
   { version: 'v3.74.0', date: '2026-06-26', notes: [
     'New shared Team Manager: view your team and rearrange positions (set the Active Vanguard, reorder the bench). It’s on the Assemble screen AND on the run map (“Manage Team”), so you can re-order your party between combats.',
   ] },

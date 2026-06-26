@@ -639,3 +639,9 @@ html:has(.cmbt),body:has(.cmbt){height:100%;margin:0;overflow:hidden}
 .deckDropHead .ddChev{margin-left:auto;color:#c9b58e}
 .deckDropGrid{display:flex;flex-wrap:wrap;gap:10px;justify-content:center;padding:10px 2px}
 .ddEmpty{color:#8a7a5e;font-size:12px;padding:8px 2px}
+
+/* "Open in Codex" link at the bottom of an info modal */
+.codexLink{display:flex;align-items:center;gap:6px;justify-content:center;width:100%;margin-top:12px;
+  font-family:'Cinzel',serif;font-size:12px;letter-spacing:.5px;color:var(--gold4,#e8c878);
+  background:#00000033;border:1px solid #4a3a22;border-radius:8px;padding:7px;cursor:pointer}
+.codexLink:hover{border-color:var(--goldB);color:#fff3d6}

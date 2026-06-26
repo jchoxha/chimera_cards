@@ -429,7 +429,14 @@ function observedMoves(log, fighterId) {
 
 const DRAG_THRESHOLD = 6; // px the pointer must move before a tap becomes a drag
 
-export default function CombatScreen({ onMenu, onRestart, embedded } = {}) {
+// Which Codex tab an info-modal kind corresponds to (for the "Open in Codex" link).
+const CODEX_TAB = {
+  effect: 'statuses', axis: 'axes', reaction: 'reactions', card: 'cards',
+  creature: 'bestiary', bestiary: 'bestiary', power: 'keywords',
+  matchup: 'systems', matchupNote: 'systems',
+};
+
+export default function CombatScreen({ onMenu, onRestart, embedded, onCodex } = {}) {
   const { snap, log, startCombat, play, swap, peekAll, endTurn, reward, rollReward, startedAt } = useCombat();
   const [nowTick, setNowTick] = useState(() => Date.now());
   // Unified info modal is a STACK: opening a modal (or clicking a link inside one)
@@ -1066,6 +1073,12 @@ export default function CombatScreen({ onMenu, onRestart, embedded } = {}) {
                 </div>
               );
             })()}
+
+            {onCodex && CODEX_TAB[info.kind] && (
+              <button className="codexLink" onClick={() => onCodex(CODEX_TAB[info.kind])}>
+                <Icon icon="game-icons:book-cover" /> Open in Codex
+              </button>
+            )}
           </div>
         </div>
       ))}

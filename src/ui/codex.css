@@ -66,3 +66,31 @@
 .cxBeastAxes { display: flex; gap: 7px; margin-top: 2px; }
 .cxBeastAxes iconify-icon { font-size: 15px; }
 .cxBeastBack { margin-bottom: 12px; }
+
+/* ── Cards tab ── */
+.cxCardBar { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; margin-bottom: 12px; }
+.cxSearch { flex: 1 1 200px; min-width: 160px; font: inherit; color: #e8dcc8; background: #241a10;
+  border: 1px solid #4a3a22; border-radius: 8px; padding: 8px 11px; }
+.cxGroupChips { display: flex; flex-wrap: wrap; gap: 6px; }
+.cxChipBtn { font: inherit; font-size: 12px; color: #c9b58e; background: #241a10; border: 1px solid #4a3a22;
+  border-radius: 999px; padding: 5px 12px; cursor: pointer; }
+.cxChipBtn.on { background: #6a4d1b; border-color: #b88a3e; color: #fff3d6; }
+.cxCardGroup { margin-bottom: 18px; }
+.cxCardGroupHead { font-family: 'Cinzel', serif; font-size: 14px; color: var(--gold4, #e8c878); letter-spacing: .5px;
+  border-bottom: 1px solid #4a3a2255; padding-bottom: 4px; margin-bottom: 10px; }
+.cxCardGroupHead span { color: #8a7a5e; font-size: 12px; }
+.cxCardGrid { display: flex; flex-wrap: wrap; gap: 14px; }
+.cxCardDetailBody { display: flex; flex-wrap: wrap; gap: 20px; align-items: flex-start; }
+.cxCardBig { flex: 0 0 auto; }
+.cxCardBig .move.display { width: 168px; }
+.cxCardMeta { flex: 1 1 280px; min-width: 240px; }
+.cxCardMeta h2 { margin: 0 0 8px; font-family: 'Cinzel', serif; color: #ffe6a8; }
+.cxCardTags { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 10px; }
+.cxCardTag { font-size: 11px; text-transform: capitalize; padding: 3px 9px; border-radius: 999px;
+  background: #241a10; border: 1px solid #4a3a22; color: #e8dcc8; }
+.cxCardText { color: #e2d8c0; line-height: 1.55; margin: 0 0 8px; }
+.cxCardText.cxDim { color: #8a7a5e; font-size: 12px; }
+.cxCardKws { display: flex; flex-direction: column; gap: 6px; margin-top: 8px; }
+.cxKw { background: #1c1410; border: 1px solid #4a3a22; border-radius: 8px; padding: 7px 10px; }
+.cxKw b { color: var(--gold4, #e8c878); font-family: 'Cinzel', serif; margin-right: 6px; }
+.cxKw span { color: #c9b58e; font-size: 13px; }

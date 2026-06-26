@@ -71,6 +71,11 @@ export default function App() {
   const [practiceActive, setPracticeActive] = useState(() => !!localStorage.getItem(PRACTICE_ACTIVE_KEY));
   const [customDefs, setCustomDefs] = useState(() => loadIds(CUSTOM_KEY, []));
   const [showChangelog, setShowChangelog] = useState(false);
+  const [codexTab, setCodexTab] = useState('bestiary');
+  const [codexReturn, setCodexReturn] = useState('menu');
+  // Open the Codex at a tab; `from` is the view to return to (combat/run state is
+  // preserved in its store, so we land right back where we were).
+  const openCodex = (tab, from = 'menu') => { setCodexTab(tab || 'bestiary'); setCodexReturn(from); setView('codex'); };
 
   // Custom creatures (rebuilt from their saved definitions) + the full pickable sets.
   const customCreatures = useMemo(() => customDefs.map(buildCustomCreature), [customDefs]);
@@ -140,10 +145,10 @@ export default function App() {
   }
   function continueRun() { if (useRun.getState().loadSaved()) setView('run'); }
 
-  if (view === 'codex') return <Codex onMenu={() => setView('menu')} />;
+  if (view === 'codex') return <Codex initialTab={codexTab} backLabel={codexReturn === 'menu' ? 'Menu' : 'Back'} onMenu={() => setView(codexReturn)} />;
   if (view === 'editor') return <CardEditor onMenu={() => setView('menu')} />;
-  if (view === 'combat') return <CombatScreen onMenu={leaveCombat} onRestart={restartCombat} />;
-  if (view === 'run') return <RunScreen onMenu={() => { if (useRun.getState().view === 'combat') useRun.getState()._recordPlayTime?.(); setView('menu'); }} onNewRun={() => setView('select')} />;
+  if (view === 'combat') return <CombatScreen onMenu={leaveCombat} onRestart={restartCombat} onCodex={(tab) => openCodex(tab, 'combat')} />;
+  if (view === 'run') return <RunScreen onMenu={() => { if (useRun.getState().view === 'combat') useRun.getState()._recordPlayTime?.(); setView('menu'); }} onNewRun={() => setView('select')} onCodex={(tab) => openCodex(tab, 'run')} />;
   if (view === 'select') return <SelectScreen roster={playerRoster} initial={teamIds} onConfirm={saveTeam} onCancel={() => setView('menu')} onCreateCustom={() => setView('createCreature')} />;
   if (view === 'practice') return (
     <SelectScreen roster={oppRoster} initial={practiceOppIds} onConfirm={confirmPracticeOpponents} onCancel={() => setView('menu')}
@@ -205,7 +210,7 @@ export default function App() {
         <button className="menuBtn" onClick={() => setView('editor')}>
           🃏 Open the Card Forge
         </button>
-        <button className="menuBtn" onClick={() => setView('codex')}>
+        <button className="menuBtn" onClick={() => openCodex('bestiary', 'menu')}>
           📖 Read the Codex
         </button>
       </div>
