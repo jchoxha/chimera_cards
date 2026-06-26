@@ -11,6 +11,7 @@
 import { biologyStats } from './biology.js';
 import { reskinDeck } from '../cards/reskin.js';
 import { starterDeck } from '../run/state.js';
+import { formOf } from '../../data/forms.js';
 
 const slug = (s) => String(s || '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
 
@@ -26,13 +27,16 @@ const slug = (s) => String(s || '').toLowerCase().replace(/[^a-z0-9]+/g, '-').re
  * @param {number} [a.deckSize]            starter size (default 10)
  * @returns {Object} run party member { id,name,class,biology,attunement,stats,maxHp,hp,deck }
  */
-export function makeCreature({ id, name, class: klass, biology, attunement, pool = [], baseHp = 55, deckSize = 10 }) {
+export function makeCreature({ id, name, class: klass, biology, attunement, pool = [], baseHp = 55, deckSize = 10, size = 'regular' }) {
   const cls = Array.isArray(klass) ? klass : [klass].filter(Boolean);
   const bio = Array.isArray(biology) ? biology : [biology].filter(Boolean);
   const att = Array.isArray(attunement) ? attunement : [attunement].filter(Boolean);
 
   const { hpMult, stats } = biologyStats(bio);
-  const maxHp = Math.round(baseHp * hpMult);
+  // SIZE (form) scales HP and adds a flat Might bonus on top of biology.
+  const form = formOf(size);
+  const maxHp = Math.max(1, Math.round(baseHp * hpMult * form.hpMult));
+  const statLine = { ...stats, might: Math.max(0, (stats.might ?? 1) + form.str) };
   const deck = starterDeck(reskinDeck(pool, att), att, deckSize);
 
   return {
@@ -41,6 +45,7 @@ export function makeCreature({ id, name, class: klass, biology, attunement, pool
     class: cls.length ? cls : null,
     biology: bio.length ? bio : null,
     attunement: att.length ? att : ['Physical'],
-    stats, maxHp, hp: maxHp, deck,
+    size: form.id, stats: statLine, maxHp, hp: maxHp, deck,
+    meta: { form: form.id },
   };
 }

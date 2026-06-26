@@ -27,7 +27,7 @@ function toFace(c) {
     element: c.attunement?.[0] || null,
     types: (c.attunement || []).map((a) => ({ type: a, weight: 1 })),
     stats: c.stats, portrait: c.meta?.portrait ?? c.portrait ?? null,
-    form: 'regular', rarity: 'common',
+    form: c.meta?.form ?? c.size ?? 'regular', rarity: 'common',
   };
 }
 

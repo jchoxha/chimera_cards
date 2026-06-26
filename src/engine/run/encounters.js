@@ -43,11 +43,12 @@ let _foeSeq = 0; // monotonic so two encounters in a run never share a fighter/c
 /** Gentle HP ramp by floor depth (each floor ≈ +3%), on top of the per-tier multiplier. */
 const floorMult = (floor = 0) => 1 + Math.max(0, floor) * 0.03;
 
-/** Convert a generated roster creature into a fresh, uniquely-identified enemy Fighter. */
-function rosterFighter(creature, hpMult) {
+/** Convert a generated roster creature into a fresh, uniquely-identified enemy Fighter.
+ * `form` overrides the displayed SIZE badge (e.g. elite/boss encounters). */
+function rosterFighter(creature, hpMult, form) {
   const tag = `foe${++_foeSeq}`;
   const maxHp = Math.max(1, Math.round(creature.maxHp * hpMult));
-  const f = creatureToFighter(creature, { id: `${tag}-${creature.id}`, hp: maxHp, maxHp });
+  const f = creatureToFighter(creature, { id: `${tag}-${creature.id}`, hp: maxHp, maxHp, form });
   // Re-id the deck card instances so they can't collide with the player's copies.
   f.deck.drawPile = f.deck.drawPile.map((c) => ({ ...c, id: `${tag}:${c.id}` }));
   return f;
@@ -81,14 +82,14 @@ export function enemyForNode(node, rng) {
   // Per-tier HP multipliers tuned via the headless balance harness (≈33% autoplay
   // win rate to the boss with deck growth — a fair baseline; skilled play does better).
   if (node.type === 'boss') {
-    // A strong leader + one lieutenant on the bench, both from the boss band.
+    // A strong leader (Boss size) + one lieutenant (Elite) on the bench.
     const [leader, aide] = pickDistinct(2, rng, 'boss');
-    return [rosterFighter(leader, 2.0 * fm), rosterFighter(aide, 1.0 * fm)];
+    return [rosterFighter(leader, 2.0 * fm, 'boss'), rosterFighter(aide, 1.0 * fm, 'elite')];
   }
   if (node.type === 'elite') {
-    // A beefy pair from the elite band.
+    // A beefy Elite pair.
     const [a, b] = pickDistinct(2, rng, 'elite');
-    return [rosterFighter(a, 1.3 * fm), rosterFighter(b, 1.1 * fm)];
+    return [rosterFighter(a, 1.3 * fm, 'elite'), rosterFighter(b, 1.1 * fm, 'elite')];
   }
   // Normal combat: pick from the floor-appropriate band; a single foe early, a
   // chance of a second on deeper floors.

@@ -6,6 +6,9 @@
 
 /** @type {{version:string, date:string, notes:string[]}[]} newest first */
 export const CHANGELOG = [
+  { version: 'v3.80.0', date: '2026-06-26', notes: [
+    'Creature SIZES are in: Baby · Small · Regular · Large · Elite · Boss, shown as a badge top-left of the card. Size scales HP and Might (Baby ½ HP/−1 Might … Boss 2× HP/+3). Ironhide is Large, Emberwisp is Small; elite/boss enemies now wear Elite/Boss badges. Explained in the Codex.',
+  ] },
   { version: 'v3.79.0', date: '2026-06-26', notes: [
     'Team Manager now reorders by drag-and-drop (mouse + touch) instead of up/down arrows — drag a creature; the top slot is the Active Vanguard.',
   ] },

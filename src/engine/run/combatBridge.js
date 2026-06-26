@@ -31,6 +31,9 @@ export function creatureToFighter(m, over = {}) {
   if (m.biology) f.biology = m.biology;
   if (m.attunement) f.attunement = m.attunement;
   if (m.portrait) f.meta = { ...f.meta, portrait: m.portrait };
+  // carry the creature's SIZE (form) so the combat card shows its size badge
+  const form = over.form || m.size || m.meta?.form;
+  if (form) f.meta = { ...f.meta, form };
   f.deck.drawPile = (m.deck ?? []).map((c) => ({ ...c }));
   return f;
 }

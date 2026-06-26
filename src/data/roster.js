@@ -19,10 +19,10 @@ const HAS_ART = new Set(CREATURE_ART);
  * `baseHp` pre-biology; the generator applies the biology HP multiplier.
  */
 export const ROSTER = Object.freeze([
-  { id: 'ironhide',    name: 'Ironhide',    class: 'Warrior',  biology: ['Giant'],      attunement: ['Physical'],        baseHp: 60, blurb: 'A mountain of a brawler — colossal HP, immovable.' },
+  { id: 'ironhide',    name: 'Ironhide',    class: 'Warrior',  biology: ['Giant'],      attunement: ['Physical'],        baseHp: 60, size: 'large', blurb: 'A mountain of a brawler — colossal HP, immovable.' },
   { id: 'voltfang',    name: 'Voltfang',    class: 'Warrior',  biology: ['Beast'],      attunement: ['Physical', 'Energy'], baseHp: 55, blurb: 'A feral skirmisher whose strikes shock and tax the foe.' },
   { id: 'nightveil',   name: 'Nightveil',   class: 'Rogue',    biology: ['Humanoid'],   attunement: ['Shadow'],          baseHp: 52, blurb: 'A duelist who strikes from the dark and chains the kill.' },
-  { id: 'emberwisp',   name: 'Emberwisp',   class: 'Mage',     biology: ['Elemental'],  attunement: ['Fire'],            baseHp: 50, blurb: 'A living flame — fragile, but its spells burn and detonate.' },
+  { id: 'emberwisp',   name: 'Emberwisp',   class: 'Mage',     biology: ['Elemental'],  attunement: ['Fire'],            baseHp: 50, size: 'small', blurb: 'A living flame — fragile, but its spells burn and detonate.' },
   { id: 'frostmind',   name: 'Frostmind',   class: 'Mage',     biology: ['Humanoid'],   attunement: ['Frost'],           baseHp: 52, blurb: 'A frost-caster who chills and locks down the battlefield.' },
   { id: 'grimsoul',    name: 'Grimsoul',    class: 'Warlock',  biology: ['Undead'],     attunement: ['Shadow'],          baseHp: 56, blurb: "An undying caster who pays HP it doesn't fear losing." },
   { id: 'dawnkeeper',  name: 'Dawnkeeper',  class: 'Priest',   biology: ['Humanoid'],   attunement: ['Holy'],            baseHp: 55, blurb: 'A holy protector — heals the line and smites the wicked.' },
@@ -45,11 +45,11 @@ export const ROSTER = Object.freeze([
 export function buildRoster(poolsByClass = {}, fallbackPool = []) {
   return ROSTER.map((r) => {
     const pool = poolsByClass[r.class] || fallbackPool;
-    const c = makeCreature({ ...r, pool });
+    const c = makeCreature({ ...r, pool });   // makeCreature applies r.size (form) to HP/Might + meta.form
     c.blurb = r.blurb;
     // AI portrait (only if baked — else the UI falls back to the biology icon).
     c.portrait = HAS_ART.has(r.id) ? `${BASE}art/gen/${r.id}.png` : null;
-    c.meta = { portrait: c.portrait };
+    c.meta = { ...c.meta, portrait: c.portrait };   // keep the form set by makeCreature
     return c;
   });
 }

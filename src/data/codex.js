@@ -50,4 +50,5 @@ export const SYSTEM_INFO = [
   { name: 'Matchups', icon: 'game-icons:crossed-swords', desc: 'Damage scales with the attacking card’s element vs the target’s attunement and biology: strong → more damage, weak → less.' },
   { name: 'Reactions', icon: 'game-icons:fire-ray', desc: 'Hitting a status with the right element triggers a reaction — a bonus payoff. Statuses still work fully on their own; reactions are pure upside.' },
   { name: 'Peek', icon: 'game-icons:eye-target', desc: 'The enemy telegraphs its whole turn face-down. Spend a Peek charge to reveal the exact actions and numbers for the turn.' },
+  { name: 'Sizes', icon: 'game-icons:body-height', desc: 'A creature’s size (shown top-left of its card) scales it: Baby (½ HP, −1 Might) · Small (¾) · Regular · Large (1.3× HP, +1 Might) · Elite (1.6×, +2) · Boss (2× HP, +3). Creatures evolve up the ladder; Elite and Boss are terminal.' },
 ];
