@@ -78,3 +78,9 @@
   font-size: 11px; padding: 2px 8px; border-radius: 999px; background: #241c3c; border: 1px solid #4a4370; color: #e8e0f4; }
 .tmTag.van { color: #f3ead0; border-color: #6a5d9a; }
 .tmTag.none { color: #8a82a8; font-style: italic; }
+
+/* "Create custom creature" tile in the roster grid */
+.selCreate { align-items: center; justify-content: center; text-align: center; gap: 8px;
+  border-style: dashed; border-color: #6a5d9a; background: linear-gradient(180deg, #1d1633, #140e22); min-height: 240px; }
+.selCreate:hover { border-color: #9b8de0; }
+.selCreatePlus { font-size: 56px; line-height: 1; color: #9b8de0; font-weight: 300; }

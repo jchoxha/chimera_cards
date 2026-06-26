@@ -1,101 +1,83 @@
 // ╔══════════════════════════════════════════════════════════════════╗
-// ║ MODULE: app/App — the unified shell. A main menu routes between the  ║
-// ║ Card Editor (Forge) and the playtest Combat screen (Proving Pit),    ║
-// ║ which fights a chosen deck against a configurable Target Dummy.      ║
-// ║ Reuses CardEditor + CombatScreen unchanged (props for menu/restart). ║
+// ║ MODULE: app/App — the unified shell + main menu. Routes between team   ║
+// ║ assembly, the roguelike run, the practice fight, the custom-creature   ║
+// ║ creator, the Card Forge (editor), and the Codex. Owns the saved team,  ║
+// ║ custom creatures, and practice setup (all localStorage-persisted).     ║
 // ╚══════════════════════════════════════════════════════════════════╝
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import { useCombat } from '../store/combatStore.js';
 import { useRun } from '../store/runStore.js';
 import { CardEditor } from '../editor/CardEditor.jsx';
 import CombatScreen from '../ui/combat/CombatScreen.jsx';
 import RunScreen from '../ui/run/RunScreen.jsx';
-import DeckBuilder from '../ui/deck/DeckBuilder.jsx';
 import Codex from '../ui/Codex.jsx';
 import SelectScreen from './SelectScreen.jsx';
-import { loadDraft } from '../editor/persistence.js';
+import CreatureCreator from './CreatureCreator.jsx';
 import { ATTUNEMENT_BASES, BIOLOGY_BASES, legalAttunements } from '../data/synthesis.js';
 import { attunementCards } from '../engine/cards/attunementPool.js';
 import { reskinDeck, attunementVariants } from '../engine/cards/reskin.js';
+import { makeCreature } from '../engine/content/generate.js';
 import { buildRoster, buildDummyCreature } from '../data/roster.js';
 import { APP_VERSION } from '../version.js';
 import { CHANGELOG } from '../data/changelog.js';
 import './app.css';
+
+const slug = (s) => String(s || '').toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_|_$/g, '');
 
 // Bundled card files (the editor saves drafts on top of these in localStorage).
 const BUNDLE = import.meta.glob('../data/cards/*.json', { eager: true });
 const FILES = Object.fromEntries(
   Object.entries(BUNDLE).map(([p, m]) => [p.split('/').pop(), (m.default ?? m)]),
 );
-const FILE_NAMES = Object.keys(FILES);
 // Archetype card pools keyed by class name, for the generator + reward pools.
 const POOLS = Object.fromEntries(Object.values(FILES).map((f) => [f.class, f.cards || []]));
+const ARCHETYPES = Object.keys(POOLS);                 // archetypes that have a card kit
 const ROSTER = buildRoster(POOLS, POOLS.Warrior || []);
 const DUMMY = buildDummyCreature();
-// Practice opponents can be any roster creature OR the passive Target Dummy.
-const OPP_ROSTER = [...ROSTER, DUMMY];
 
 if (import.meta.env.DEV && typeof window !== 'undefined') { window.__useRun = useRun; window.__useCombat = useCombat; }
 
 const TEAM_KEY = 'chimera.team';
 const PRACTICE_KEY = 'chimera.practiceOpp';
 const PRACTICE_ACTIVE_KEY = 'chimera.practiceActive';
+const CUSTOM_KEY = 'chimera.custom';
 function loadIds(key, fallback) {
   try { const v = JSON.parse(localStorage.getItem(key)); return Array.isArray(v) ? v : fallback; } catch { return fallback; }
 }
 const loadTeamIds = () => loadIds(TEAM_KEY, []);
+
+/** The creature's full potential pool: archetype reskinned to its attunement +
+ *  that attunement's own cards + variant-access re-elements (§14.3). */
+function poolFor(klass, atts) {
+  const pool = POOLS[klass] || [];
+  return [...reskinDeck(pool, atts), ...attunementCards(atts), ...attunementVariants(pool, atts)];
+}
+
+/** Build a run-ready creature from a custom definition (typings + optional deck). */
+function buildCustomCreature(def) {
+  const c = makeCreature({ id: def.id, name: def.name, class: def.class, biology: def.biology, attunement: def.attunement, pool: POOLS[def.class?.[0]] || [] });
+  if (def.customDeck && def.customDeck.length) c.deck = def.customDeck.map((card) => ({ ...card }));
+  c.blurb = def.blurb || `A custom ${(def.attunement || []).join('/')} ${(def.class || []).join('/')}.`;
+  c.meta = { portrait: null, custom: true };
+  c.custom = true;
+  return c;
+}
 
 export default function App() {
   const [view, setView] = useState('menu');
   const [teamIds, setTeamIds] = useState(loadTeamIds);
   const [practiceOppIds, setPracticeOppIds] = useState(() => loadIds(PRACTICE_KEY, ['dummy']));
   const [practiceActive, setPracticeActive] = useState(() => !!localStorage.getItem(PRACTICE_ACTIVE_KEY));
-  const [combatKind, setCombatKind] = useState('deck'); // 'deck' (tuning) | 'team' | 'practice'
-  const [deckFile, setDeckFile] = useState(FILE_NAMES[0] || 'warrior.json');
-  const [enemyHp, setEnemyHp] = useState(200);
-  // Attunement playtest controls: your creature's attunement (drives imbue) + the
-  // dummy's attunement/biology (drives the matchup layer). See v3.19.0 attunements.
-  const [att1, setAtt1] = useState('Physical');
-  const [att2, setAtt2] = useState('');
-  const [dummyAtt, setDummyAtt] = useState('');
-  const [dummyBio, setDummyBio] = useState('');
-  const [lastDeck, setLastDeck] = useState(null); // remembered deck → "Restart" replays it
-  const [showPlaytest, setShowPlaytest] = useState(false); // advanced playtest knobs (collapsed)
+  const [customDefs, setCustomDefs] = useState(() => loadIds(CUSTOM_KEY, []));
   const [showChangelog, setShowChangelog] = useState(false);
 
-  // The class of the selected deck → which primary attunements are legal (a combo is
-  // legal if its FIRST base is legal; the 2nd may be anything — synthesis.js A4).
-  const currentFile = loadDraft(deckFile) || FILES[deckFile] || {};
-  const deckClass = currentFile.class;
-  const legalPrimary = deckClass ? legalAttunements([deckClass]) : ATTUNEMENT_BASES;
+  // Custom creatures (rebuilt from their saved definitions) + the full pickable sets.
+  const customCreatures = useMemo(() => customDefs.map(buildCustomCreature), [customDefs]);
+  const playerRoster = useMemo(() => [...ROSTER, ...customCreatures], [customCreatures]);
+  const oppRoster = useMemo(() => [...playerRoster, DUMMY], [playerRoster]);
 
-  function heroAttunement() {
-    const a = [att1, att2].filter(Boolean).filter((v, i, arr) => arr.indexOf(v) === i);
-    return a.length ? a : ['Physical'];
-  }
-
-  /** The selected file's playable cards + the chosen attunement's own cards (§14.3)
-   *  = the creature's full potential pool (the DeckBuilder's pool / Quick Fight deck). */
-  function poolForFile() {
-    const file = loadDraft(deckFile) || FILES[deckFile] || { cards: [] };
-    const cards = (file.cards || []).filter((c) => c.type !== 'curse' && c.type !== 'status');
-    // ~75% of the archetype cards convert to the creature's attunement (§14.3),
-    // then add the attunement's own on-element cards (already correctly typed).
-    return [...reskinDeck(cards, heroAttunement()), ...attunementCards(heroAttunement())];
-  }
-
-  /** The full POTENTIAL pool the deckbuilder draws from: the auto pool PLUS §14.3
-   *  variant access — archetype attacks re-elemented to the creature's OTHER
-   *  attunement, so a multi-attunement creature can choose its damage element per card.
-   *  (Quick Fight stays on the lean poolForFile() to avoid duplicate-attack bloat.) */
-  function builderPool() {
-    const file = loadDraft(deckFile) || FILES[deckFile] || { cards: [] };
-    const cards = (file.cards || []).filter((c) => c.type !== 'curse' && c.type !== 'status');
-    return [...poolForFile(), ...attunementVariants(cards, heroAttunement())];
-  }
-
-  // The chosen team (ordered; index 0 = vanguard), resolved to roster creatures.
-  const team = teamIds.map((id) => ROSTER.find((c) => c.id === id)).filter(Boolean);
+  // The chosen team (ordered; index 0 = vanguard), resolved to creatures.
+  const team = teamIds.map((id) => playerRoster.find((c) => c.id === id)).filter(Boolean);
   function saveTeam(creatures) {
     const ids = creatures.map((c) => c.id);
     setTeamIds(ids);
@@ -103,30 +85,21 @@ export default function App() {
     setView('menu');
   }
 
-  /** Launch a deck-tuning playtest. `deck` = a built CardSpec[]; omitted → the full pool. */
-  function launchCombat(deck) {
-    const file = loadDraft(deckFile) || FILES[deckFile] || { cards: [] };
-    const cards = (deck && deck.length) ? deck : poolForFile();
-    setLastDeck(cards);
-    setCombatKind('deck');
-    useCombat.getState().startPlaytest({
-      playerCards: cards,
-      playerName: file.class || 'Hero',
-      klass: file.class ? [file.class] : undefined,
-      attunement: heroAttunement(),
-      enemyAttunement: dummyAtt ? [dummyAtt] : undefined,
-      enemyBiology: dummyBio ? [dummyBio] : undefined,
-      enemyHp: Number(enemyHp) || 200,
-    });
-    setView('combat');
+  // Create a custom creature → save its definition, add it to the team, return to select.
+  function createCustomCreature(def) {
+    const full = { ...def, id: `custom_${slug(def.name) || 'creature'}_${customDefs.length + 1}_${Math.floor(performance.now())}` };
+    const next = [...customDefs, full];
+    setCustomDefs(next);
+    try { localStorage.setItem(CUSTOM_KEY, JSON.stringify(next)); } catch { /* ignore */ }
+    setTeamIds((ids) => (ids.length < 3 ? [...ids, full.id] : ids));
+    setView('select');
   }
 
   // Practice fight: your team vs a chosen OPPONENT team (Target Dummy by default).
-  const practiceOpp = practiceOppIds.map((id) => OPP_ROSTER.find((c) => c.id === id)).filter(Boolean);
+  const practiceOpp = practiceOppIds.map((id) => oppRoster.find((c) => c.id === id)).filter(Boolean);
   function launchPractice(oppCreatures) {
     if (!team.length) return;
     const opp = (oppCreatures && oppCreatures.length) ? oppCreatures : (practiceOpp.length ? practiceOpp : [DUMMY]);
-    setCombatKind('practice');
     setPracticeActive(true);
     try { localStorage.setItem(PRACTICE_ACTIVE_KEY, '1'); } catch { /* ignore */ }
     useCombat.getState().startPlaytest({ party: team, enemyParty: opp });
@@ -138,7 +111,7 @@ export default function App() {
     try { localStorage.setItem(PRACTICE_KEY, JSON.stringify(ids)); } catch { /* ignore */ }
     launchPractice(oppCreatures);
   }
-  const restartCombat = () => (combatKind === 'practice' ? launchPractice() : combatKind === 'team' ? launchPractice() : launchCombat(lastDeck));
+  const restartCombat = () => launchPractice();
 
   /** A single creature's potential pool (archetype reskinned + attunement cards + variants). */
   function creatureRewardPool(c) {
@@ -160,20 +133,20 @@ export default function App() {
   if (view === 'editor') return <CardEditor onMenu={() => setView('menu')} />;
   if (view === 'combat') return <CombatScreen onMenu={() => setView('menu')} onRestart={restartCombat} />;
   if (view === 'run') return <RunScreen onMenu={() => setView('menu')} onNewRun={() => setView('select')} />;
-  if (view === 'select') return <SelectScreen roster={ROSTER} initial={teamIds} onConfirm={saveTeam} onCancel={() => setView('menu')} />;
+  if (view === 'select') return <SelectScreen roster={playerRoster} initial={teamIds} onConfirm={saveTeam} onCancel={() => setView('menu')} onCreateCustom={() => setView('createCreature')} />;
   if (view === 'practice') return (
-    <SelectScreen roster={OPP_ROSTER} initial={practiceOppIds} onConfirm={confirmPracticeOpponents} onCancel={() => setView('menu')}
+    <SelectScreen roster={oppRoster} initial={practiceOppIds} onConfirm={confirmPracticeOpponents} onCancel={() => setView('menu')}
       title="Choose Practice Opponents"
       intro="Pick up to 3 creatures to spar against — the Target Dummy (last in the list) is a passive punching bag. Your own team fights them."
       teamLabel="Opponents" confirmLabel="Start Practice ⚔" />
   );
-  if (view === 'deckbuild') return (
-    <DeckBuilder
-      pool={builderPool()}
-      title={`Build a ${deckClass || 'Hero'} deck`}
-      subtitle={`${heroAttunement().join(' / ')}  ·  vs ${dummyAtt || dummyBio ? [dummyAtt, dummyBio].filter(Boolean).join(' ') : 'no-axis'} dummy (${Number(enemyHp) || 200} HP)`}
-      onConfirm={(deck) => launchCombat(deck)}
-      onCancel={() => setView('menu')}
+  if (view === 'createCreature') return (
+    <CreatureCreator
+      classes={ARCHETYPES} biologies={BIOLOGY_BASES} attunements={ATTUNEMENT_BASES}
+      legalFor={(k) => legalAttunements([k])}
+      buildPool={poolFor}
+      onCreate={createCustomCreature}
+      onCancel={() => setView('select')}
     />
   );
 
@@ -224,60 +197,6 @@ export default function App() {
         <button className="menuBtn" onClick={() => setView('codex')}>
           📖 Read the Codex
         </button>
-
-        {/* Advanced: playtest knobs, collapsed by default */}
-        <button className="menuToggle" onClick={() => setShowPlaytest((v) => !v)} aria-expanded={showPlaytest}>
-          <span>🔧 Card / Deck Tuning (single hero)</span>
-          <span className="menuChevron">{showPlaytest ? '▾' : '▸'}</span>
-        </button>
-        {showPlaytest && (
-          <div className="menuSetup">
-            <label>Deck
-              <select value={deckFile} onChange={(e) => setDeckFile(e.target.value)}>
-                {FILE_NAMES.map((f) => <option key={f} value={f}>{f.replace('.json', '')}</option>)}
-              </select>
-            </label>
-            <label>Your attunement
-              <select value={att1} onChange={(e) => setAtt1(e.target.value)}>
-                {legalPrimary.map((a) => <option key={a} value={a}>{a}</option>)}
-              </select>
-            </label>
-            <label>+ 2nd (optional)
-              <select value={att2} onChange={(e) => setAtt2(e.target.value)}>
-                <option value="">(none)</option>
-                {ATTUNEMENT_BASES.map((a) => <option key={a} value={a}>{a}</option>)}
-              </select>
-            </label>
-            <label>Dummy attunement
-              <select value={dummyAtt} onChange={(e) => setDummyAtt(e.target.value)}>
-                <option value="">(none)</option>
-                {ATTUNEMENT_BASES.map((a) => <option key={a} value={a}>{a}</option>)}
-              </select>
-            </label>
-            <label>Dummy biology
-              <select value={dummyBio} onChange={(e) => setDummyBio(e.target.value)}>
-                <option value="">(none)</option>
-                {BIOLOGY_BASES.map((b) => <option key={b} value={b}>{b}</option>)}
-              </select>
-            </label>
-            <label>Target Dummy HP
-              <input type="number" min="1" value={enemyHp} onChange={(e) => setEnemyHp(e.target.value)} />
-            </label>
-            <div className="menuRow">
-              <button className="menuBtn big" onClick={() => setView('deckbuild')} disabled={!FILE_NAMES.length}>
-                🛠 Build a Deck
-              </button>
-              <button className="menuBtn" onClick={() => launchCombat()} disabled={!FILE_NAMES.length}
-                title="Skip the builder and fight with the whole card pool">
-                Quick Fight
-              </button>
-            </div>
-            <p className="menuHint">
-              Set your attunement (a 2nd drives Imbue, e.g. Fire→Burn) and give the dummy an
-              attunement/biology to test matchups.
-            </p>
-          </div>
-        )}
       </div>
 
       {showChangelog && (

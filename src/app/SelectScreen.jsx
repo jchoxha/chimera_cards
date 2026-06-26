@@ -39,7 +39,7 @@ function TeamSlot({ c, role, onRemove, onPromote }) {
 }
 
 export default function SelectScreen({
-  roster = [], initial = [], onConfirm, onCancel,
+  roster = [], initial = [], onConfirm, onCancel, onCreateCustom,
   title = 'Assemble Your Team',
   intro = 'Choose up to 3 creatures — they fight as an Active Vanguard + a bench you swap between. This team is used for your runs and playtest fights.',
   confirmLabel = 'Save Team ✓', teamLabel = 'Your Team',
@@ -104,6 +104,13 @@ export default function SelectScreen({
       </header>
 
       <div className="selGrid">
+        {onCreateCustom && (
+          <button className="selCard selCreate" onClick={onCreateCustom}>
+            <div className="selCreatePlus">＋</div>
+            <div className="selName">Create Custom Creature</div>
+            <div className="selBlurb">Pick its archetype, biology &amp; element, then auto-generate or hand-build its deck.</div>
+          </button>
+        )}
         {roster.map((c) => {
           const att = c.attunement?.[0];
           const order = picked.indexOf(c.id);

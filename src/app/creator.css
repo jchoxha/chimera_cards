@@ -1,0 +1,35 @@
+/* Custom-creature creator — matches the team-select dark/violet skin. */
+.creator { position: fixed; inset: 0; overflow-y: auto; color: #e8e0f4; font-family: 'Spectral', Georgia, serif;
+  background: radial-gradient(120% 90% at 50% 0%, #211634 0%, #120d1d 60%, #0a0710 100%); box-sizing: border-box; }
+.creator, .creator * { box-sizing: border-box; }
+.creator iconify-icon { display: inline-flex; align-items: center; justify-content: center; vertical-align: middle; width: 1em; height: 1em; flex: none; }
+.crHead { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 16px 22px; border-bottom: 1px solid #2c2444; background: #160f24; }
+.crHead h1 { margin: 0; font-family: 'Cinzel', serif; font-size: 22px; color: #f0c84a; letter-spacing: 1px; }
+
+.crBody { display: flex; flex-wrap: wrap; gap: 22px; padding: 22px; max-width: 920px; margin: 0 auto; }
+.crPreview { flex: 0 0 220px; text-align: center; border: 2px solid var(--gl, #4a4370); border-radius: 14px;
+  background: #16112a; padding: 16px; height: fit-content; box-shadow: 0 0 20px color-mix(in srgb, var(--gl, #6a5d9a) 35%, transparent); }
+.crPortrait { width: 120px; height: 120px; margin: 0 auto 10px; border-radius: 12px; display: grid; place-items: center;
+  background: radial-gradient(circle at 50% 35%, color-mix(in srgb, var(--gl, #888) 28%, #1a1430), #0c0814); }
+.crPortrait iconify-icon { font-size: 70px; }
+.crPvName { font-family: 'Cinzel', serif; font-weight: 700; font-size: 18px; color: #f3ead0; }
+.crPvAxes { display: flex; flex-direction: column; gap: 4px; margin-top: 8px; font-size: 13px; color: #cfc6ec; }
+.crPvAxes span { display: inline-flex; align-items: center; gap: 6px; justify-content: center; }
+
+.crForm { flex: 1 1 320px; display: flex; flex-direction: column; gap: 12px; min-width: 280px; }
+.crFld { display: flex; flex-direction: column; gap: 4px; font-size: 13px; color: #b6abd6; }
+.crFld input, .crFld select { font: inherit; font-size: 15px; color: #e8e0f4; background: #241c3c; border: 1px solid #4a4370;
+  border-radius: 8px; padding: 8px 10px; color-scheme: dark; }
+.crDeck { border: 1px solid #3a3358; border-radius: 12px; padding: 12px; background: #1a1430; display: flex; flex-direction: column; gap: 8px; }
+.crDeckHead { font-family: 'Cinzel', serif; font-size: 12px; letter-spacing: 1.5px; text-transform: uppercase; color: #f0c84a; }
+.crRadio { display: flex; align-items: center; gap: 8px; font-size: 14px; color: #e8e0f4; cursor: pointer; }
+.crDeckBuild { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin-top: 4px; }
+.crDeckOk { color: #9be29b; font-size: 13px; }
+.crCreate { margin-top: 6px; align-self: flex-start; }
+.crHint { color: #8a82a8; font-size: 12px; font-style: italic; margin: 0; }
+
+.creator .selBtn { border: 1px solid #4a4370; background: #241c3c; color: #e8e0f4; border-radius: 8px; padding: 8px 14px;
+  cursor: pointer; font-family: 'Cinzel', serif; font-size: 14px; }
+.creator .selBtn.ghost { background: transparent; }
+.creator .selBtn.go { background: linear-gradient(135deg, #6a3, #2a7); border-color: #6ad29a; font-weight: 700; color: #fff; }
+.creator .selBtn:disabled { opacity: .4; cursor: not-allowed; }
