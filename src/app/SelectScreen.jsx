@@ -12,8 +12,12 @@ import { CardFace } from '../ui/combat/creatureVisuals.jsx';
 import DeckDropdown from '../ui/combat/DeckDropdown.jsx';
 import MonsterPage from '../ui/MonsterPage.jsx';
 import TeamManager from '../ui/TeamManager.jsx';
+import { AXIS_INFO, EFFECT_INFO, ATTUNEMENT_SIGNATURE } from '../data/codex.js';
+import { REACTIONS } from '../engine/cards/reactions.js';
 import '../ui/combat/combat.css';
 import './select.css';
+
+const Icon = ({ icon, ...rest }) => <iconify-icon icon={icon} {...rest}></iconify-icon>;
 
 /** Map a roster creature to the shape CardFace expects (a static, full-HP "fighter"). */
 function toFace(c) {
@@ -37,7 +41,7 @@ function Axis({ icon, label, color }) {
 }
 
 export default function SelectScreen({
-  roster = [], initial = [], onConfirm, onCancel, onCreateCustom,
+  roster = [], initial = [], onConfirm, onCancel, onCreateCustom, onDeleteCustom,
   title = 'Assemble Your Team',
   intro = 'Choose up to 3 creatures — they fight as an Active Vanguard + a bench you swap between. This team is used for your runs and playtest fights.',
   confirmLabel = 'Save Team ✓', teamLabel = 'Your Team',
@@ -47,7 +51,15 @@ export default function SelectScreen({
   const [teamOpen, setTeamOpen] = useState(true);
   const [modalId, setModalId] = useState(null);   // creature whose modal is open
   const [bestiaryId, setBestiaryId] = useState(null); // creature whose codex page is open
+  const [selInfo, setSelInfo] = useState(null);   // nested axis/status info popup
   const byId = (id) => roster.find((c) => c.id === id);
+  const exportCreature = (c) => {
+    const def = { id: c.id, name: c.name, class: c.class, biology: c.biology, attunement: c.attunement, lore: c.lore, description: c.description, blurb: c.blurb };
+    const blob = new Blob([JSON.stringify(def, null, 2)], { type: 'application/json' });
+    const a = document.createElement('a'); a.href = URL.createObjectURL(blob);
+    a.download = `${(c.name || 'creature').toLowerCase().replace(/[^a-z0-9]+/g, '_')}.creature.json`; a.click();
+    setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+  };
   const toggle = (id) => setPicked((p) => p.includes(id) ? p.filter((x) => x !== id) : (p.length < MAX ? [...p, id] : p));
   const remove = (id) => setPicked((p) => p.filter((x) => x !== id));
   const promote = (id) => setPicked((p) => [id, ...p.filter((x) => x !== id)]);
@@ -142,9 +154,11 @@ export default function SelectScreen({
             <div className="selModal" onClick={(e) => e.stopPropagation()}>
               <button className="selModalClose" onClick={() => setModalId(null)}>✕</button>
               <div className="modalCardWrap">
-                <CardFace f={toFace(c)} side="ally" onName={() => setBestiaryId(c.id)} />
+                <CardFace f={toFace(c)} side="ally"
+                  onInfo={(info) => { if (info.kind === 'axis') setSelInfo(info); else if (info.kind === 'effect') setSelInfo({ kind: 'effect', id: info.id }); }}
+                  onName={() => setBestiaryId(c.id)} />
               </div>
-              <DeckDropdown cards={c.deck || []} label="Deck" empty="Auto-generated at run start." />
+              <DeckDropdown cards={c.deck || []} label="Deck" empty="Auto-generated from its typings." />
               <div className="selModalActions">
                 {inTeam
                   ? <>
@@ -156,7 +170,45 @@ export default function SelectScreen({
                       {picked.length >= MAX ? 'Team full (max 3)' : 'Add to Team'}
                     </button>}
               </div>
-              <button className="selBtn ghost selModalCodex" onClick={() => setBestiaryId(c.id)}>📖 Bestiary page</button>
+              <div className="selModalSub">
+                <button className="selBtn ghost" onClick={() => setBestiaryId(c.id)}>📖 Bestiary page</button>
+                <button className="selBtn ghost" onClick={() => exportCreature(c)}>⤓ Export</button>
+                {c.custom && onDeleteCustom && (
+                  <button className="selBtn rm" onClick={() => { if (confirm(`Delete custom creature "${c.name}"?`)) { onDeleteCustom(c.id); remove(c.id); setModalId(null); } }}>🗑 Delete</button>
+                )}
+              </div>
+            </div>
+          </div>
+        );
+      })()}
+
+      {/* Nested axis / status info popup (over the creature modal) */}
+      {selInfo && (() => {
+        if (selInfo.kind === 'effect') {
+          const e = EFFECT_INFO[selInfo.id] || { name: selInfo.id, icon: 'game-icons:hazard-sign', desc: '' };
+          return (
+            <div className="selModalWrap" style={{ zIndex: 70 }} onClick={() => setSelInfo(null)}>
+              <div className="selInfoBox" onClick={(ev) => ev.stopPropagation()}>
+                <button className="selModalClose" onClick={() => setSelInfo(null)}>✕</button>
+                <h3><Icon icon={e.icon} /> {e.name}</h3><p>{e.desc}</p>
+              </div>
+            </div>
+          );
+        }
+        const vals = Array.isArray(selInfo.value) ? selInfo.value : [selInfo.value].filter(Boolean);
+        const head = AXIS_INFO[selInfo.axis] || { name: selInfo.axis, desc: '' };
+        return (
+          <div className="selModalWrap" style={{ zIndex: 70 }} onClick={() => setSelInfo(null)}>
+            <div className="selInfoBox" onClick={(ev) => ev.stopPropagation()}>
+              <button className="selModalClose" onClick={() => setSelInfo(null)}>✕</button>
+              <h3>{head.name}: {vals.join(' / ') || '—'}</h3>
+              <p>{head.desc}</p>
+              {selInfo.axis === 'attunement' && vals.map((v) => (
+                <p key={v} className="selInfoSig">
+                  <b>{v}</b> signature: {ATTUNEMENT_SIGNATURE[v] || '—'}
+                  {REACTIONS[v] ? ` · triggers ${Object.values(REACTIONS[v]).map((cell) => cell.verb).join(', ')}` : ''}
+                </p>
+              ))}
             </div>
           </div>
         );

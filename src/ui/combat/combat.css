@@ -645,3 +645,15 @@ html:has(.cmbt),body:has(.cmbt){height:100%;margin:0;overflow:hidden}
   font-family:'Cinzel',serif;font-size:12px;letter-spacing:.5px;color:var(--gold4,#e8c878);
   background:#00000033;border:1px solid #4a3a22;border-radius:8px;padding:7px;cursor:pointer}
 .codexLink:hover{border-color:var(--goldB);color:#fff3d6}
+
+/* CardFace shown OUTSIDE the combat screen (the team assembler modal) — the art
+   + axes sizing/styling are otherwise scoped under .cmbt, so restate them here. */
+.modalCardWrap img.artImg{ image-rendering:pixelated; object-fit:contain; display:block; }
+.modalCardWrap .combat .art img.creature.artImg.gen{ width:100%; height:100%; border-radius:8px; object-fit:cover; image-rendering:auto; }
+.modalCardWrap .combat .art img.creature.artImg{ width:auto; height:90%; max-width:100%; }
+.modalCardWrap .axesLine{ text-align:center; font-size:10px; letter-spacing:.3px; color:#c9b58e; opacity:.85;
+  margin:-2px 0 2px; display:flex; flex-wrap:wrap; align-items:center; justify-content:center; gap:0 2px; }
+.modalCardWrap .axesLine .axTok{ font:inherit; color:#d8c79a; background:none; border:none; padding:0 2px; cursor:pointer;
+  text-decoration:underline; text-decoration-style:dotted; text-underline-offset:2px; }
+.modalCardWrap .axesLine .axTok:hover{ color:#ffe6a0; }
+.modalCardWrap .axesLine .axDot{ color:#8a7a5e; }

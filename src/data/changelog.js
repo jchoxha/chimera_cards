@@ -6,6 +6,10 @@
 
 /** @type {{version:string, date:string, notes:string[]}[]} newest first */
 export const CHANGELOG = [
+  { version: 'v3.78.0', date: '2026-06-26', notes: [
+    'Fixed the creature detail card in the Assemble screen — it was zoomed in and its archetype/biology/attunement tags were unstyled and unclickable. The card now renders correctly and the tags are tappable for info.',
+    'Added Export (and Delete for your custom creatures) to the creature detail modal.',
+  ] },
   { version: 'v3.77.0', date: '2026-06-26', notes: [
     'Card Forge reworked around Collections (card packs): the base game cards are a read-only “Default Collection”, and you author changes inside your own named collections that overlay it — override base cards, add new ones, or hide cards, without ever touching the base.',
     'Creating/editing/deleting a card now happens inside a collection; if you have none, you’re prompted to create one first. Each card shows whether it’s NEW or EDITED.',

@@ -97,6 +97,12 @@ export default function App() {
     setTeamIds((ids) => (ids.length < 3 ? [...ids, full.id] : ids));
     setView('select');
   }
+  function deleteCustomCreature(id) {
+    const next = customDefs.filter((d) => d.id !== id);
+    setCustomDefs(next);
+    try { localStorage.setItem(CUSTOM_KEY, JSON.stringify(next)); } catch { /* ignore */ }
+    setTeamIds((ids) => ids.filter((x) => x !== id));
+  }
 
   // Practice fight: your team vs a chosen OPPONENT team (Target Dummy by default).
   const practiceOpp = practiceOppIds.map((id) => oppRoster.find((c) => c.id === id)).filter(Boolean);
@@ -146,7 +152,7 @@ export default function App() {
   if (view === 'editor') return <CardEditor onMenu={() => setView('menu')} />;
   if (view === 'combat') return <CombatScreen onMenu={leaveCombat} onRestart={restartCombat} onCodex={(tab) => openCodex(tab, 'combat')} />;
   if (view === 'run') return <RunScreen onMenu={() => { if (useRun.getState().view === 'combat') useRun.getState()._recordPlayTime?.(); setView('menu'); }} onNewRun={() => setView('select')} onCodex={(tab) => openCodex(tab, 'run')} />;
-  if (view === 'select') return <SelectScreen roster={playerRoster} initial={teamIds} onConfirm={saveTeam} onCancel={() => setView('menu')} onCreateCustom={() => setView('createCreature')} />;
+  if (view === 'select') return <SelectScreen roster={playerRoster} initial={teamIds} onConfirm={saveTeam} onCancel={() => setView('menu')} onCreateCustom={() => setView('createCreature')} onDeleteCustom={deleteCustomCreature} />;
   if (view === 'practice') return (
     <SelectScreen roster={oppRoster} initial={practiceOppIds} onConfirm={confirmPracticeOpponents} onCancel={() => setView('menu')}
       title="Choose Practice Opponents"

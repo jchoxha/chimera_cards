@@ -97,3 +97,12 @@
 .selModalActions { display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; margin-top: 12px; }
 .selModalActions .selBtn.rm { background: #3a1c1c; border-color: #7a3a3a; color: #ffb9b9; }
 .selModalCodex { display: block; margin: 10px auto 0; }
+
+/* creature modal: secondary action row + nested info popup */
+.selModalSub { display: flex; gap: 8px; justify-content: center; flex-wrap: wrap; margin-top: 10px; }
+.selInfoBox { position: relative; width: min(380px, 92vw); background: linear-gradient(#1d1633, #120d1d);
+  border: 2px solid #6a5d9a; border-radius: 14px; padding: 16px 18px; color: #e8e0f4; }
+.selInfoBox h3 { margin: 0 0 8px; font-family: 'Cinzel', serif; color: #ffe6a8; display: flex; align-items: center; gap: 7px; }
+.selInfoBox p { margin: 0 0 6px; line-height: 1.5; }
+.selInfoSig { color: #cfc6ec; font-size: 13px; }
+.selInfoSig b { color: #f0c84a; }
