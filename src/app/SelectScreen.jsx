@@ -11,6 +11,7 @@ import { ARCHETYPE_ICON, BIOLOGY_ICON, ATTUNEMENT_ICON, ATTUNEMENT_COLOR, creatu
 import { CardFace } from '../ui/combat/creatureVisuals.jsx';
 import DeckDropdown from '../ui/combat/DeckDropdown.jsx';
 import MonsterPage from '../ui/MonsterPage.jsx';
+import TeamManager from '../ui/TeamManager.jsx';
 import '../ui/combat/combat.css';
 import './select.css';
 
@@ -33,25 +34,6 @@ function Axis({ icon, label, color }) {
   return <span className="selAxis" title={label} style={color ? { color } : undefined}>
     <iconify-icon icon={icon}></iconify-icon> {label}
   </span>;
-}
-
-/** A small team-slot portrait (vanguard or bench) with remove + promote. */
-function TeamSlot({ c, role, onRemove, onPromote }) {
-  const color = creatureColor(c);
-  return (
-    <div className={`teamSlot ${role}`} style={{ '--gl': color }}>
-      <div className="tsArt">
-        {c.meta?.portrait ? <img src={c.meta.portrait} alt="" />
-          : <iconify-icon icon={creatureIcon(c)} style={{ color }}></iconify-icon>}
-      </div>
-      <div className="tsName">{c.name}</div>
-      <div className="tsRole">{role === 'vanguard' ? '★ Vanguard' : 'Bench'}</div>
-      <div className="tsBtns">
-        {onPromote && <button className="tsBtn" title="Make Vanguard" onClick={onPromote}>★</button>}
-        <button className="tsBtn rm" title="Remove" onClick={onRemove}>✕</button>
-      </div>
-    </div>
-  );
 }
 
 export default function SelectScreen({
@@ -93,21 +75,10 @@ export default function SelectScreen({
         </button>
         {teamOpen && (
           <div className="teamBar">
-            <div className="teamGroup">
-              <div className="teamLbl">Vanguard</div>
-              {vanguard
-                ? <TeamSlot c={vanguard} role="vanguard" onRemove={() => remove(vanguard.id)} />
-                : <div className="teamEmpty">Pick a creature →</div>}
-            </div>
-            <div className="teamGroup grow">
-              <div className="teamLbl">Bench ({bench.length}/{MAX - 1})</div>
-              <div className="teamBench">
-                {bench.length === 0 && <div className="teamEmpty">No bench yet.</div>}
-                {bench.map((c) => (
-                  <TeamSlot key={c.id} c={c} role="bench" onRemove={() => remove(c.id)} onPromote={() => promote(c.id)} />
-                ))}
-              </div>
-            </div>
+            {teamCreatures.length === 0
+              ? <div className="teamEmpty">Pick a creature below →</div>
+              : <TeamManager members={teamCreatures} title="" onReorder={setPicked}
+                  onRemove={(id) => remove(id)} onSelect={(m) => setModalId(m.id)} />}
           </div>
         )}
 

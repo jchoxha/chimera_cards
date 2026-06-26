@@ -1,0 +1,30 @@
+/* TeamManager — shared roster reorder UI (assembler + run). Neutral palette. */
+.teamMgr { display: flex; flex-direction: column; gap: 6px; }
+.tmTitle { font-family: 'Cinzel', serif; font-size: 12px; letter-spacing: 1.5px; text-transform: uppercase; color: #f0c84a; }
+.tmEmpty { color: #8a82a8; font-style: italic; font-size: 13px; padding: 8px; }
+.tmList { display: flex; flex-direction: column; gap: 6px; }
+.tmRow { display: flex; align-items: center; gap: 9px; padding: 6px 9px; border-radius: 10px;
+  background: #1a1430; border: 1.5px solid var(--gl, #3a3358); }
+.tmRow.vanguard { box-shadow: 0 0 10px color-mix(in srgb, var(--gl, #f0c84a) 40%, transparent); border-color: #c9a23a; }
+.tmRow.dead { opacity: .45; filter: grayscale(.8); }
+.tmPos { flex: 0 0 auto; width: 20px; text-align: center; font-family: 'Cinzel', serif; font-weight: 700; color: #f0c84a; }
+.tmPos iconify-icon { font-size: 15px; }
+.tmCrest { flex: 0 0 auto; width: 40px; height: 40px; border-radius: 9px; overflow: hidden; cursor: pointer;
+  display: grid; place-items: center; background: radial-gradient(circle at 40% 30%, #2a1f3e, #140e26);
+  border: 1.5px solid var(--gl, #4a4370); padding: 0; }
+.tmCrest img { width: 100%; height: 100%; object-fit: cover; }
+.tmCrest iconify-icon { font-size: 24px; }
+.tmInfo { flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.tmInfo > b { font-family: 'Cinzel', serif; font-size: 13px; color: #f3ead0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.tmRole { font-size: 10px; letter-spacing: 1px; text-transform: uppercase; color: #b6abd6; }
+.tmHp { position: relative; height: 12px; border-radius: 6px; overflow: hidden; background: #120b18; box-shadow: inset 0 0 0 1px #00000088; }
+.tmHp i { position: absolute; inset: 0; background: linear-gradient(#8ef0a8, #2ea85c); transition: width .25s; }
+.tmHp em { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center;
+  font-family: 'Cinzel', serif; font-weight: 700; font-size: 8px; color: #fff; text-shadow: 0 1px 1px #000; }
+.tmBtns { flex: 0 0 auto; display: flex; gap: 3px; }
+.tmBtn { width: 24px; height: 24px; border-radius: 6px; border: 1px solid #4a4370; background: #241c3c; color: #f0c84a;
+  font-size: 12px; line-height: 1; padding: 0; cursor: pointer; }
+.tmBtn:hover:not(:disabled) { filter: brightness(1.3); }
+.tmBtn:disabled { opacity: .3; cursor: default; }
+.tmBtn.rm { color: #ff9c9c; border-color: #6a2a2a; }
+.tmHint { font-size: 11px; color: #8a82a8; margin: 2px 0 0; }

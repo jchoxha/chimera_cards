@@ -15,6 +15,7 @@ import { makeRng } from '../../engine/run/rng.js';
 import { RELICS, POTIONS, EVENTS, CURSES } from '../../engine/run/content.js';
 import { draftRunReward } from '../../engine/run/rewards.js';
 import { creatureIcon, creatureColor } from '../../data/axisIcons.js';
+import TeamManager from '../TeamManager.jsx';
 import './run.css';
 
 // Gold price of a shop card by rarity (REVIEW/tunable).
@@ -67,6 +68,7 @@ export default function RunScreen({ onMenu, onNewRun }) {
   const snap = run.snap;
   const [target, setTarget] = useState(null);
   const [sel, setSel] = useState(null); // selected reward { memberId, idx, card }
+  const [teamMgrOpen, setTeamMgrOpen] = useState(false);
   if (!snap) return <div className="runWrap"><p>No active run.</p></div>;
   // Which creature receives a chosen/bought card (default: first living member).
   const tgt = target || snap.party.find((m) => m.hp > 0)?.id || snap.party[0]?.id;
@@ -176,6 +178,20 @@ export default function RunScreen({ onMenu, onNewRun }) {
         <button className="runBtn small" onClick={() => run.undo()} disabled={!run.canUndo()}>↶ Undo</button>
       </div>
       <PartyBar snap={snap} />
+      <div style={{ textAlign: 'center', margin: '4px 0 10px' }}>
+        <button className="runBtn small" onClick={() => setTeamMgrOpen(true)}>
+          <Icon icon="game-icons:rank-3" /> Manage Team
+        </button>
+      </div>
+      {teamMgrOpen && (
+        <div className="runOverlay" onClick={() => setTeamMgrOpen(false)}>
+          <div className="runTeamMgr" onClick={(e) => e.stopPropagation()}>
+            <button className="runModalClose" onClick={() => setTeamMgrOpen(false)}>✕</button>
+            <TeamManager members={snap.party} title="Team — set positions"
+              onReorder={(order) => run.dispatch('reorderParty', { order })} />
+          </div>
+        </div>
+      )}
       <div className="actMap">
         {snap.map.nodes.map((n) => {
           const isCurrent = n.id === snap.position;

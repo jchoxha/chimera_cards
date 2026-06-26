@@ -12,6 +12,14 @@ const member = (s, id) => s.party.find((p) => p.id === id) || s.party[0] || null
 export const ACTIONS = {
   // Cumulative play time (ms) — monotonic so it never ticks backward on resume.
   setPlayMs: (s, { ms = 0 }) => { s.playMs = Math.max(s.playMs || 0, ms); },
+  // Rearrange the party (index 0 = Active Vanguard) by an ordered id list.
+  reorderParty: (s, { order = [] }) => {
+    if (!Array.isArray(order) || !order.length) return;
+    const byId = Object.fromEntries(s.party.map((m) => [m.id, m]));
+    const next = order.map((id) => byId[id]).filter(Boolean);
+    for (const m of s.party) if (!next.includes(m)) next.push(m);   // keep any not listed
+    s.party = next;
+  },
   // ── economy ──
   gainGold: (s, { amount = 0 }) => { s.gold += amount; },
   spendGold: (s, { amount = 0 }) => { if (s.gold >= amount) s.gold -= amount; },

@@ -6,6 +6,9 @@
 
 /** @type {{version:string, date:string, notes:string[]}[]} newest first */
 export const CHANGELOG = [
+  { version: 'v3.74.0', date: '2026-06-26', notes: [
+    'New shared Team Manager: view your team and rearrange positions (set the Active Vanguard, reorder the bench). It’s on the Assemble screen AND on the run map (“Manage Team”), so you can re-order your party between combats.',
+  ] },
   { version: 'v3.73.0', date: '2026-06-26', notes: [
     'Clicking a creature on the Assemble screen now opens a detail modal — the same card you see in combat — with an Add to Team / Remove from Team button (and Make Vanguard), plus a link to its Bestiary page.',
     'A creature’s deck is now an expandable dropdown (collapsed by default) in both the combat info panel and the team modal, instead of always being shown.',
