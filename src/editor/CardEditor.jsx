@@ -190,7 +190,7 @@ function GalleryTile({ c, bad, origin, onClick, onDelete }) {
   );
 }
 
-export function CardEditor({ onMenu } = {}) {
+export function CardEditor({ onMenu, tabs } = {}) {
   const [cols, setCols] = useState(() => listCollections());
   const [colId, setColId] = useState(() => { const id = getEditId(); return getCollection(id) ? id : null; });
   const [stamp, setStamp] = useState(0);                   // bump to re-read collections
@@ -384,7 +384,8 @@ export function CardEditor({ onMenu } = {}) {
     <div className="ed">
       <header className="edHead">
         {onMenu && <button onClick={onMenu} title="Back to menu">≡ Menu</button>}
-        <strong>🃏 Chimera Card Forge</strong>
+        {tabs}
+        <strong>🛠 Editor — Cards</strong>
         <span className="edVer">{APP_VERSION}</span>
         <span className={`badge ${devAvailable ? 'ok' : gh.token ? 'gh' : 'warn'}`}>{backend}</span>
         <span className="grow" />

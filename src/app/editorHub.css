@@ -1,0 +1,28 @@
+/* Editor tab strip — shared by the Cards (.ed) and Monsters (.creator) pages. */
+.ehTabs { display: inline-flex; gap: 6px; margin: 0 6px; }
+.ehTab { font: inherit; font-size: 13px; cursor: pointer; border: 1px solid #4a4370;
+  background: #241c3c; color: #cfc6ec; border-radius: 8px; padding: 5px 12px; font-family: 'Cinzel', serif; }
+.ehTab.on { background: linear-gradient(135deg, #6a5d9a, #b98a3a); color: #fff; border-color: #d8b15a; font-weight: 700; }
+.ehTab:hover { filter: brightness(1.12); }
+/* The Cards page (.ed header) uses a light chrome — keep the tabs legible there too. */
+.ed .ehTab { background: #2a2540; }
+
+/* Monster editor list + cards. */
+.meList { overflow-y: auto; }
+.meHead { gap: 10px; }
+.meHead h1 { margin: 0; }
+.meListBody { max-width: 980px; margin: 0 auto; padding: 18px 22px; }
+.meListHead { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 14px; }
+.meListHead h2 { margin: 0; font-family: 'Cinzel', serif; color: #f0c84a; font-size: 20px; }
+.meCount { font-size: 13px; color: #b6abd6; background: #241c3c; border-radius: 10px; padding: 2px 8px; margin-left: 6px; }
+.meGrid { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 14px; }
+.meCard { border: 2px solid var(--gl, #4a4370); border-radius: 12px; background: #16112a; padding: 12px; text-align: center;
+  box-shadow: 0 0 16px color-mix(in srgb, var(--gl, #6a5d9a) 28%, transparent); }
+.meCardPortrait { width: 84px; height: 84px; margin: 0 auto 8px; border-radius: 10px; display: grid; place-items: center;
+  background: radial-gradient(circle at 50% 35%, color-mix(in srgb, var(--gl, #888) 26%, #1a1430), #0c0814); }
+.meCardPortrait iconify-icon { font-size: 50px; }
+.meCardName { font-family: 'Cinzel', serif; font-weight: 700; color: #f3ead0; font-size: 16px; }
+.meCardAxes { font-size: 12px; color: #cfc6ec; margin-top: 3px; }
+.meCardMeta { font-size: 11px; color: #8a82a8; margin-top: 2px; font-style: italic; }
+.meCardBtns { display: flex; gap: 8px; justify-content: center; margin-top: 10px; }
+.meEditor .selBtn.rm, .meCard .selBtn.rm { border-color: #a5453a; color: #ffbdb3; }

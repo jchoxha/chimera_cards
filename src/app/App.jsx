@@ -7,7 +7,7 @@
 import React, { useMemo, useState } from 'react';
 import { useCombat } from '../store/combatStore.js';
 import { useRun } from '../store/runStore.js';
-import { CardEditor } from '../editor/CardEditor.jsx';
+import EditorHub from './EditorHub.jsx';
 import CombatScreen from '../ui/combat/CombatScreen.jsx';
 import RunScreen from '../ui/run/RunScreen.jsx';
 import Codex from '../ui/Codex.jsx';
@@ -44,10 +44,19 @@ function loadIds(key, fallback) {
 }
 const loadTeamIds = () => loadIds(TEAM_KEY, []);
 
+/** The creature's full potential pool: archetype reskinned to its attunement +
+ *  that attunement's own cards + variant-access re-elements (§14.3). */
+function poolFor(klass, atts) {
+  const pool = POOLS[klass] || [];
+  return [...reskinDeck(pool, atts), ...attunementCards(atts), ...attunementVariants(pool, atts)];
+}
+
 /** Build a run-ready creature from a custom definition (typings + lore/description).
  *  The deck is always auto-generated from the typings (no per-monster custom decks here). */
 function buildCustomCreature(def) {
-  const c = makeCreature({ id: def.id, name: def.name, class: def.class, biology: def.biology, attunement: def.attunement, pool: POOLS[def.class?.[0]] || [] });
+  const c = makeCreature({ id: def.id, name: def.name, class: def.class, biology: def.biology, attunement: def.attunement, size: def.size || 'regular', pool: POOLS[def.class?.[0]] || [] });
+  // The Editor (admin tool) can attach a hand-built deck; the end-user creator never does.
+  if (def.customDeck && def.customDeck.length) c.deck = def.customDeck.map((card) => ({ ...card }));
   c.blurb = def.lore || def.blurb || `A custom ${(def.attunement || []).join('/')} ${(def.class || []).join('/')}.`;
   c.lore = def.lore || null;
   c.description = def.description || null;
@@ -98,6 +107,17 @@ export default function App() {
     try { localStorage.setItem(CUSTOM_KEY, JSON.stringify(next)); } catch { /* ignore */ }
     setTeamIds((ids) => ids.filter((x) => x !== id));
   }
+  // Editor (admin) upsert: create a new def or update an existing one by id.
+  function saveCustomDef(def) {
+    const id = def.id || `custom_${slug(def.name) || 'creature'}_${Date.now()}`;
+    const full = { ...def, id };
+    setCustomDefs((defs) => {
+      const next = defs.some((d) => d.id === id) ? defs.map((d) => (d.id === id ? full : d)) : [...defs, full];
+      try { localStorage.setItem(CUSTOM_KEY, JSON.stringify(next)); } catch { /* ignore */ }
+      return next;
+    });
+    return id;
+  }
 
   // Practice fight: your team vs a chosen OPPONENT team (Target Dummy by default).
   const practiceOpp = practiceOppIds.map((id) => oppRoster.find((c) => c.id === id)).filter(Boolean);
@@ -144,7 +164,13 @@ export default function App() {
   function continueRun() { if (useRun.getState().loadSaved()) setView('run'); }
 
   if (view === 'codex') return <Codex initialTab={codexTab} backLabel={codexReturn === 'menu' ? 'Menu' : 'Back'} onMenu={() => setView(codexReturn)} />;
-  if (view === 'editor') return <CardEditor onMenu={() => setView('menu')} />;
+  if (view === 'editor') return (
+    <EditorHub onMenu={() => setView('menu')} monsterProps={{
+      defs: customDefs, classes: ARCHETYPES, biologies: BIOLOGY_BASES, attunements: ATTUNEMENT_BASES,
+      legalFor: (k) => legalAttunements([k]), buildPool: poolFor,
+      onSave: saveCustomDef, onDelete: deleteCustomCreature,
+    }} />
+  );
   if (view === 'combat') return <CombatScreen onMenu={leaveCombat} onRestart={restartCombat} onCodex={(tab) => openCodex(tab, 'combat')} />;
   if (view === 'run') return <RunScreen onMenu={() => { if (useRun.getState().view === 'combat') useRun.getState()._recordPlayTime?.(); setView('menu'); }} onNewRun={() => setView('select')} onCodex={(tab) => openCodex(tab, 'run')} />;
   if (view === 'select') return <SelectScreen roster={playerRoster} initial={teamIds} onConfirm={saveTeam} onCancel={() => setView('menu')} onCreateCustom={() => setView('createCreature')} onDeleteCustom={deleteCustomCreature} />;
@@ -205,7 +231,7 @@ export default function App() {
 
         {/* Secondary: forge + codex */}
         <button className="menuBtn" onClick={() => setView('editor')}>
-          🃏 Open the Card Forge
+          🛠 Open the Editor
         </button>
         <button className="menuBtn" onClick={() => openCodex('bestiary', 'menu')}>
           📖 Read the Codex
