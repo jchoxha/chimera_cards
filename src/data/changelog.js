@@ -6,6 +6,9 @@
 
 /** @type {{version:string, date:string, notes:string[]}[]} newest first */
 export const CHANGELOG = [
+  { version: 'v3.76.0', date: '2026-06-26', notes: [
+    'Card Forge: archetype chips now toggle show/hide on a single click (no more double-click), and you can hide all of them.',
+  ] },
   { version: 'v3.75.0', date: '2026-06-26', notes: [
     'New Codex “Cards” section: browse every card in the game (by archetype + the elemental cards), search them, and tap one for its full rules + keyword glossary.',
     'Info panels in combat now have an “Open in Codex” link that jumps straight to the matching Codex page (status, axis, reaction, card, creature…) and back — your fight is right where you left it.',

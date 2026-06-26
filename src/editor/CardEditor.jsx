@@ -288,7 +288,7 @@ export function CardEditor({ onMenu } = {}) {
   const toggleIn = (setFn, val) => setFn((s) => { const n = new Set(s); if (n.has(val)) n.delete(val); else n.add(val); return n; });
   const toggleArchetype = (file) => setActive((s) => {
     const n = new Set(s);
-    if (n.has(file)) { if (n.size === 1) return n; n.delete(file); } else { n.add(file); }
+    if (n.has(file)) n.delete(file); else n.add(file);   // single click toggles; zero is allowed
     return n;
   });
   const openCardForEdit = (file, i) => { setEdit({ file, idx: i }); setFocusFile(file); setRaw(false); setEditing(true); };
@@ -414,9 +414,8 @@ export function CardEditor({ onMenu } = {}) {
         {allFiles.map((f) => (
           <button key={f}
             className={`archChip${active.has(f) ? ' on' : ''}${f === focusFile ? ' focus' : ''}`}
-            title={active.has(f) ? (f === focusFile ? 'Focused — new cards / presets target this archetype' : 'Click to focus; double-click to hide') : 'Click to show this archetype'}
-            onClick={() => { if (!active.has(f)) { toggleArchetype(f); setFocusFile(f); } else { setFocusFile(f); } }}
-            onDoubleClick={() => active.has(f) && toggleArchetype(f)}>
+            title={active.has(f) ? 'Showing — click to hide' : 'Hidden — click to show'}
+            onClick={() => { const willShow = !active.has(f); toggleArchetype(f); if (willShow) setFocusFile(f); }}>
             {nameOf(f)}
           </button>
         ))}
