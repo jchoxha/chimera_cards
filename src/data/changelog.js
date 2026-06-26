@@ -10,6 +10,7 @@ export const CHANGELOG = [
     'Create Custom Creatures from the Assemble screen: pick its archetype, biology and 1–2 attunements, then give it either the auto-generated deck for those typings OR a hand-built deck (via the deck builder). Custom creatures are saved and usable in runs and practice fights.',
     'Removed the separate “Card / Deck Tuning” menu — custom creatures replace it.',
   ] },
+  { version: 'v3.70.0', date: '2026-06-26', notes: [
     'Practice Fight (renamed from Test Fight) now lets you choose the opponents — pick any creatures to spar against, with a passive Target Dummy as the default. Begin Run and Practice Fight are now equal-size buttons.',
     'The Target Dummy is now a selectable character (a high-HP punching bag that barely fights back).',
     'Your practice setup is remembered — a “Continue Practice Fight” option resumes the same matchup, like continuing a run.',
