@@ -1,11 +1,11 @@
 // ╔══════════════════════════════════════════════════════════════════╗
 // ║ MODULE: ui/TeamManager — view + reorder the team (Active Vanguard +     ║
-// ║ bench). Shared by the team assembler AND the run (between combats), so   ║
-// ║ players arrange positions the same way everywhere. The FIRST member is   ║
-// ║ the Vanguard; reordering returns the new id order via onReorder.         ║
-// ║ Optional onRemove / onSelect for the assembler.                          ║
+// ║ bench) by DRAG-AND-DROP. Shared by the team assembler AND the run        ║
+// ║ (between combats). The FIRST member is the Vanguard; reordering returns  ║
+// ║ the new id order via onReorder. Optional onRemove / onSelect.            ║
+// ║ Pointer-based drag so it works with mouse AND touch.                     ║
 // ╚══════════════════════════════════════════════════════════════════╝
-import React from 'react';
+import React, { useRef, useState } from 'react';
 import { creatureIcon, creatureColor } from '../data/axisIcons.js';
 import './teamManager.css';
 
@@ -13,28 +13,65 @@ const Icon = ({ icon, ...rest }) => <iconify-icon icon={icon} {...rest}></iconif
 
 export default function TeamManager({ members = [], onReorder, onRemove, onSelect, title = 'Your Team' }) {
   const ids = members.map((m) => m.id);
-  const reorder = (next) => onReorder && onReorder(next);
-  const move = (i, dir) => {
-    const j = i + dir;
-    if (j < 0 || j >= ids.length) return;
-    const next = ids.slice();
-    [next[i], next[j]] = [next[j], next[i]];
-    reorder(next);
+  const listRef = useRef(null);
+  const drag = useRef(null);                 // { id, fromY }
+  const [dragId, setDragId] = useState(null);
+  const [overId, setOverId] = useState(null);
+
+  const reorderTo = (movingId, targetId) => {
+    if (!movingId || movingId === targetId) return;
+    const cur = ids.slice();
+    const from = cur.indexOf(movingId);
+    let to = targetId ? cur.indexOf(targetId) : cur.length - 1;
+    if (from < 0 || to < 0) return;
+    cur.splice(from, 1);
+    cur.splice(to, 0, movingId);
+    onReorder && onReorder(cur);
   };
-  const toVanguard = (i) => { if (i <= 0) return; const id = ids[i]; reorder([id, ...ids.filter((x) => x !== id)]); };
+
+  const rowIdAt = (clientY) => {
+    const el = listRef.current; if (!el) return null;
+    for (const row of el.querySelectorAll('[data-tmid]')) {
+      const r = row.getBoundingClientRect();
+      if (clientY >= r.top && clientY <= r.bottom) return row.getAttribute('data-tmid');
+    }
+    // above the first / below the last
+    const rows = [...el.querySelectorAll('[data-tmid]')];
+    if (!rows.length) return null;
+    if (clientY < rows[0].getBoundingClientRect().top) return rows[0].getAttribute('data-tmid');
+    return rows[rows.length - 1].getAttribute('data-tmid');
+  };
+
+  function onPointerDown(e, id) {
+    if (e.target.closest('.tmBtn, .tmCrest')) return;     // let buttons/crest work
+    drag.current = { id };
+    setDragId(id);
+    try { e.currentTarget.setPointerCapture(e.pointerId); } catch { /* noop */ }
+  }
+  function onPointerMove(e) {
+    if (!drag.current) return;
+    const target = rowIdAt(e.clientY);
+    setOverId(target);
+    if (target && target !== drag.current.id) { reorderTo(drag.current.id, target); }
+  }
+  function onPointerUp() { drag.current = null; setDragId(null); setOverId(null); }
 
   if (!members.length) return <div className="tmEmpty">No creatures yet.</div>;
 
   return (
     <div className="teamMgr">
       {title && <div className="tmTitle">{title}</div>}
-      <div className="tmList">
+      <div className="tmList" ref={listRef}>
         {members.map((m, i) => {
           const color = creatureColor(m);
           const dead = m.hp != null && m.hp <= 0;
           const pct = m.maxHp ? Math.max(0, (m.hp / m.maxHp) * 100) : 100;
           return (
-            <div key={m.id} className={`tmRow${i === 0 ? ' vanguard' : ''}${dead ? ' dead' : ''}`} style={{ '--gl': color }}>
+            <div key={m.id} data-tmid={m.id}
+              className={`tmRow${i === 0 ? ' vanguard' : ''}${dead ? ' dead' : ''}${dragId === m.id ? ' dragging' : ''}${overId === m.id && dragId && dragId !== m.id ? ' over' : ''}`}
+              style={{ '--gl': color }}
+              onPointerDown={(e) => onPointerDown(e, m.id)} onPointerMove={onPointerMove} onPointerUp={onPointerUp}>
+              <span className="tmGrip" title="Drag to reorder"><Icon icon="game-icons:move" /></span>
               <span className="tmPos">{i === 0 ? <Icon icon="game-icons:star-formation" /> : i + 1}</span>
               <button className="tmCrest" onClick={onSelect ? () => onSelect(m) : undefined} title={onSelect ? `${m.name} — details` : m.name}>
                 {m.meta?.portrait || m.portrait
@@ -48,17 +85,12 @@ export default function TeamManager({ members = [], onReorder, onRemove, onSelec
                   <div className="tmHp"><i style={{ width: `${pct}%` }} /><em>{m.hp}/{m.maxHp}</em></div>
                 )}
               </div>
-              <div className="tmBtns">
-                {i > 0 && <button className="tmBtn" title="Make Vanguard" onClick={() => toVanguard(i)}>★</button>}
-                <button className="tmBtn" title="Move up" disabled={i === 0} onClick={() => move(i, -1)}>↑</button>
-                <button className="tmBtn" title="Move down" disabled={i === ids.length - 1} onClick={() => move(i, 1)}>↓</button>
-                {onRemove && <button className="tmBtn rm" title="Remove" onClick={() => onRemove(m.id)}>✕</button>}
-              </div>
+              {onRemove && <button className="tmBtn rm" title="Remove" onClick={() => onRemove(m.id)}>✕</button>}
             </div>
           );
         })}
       </div>
-      <p className="tmHint">The ★ Vanguard fights first; the bench swaps in during combat.</p>
+      <p className="tmHint"><Icon icon="game-icons:move" /> Drag a creature to reorder — the top slot is the Active Vanguard.</p>
     </div>
   );
 }

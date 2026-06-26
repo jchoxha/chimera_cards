@@ -6,6 +6,9 @@
 
 /** @type {{version:string, date:string, notes:string[]}[]} newest first */
 export const CHANGELOG = [
+  { version: 'v3.79.0', date: '2026-06-26', notes: [
+    'Team Manager now reorders by drag-and-drop (mouse + touch) instead of up/down arrows — drag a creature; the top slot is the Active Vanguard.',
+  ] },
   { version: 'v3.78.0', date: '2026-06-26', notes: [
     'Fixed the creature detail card in the Assemble screen — it was zoomed in and its archetype/biology/attunement tags were unstyled and unclickable. The card now renders correctly and the tags are tappable for info.',
     'Added Export (and Delete for your custom creatures) to the creature detail modal.',
