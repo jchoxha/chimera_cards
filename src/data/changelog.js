@@ -6,6 +6,10 @@
 
 /** @type {{version:string, date:string, notes:string[]}[]} newest first */
 export const CHANGELOG = [
+  { version: 'v3.82.0', date: '2026-06-26', notes: [
+    'Custom creature creation reworked: you can now give a creature Lore and a Physical description (used for future move & art generation), and by default an AI reads that text to choose its matrix typings (Archetype / Biology / Attunement) — turn the toggle off to pick them by hand. Without an AI key it falls back to a smart keyword reading of the name + text, so it always works.',
+    'Removed per-monster custom deck building from team assembly — a creature’s deck is always generated from its typings here. Hand-building a specific deck stays in the Editor (an admin tool).',
+  ] },
   { version: 'v3.81.0', date: '2026-06-26', notes: [
     'Stats are now fully implemented + explained. Might (damage), Guard (block), Focus (effects on others) and Resolve (own buffs/heals + debuff resist) already mattered; Speed now does too — it’s tempo: the active Vanguard draws extra cards per turn equal to its Speed (Beasts/Humanoids +1, Giants −1). All five are documented in the Codex and explained on hover in a creature’s stat line.',
   ] },

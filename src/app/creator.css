@@ -18,13 +18,15 @@
 
 .crForm { flex: 1 1 320px; display: flex; flex-direction: column; gap: 12px; min-width: 280px; }
 .crFld { display: flex; flex-direction: column; gap: 4px; font-size: 13px; color: #b6abd6; }
-.crFld input, .crFld select { font: inherit; font-size: 15px; color: #e8e0f4; background: #241c3c; border: 1px solid #4a4370;
+.crFld input, .crFld select, .crFld textarea { font: inherit; font-size: 15px; color: #e8e0f4; background: #241c3c; border: 1px solid #4a4370;
   border-radius: 8px; padding: 8px 10px; color-scheme: dark; }
-.crDeck { border: 1px solid #3a3358; border-radius: 12px; padding: 12px; background: #1a1430; display: flex; flex-direction: column; gap: 8px; }
-.crDeckHead { font-family: 'Cinzel', serif; font-size: 12px; letter-spacing: 1.5px; text-transform: uppercase; color: #f0c84a; }
-.crRadio { display: flex; align-items: center; gap: 8px; font-size: 14px; color: #e8e0f4; cursor: pointer; }
-.crDeckBuild { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin-top: 4px; }
-.crDeckOk { color: #9be29b; font-size: 13px; }
+.crFld textarea { resize: vertical; min-height: 56px; font-family: 'Spectral', Georgia, serif; }
+.crFld em { font-style: italic; color: #8a82a8; font-size: 11px; }
+.crToggle { display: flex; align-items: flex-start; gap: 10px; font-size: 14px; color: #e8e0f4; cursor: pointer;
+  border: 1px solid #4a4370; border-radius: 10px; padding: 10px 12px; background: #1a1430; }
+.crToggle input { margin-top: 2px; width: 16px; height: 16px; accent-color: #b98a3a; flex: none; }
+.crAxes { display: flex; flex-direction: column; gap: 12px; border: 1px solid #3a3358; border-radius: 12px; padding: 12px; background: #160f24; }
+.crPvAi { color: #f0c84a; display: inline-flex; align-items: center; justify-content: center; gap: 6px; font-style: italic; }
 .crCreate { margin-top: 6px; align-self: flex-start; }
 .crHint { color: #8a82a8; font-size: 12px; font-style: italic; margin: 0; }
 

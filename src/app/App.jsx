@@ -44,18 +44,13 @@ function loadIds(key, fallback) {
 }
 const loadTeamIds = () => loadIds(TEAM_KEY, []);
 
-/** The creature's full potential pool: archetype reskinned to its attunement +
- *  that attunement's own cards + variant-access re-elements (§14.3). */
-function poolFor(klass, atts) {
-  const pool = POOLS[klass] || [];
-  return [...reskinDeck(pool, atts), ...attunementCards(atts), ...attunementVariants(pool, atts)];
-}
-
-/** Build a run-ready creature from a custom definition (typings + optional deck). */
+/** Build a run-ready creature from a custom definition (typings + lore/description).
+ *  The deck is always auto-generated from the typings (no per-monster custom decks here). */
 function buildCustomCreature(def) {
   const c = makeCreature({ id: def.id, name: def.name, class: def.class, biology: def.biology, attunement: def.attunement, pool: POOLS[def.class?.[0]] || [] });
-  if (def.customDeck && def.customDeck.length) c.deck = def.customDeck.map((card) => ({ ...card }));
-  c.blurb = def.blurb || `A custom ${(def.attunement || []).join('/')} ${(def.class || []).join('/')}.`;
+  c.blurb = def.lore || def.blurb || `A custom ${(def.attunement || []).join('/')} ${(def.class || []).join('/')}.`;
+  c.lore = def.lore || null;
+  c.description = def.description || null;
   c.meta = { portrait: null, custom: true };
   c.custom = true;
   return c;
@@ -163,7 +158,6 @@ export default function App() {
     <CreatureCreator
       classes={ARCHETYPES} biologies={BIOLOGY_BASES} attunements={ATTUNEMENT_BASES}
       legalFor={(k) => legalAttunements([k])}
-      buildPool={poolFor}
       onCreate={createCustomCreature}
       onCancel={() => setView('select')}
     />
