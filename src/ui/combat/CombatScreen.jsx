@@ -899,7 +899,11 @@ export default function CombatScreen({ onMenu, onRestart, embedded } = {}) {
           <div className="handWrap">
             <div className="hand">
               {hand.map((c, i) => {
-                const unplayable = !isPlayerTurn || c.cost === -2 || (c.cost !== -1 && c.cost > player.energy);
+                // Effective cost includes the Shock tax (+1 energy per Shocked ally).
+                const shockTax = player.shockTax || 0;
+                const effCost = (c.cost === -1 || c.cost === -2) ? c.cost : c.cost + shockTax;
+                const taxed = shockTax > 0 && c.cost >= 0;
+                const unplayable = !isPlayerTurn || c.cost === -2 || (c.cost !== -1 && effCost > player.energy);
                 const n = hand.length;
                 const rot = (i - (n - 1) / 2) * 6;
                 const lift = Math.abs(i - (n - 1) / 2) * 4;
@@ -915,7 +919,7 @@ export default function CombatScreen({ onMenu, onRestart, embedded } = {}) {
                     onPointerMove={onCardPointerMove}
                     onPointerUp={onCardPointerUp}>
                     {f.holo && <div className="holo" />}
-                    <div className="cost">{c.cost === -1 ? 'X' : c.cost === -2 ? '—' : c.cost}</div>
+                    <div className={`cost${taxed ? ' taxed' : ''}`} title={taxed ? `${c.cost} + ${shockTax} Shock tax` : undefined}>{c.cost === -1 ? 'X' : c.cost === -2 ? '—' : effCost}</div>
                     <div className="inner">
                       <div className={`micon ${cardKind(c)}`}><MoveArt c={c} /></div>
                       <div className="mn">{c.name}</div>

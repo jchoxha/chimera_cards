@@ -143,6 +143,9 @@ function snapshot(vm) {
       energy: s.player.energy,
       energyPerTurn: s.player.energyPerTurn,
       manualSwapsThisTurn: s.player.manualSwapsThisTurn,
+      // Shock tax: extra energy the active Vanguard pays per Shocked ally (capped).
+      // Surfaced so the hand can show the EFFECTIVE cost of each card.
+      shockTax: typeof vm._shockTax === 'function' ? vm._shockTax('player') : 0,
       vanguardIndex: s.player.vanguardIndex,
       fighters: s.player.fighters.map((f) => mapFighter(f, true)),
       fortifySlot: { block: s.player.fortifySlot.block },

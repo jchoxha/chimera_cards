@@ -6,6 +6,9 @@
 
 /** @type {{version:string, date:string, notes:string[]}[]} newest first */
 export const CHANGELOG = [
+  { version: 'v3.68.1', date: '2026-06-26', notes: [
+    'Cards in hand now show their EFFECTIVE energy cost while Shocked — the Shock tax (+1 per Shocked ally) is added to the gem (which turns red) so you can see the real cost before playing.',
+  ] },
   { version: 'v3.68.0', date: '2026-06-26', notes: [
     'Fixed the reward screen bug where the selected card was torn to the far left and stretched full-height — a CSS class name (“sel”) collided with the team-select screen. Selected cards now simply highlight in place.',
     'Bestiary is now the first tab in the Codex.',
