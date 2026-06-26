@@ -6,6 +6,10 @@
 
 /** @type {{version:string, date:string, notes:string[]}[]} newest first */
 export const CHANGELOG = [
+  { version: 'v3.72.0', date: '2026-06-26', notes: [
+    'The playtime timer no longer resets when you leave and resume a run or practice fight — it now accumulates and is saved with the run.',
+    'Shock’s side-wide energy tax is now shown on the energy orb (e.g. “⚡ +2”), so you can see the whole team is being taxed by Shocked allies — not just the one wearing the Shock pip. (Each Shocked creature already shows its own pip on the vanguard AND the bench.)',
+  ] },
   { version: 'v3.71.0', date: '2026-06-26', notes: [
     'Create Custom Creatures from the Assemble screen: pick its archetype, biology and 1–2 attunements, then give it either the auto-generated deck for those typings OR a hand-built deck (via the deck builder). Custom creatures are saved and usable in runs and practice fights.',
     'Removed the separate “Card / Deck Tuning” menu — custom creatures replace it.',

@@ -208,7 +208,7 @@ export const useCombat = create((set, get) => ({
    * (defaults to a no-axis target dummy with lots of HP). Feeds the editor's
    * author→playtest loop. `playerCards` are CardSpec objects (e.g. warrior.json).
    */
-  startPlaytest({ party, enemyParty, playerCards = [], playerName = 'Warrior', stats, attunement, biology, klass, enemyHp = 200, enemyName, enemyAttunement, enemyBiology } = {}) {
+  startPlaytest({ party, enemyParty, elapsedMs = 0, playerCards = [], playerName = 'Warrior', stats, attunement, biology, klass, enemyHp = 200, enemyName, enemyAttunement, enemyBiology } = {}) {
     const events = [];
     // A chosen TEAM (vanguard + bench) takes precedence; else a single card-built hero.
     const playerFighters = (party && party.length)
@@ -227,14 +227,17 @@ export const useCombat = create((set, get) => ({
       log: (e) => events.push(stampEvent(e)),
     });
     vm.startCombat();
-    set({ vm, _events: events, snap: snapshot(vm), version: 1, log: [...events], reward: null, startedAt: Date.now() });
+    // startedAt is the timer ORIGIN: backdate it by elapsedMs so the playtime
+    // clock continues from where a resumed run/practice left off (not from 0).
+    set({ vm, _events: events, snap: snapshot(vm), version: 1, log: [...events], reward: null, startedAt: Date.now() - (elapsedMs || 0) });
   },
 
   /**
    * Start a RUN fight: the run party (per-monster decks/stats/HP) vs node enemies,
    * with the run's relics injected at combat start. Used by the run layer.
+   * `elapsedMs` backdates the playtime clock so it resumes (doesn't reset).
    */
-  startRunFight({ party = [], enemyFighters = [], relics = [] } = {}) {
+  startRunFight({ party = [], enemyFighters = [], relics = [], elapsedMs = 0 } = {}) {
     const events = [];
     const vm = new VanguardManager({
       playerFighters: partyToFighters(party),
@@ -246,7 +249,7 @@ export const useCombat = create((set, get) => ({
     });
     vm.startCombat();
     applyRelics(vm, relics);
-    set({ vm, _events: events, snap: snapshot(vm), version: 1, log: [...events], reward: null, startedAt: Date.now() });
+    set({ vm, _events: events, snap: snapshot(vm), version: 1, log: [...events], reward: null, startedAt: Date.now() - (elapsedMs || 0) });
   },
 
   /** Use a potion (consumable) during combat. */

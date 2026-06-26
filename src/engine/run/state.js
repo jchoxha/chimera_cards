@@ -58,6 +58,7 @@ export function createRunState({ party = [], seed = Date.now(), map = null, rewa
     floor: 0,
     act: 1,
     status: 'active', // 'active' | 'won' | 'lost'
+    playMs: 0,        // accumulated active play time (persists across save/resume)
   };
 }
 

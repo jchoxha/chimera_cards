@@ -70,8 +70,15 @@ export const useRun = create((set, get) => ({
     const { rm } = get();
     const rng = makeRng((rm.state.rngState ^ (rm.state.floor * 0x9e3779b1)) >>> 0);
     const enemies = enemyForNode(node, rng);
-    useCombat.getState().startRunFight({ party: rm.state.party, enemyFighters: enemies, relics: rm.state.relics });
+    useCombat.getState().startRunFight({ party: rm.state.party, enemyFighters: enemies, relics: rm.state.relics, elapsedMs: rm.state.playMs || 0 });
     set({ view: 'combat' });
+  },
+
+  /** Fold the embedded combat's elapsed time into the run's cumulative playMs. */
+  _recordPlayTime() {
+    const { rm } = get();
+    const sa = useCombat.getState().startedAt;
+    if (rm && sa) { rm.dispatch('setPlayMs', { ms: Date.now() - sa }); get()._save(); }
   },
 
   /** Called when the embedded combat reports victory/defeat. */
@@ -79,6 +86,7 @@ export const useRun = create((set, get) => ({
     const { rm } = get();
     const vm = useCombat.getState().vm;
     if (!vm) return;
+    get()._recordPlayTime();
     const out = combatOutcome(vm);
     rm.dispatch('applyCombatResult', out);
     const node = currentNode(rm.state);

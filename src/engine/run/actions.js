@@ -10,6 +10,8 @@ import { reachableFrom, nodeById } from './map.js';
 const member = (s, id) => s.party.find((p) => p.id === id) || s.party[0] || null;
 
 export const ACTIONS = {
+  // Cumulative play time (ms) — monotonic so it never ticks backward on resume.
+  setPlayMs: (s, { ms = 0 }) => { s.playMs = Math.max(s.playMs || 0, ms); },
   // ── economy ──
   gainGold: (s, { amount = 0 }) => { s.gold += amount; },
   spendGold: (s, { amount = 0 }) => { if (s.gold >= amount) s.gold -= amount; },

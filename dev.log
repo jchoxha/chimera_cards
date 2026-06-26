@@ -1,0 +1,8 @@
+npm error code ENOENT
+npm error syscall open
+npm error path /tmp/claude-0/-home-user-chimera-cards/2ae74e03-9937-5b91-be5e-afad7d47d2a1/scratchpad/package.json
+npm error errno -2
+npm error enoent Could not read package.json: Error: ENOENT: no such file or directory, open '/tmp/claude-0/-home-user-chimera-cards/***/scratchpad/package.json'
+npm error enoent This is related to npm not being able to find a file.
+npm error enoent
+npm error A complete log of this run can be found in: /root/.npm/_logs/2026-06-26T14_56_15_773Z-debug-0.log

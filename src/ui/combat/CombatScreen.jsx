@@ -967,10 +967,16 @@ export default function CombatScreen({ onMenu, onRestart, embedded } = {}) {
           </button>
 
           <div className="dock">
-            <div className="orb" key={`orb-${player.energy}`}>
+            <div className={`orb${player.shockTax > 0 ? ' shocked' : ''}`} key={`orb-${player.energy}`}>
               <b>{player.energy}</b>
               <small>/{player.energyPerTurn}</small>
               <small>ENERGY</small>
+              {player.shockTax > 0 && (
+                <button className="orbShock" title={`Shock tax: your cards cost +${player.shockTax} energy (one per Shocked ally, capped). Tap for details.`}
+                  onClick={() => setInfo({ kind: 'effect', id: 'shock' })}>
+                  <Icon icon="game-icons:lightning-arc" /> +{player.shockTax}
+                </button>
+              )}
             </div>
             <button className="endBtn" disabled={!isPlayerTurn} onClick={endTurn}>
               END TURN <Icon icon="game-icons:fast-forward-button" />

@@ -40,6 +40,7 @@ if (import.meta.env.DEV && typeof window !== 'undefined') { window.__useRun = us
 const TEAM_KEY = 'chimera.team';
 const PRACTICE_KEY = 'chimera.practiceOpp';
 const PRACTICE_ACTIVE_KEY = 'chimera.practiceActive';
+const PRACTICE_MS_KEY = 'chimera.practiceMs';
 const CUSTOM_KEY = 'chimera.custom';
 function loadIds(key, fallback) {
   try { const v = JSON.parse(localStorage.getItem(key)); return Array.isArray(v) ? v : fallback; } catch { return fallback; }
@@ -97,21 +98,31 @@ export default function App() {
 
   // Practice fight: your team vs a chosen OPPONENT team (Target Dummy by default).
   const practiceOpp = practiceOppIds.map((id) => oppRoster.find((c) => c.id === id)).filter(Boolean);
-  function launchPractice(oppCreatures) {
+  // `resume` keeps the saved playtime clock; a fresh fight resets it.
+  function launchPractice(oppCreatures, { resume = false } = {}) {
     if (!team.length) return;
     const opp = (oppCreatures && oppCreatures.length) ? oppCreatures : (practiceOpp.length ? practiceOpp : [DUMMY]);
+    let elapsedMs = 0;
+    if (resume) { try { elapsedMs = Number(localStorage.getItem(PRACTICE_MS_KEY)) || 0; } catch { elapsedMs = 0; } }
+    else { try { localStorage.setItem(PRACTICE_MS_KEY, '0'); } catch { /* ignore */ } }
     setPracticeActive(true);
     try { localStorage.setItem(PRACTICE_ACTIVE_KEY, '1'); } catch { /* ignore */ }
-    useCombat.getState().startPlaytest({ party: team, enemyParty: opp });
+    useCombat.getState().startPlaytest({ party: team, enemyParty: opp, elapsedMs });
     setView('combat');
   }
   function confirmPracticeOpponents(oppCreatures) {
     const ids = (oppCreatures && oppCreatures.length ? oppCreatures : [DUMMY]).map((c) => c.id);
     setPracticeOppIds(ids);
     try { localStorage.setItem(PRACTICE_KEY, JSON.stringify(ids)); } catch { /* ignore */ }
-    launchPractice(oppCreatures);
+    launchPractice(oppCreatures);   // new setup → fresh clock
   }
-  const restartCombat = () => launchPractice();
+  const restartCombat = () => launchPractice();   // NEW FIGHT → fresh clock
+  // Leave the practice combat: persist the elapsed playtime so it resumes later.
+  function leaveCombat() {
+    const sa = useCombat.getState().startedAt;
+    if (sa) { try { localStorage.setItem(PRACTICE_MS_KEY, String(Date.now() - sa)); } catch { /* ignore */ } }
+    setView('menu');
+  }
 
   /** A single creature's potential pool (archetype reskinned + attunement cards + variants). */
   function creatureRewardPool(c) {
@@ -131,8 +142,8 @@ export default function App() {
 
   if (view === 'codex') return <Codex onMenu={() => setView('menu')} />;
   if (view === 'editor') return <CardEditor onMenu={() => setView('menu')} />;
-  if (view === 'combat') return <CombatScreen onMenu={() => setView('menu')} onRestart={restartCombat} />;
-  if (view === 'run') return <RunScreen onMenu={() => setView('menu')} onNewRun={() => setView('select')} />;
+  if (view === 'combat') return <CombatScreen onMenu={leaveCombat} onRestart={restartCombat} />;
+  if (view === 'run') return <RunScreen onMenu={() => { if (useRun.getState().view === 'combat') useRun.getState()._recordPlayTime?.(); setView('menu'); }} onNewRun={() => setView('select')} />;
   if (view === 'select') return <SelectScreen roster={playerRoster} initial={teamIds} onConfirm={saveTeam} onCancel={() => setView('menu')} onCreateCustom={() => setView('createCreature')} />;
   if (view === 'practice') return (
     <SelectScreen roster={oppRoster} initial={practiceOppIds} onConfirm={confirmPracticeOpponents} onCancel={() => setView('menu')}
@@ -184,7 +195,7 @@ export default function App() {
           <button className="menuBtn" onClick={continueRun}>↻ Continue Saved Run</button>
         )}
         {practiceActive && team.length > 0 && (
-          <button className="menuBtn" onClick={() => launchPractice()}
+          <button className="menuBtn" onClick={() => launchPractice(null, { resume: true })}
             title={`Resume your practice fight vs ${practiceOpp.map((c) => c.name).join(', ') || 'Target Dummy'}`}>
             ↻ Continue Practice Fight
           </button>

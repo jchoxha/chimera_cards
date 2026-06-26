@@ -484,6 +484,14 @@ html:has(.cmbt),body:has(.cmbt){height:100%;margin:0;overflow:hidden}
   background:radial-gradient(circle at 38% 30%,#cfeaff,#3f7fe6 52%,#16306e);border:3px solid var(--goldB);
   box-shadow:0 4px 12px #000a, inset 0 0 12px #0006;font-family:'Cinzel',serif;color:#fff;text-shadow:0 1px 2px #000}
 .orb b{font-size:16px;line-height:1}.orb small{font-size:7.5px;letter-spacing:1px;opacity:.9}
+/* side-wide Shock tax indicator on the energy orb (bench-shocked allies tax the active vanguard) */
+.orb{position:relative}
+.orb.shocked{border-color:#ffd34d;box-shadow:0 4px 12px #000a, inset 0 0 12px #0006, 0 0 12px #ffd34daa}
+.orbShock{position:absolute;bottom:-8px;left:50%;transform:translateX(-50%);white-space:nowrap;
+  display:flex;align-items:center;gap:2px;font-family:'Cinzel',serif;font-weight:700;font-size:9px;
+  color:#1a1020;background:linear-gradient(#ffe27a,#e0a82f);border:1px solid #ffd34d;border-radius:8px;
+  padding:1px 6px;cursor:pointer;box-shadow:0 2px 5px #0008}
+.orbShock iconify-icon{font-size:11px}
 .endBtn{flex:1 1 auto;font-family:'Cinzel',serif;font-weight:700;letter-spacing:1px;font-size:13px;color:#3a2606;
   padding:11px 14px;border:none;border-radius:12px;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px;
   background:linear-gradient(#ffe89a,#d6a72a);box-shadow:0 5px 0 #8a6a18,0 8px 16px #0008}
