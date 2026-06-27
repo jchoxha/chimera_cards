@@ -15,6 +15,20 @@ This repo currently holds **two codebases** that coexist:
    (StS2-grounded). This is the active direction. Playable combat demo at
    https://jchoxha.github.io/chimera_cards/combat.html
 
+**🧬 NEW DIRECTION CAPTURED (2026-06-27, Jeton) — BIOLOGY SELECTS THE KIT SYSTEM.**
+**LOCKED decision:** the **archetype/Class system (Warrior/Rogue/Mage/…) applies ONLY to
+Humanoids + Humanoid hybrids.** Every other biology gets its own native kit system —
+**Beast = Families (WoW-pet-style behaviour) + Anatomy/arsenal tags (claws/bite/horns…)
+that build the pool**; Undead/Dragonkin/Elemental/Demon/Mechanical/Giant/Aberration each
+get a native system (seeds drafted). So **Biology is promoted to the primary card-pool
+selector** (it now answers what Class used to: "where do this creature's cards come
+from?"); attunement + size stay orthogonal. Full framework, per-biology seeds, the
+hybrid graft rule, the generator/§14 impact, and **5 open questions** are in
+**`docs/biology-kits.md`** — read it before touching the §7 generator. Recommended axis-2
+model: keep the triple but make axis-2's *vocabulary* biology-conditional ("Archetype" =
+the Humanoid name for axis-2; Beast = Family; etc.). **Nothing built yet — design capture
+only; flesh out one biology at a time (Beast first).**
+
 **Stack decision:** stay on **Vite + React + JS** for now (no TS migration yet);
 spec "TS interfaces" are JSDoc `@typedef`s. Renderer when we build the view = **Phaser**
 (deferred — combat UI is React today, wearing the ornate-TCG skin below). See memory `chimera-engine-architecture`.
