@@ -1,0 +1,103 @@
+{
+  "_note": "Humanoid biology kit (docs/biology-kits.md §3.1). Humanoids draw their pool from their ARCHETYPE (warrior.json etc.); WEAPONS are the Humanoid analogue of Beast anatomy — noun tags whose card clusters ADD to the pool and show as the creature's special factors. Each archetype is proficient with a subset (plausibility gate, like family→anatomy). Cards authored Physical + imbue (re-skinned to the creature's attunement). Loaded by engine/cards/humanoidPool.js. Numbers provisional.",
+  "proficiency": {
+    "Warrior":  ["Sword", "Axe", "Mace", "Hammer", "Spear", "Shield"],
+    "Rogue":    ["Dagger", "Sword", "Bow", "Crossbow", "Fist"],
+    "Mage":     ["Staff", "Wand"],
+    "Warlock":  ["Staff", "Wand", "Dagger"],
+    "Priest":   ["Mace", "Staff", "Shield"],
+    "Shaman":   ["Staff", "Spear", "Mace"],
+    "Ranger":   ["Bow", "Crossbow", "Spear", "Dagger"],
+    "Engineer": ["Crossbow", "Hammer", "Wand", "Shield"]
+  },
+  "weapons": {
+    "Sword": {
+      "theme": "A balanced blade — reliable strikes that draw Bleed.",
+      "cards": [
+        { "id": "wpn_sword_slash", "name": "Slash", "attunement": "Physical", "imbue": 1, "type": "attack", "cost": 1, "rarity": "common", "effects": [{ "op": "damage", "value": 7 }] },
+        { "id": "wpn_sword_riposte", "name": "Riposte", "attunement": "Physical", "imbue": 1, "type": "attack", "cost": 1, "rarity": "uncommon", "effects": [{ "op": "block", "value": 5 }, { "op": "damage", "value": 5 }] },
+        { "id": "wpn_sword_lacerate", "name": "Lacerate", "attunement": "Physical", "imbue": 1, "type": "attack", "cost": 2, "rarity": "rare", "effects": [{ "op": "damage", "value": 8 }, { "op": "debuff", "status": "bleed", "value": 3 }] }
+      ]
+    },
+    "Axe": {
+      "theme": "A heavy cleaver — swings that bite the whole enemy line.",
+      "cards": [
+        { "id": "wpn_axe_chop", "name": "Chop", "attunement": "Physical", "imbue": 1, "type": "attack", "cost": 1, "rarity": "common", "effects": [{ "op": "damage", "value": 8 }] },
+        { "id": "wpn_axe_cleave", "name": "Cleave", "attunement": "Physical", "imbue": 1, "type": "attack", "cost": 2, "rarity": "uncommon", "effects": [{ "op": "damage", "value": 6, "scope": "wholeEnemySide" }] },
+        { "id": "wpn_axe_execute", "name": "Execute", "attunement": "Physical", "imbue": 1, "type": "attack", "cost": 2, "rarity": "rare", "effects": [{ "op": "damage", "value": 9, "bonusIf": { "targetHpPctBelow": 50 }, "bonusAdd": 9 }] }
+      ]
+    },
+    "Dagger": {
+      "theme": "Quick light blades — cheap, fast, multi-hit.",
+      "cards": [
+        { "id": "wpn_dagger_stab", "name": "Stab", "attunement": "Physical", "imbue": 1, "type": "attack", "cost": 0, "rarity": "common", "effects": [{ "op": "damage", "value": 4 }] },
+        { "id": "wpn_dagger_flurry", "name": "Flurry", "attunement": "Physical", "imbue": 1, "type": "attack", "cost": 1, "rarity": "uncommon", "effects": [{ "op": "damage", "value": 3, "hits": 2 }] },
+        { "id": "wpn_dagger_backstab", "name": "Backstab", "attunement": "Physical", "imbue": 1, "type": "attack", "cost": 2, "rarity": "rare", "effects": [{ "op": "damage", "value": 6, "hits": 2 }, { "op": "debuff", "status": "bleed", "value": 2 }] }
+      ]
+    },
+    "Bow": {
+      "theme": "A hunting bow — precise shots that can pick off the back line.",
+      "cards": [
+        { "id": "wpn_bow_shoot", "name": "Shoot", "attunement": "Physical", "imbue": 1, "type": "attack", "cost": 1, "rarity": "common", "effects": [{ "op": "damage", "value": 6, "scope": "flexEnemyTarget" }] },
+        { "id": "wpn_bow_aimed", "name": "Aimed Shot", "attunement": "Physical", "imbue": 1, "type": "attack", "cost": 2, "rarity": "uncommon", "effects": [{ "op": "damage", "value": 11, "scope": "flexEnemyTarget" }] },
+        { "id": "wpn_bow_volley", "name": "Volley", "attunement": "Physical", "imbue": 1, "type": "attack", "cost": 2, "rarity": "rare", "effects": [{ "op": "damage", "value": 4, "scope": "wholeEnemySide" }, { "op": "damage", "value": 4, "scope": "wholeEnemySide" }] }
+      ]
+    },
+    "Crossbow": {
+      "theme": "A mechanical crossbow — piercing bolts that Expose armour.",
+      "cards": [
+        { "id": "wpn_crossbow_bolt", "name": "Bolt", "attunement": "Physical", "imbue": 1, "type": "attack", "cost": 1, "rarity": "common", "effects": [{ "op": "damage", "value": 6 }, { "op": "debuff", "status": "expose", "value": 2 }] },
+        { "id": "wpn_crossbow_pierce", "name": "Piercing Bolt", "attunement": "Physical", "imbue": 1, "type": "attack", "cost": 2, "rarity": "uncommon", "effects": [{ "op": "damage", "value": 9 }, { "op": "debuff", "status": "expose", "value": 3 }] }
+      ]
+    },
+    "Spear": {
+      "theme": "A reaching spear — thrusts that leave foes Vulnerable.",
+      "cards": [
+        { "id": "wpn_spear_thrust", "name": "Thrust", "attunement": "Physical", "imbue": 1, "type": "attack", "cost": 1, "rarity": "common", "effects": [{ "op": "damage", "value": 6 }, { "op": "debuff", "status": "vulnerable", "value": 1 }] },
+        { "id": "wpn_spear_impale", "name": "Impale", "attunement": "Physical", "imbue": 1, "type": "attack", "cost": 2, "rarity": "uncommon", "effects": [{ "op": "damage", "value": 11 }, { "op": "debuff", "status": "vulnerable", "value": 2 }] }
+      ]
+    },
+    "Mace": {
+      "theme": "A blunt mace — crushing blows that sap the enemy's strength.",
+      "cards": [
+        { "id": "wpn_mace_bash", "name": "Bash", "attunement": "Physical", "imbue": 1, "type": "attack", "cost": 1, "rarity": "common", "effects": [{ "op": "damage", "value": 6 }, { "op": "debuff", "status": "weak", "value": 1 }] },
+        { "id": "wpn_mace_crush", "name": "Crush", "attunement": "Physical", "imbue": 1, "type": "attack", "cost": 2, "rarity": "uncommon", "effects": [{ "op": "damage", "value": 10 }, { "op": "debuff", "status": "weak", "value": 2 }] }
+      ]
+    },
+    "Hammer": {
+      "theme": "A warhammer — slow, devastating overhead strikes.",
+      "cards": [
+        { "id": "wpn_hammer_smash", "name": "Smash", "attunement": "Physical", "imbue": 1, "type": "attack", "cost": 2, "rarity": "common", "effects": [{ "op": "damage", "value": 13 }] },
+        { "id": "wpn_hammer_overhead", "name": "Overhead", "attunement": "Physical", "imbue": 1, "type": "attack", "cost": 2, "rarity": "rare", "effects": [{ "op": "damage", "value": 10 }, { "op": "debuff", "status": "vulnerable", "value": 2 }] }
+      ]
+    },
+    "Staff": {
+      "theme": "A focusing staff — channels energy and keeps the cards flowing.",
+      "cards": [
+        { "id": "wpn_staff_channel", "name": "Channel", "attunement": "Physical", "type": "skill", "cost": 0, "rarity": "common", "effects": [{ "op": "energy", "value": 1 }, { "op": "draw", "value": 1 }] },
+        { "id": "wpn_staff_smite", "name": "Staff Bolt", "attunement": "Physical", "imbue": 1, "type": "attack", "cost": 1, "rarity": "uncommon", "effects": [{ "op": "damage", "value": 7 }] }
+      ]
+    },
+    "Wand": {
+      "theme": "An arcane wand — bolts that build and spend Amplify.",
+      "cards": [
+        { "id": "wpn_wand_zap", "name": "Zap", "attunement": "Physical", "imbue": 1, "type": "attack", "cost": 1, "rarity": "common", "effects": [{ "op": "damage", "value": 6 }] },
+        { "id": "wpn_wand_empower", "name": "Empower", "attunement": "Physical", "type": "skill", "cost": 1, "rarity": "uncommon", "effects": [{ "op": "buff", "status": "amplify", "value": 1 }, { "op": "draw", "value": 1 }] }
+      ]
+    },
+    "Shield": {
+      "theme": "A sturdy shield — braced Block and a shove that punishes.",
+      "cards": [
+        { "id": "wpn_shield_wall", "name": "Shield Wall", "attunement": "Physical", "type": "skill", "cost": 1, "rarity": "common", "effects": [{ "op": "block", "value": 9, "brace": true }] },
+        { "id": "wpn_shield_bash", "name": "Shield Bash", "attunement": "Physical", "imbue": 1, "type": "attack", "cost": 1, "rarity": "uncommon", "effects": [{ "op": "block", "value": 4 }, { "op": "damage", "value": 5 }, { "op": "debuff", "status": "weak", "value": 1 }] }
+      ]
+    },
+    "Fist": {
+      "theme": "Bare-knuckle martial arts — cheap chained strikes.",
+      "cards": [
+        { "id": "wpn_fist_jab", "name": "Jab", "attunement": "Physical", "imbue": 1, "type": "attack", "cost": 0, "rarity": "common", "effects": [{ "op": "damage", "value": 4 }] },
+        { "id": "wpn_fist_combo", "name": "Combo Strike", "attunement": "Physical", "imbue": 1, "type": "attack", "cost": 1, "rarity": "uncommon", "effects": [{ "op": "damage", "value": 4, "hits": 2 }, { "op": "draw", "value": 1 }] }
+      ]
+    }
+  }
+}

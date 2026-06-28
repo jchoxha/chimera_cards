@@ -34,8 +34,15 @@ built first.** Full framework + per-biology seeds + generator/§14 impact in
 (v3.85.0):** 6 Families + 12 Anatomy tags, 50 cards in `src/data/beastKit.json`, loader
 `src/engine/cards/beastPool.js` (`beastPool({family,anatomy})`), `test:beast` (245); wired into
 generation via app-layer `basePoolFor` (biology selects the base pool, injected into
-`buildRoster` so roster.js stays JSON-free) + Editor Monster-page Family/Anatomy pickers. **Next
-biology to author: pick from Undead/Dragonkin/Mechanical/etc.** (the §3 seeds).
+`buildRoster` so roster.js stays JSON-free) + Editor Monster-page Family/Anatomy pickers.
+**HUMANOID IS BUILT (v3.88.0):** Archetypes (existing) + a **Weapons** special-factor system
+(12 weapons, 28 cards in `src/data/humanoidKit.json`, loader `humanoidPool.js`, `test:humanoid`
+159), gated by archetype proficiency, wired through `basePoolFor` + Editor weapon pickers —
+exactly parallel to Beast anatomy. **Card display (v3.86–3.88):** size moved into the name
+("Large Ironhide"); top-left corner shows ONE kit icon per biology (hybrids show both); under
+the name, the synthesised biology name (Beast|Humanoid → "Chimera", via `biologyName`) sits left
+and special-factor icons (Beast anatomy / Humanoid weapons) right. **Next biology to author:
+pick from Undead/Dragonkin/Mechanical/etc.** (the §3 seeds).
 
 **Stack decision:** stay on **Vite + React + JS** for now (no TS migration yet);
 spec "TS interfaces" are JSDoc `@typedef`s. Renderer when we build the view = **Phaser**

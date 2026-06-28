@@ -16,6 +16,7 @@ import CreatureCreator from './CreatureCreator.jsx';
 import { ATTUNEMENT_BASES, BIOLOGY_BASES, legalAttunements } from '../data/synthesis.js';
 import { attunementCards } from '../engine/cards/attunementPool.js';
 import { beastPool, BEAST_FAMILIES, defaultAnatomy } from '../engine/cards/beastPool.js';
+import { humanoidWeaponPool, weaponsForArchetype, defaultWeapons } from '../engine/cards/humanoidPool.js';
 import { reskinDeck, attunementVariants } from '../engine/cards/reskin.js';
 import { makeCreature } from '../engine/content/generate.js';
 import { resolvePools } from '../data/collections.js';
@@ -37,10 +38,16 @@ const arr = (v) => (Array.isArray(v) ? v : v != null ? [v] : []);
  *  creature draws from BEFORE attunement re-skin. Humanoid (or no biology) → its
  *  Archetype pool; Beast → its Family+Anatomy pool; both → the union. Beast falls
  *  back to a default family/anatomy when none is authored. */
-function basePoolFor({ klass, biology, family, anatomy }) {
+function basePoolFor({ klass, biology, family, anatomy, weapons }) {
   const bios = arr(biology);
   const out = [];
-  if (!bios.length || bios.includes('Humanoid')) out.push(...(POOLS[klass] || []));
+  if (!bios.length || bios.includes('Humanoid')) {
+    out.push(...(POOLS[klass] || []));
+    if (bios.includes('Humanoid')) {
+      const w = (weapons?.length ? weapons : defaultWeapons(klass)).filter((t) => weaponsForArchetype(klass).includes(t));
+      out.push(...humanoidWeaponPool(w));
+    }
+  }
   if (bios.includes('Beast')) {
     const fam = family || BEAST_FAMILIES[0];
     out.push(...beastPool({ family: fam, anatomy: anatomy?.length ? anatomy : defaultAnatomy(fam) }));
@@ -48,7 +55,7 @@ function basePoolFor({ klass, biology, family, anatomy }) {
   if (!out.length) out.push(...(POOLS[klass] || []));   // other biologies: archetype stand-in until their kit exists
   return out;
 }
-const rosterPool = (r) => basePoolFor({ klass: r.class, biology: r.biology, family: r.family, anatomy: r.anatomy });
+const rosterPool = (r) => basePoolFor({ klass: r.class, biology: r.biology, family: r.family, anatomy: r.anatomy, weapons: r.weapons });
 
 const ROSTER = buildRoster(POOLS, POOLS.Warrior || [], rosterPool);
 const DUMMY = buildDummyCreature();
@@ -70,7 +77,7 @@ const loadTeamIds = () => loadIds(TEAM_KEY, []);
  *  Takes a def-like { class|klass, biology, attunement, family, anatomy }. */
 function potentialPool(def = {}) {
   const atts = arr(def.attunement?.length ? def.attunement : ['Physical']);
-  const base = basePoolFor({ klass: def.class?.[0] ?? def.klass, biology: def.biology, family: def.family, anatomy: def.anatomy });
+  const base = basePoolFor({ klass: def.class?.[0] ?? def.klass, biology: def.biology, family: def.family, anatomy: def.anatomy, weapons: def.weapons });
   return [...reskinDeck(base, atts), ...attunementCards(atts), ...attunementVariants(base, atts)];
 }
 
@@ -78,8 +85,8 @@ function potentialPool(def = {}) {
  *  The deck is always auto-generated from the typings (no per-monster custom decks here). */
 function buildCustomCreature(def) {
   const c = makeCreature({ id: def.id, name: def.name, class: def.class, biology: def.biology, attunement: def.attunement,
-    family: def.family || null, anatomy: def.anatomy || null, size: def.size || 'regular',
-    pool: basePoolFor({ klass: def.class?.[0], biology: def.biology, family: def.family, anatomy: def.anatomy }) });
+    family: def.family || null, anatomy: def.anatomy || null, weapons: def.weapons || null, size: def.size || 'regular',
+    pool: basePoolFor({ klass: def.class?.[0], biology: def.biology, family: def.family, anatomy: def.anatomy, weapons: def.weapons }) });
   // The Editor (admin tool) can attach a hand-built deck; the end-user creator never does.
   if (def.customDeck && def.customDeck.length) c.deck = def.customDeck.map((card) => ({ ...card }));
   c.blurb = def.lore || def.blurb || `A custom ${(def.attunement || []).join('/')} ${(def.class || []).join('/')}.`;

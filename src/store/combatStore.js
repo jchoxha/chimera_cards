@@ -110,7 +110,7 @@ function mapFighter(f, includeDeck = false) {
     // New 3-axis taxonomy + Topic-1 stat line + Warrior stance (present once content uses them).
     stance: f.stance ?? null,
     stats: f.stats ? { ...f.stats } : null,
-    axes: { class: f.class ?? null, biology: f.biology ?? null, attunement: f.attunement ?? null, family: f.family ?? null, anatomy: f.anatomy ?? null },
+    axes: { class: f.class ?? null, biology: f.biology ?? null, attunement: f.attunement ?? null, family: f.family ?? null, anatomy: f.anatomy ?? null, weapons: f.weapons ?? null },
     powers: (f.powers ?? []).map((p) => ({
       id: p.source ?? p.id, on: p.on ?? null, passive: p.passive ?? null,
       attunement: p.attunement ?? null, effects: (p.effects ?? []).map((o) => ({ ...o })),

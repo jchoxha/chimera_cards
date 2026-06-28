@@ -6,6 +6,10 @@
 
 /** @type {{version:string, date:string, notes:string[]}[]} newest first */
 export const CHANGELOG = [
+  { version: 'v3.88.0', date: '2026-06-28', notes: [
+    'Humanoids now have a WEAPON system — the Humanoid counterpart to Beast anatomy. Each archetype is proficient with a set of weapons (Sword, Axe, Dagger, Bow, Staff, Shield…), and the weapons you give a creature add their own cards to its deck and show as its special factors. 12 weapons, 28 new cards; pick them on the Editor’s Monster page when biology is Humanoid.',
+    'Hybrid creatures now show their true combined name from the biology matrix (a Beast/Humanoid reads as “Chimera”) instead of listing both bases.',
+  ] },
   { version: 'v3.87.0', date: '2026-06-28', notes: [
     'Hybrid creatures now show a kit icon for EACH of their biologies in the top-left corner (e.g. a Beast/Humanoid shows both its Family and its Archetype), and their special-factor row combines both halves. The biology label lists both (“Beast · Humanoid”).',
   ] },

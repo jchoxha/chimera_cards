@@ -44,6 +44,7 @@ export function createRunState({ party = [], seed = Date.now(), map = null, rewa
       attunement: p.attunement ?? ['Physical'],
       stats: p.stats ?? { might: 1, guard: 1, focus: 1, resolve: 1, speed: 0 },
       family: p.family ?? null, anatomy: p.anatomy ?? null,   // Beast kit axis-2 + special factors
+      weapons: p.weapons ?? null,                              // Humanoid special factors
       size: p.size ?? p.meta?.form ?? 'regular',   // current size (form); evolution advances it
       maxHp: p.maxHp ?? p.hp ?? 60,
       hp: p.hp ?? p.maxHp ?? 60,

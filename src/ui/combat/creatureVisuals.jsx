@@ -7,7 +7,7 @@
 // ╚══════════════════════════════════════════════════════════════════╝
 import React from 'react';
 import { frameStyle } from './frames.js';
-import { creatureIcon, creatureColor, ATTUNEMENT_ICON, ATTUNEMENT_COLOR, submatrixIcons, specialFactors } from '../../data/axisIcons.js';
+import { creatureIcon, creatureColor, ATTUNEMENT_ICON, ATTUNEMENT_COLOR, submatrixIcons, specialFactors, biologyName } from '../../data/axisIcons.js';
 import { creatureArt } from '../../data/artPool.js';
 import { ELEMENT_COLOR, FORMS } from '../../systems/elements.jsx';
 
@@ -228,10 +228,12 @@ export function CardFace({ f, side, matchup, onEffect, onInfo, onName, extraClas
         {f.axes && (f.axes.biology || (() => { const sf = specialFactors(f.axes); return sf.length; })()) && (() => {
           const factors = specialFactors(f.axes);
           const bios = Array.isArray(f.axes.biology) ? f.axes.biology : (f.axes.biology ? [f.axes.biology] : []);
+          const bioName = biologyName(bios);
           return (
             <div className="axesLine">
-              {bios.length
-                ? <button className="bioTok" onClick={onInfo ? (e) => { e.stopPropagation(); axisInfo('biology'); } : undefined}>{bios.join(' · ')}</button>
+              {bioName
+                ? <button className="bioTok" onClick={onInfo ? (e) => { e.stopPropagation(); axisInfo('biology'); } : undefined}
+                    title={bios.length > 1 ? bios.join(' + ') : undefined}>{bioName}</button>
                 : <span />}
               <span className="factorRow">
                 {factors.map((fac) => (

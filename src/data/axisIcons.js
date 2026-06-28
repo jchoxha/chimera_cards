@@ -8,6 +8,8 @@
 // ║ UPDATE WHEN: axis bases change, or real art replaces a placeholder.   ║
 // ╚══════════════════════════════════════════════════════════════════╝
 
+import { synthName } from './synthesis.js';
+
 /** Attribution to surface in an About/credits screen. */
 export const ART_CREDIT = 'Placeholder icons: game-icons.net (CC BY 3.0) via Iconify.';
 
@@ -77,6 +79,22 @@ export const ANATOMY_ICON = Object.freeze({
   Hide: 'game-icons:animal-hide',
   Shell: 'game-icons:turtle-shell',
   Roar: 'game-icons:lion',
+});
+
+/** Humanoid Weapon noun-tags (a Humanoid's "special factors") → game-icons id. */
+export const WEAPON_ICON = Object.freeze({
+  Sword: 'game-icons:broadsword',
+  Axe: 'game-icons:battle-axe',
+  Dagger: 'game-icons:plain-dagger',
+  Bow: 'game-icons:high-shot',
+  Crossbow: 'game-icons:crossbow',
+  Spear: 'game-icons:spear-hook',
+  Mace: 'game-icons:spiked-mace',
+  Hammer: 'game-icons:warhammer',
+  Staff: 'game-icons:wizard-staff',
+  Wand: 'game-icons:crystal-wand',
+  Shield: 'game-icons:round-shield',
+  Fist: 'game-icons:fist',
 });
 
 /** Attunement → identity color (frames, tints, the creature-silhouette color). */
@@ -191,8 +209,18 @@ export function specialFactors(c) {
   for (const bio of listOf(c?.biology)) {
     if (bio === 'Beast') {
       for (const t of listOf(c?.anatomy)) if (ANATOMY_ICON[t]) out.push({ key: `an-${t}`, icon: ANATOMY_ICON[t], label: t });
+    } else if (bio === 'Humanoid') {
+      for (const t of listOf(c?.weapons)) if (WEAPON_ICON[t]) out.push({ key: `wp-${t}`, icon: WEAPON_ICON[t], label: t });
     }
-    // Humanoid → weapons: TBD (no weapon kit yet); other biologies add theirs when built.
+    // other biologies add their special factors when their kit is built.
   }
   return out;
+}
+
+/** The creature's biological identity NAME — the synthesised hybrid name for two
+ *  bases (Beast|Humanoid → "Chimera"), else the single biology. */
+export function biologyName(biologies) {
+  const bios = listOf(biologies);
+  if (bios.length >= 2) return synthName('biology', bios[0], bios[1]);
+  return bios[0] || '';
 }

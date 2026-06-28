@@ -12,6 +12,7 @@ import DeckBuilder from '../ui/deck/DeckBuilder.jsx';
 import { deckToCounts } from '../engine/deck/budget.js';
 import { FORM_ORDER, FORMS, formLabel } from '../data/forms.js';
 import { anatomyForFamily } from '../engine/cards/beastPool.js';
+import { weaponsForArchetype } from '../engine/cards/humanoidPool.js';
 import { ARCHETYPE_ICON, BIOLOGY_ICON, ATTUNEMENT_ICON, ATTUNEMENT_COLOR, creatureIcon, creatureColor } from '../data/axisIcons.js';
 import './creator.css';
 
@@ -20,7 +21,7 @@ const Icon = ({ icon, ...rest }) => <iconify-icon icon={icon} {...rest}></iconif
 function emptyDef(classes, biologies) {
   return { id: null, name: '', lore: '', description: '', class: [classes[0] || 'Warrior'],
     biology: [biologies[0] || 'Humanoid'], attunement: ['Physical'], size: 'regular',
-    family: null, anatomy: [], customDeck: null };
+    family: null, anatomy: [], weapons: [], customDeck: null };
 }
 
 export default function MonsterEditor({ defs = [], classes = [], biologies = [], attunements = [], legalFor, buildPool, families = [], onSave, onDelete, onMenu, tabs }) {
@@ -32,15 +33,16 @@ export default function MonsterEditor({ defs = [], classes = [], biologies = [],
     const atts = (editing.attunement || []).filter(Boolean);
     const legal = legalFor ? legalFor(klass) : attunements;
     const isBeast = (editing.biology || []).includes('Beast');
+    const isHumanoid = (editing.biology || []).includes('Humanoid');
     const family = editing.family || families[0] || null;
     const allowedAnatomy = isBeast ? anatomyForFamily(family) : [];
+    const allowedWeapons = isHumanoid ? weaponsForArchetype(klass) : [];
     const preview = { class: [klass], biology: [editing.biology[0]], attunement: atts.length ? atts : ['Physical'] };
     const color = creatureColor(preview);
     const set = (patch) => setEditing((e) => ({ ...e, ...patch }));
-    const toggleAnatomy = (tag) => set({
-      anatomy: (editing.anatomy || []).includes(tag)
-        ? editing.anatomy.filter((t) => t !== tag)
-        : [...(editing.anatomy || []), tag],
+    const toggleIn = (key, tag) => set({
+      [key]: (editing[key] || []).includes(tag) ? editing[key].filter((t) => t !== tag) : [...(editing[key] || []), tag],
+      customDeck: null,
     });
 
     if (building) {
@@ -87,12 +89,12 @@ export default function MonsterEditor({ defs = [], classes = [], biologies = [],
 
             <div className="crAxes">
               <label className="crFld"><span>Archetype</span>
-                <select value={klass} onChange={(e) => set({ class: [e.target.value], customDeck: null })}>
+                <select value={klass} onChange={(e) => set({ class: [e.target.value], weapons: [], customDeck: null })}>
                   {classes.map((c) => <option key={c} value={c}>{c}</option>)}
                 </select>
               </label>
               <label className="crFld"><span>Biology</span>
-                <select value={editing.biology[0]} onChange={(e) => set({ biology: [e.target.value], family: null, anatomy: [], customDeck: null })}>
+                <select value={editing.biology[0]} onChange={(e) => set({ biology: [e.target.value], family: null, anatomy: [], weapons: [], customDeck: null })}>
                   {biologies.map((bb) => <option key={bb} value={bb}>{bb}</option>)}
                 </select>
               </label>
@@ -126,7 +128,23 @@ export default function MonsterEditor({ defs = [], classes = [], biologies = [],
                   <div className="beastAnatomy">
                     {allowedAnatomy.map((tag) => (
                       <label key={tag} className={`anatTag${(editing.anatomy || []).includes(tag) ? ' on' : ''}`}>
-                        <input type="checkbox" checked={(editing.anatomy || []).includes(tag)} onChange={() => { toggleAnatomy(tag); set({ customDeck: null }); }} />
+                        <input type="checkbox" checked={(editing.anatomy || []).includes(tag)} onChange={() => toggleIn('anatomy', tag)} />
+                        {tag}
+                      </label>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {isHumanoid && (
+              <div className="crAxes">
+                <div className="crDeckHead">Weapons</div>
+                <div className="crFld"><span>Weapons <em>(pick the arms that add to its deck — gated by archetype)</em></span>
+                  <div className="beastAnatomy">
+                    {allowedWeapons.map((tag) => (
+                      <label key={tag} className={`anatTag${(editing.weapons || []).includes(tag) ? ' on' : ''}`}>
+                        <input type="checkbox" checked={(editing.weapons || []).includes(tag)} onChange={() => toggleIn('weapons', tag)} />
                         {tag}
                       </label>
                     ))}
@@ -152,6 +170,7 @@ export default function MonsterEditor({ defs = [], classes = [], biologies = [],
                 const out = { ...editing, name: editing.name.trim() };
                 if (isBeast) { out.family = family; out.anatomy = (editing.anatomy || []).filter((t) => allowedAnatomy.includes(t)); }
                 else { out.family = null; out.anatomy = []; }
+                out.weapons = isHumanoid ? (editing.weapons || []).filter((t) => allowedWeapons.includes(t)) : [];
                 onSave(out); setEditing(null);
               }}>
               {editing.id ? 'Save Changes ✓' : 'Create Monster ✓'}

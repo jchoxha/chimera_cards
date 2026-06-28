@@ -96,10 +96,17 @@ vs the 8 archetypes) and grow.
 
 ## 3. Per-biology seeds (DRAFT — flesh out one at a time)
 
-### 3.1 Humanoid — Archetypes *(LOCKED / already built)*
-The existing system: Warrior · Rogue · Mage · Warlock · Priest · Shaman · Ranger ·
-Engineer (+ 28 hybrids), each a full StS-style discipline. See `docs/archetype-design.md`.
-No change except: this is now **one biology's** kit, not the universal one.
+### 3.1 Humanoid — Archetypes + Weapons *(BUILT)*
+Axis-2 = the existing **Archetype** system: Warrior · Rogue · Mage · Warlock · Priest ·
+Shaman · Ranger · Engineer (+ 28 hybrids), each a full StS-style discipline (see
+`docs/archetype-design.md`) — now **one biology's** kit, not the universal one.
+**Special factors = WEAPONS** (the Humanoid analogue of Beast anatomy, v3.88.0): 12 weapon
+noun-tags (Sword/Axe/Dagger/Bow/Crossbow/Spear/Mace/Hammer/Staff/Wand/Shield/Fist), each a
+small card cluster that ADDS to the archetype pool and shows as a special-factor icon. Each
+archetype is **proficient** with a subset (a plausibility gate, like family→anatomy). 28
+cards in `src/data/humanoidKit.json`, loaded by `src/engine/cards/humanoidPool.js`
+(`humanoidWeaponPool(weapons)` / `weaponsForArchetype(klass)`), `test:humanoid` (159). Wired
+through `basePoolFor` + Editor weapon pickers, exactly parallel to Beast.
 
 ### 3.2 Beast — Families + Anatomy *(built first; the idea that kicked this off)*
 **Two lenses that compose.** A beast is defined by `{family, anatomy[]}`.
@@ -231,6 +238,9 @@ Not building tonight — capture only. When we do:
 The 5 framework questions are **answered** (see the box at the top). What's left is the
 per-biology *content* pass, stepping through one biology at a time:
 
+- **Humanoid — ✅ BUILT.** Archetypes (existing) + the Weapons special-factor system
+  (v3.88.0; see §3.1). Hybrid biology names now resolve through the synthesis matrix on the
+  card (Beast|Humanoid → "Chimera") via `biologyName()`/`synthName('biology',…)`.
 - **Beast — ✅ BUILT (v3.85.0).** 6 Families (Mammalian/Reptilian/Avian/Piscine/Insectoid/
   Amphibian) + 12 Anatomy noun-tags, each family allowing a plausible subset; 50 cards in
   `src/data/beastKit.json`, loaded by `src/engine/cards/beastPool.js` (`beastPool({family,

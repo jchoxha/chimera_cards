@@ -23,7 +23,7 @@ const Icon = ({ icon, ...rest }) => <iconify-icon icon={icon} {...rest}></iconif
 function toFace(c) {
   return {
     id: c.id, name: c.name, hp: c.maxHp, maxHp: c.maxHp, block: 0, statuses: [], powers: [],
-    axes: { class: c.class, biology: c.biology, attunement: c.attunement, family: c.family ?? null, anatomy: c.anatomy ?? null },
+    axes: { class: c.class, biology: c.biology, attunement: c.attunement, family: c.family ?? null, anatomy: c.anatomy ?? null, weapons: c.weapons ?? null },
     element: c.attunement?.[0] || null,
     types: (c.attunement || []).map((a) => ({ type: a, weight: 1 })),
     stats: c.stats, portrait: c.meta?.portrait ?? c.portrait ?? null,
