@@ -151,36 +151,48 @@ export function creatureColor(c) {
 
 /** Read an axis value that may be a string or a [base] array. */
 function one(v) { return Array.isArray(v) ? v[0] ?? null : v ?? null; }
+const listOf = (v) => (Array.isArray(v) ? v : v != null ? [v] : []);
+
+/** The kit icon + label for ONE biology base (the corner delineator for that base):
+ *  Beast → its Family icon; Humanoid → its Archetype icon; other biologies → their own
+ *  biology icon (until their kit/axis-2 is built). */
+function kitFor(bio, c) {
+  if (bio === 'Beast') { const fam = one(c?.family); return { icon: FAMILY_ICON[fam] || BIOLOGY_ICON.Beast, label: fam || 'Beast' }; }
+  if (bio === 'Humanoid') { const cls = first(c, 'class'); return { icon: ARCHETYPE_ICON[cls] || BIOLOGY_ICON.Humanoid, label: cls || 'Humanoid' }; }
+  return { icon: BIOLOGY_ICON[bio] || DEFAULT_CREATURE_ICON, label: bio };
+}
 
 /**
- * The "major submatrix" delineator shown TOP-LEFT of a creature card — the icon for
- * its biology's kit system. Beast → its Family icon; everyone else → its Archetype
- * icon (Humanoid weapons system reuses archetype for now). Falls back to the biology
- * icon. `c` = a creature/axes-like with biology/class/family.
+ * The "major submatrix" delineators shown TOP-LEFT — ONE per biology base, so a hybrid
+ * (max 2 biologies) shows both kit icons (e.g. Beast|Humanoid → Family + Archetype).
+ * Returns [{ key, icon, label }]. Legacy creatures (no biology) fall back to archetype.
  */
-export function submatrixIcon(c) {
-  const bio = first(c, 'biology');
-  if (bio === 'Beast') { const fam = one(c?.family); if (FAMILY_ICON[fam]) return FAMILY_ICON[fam]; }
-  const cls = first(c, 'class');
-  return ARCHETYPE_ICON[cls] || BIOLOGY_ICON[bio] || DEFAULT_CREATURE_ICON;
+export function submatrixIcons(c) {
+  const bios = listOf(c?.biology);
+  if (!bios.length) {
+    const cls = first(c, 'class');
+    return [{ key: 'k0', icon: ARCHETYPE_ICON[cls] || creatureIcon(c), label: cls || '' }];
+  }
+  return bios.map((bio, i) => ({ key: `k${i}`, ...kitFor(bio, c) }));
 }
 
-/** Human-readable label for the submatrix delineator (Family for Beasts, else Archetype). */
-export function submatrixLabel(c) {
-  const bio = first(c, 'biology');
-  if (bio === 'Beast') return one(c?.family) || 'Beast';
-  return first(c, 'class') || bio || '';
-}
+/** First/primary submatrix icon (for minis / back-compat). */
+export function submatrixIcon(c) { return submatrixIcons(c)[0]?.icon || DEFAULT_CREATURE_ICON; }
+/** Joined label of every submatrix delineator (e.g. "Mammalian · Warrior"). */
+export function submatrixLabel(c) { return submatrixIcons(c).map((x) => x.label).filter(Boolean).join(' · '); }
 
 /**
- * The "special factors" row (right side, under the name): one entry per kit detail.
- * Beast → each Anatomy tag it has. (Humanoid weapons TBD.) Returns [{ key, icon, label }].
+ * The "special factors" row (right side, under the name): one entry per kit detail,
+ * UNIONED across every biology base. Beast → each Anatomy tag. (Humanoid weapons TBD.)
+ * Returns [{ key, icon, label }].
  */
 export function specialFactors(c) {
-  const bio = first(c, 'biology');
-  if (bio === 'Beast') {
-    const an = Array.isArray(c?.anatomy) ? c.anatomy : [];
-    return an.filter((t) => ANATOMY_ICON[t]).map((t) => ({ key: t, icon: ANATOMY_ICON[t], label: t }));
+  const out = [];
+  for (const bio of listOf(c?.biology)) {
+    if (bio === 'Beast') {
+      for (const t of listOf(c?.anatomy)) if (ANATOMY_ICON[t]) out.push({ key: `an-${t}`, icon: ANATOMY_ICON[t], label: t });
+    }
+    // Humanoid → weapons: TBD (no weapon kit yet); other biologies add theirs when built.
   }
-  return [];
+  return out;
 }

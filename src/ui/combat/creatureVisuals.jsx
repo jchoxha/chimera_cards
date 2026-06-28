@@ -7,7 +7,7 @@
 // ╚══════════════════════════════════════════════════════════════════╝
 import React from 'react';
 import { frameStyle } from './frames.js';
-import { creatureIcon, creatureColor, ATTUNEMENT_ICON, ATTUNEMENT_COLOR, submatrixIcon, submatrixLabel, specialFactors } from '../../data/axisIcons.js';
+import { creatureIcon, creatureColor, ATTUNEMENT_ICON, ATTUNEMENT_COLOR, submatrixIcons, specialFactors } from '../../data/axisIcons.js';
 import { creatureArt } from '../../data/artPool.js';
 import { ELEMENT_COLOR, FORMS } from '../../systems/elements.jsx';
 
@@ -89,16 +89,19 @@ export function artScale(form) { return FORMS[form]?.art ?? 1; }
 /** The size word prefixed onto a creature's name ("Large Ironhide"); '' for Regular. */
 export function sizeWord(form) { return FORMS[form]?.label || ''; }
 
-/** Top-left "major submatrix" badge: the kit-system icon (Archetype for Humanoid,
- *  Family for Beast). `axes` = the card's axes object; `onClick` opens its info. */
+/** Top-left "major submatrix" badge: ONE kit icon per biology base (Archetype for
+ *  Humanoid, Family for Beast), so a hybrid shows both. `axes` = the card's axes
+ *  object; `onClick` opens its info. */
 export function SubmatrixBadge({ axes, onClick }) {
   if (!axes) return null;
-  const icon = submatrixIcon(axes);
-  const label = submatrixLabel(axes);
+  const icons = submatrixIcons(axes);
+  if (!icons.length) return null;
   return (
-    <div className={`submatrix${onClick ? ' clickable' : ''}`} title={label || undefined}
+    <div className={`submatrix${icons.length > 1 ? ' multi' : ''}${onClick ? ' clickable' : ''}`}
       onClick={onClick ? (e) => { e.stopPropagation(); onClick(); } : undefined}>
-      <Icon icon={icon} />
+      {icons.map((it) => (
+        <span key={it.key} className="smIcon" title={it.label || undefined}><Icon icon={it.icon} /></span>
+      ))}
     </div>
   );
 }
@@ -192,7 +195,7 @@ export function CardFace({ f, side, matchup, onEffect, onInfo, onName, extraClas
       className={`frame combat ${fr.finish}${extraClass}`}
       style={{ background: fr.background }}>
       {fr.holo && <div className="holo" />}
-      <SubmatrixBadge axes={f.axes} onClick={onInfo && f.axes ? () => onInfo({ kind: 'axis', axis: f.axes.biology?.[0] === 'Beast' ? 'biology' : 'class', value: f.axes.biology?.[0] === 'Beast' ? f.axes.biology : f.axes.class }) : undefined} />
+      <SubmatrixBadge axes={f.axes} onClick={onInfo && f.axes ? () => onInfo({ kind: 'axis', axis: 'biology', value: f.axes.biology }) : undefined} />
       {elementBadge(badgeEl, onInfo ? () => onInfo({ kind: 'axis', axis: 'attunement', value: f.axes?.attunement ?? [badgeEl] }) : undefined)}
       <span className={`sideTag ${isFoe ? 'foe' : 'you'}`}>{isFoe ? 'FOE' : 'YOU'}</span>
       {f.block > 0 && (
@@ -224,11 +227,11 @@ export function CardFace({ f, side, matchup, onEffect, onInfo, onName, extraClas
           {sizeWord(f.form) ? <span className="sizeWord">{sizeWord(f.form)} </span> : null}{f.name}{f.hp <= 0 ? ' 💀' : ''}</div>
         {f.axes && (f.axes.biology || (() => { const sf = specialFactors(f.axes); return sf.length; })()) && (() => {
           const factors = specialFactors(f.axes);
-          const bio = f.axes.biology?.[0];
+          const bios = Array.isArray(f.axes.biology) ? f.axes.biology : (f.axes.biology ? [f.axes.biology] : []);
           return (
             <div className="axesLine">
-              {bio
-                ? <button className="bioTok" onClick={onInfo ? (e) => { e.stopPropagation(); axisInfo('biology'); } : undefined}>{bio}</button>
+              {bios.length
+                ? <button className="bioTok" onClick={onInfo ? (e) => { e.stopPropagation(); axisInfo('biology'); } : undefined}>{bios.join(' · ')}</button>
                 : <span />}
               <span className="factorRow">
                 {factors.map((fac) => (

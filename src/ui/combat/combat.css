@@ -586,10 +586,14 @@ html:has(.cmbt),body:has(.cmbt){height:100%;margin:0;overflow:hidden}
 .cmbt .axesLine .factorRow{ display:flex; align-items:center; gap:3px; }
 .cmbt .axesLine .factorIcon{ display:inline-flex; width:14px; height:14px; color:#e7d6a8; }
 .cmbt .axesLine .factorIcon iconify-icon{ width:14px; height:14px; }
-/* Top-left "major submatrix" badge (Archetype for Humanoid, Family for Beast). */
-.cmbt .submatrix{ position:absolute; top:-9px; left:-9px; z-index:5; width:30px; height:30px; border-radius:50%;
-  display:flex; align-items:center; justify-content:center; font-size:16px; color:var(--cream);
+/* Top-left "major submatrix" badge — one kit icon per biology base (hybrids show 2). */
+.cmbt .submatrix{ position:absolute; top:-9px; left:-9px; z-index:5; min-width:30px; height:30px; border-radius:15px;
+  display:flex; align-items:center; justify-content:center; gap:1px; padding:0 3px; font-size:16px; color:var(--cream);
   background:linear-gradient(160deg,#241a3a,#140e26); border:1.5px solid var(--goldB); box-shadow:0 2px 6px #000a; }
+.cmbt .submatrix .smIcon{ display:inline-flex; width:18px; height:18px; align-items:center; justify-content:center; }
+.cmbt .submatrix .smIcon iconify-icon{ width:18px; height:18px; }
+.cmbt .submatrix.multi .smIcon{ width:16px; height:16px; }
+.cmbt .submatrix.multi .smIcon iconify-icon{ width:16px; height:16px; }
 .cmbt .submatrix.clickable{ cursor:pointer; }
 .cmbt .submatrix.clickable:hover{ filter:brightness(1.18); }
 .cmbt .nameBan .sizeWord{ color:var(--goldB); font-weight:700; }
@@ -678,8 +682,11 @@ html:has(.cmbt),body:has(.cmbt){height:100%;margin:0;overflow:hidden}
 .modalCardWrap .axesLine .factorRow{ display:flex; align-items:center; gap:3px; }
 .modalCardWrap .axesLine .factorIcon{ display:inline-flex; width:15px; height:15px; color:#e7d6a8; }
 .modalCardWrap .axesLine .factorIcon iconify-icon{ width:15px; height:15px; }
-.modalCardWrap .submatrix{ position:absolute; top:-9px; left:-9px; z-index:5; width:30px; height:30px; border-radius:50%;
-  display:flex; align-items:center; justify-content:center; font-size:16px; color:var(--cream);
+.modalCardWrap .submatrix{ position:absolute; top:-9px; left:-9px; z-index:5; min-width:30px; height:30px; border-radius:15px;
+  display:flex; align-items:center; justify-content:center; gap:1px; padding:0 3px; font-size:16px; color:var(--cream);
   background:linear-gradient(160deg,#241a3a,#140e26); border:1.5px solid var(--goldB); box-shadow:0 2px 6px #000a; }
+.modalCardWrap .submatrix .smIcon{ display:inline-flex; width:18px; height:18px; align-items:center; justify-content:center; }
+.modalCardWrap .submatrix .smIcon iconify-icon{ width:18px; height:18px; }
+.modalCardWrap .submatrix.multi .smIcon, .modalCardWrap .submatrix.multi .smIcon iconify-icon{ width:16px; height:16px; }
 .modalCardWrap .submatrix.clickable{ cursor:pointer; }
 .modalCardWrap .nameBan .sizeWord{ color:var(--goldB); font-weight:700; }

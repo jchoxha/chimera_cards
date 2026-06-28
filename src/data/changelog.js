@@ -6,6 +6,9 @@
 
 /** @type {{version:string, date:string, notes:string[]}[]} newest first */
 export const CHANGELOG = [
+  { version: 'v3.87.0', date: '2026-06-28', notes: [
+    'Hybrid creatures now show a kit icon for EACH of their biologies in the top-left corner (e.g. a Beast/Humanoid shows both its Family and its Archetype), and their special-factor row combines both halves. The biology label lists both (“Beast · Humanoid”).',
+  ] },
   { version: 'v3.86.0', date: '2026-06-28', notes: [
     'Creature cards redesigned to show each creature’s kit at a glance. Size now reads as part of the name (e.g. “Large Ironhide”). The top-left corner shows the creature’s major kit icon — its Archetype for Humanoids, its Family for Beasts. Under the name, its Biology sits on the left and its special factors line up on the right as icons (for Beasts, one per Anatomy part — Claws, Teeth, Roar…).',
   ] },
