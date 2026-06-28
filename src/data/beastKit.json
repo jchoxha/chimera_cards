@@ -1,0 +1,153 @@
+{
+  "_note": "Beast biology kit (docs/biology-kits.md §3.2). A beast is {family, anatomy[]}. FAMILIES = basic scientific animal classes — each themes behaviour + ~3 signature cards. ANATOMY = noun body-part tags whose card clusters build the pool BULK; each family allows a subset (plausibility). Cards are authored Physical + imbue (re-skinned to the creature's attunement at generation, like archetype attacks) and run through interpret.js. Numbers provisional. Loaded by engine/cards/beastPool.js.",
+  "families": {
+    "Mammalian": {
+      "theme": "Adaptable pursuit predators and herd beasts — relentless tempo, pack pressure, balanced offence.",
+      "anatomy": ["Claws", "Teeth", "Horns", "Tail", "Hooves", "Hide", "Roar"],
+      "signatures": [
+        { "id": "beast_fam_mammalian_pursuit", "name": "Pursuit", "attunement": "Physical", "imbue": 1, "type": "attack", "cost": 1, "rarity": "common", "starter": true, "effects": [{ "op": "damage", "value": 6 }, { "op": "draw", "value": 1 }] },
+        { "id": "beast_fam_mammalian_packtactics", "name": "Pack Tactics", "attunement": "Physical", "type": "skill", "cost": 1, "rarity": "uncommon", "effects": [{ "op": "buff", "status": "strength", "value": 1 }, { "op": "draw", "value": 1 }] },
+        { "id": "beast_fam_mammalian_adrenaline", "name": "Adrenaline", "attunement": "Physical", "type": "skill", "cost": 0, "rarity": "rare", "effects": [{ "op": "energy", "value": 1 }, { "op": "draw", "value": 1 }] }
+      ]
+    },
+    "Reptilian": {
+      "theme": "Cold-blooded, armoured ambushers — soak a turn, ramp defence, then bite hard.",
+      "anatomy": ["Teeth", "Claws", "Tail", "Hide", "Venom", "Shell"],
+      "signatures": [
+        { "id": "beast_fam_reptilian_coldblood", "name": "Cold Blood", "attunement": "Physical", "type": "skill", "cost": 1, "rarity": "common", "starter": true, "effects": [{ "op": "block", "value": 6 }, { "op": "buff", "status": "dexterity", "value": 1 }] },
+        { "id": "beast_fam_reptilian_ambush", "name": "Ambush", "attunement": "Physical", "imbue": 1, "type": "attack", "cost": 2, "rarity": "uncommon", "effects": [{ "op": "damage", "value": 10 }, { "op": "debuff", "status": "vulnerable", "value": 2 }] },
+        { "id": "beast_fam_reptilian_regenerate", "name": "Regenerate", "attunement": "Physical", "type": "skill", "cost": 1, "rarity": "rare", "effects": [{ "op": "buff", "status": "regen", "value": 3 }] }
+      ]
+    },
+    "Avian": {
+      "theme": "Aerial skirmishers — evasion, card flow, and screeching dives that control tempo.",
+      "anatomy": ["Beak", "Claws", "Wings", "Quills", "Roar"],
+      "signatures": [
+        { "id": "beast_fam_avian_takeflight", "name": "Take Flight", "attunement": "Physical", "type": "skill", "cost": 1, "rarity": "common", "starter": true, "effects": [{ "op": "block", "value": 5 }, { "op": "draw", "value": 1 }] },
+        { "id": "beast_fam_avian_divebomb", "name": "Dive Bomb", "attunement": "Physical", "imbue": 1, "type": "attack", "cost": 1, "rarity": "uncommon", "effects": [{ "op": "damage", "value": 9 }] },
+        { "id": "beast_fam_avian_screech", "name": "Screech", "attunement": "Physical", "type": "skill", "cost": 1, "rarity": "uncommon", "effects": [{ "op": "debuff", "status": "weak", "value": 1, "scope": "wholeEnemySide" }, { "op": "draw", "value": 1 }] }
+      ]
+    },
+    "Piscine": {
+      "theme": "Aquatic controllers — drench foes with Soak to set up devastating, primed blows.",
+      "anatomy": ["Teeth", "Tail", "Hide", "Venom", "Shell"],
+      "signatures": [
+        { "id": "beast_fam_piscine_drench", "name": "Drench", "attunement": "Physical", "type": "skill", "cost": 1, "rarity": "common", "starter": true, "effects": [{ "op": "debuff", "status": "soak", "value": 2 }] },
+        { "id": "beast_fam_piscine_riptide", "name": "Riptide", "attunement": "Physical", "imbue": 1, "type": "attack", "cost": 2, "rarity": "uncommon", "effects": [{ "op": "damage", "value": 6 }, { "op": "debuff", "status": "soak", "value": 2 }] },
+        { "id": "beast_fam_piscine_slippery", "name": "Slippery", "attunement": "Physical", "type": "skill", "cost": 1, "rarity": "uncommon", "effects": [{ "op": "block", "value": 6 }, { "op": "draw", "value": 1 }] }
+      ]
+    },
+    "Insectoid": {
+      "theme": "Fragile swarmers — many small hits, spreading venom, and raw card volume.",
+      "anatomy": ["Claws", "Venom", "Shell", "Wings", "Quills"],
+      "signatures": [
+        { "id": "beast_fam_insectoid_swarm", "name": "Swarm", "attunement": "Physical", "imbue": 1, "type": "attack", "cost": 1, "rarity": "common", "starter": true, "effects": [{ "op": "damage", "value": 3, "hits": 2 }] },
+        { "id": "beast_fam_insectoid_infest", "name": "Infest", "attunement": "Physical", "type": "skill", "cost": 1, "rarity": "uncommon", "effects": [{ "op": "debuff", "status": "poison", "value": 4 }] },
+        { "id": "beast_fam_insectoid_hivemind", "name": "Hive Mind", "attunement": "Physical", "type": "skill", "cost": 0, "rarity": "rare", "effects": [{ "op": "draw", "value": 2 }] }
+      ]
+    },
+    "Amphibian": {
+      "theme": "Versatile survivors — toxic skin, regeneration, and adaptable mixed tools.",
+      "anatomy": ["Teeth", "Tail", "Venom", "Hide", "Roar"],
+      "signatures": [
+        { "id": "beast_fam_amphibian_toxicskin", "name": "Toxic Skin", "attunement": "Physical", "type": "power", "cost": 1, "rarity": "common", "starter": true, "trigger": { "on": "onDamageTaken", "effects": [{ "op": "debuff", "status": "poison", "value": 2, "scope": "enemyActiveTarget" }] } },
+        { "id": "beast_fam_amphibian_tonguelash", "name": "Tongue Lash", "attunement": "Physical", "imbue": 1, "type": "attack", "cost": 1, "rarity": "uncommon", "effects": [{ "op": "damage", "value": 7 }] },
+        { "id": "beast_fam_amphibian_adapt", "name": "Adapt", "attunement": "Physical", "type": "skill", "cost": 1, "rarity": "uncommon", "effects": [{ "op": "block", "value": 5 }, { "op": "draw", "value": 1 }] }
+      ]
+    }
+  },
+  "anatomy": {
+    "Claws": {
+      "theme": "Quick raking multi-hit attacks that stack Bleed.",
+      "cards": [
+        { "id": "beast_anat_claws_rake", "name": "Rake", "attunement": "Physical", "imbue": 1, "type": "attack", "cost": 1, "rarity": "common", "effects": [{ "op": "damage", "value": 4, "hits": 2 }] },
+        { "id": "beast_anat_claws_maul", "name": "Maul", "attunement": "Physical", "imbue": 1, "type": "attack", "cost": 2, "rarity": "uncommon", "effects": [{ "op": "damage", "value": 5, "hits": 2 }, { "op": "debuff", "status": "bleed", "value": 2 }] },
+        { "id": "beast_anat_claws_eviscerate", "name": "Eviscerate", "attunement": "Physical", "imbue": 1, "type": "attack", "cost": 2, "rarity": "rare", "effects": [{ "op": "damage", "value": 4, "hits": 3 }, { "op": "debuff", "status": "bleed", "value": 2 }] }
+      ]
+    },
+    "Teeth": {
+      "theme": "Heavy single bites — big damage, finishing power.",
+      "cards": [
+        { "id": "beast_anat_teeth_bite", "name": "Bite", "attunement": "Physical", "imbue": 1, "type": "attack", "cost": 1, "rarity": "common", "effects": [{ "op": "damage", "value": 8 }] },
+        { "id": "beast_anat_teeth_savagebite", "name": "Savage Bite", "attunement": "Physical", "imbue": 1, "type": "attack", "cost": 2, "rarity": "uncommon", "effects": [{ "op": "damage", "value": 12 }, { "op": "debuff", "status": "bleed", "value": 2 }] },
+        { "id": "beast_anat_teeth_crushingjaws", "name": "Crushing Jaws", "attunement": "Physical", "imbue": 1, "type": "attack", "cost": 2, "rarity": "rare", "effects": [{ "op": "damage", "value": 10, "bonusIf": { "targetHpPctBelow": 50 }, "bonusAdd": 8 }] }
+      ]
+    },
+    "Beak": {
+      "theme": "Precise piercing strikes that Expose (ignore Block).",
+      "cards": [
+        { "id": "beast_anat_beak_peck", "name": "Peck", "attunement": "Physical", "imbue": 1, "type": "attack", "cost": 1, "rarity": "common", "effects": [{ "op": "damage", "value": 5 }, { "op": "debuff", "status": "expose", "value": 2 }] },
+        { "id": "beast_anat_beak_skewer", "name": "Skewer", "attunement": "Physical", "imbue": 1, "type": "attack", "cost": 2, "rarity": "uncommon", "effects": [{ "op": "damage", "value": 9 }, { "op": "debuff", "status": "expose", "value": 3 }] }
+      ]
+    },
+    "Horns": {
+      "theme": "Charging gores — big single hits that leave the target Vulnerable.",
+      "cards": [
+        { "id": "beast_anat_horns_gore", "name": "Gore", "attunement": "Physical", "imbue": 1, "type": "attack", "cost": 1, "rarity": "common", "effects": [{ "op": "damage", "value": 7 }, { "op": "debuff", "status": "vulnerable", "value": 1 }] },
+        { "id": "beast_anat_horns_charge", "name": "Charge", "attunement": "Physical", "imbue": 1, "type": "attack", "cost": 2, "rarity": "uncommon", "effects": [{ "op": "damage", "value": 12 }, { "op": "debuff", "status": "vulnerable", "value": 2 }] },
+        { "id": "beast_anat_horns_impale", "name": "Impale", "attunement": "Physical", "imbue": 1, "type": "attack", "cost": 2, "rarity": "rare", "effects": [{ "op": "damage", "value": 16 }] }
+      ]
+    },
+    "Tail": {
+      "theme": "Sweeping strikes that hit the whole enemy side.",
+      "cards": [
+        { "id": "beast_anat_tail_swipe", "name": "Tail Swipe", "attunement": "Physical", "imbue": 1, "type": "attack", "cost": 1, "rarity": "common", "effects": [{ "op": "damage", "value": 4, "scope": "wholeEnemySide" }] },
+        { "id": "beast_anat_tail_sweeplash", "name": "Sweeping Lash", "attunement": "Physical", "imbue": 1, "type": "attack", "cost": 2, "rarity": "uncommon", "effects": [{ "op": "damage", "value": 6, "scope": "wholeEnemySide" }] }
+      ]
+    },
+    "Hooves": {
+      "theme": "Trampling stomps — momentum that deals damage and braces.",
+      "cards": [
+        { "id": "beast_anat_hooves_kick", "name": "Kick", "attunement": "Physical", "imbue": 1, "type": "attack", "cost": 1, "rarity": "common", "effects": [{ "op": "damage", "value": 7 }] },
+        { "id": "beast_anat_hooves_stomp", "name": "Stomp", "attunement": "Physical", "imbue": 1, "type": "attack", "cost": 2, "rarity": "uncommon", "effects": [{ "op": "damage", "value": 5, "scope": "wholeEnemySide" }, { "op": "debuff", "status": "weak", "value": 1, "scope": "wholeEnemySide" }] },
+        { "id": "beast_anat_hooves_trample", "name": "Trample", "attunement": "Physical", "imbue": 1, "type": "attack", "cost": 2, "rarity": "rare", "effects": [{ "op": "damage", "value": 10 }, { "op": "block", "value": 5 }] }
+      ]
+    },
+    "Wings": {
+      "theme": "Aerial mobility — Block, evasion, and card draw.",
+      "cards": [
+        { "id": "beast_anat_wings_gust", "name": "Gust", "attunement": "Physical", "type": "skill", "cost": 1, "rarity": "common", "effects": [{ "op": "block", "value": 5 }, { "op": "draw", "value": 1 }] },
+        { "id": "beast_anat_wings_updraft", "name": "Updraft", "attunement": "Physical", "type": "skill", "cost": 1, "rarity": "uncommon", "effects": [{ "op": "block", "value": 8 }, { "op": "buff", "status": "dexterity", "value": 1 }] }
+      ]
+    },
+    "Quills": {
+      "theme": "Defensive barbs — spray attacks and retaliation against attackers.",
+      "cards": [
+        { "id": "beast_anat_quills_spray", "name": "Quill Spray", "attunement": "Physical", "imbue": 1, "type": "attack", "cost": 1, "rarity": "common", "effects": [{ "op": "damage", "value": 3, "scope": "wholeEnemySide" }] },
+        { "id": "beast_anat_quills_bristle", "name": "Bristle", "attunement": "Physical", "type": "power", "cost": 1, "rarity": "uncommon", "trigger": { "on": "onDamageTaken", "effects": [{ "op": "damage", "value": 3, "scope": "enemyActiveTarget" }] } },
+        { "id": "beast_anat_quills_barbedhide", "name": "Barbed Hide", "attunement": "Physical", "type": "power", "cost": 2, "rarity": "rare", "trigger": { "on": "onDamageTaken", "effects": [{ "op": "damage", "value": 5, "scope": "enemyActiveTarget" }] } }
+      ]
+    },
+    "Venom": {
+      "theme": "Toxins — stacking Poison that bypasses Block.",
+      "cards": [
+        { "id": "beast_anat_venom_bite", "name": "Venom Bite", "attunement": "Physical", "imbue": 1, "type": "attack", "cost": 1, "rarity": "common", "effects": [{ "op": "damage", "value": 4 }, { "op": "debuff", "status": "poison", "value": 3 }] },
+        { "id": "beast_anat_venom_spit", "name": "Toxic Spit", "attunement": "Physical", "type": "skill", "cost": 1, "rarity": "uncommon", "effects": [{ "op": "debuff", "status": "poison", "value": 5 }] },
+        { "id": "beast_anat_venom_neurotoxin", "name": "Neurotoxin", "attunement": "Physical", "type": "skill", "cost": 2, "rarity": "rare", "effects": [{ "op": "debuff", "status": "poison", "value": 4, "scope": "wholeEnemySide" }] }
+      ]
+    },
+    "Hide": {
+      "theme": "Thick skin — reliable Block and toughness.",
+      "cards": [
+        { "id": "beast_anat_hide_thick", "name": "Thick Hide", "attunement": "Physical", "type": "skill", "cost": 1, "rarity": "common", "effects": [{ "op": "block", "value": 7 }] },
+        { "id": "beast_anat_hide_toughen", "name": "Toughen", "attunement": "Physical", "type": "skill", "cost": 1, "rarity": "uncommon", "effects": [{ "op": "block", "value": 5 }, { "op": "buff", "status": "dexterity", "value": 1 }] },
+        { "id": "beast_anat_hide_leathery", "name": "Leathery Skin", "attunement": "Physical", "type": "power", "cost": 1, "rarity": "rare", "trigger": { "on": "turnStart", "effects": [{ "op": "block", "value": 3 }] } }
+      ]
+    },
+    "Shell": {
+      "theme": "Armoured carapace — heavy braced Block that persists.",
+      "cards": [
+        { "id": "beast_anat_shell_up", "name": "Shell Up", "attunement": "Physical", "type": "skill", "cost": 1, "rarity": "common", "effects": [{ "op": "block", "value": 8, "brace": true }] },
+        { "id": "beast_anat_shell_carapace", "name": "Carapace", "attunement": "Physical", "type": "skill", "cost": 2, "rarity": "uncommon", "effects": [{ "op": "block", "value": 14, "brace": true }] }
+      ]
+    },
+    "Roar": {
+      "theme": "Intimidating bellows — buff the self or cow the whole enemy side.",
+      "cards": [
+        { "id": "beast_anat_roar_roar", "name": "Roar", "attunement": "Physical", "type": "skill", "cost": 1, "rarity": "common", "effects": [{ "op": "buff", "status": "strength", "value": 2 }] },
+        { "id": "beast_anat_roar_intimidate", "name": "Intimidate", "attunement": "Physical", "type": "skill", "cost": 1, "rarity": "uncommon", "effects": [{ "op": "debuff", "status": "weak", "value": 2, "scope": "wholeEnemySide" }] },
+        { "id": "beast_anat_roar_rallying", "name": "Rallying Roar", "attunement": "Physical", "type": "power", "cost": 1, "rarity": "rare", "trigger": { "on": "turnStart", "effects": [{ "op": "buff", "status": "strength", "value": 1 }] } }
+      ]
+    }
+  }
+}
