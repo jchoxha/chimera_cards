@@ -2,10 +2,10 @@
 
 > Status: **framework LOCKED (2026-06-27); Beast + Humanoid BUILT (v3.85/3.88).** Per-biology
 > card content is authored one biology at a time. This reframes the §7 generator and the §14
-> "card content" plane of `docs/synthesis-matrix-spec.md`. **⚠ OPEN REDESIGN (§8, 2026-06-28):
-> demoting Undead + Giant to condition/template MODIFIERS (the only two that aren't kit-worthy
-> standalone bodies; Mechanical/Demon/etc. STAY bases — their overlays are hybrids) — decide
-> before authoring the remaining biologies.**
+> "card content" plane of `docs/synthesis-matrix-spec.md`. **🔒 MODEL REWORKED (§9, 2026-06-28 PM,
+> Jeton): the 9 biologies collapse into 3 BODY TYPES (Humanoid · Beast · Aberration) + a set of
+> DESCRIPTIVE SUBTYPES (Mechanical/Elemental/Giant/Demonic…) that apply across the whole body-type
+> hybrid matrix in any combination. Dragonkin → a Beast "Draconic" family. §8 is SUPERSEDED by §9.**
 
 ## Answered framework decisions (2026-06-27, Jeton)
 1. **Axis-2 is reused per biology AND multi-valued.** Keep all 3 tag slots for everyone;
@@ -259,7 +259,10 @@ per-biology *content* pass, stepping through one biology at a time:
 
 ---
 
-## 8. OPEN REDESIGN — base biologies vs condition templates (PROPOSAL, 2026-06-28)
+## 8. ~~OPEN REDESIGN — base biologies vs condition templates~~ — SUPERSEDED by §9
+
+> Kept for history. §8 proposed 7 bases + a small "condition" tier. Jeton then went further:
+> collapse to **3 body types + descriptive subtypes** — see **§9 (the locked model)**.
 
 > Jeton's observation: not all 9 "biologies" are the same *kind* of thing. Some are genuine
 > **body plans** (what a creature **is**); others read more like **conditions / templates**
@@ -346,3 +349,79 @@ Elemental conditions; their overlays are hybrids.
 If we adopt C, the build order for "remaining biologies" shrinks: we author **Dragonkin /
 Mechanical / Elemental / Aberration / Demon** as full kits, and **Undead / Giant (+ new)** as
 lighter **condition packages** — less work and a cleaner taxonomy.
+
+---
+
+## 9. 🔒 LOCKED MODEL — Body Types + Descriptive Subtypes (2026-06-28 PM, Jeton)
+
+> Supersedes §8 and the 9-biology framing. The "biology" axis splits into TWO concepts: a
+> **Body Type** (the FORM) and zero-or-more **Descriptive Subtypes** (what it's MADE OF / AFFECTED
+> BY). Big migration — captured here; built in stages (§9.3).
+
+### 9.1 A. Body Types (the base — the FORM). Exactly three.
+Partition by *form*; a creature has **1–2** (pairwise hybrid matrix).
+- **Humanoid** — person-shaped (bipedal, limbed, tool-using). Kit: **Archetypes + Weapons** (built).
+- **Beast** — animal-shaped (recognisable creature anatomy). Kit: **Families + Anatomy** (built).
+  **Dragonkin folds in as the "Draconic" Beast family** — chromatic dragons come from the
+  attunement axis (red=Fire, blue=Frost/Water…); **Breath** becomes an Anatomy tag.
+- **Aberration** — *neither* person nor animal: formless, geometric, eldritch, plant, ooze,
+  crystal, abstract. The **catch-all FORM**, which is what makes the trichotomy exhaustive. Kit:
+  TBD — **deliberately WIDE families** (Eldritch · Construct-abstract · Ooze · Plant · Formless…)
+  so the big tent has internal texture (see §9.4).
+
+The 3 body-type hybrids already have names in `BIOLOGY_SYNTHESIS`: Beast|Humanoid = **Chimera**,
+Beast|Aberration = **Anomalous**, Humanoid|Aberration = **Warped**.
+
+### 9.2 B. Descriptive Subtypes (modifiers — composition / affliction).
+Apply to **ANY** body type or hybrid, in **ANY combination (0–N)**. Each = a **trait/card package**,
+NOT a full kit (no axis-2 tag). Start with four; the rest are backlog.
+- **Mechanical** — built/constructed: modules, overheat, constructs, self-repair.
+- **Elemental** — made of an element: leans hard on attunement, form-shifting, overload.
+- **Giant** — titanic scale: gates size to Large+, stomp/throw/quake, immovable (rides the size
+  ladder for stats, adds mechanics on top).
+- **Demonic** — fiend-touched: sacrifice, curse, fel, summon.
+- *Backlog:* Undead · Hallowed · Feral · Ancient · Swarm · Cursed · Spectral.
+
+**Jeton's axiom (endorsed):** there is no subtype creature WITHOUT a body type — every
+Mechanical/Elemental/Giant/Demonic thing is one of *Humanoid / Beast / Aberration*. Formless
+elementals and abstract machines are the **Aberration** body type (the non-person/non-animal
+catch-all). Robustly exhaustive; the cost is Aberration's breadth (§9.4).
+
+**Continuity bonus:** old biology-hybrid names become **body × subtype flavor names** — Mechanical
+Beast = **Cybeast**, Giant Beast = **Behemoth**, Demonic Beast = **Felbeast**, Mechanical Dragon
+(Draconic Beast) = **Geargon**, etc. Reuse `BIOLOGY_SYNTHESIS` as a naming source.
+
+### 9.3 Migration (large — data-model touch points)
+- **`synthesis.js`:** `BIOLOGY_BASES` (9) → `BODY_TYPES` (Humanoid/Beast/Aberration) + new
+  `SUBTYPES` (Mechanical/Elemental/Giant/Demonic…). Keep `BIOLOGY_SYNTHESIS` as the body×subtype
+  name source; body-type hybrid names are the 3 pairs.
+- **Beast kit:** add the **Draconic** family + **Breath** anatomy tag (Dragonkin fold-in).
+- **Aberration kit:** author its wide families + special factors (§9.4).
+- **Subtype packages:** new data + a `subtypePool`/trait-applier (cards + passives a subtype grants).
+- **`matchups.js`:** biology→attunement constitution currently keys on the 9 biologies; re-key onto
+  body types + subtypes (the Mechanical/Elemental/etc. subtype likely carries the constitution now).
+- **Generator/`basePoolFor`:** pool = body-type kit(s) ∪ each subtype's package.
+- **Display:** body-type icon(s) in the corner cluster (per the card redesign); **subtype icons**
+  need a home (§9.5); biology label → body-type synth name with subtype prefixes
+  ("Giant Mechanical Chimera").
+- **Editor / inferTypings / Codex / roster:** re-tag the 12 roster creatures (Ironhide = Giant
+  Humanoid?; Emberwisp = Elemental Aberration; Cogwright = Mechanical Humanoid; Grimsoul = Undead
+  Humanoid; Maw = Aberration; Voltfang = Beast; …), add body-type + subtype pickers.
+
+### 9.4 Pushback captured — Aberration's double duty (decide before building Aberration)
+Aberration is now BOTH a flavored eldritch body type AND the junk-drawer for every non-person/
+non-animal form. A Mechanical Aberration turret isn't *eldritch*, just non-animal. **Recommend:**
+accept Aberration = "other form," broadly, and give it **wide internal families** so the bucket has
+texture (don't add a 4th body type). Alternative: keep Aberration narrowly eldritch + add a generic
+"Construct/Other" form — rejected as it breaks the clean three.
+
+### 9.5 Open refinements (small — settle alongside the build)
+1. **Triple body-type hybrid** (Beast+Humanoid+Aberration) — allow, or cap at 2? (proposal: cap 2.)
+2. **Subtype stacking** — truly any combination (Giant+Mechanical+Demonic)? (proposal: yes; the
+   rarity/deck budget keeps it fair; soft-cap ~2 for sanity/UI.)
+3. **Aberration families** — wide (§9.4) confirmed?
+4. **Subtype display** — where do subtype icons live on the card? Options: (a) a second small lane
+   under the body-type/special-factor line, (b) prefix badges on the name, (c) fold into the corner
+   cluster as extra chips. (proposal: a slim subtype lane; keep the corner = body-type kits only.)
+5. **Draconic family** — confirm Breath-as-anatomy + attunement-as-chroma; any Draconic-only
+   signatures (hoard, flight) as family cards?

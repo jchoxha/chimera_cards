@@ -15,7 +15,20 @@ This repo currently holds **two codebases** that coexist:
    (StS2-grounded). This is the active direction. Playable combat demo at
    https://jchoxha.github.io/chimera_cards/combat.html
 
-**🧬 NEW DIRECTION — BIOLOGY SELECTS THE KIT SYSTEM (framework LOCKED 2026-06-27, Jeton).**
+**🧬🔒 MODEL REWORKED — BODY TYPES + DESCRIPTIVE SUBTYPES (2026-06-28 PM, Jeton; `docs/biology-kits.md`
+§9).** The 9 biologies collapse into **3 Body Types (the FORM): Humanoid · Beast · Aberration** +
+a set of **Descriptive Subtypes (composition/affliction): Mechanical · Elemental · Giant · Demonic**
+(backlog: Undead/Hallowed/Feral/Ancient/Swarm/Cursed/Spectral). Subtypes apply across the whole
+3-body-type **hybrid matrix** (Chimera/Anomalous/Warped) in **any combination**. **Dragonkin →
+a Beast "Draconic" family** (chroma from attunement, Breath = an anatomy tag). **Aberration =
+the catch-all non-person/non-animal form** (give it WIDE families). Old biology-hybrid names become
+body×subtype flavor names (Cybeast=Mechanical Beast, Behemoth=Giant Beast…). **Migration is large +
+not yet built — §9.3; settle §9.4 (Aberration breadth) + §9.5 refinements first.** The kit framework
+below (axis-2 per body type: Humanoid→Archetype+Weapons BUILT, Beast→Family+Anatomy BUILT) still
+holds — it now hangs off body types, and subtypes are a new modifier tier. *Historical: the
+"biology selects the kit" framing (LOCKED 2026-06-27) and the base/condition split (§8) led here.*
+
+**🧬 PRIOR FRAMING (2026-06-27) — BIOLOGY SELECTS THE KIT SYSTEM.**
 The **archetype/Class system (Warrior/Rogue/Mage/…) applies ONLY to Humanoids**; every other
 biology gets its own native kit system, so **Biology is the primary card-pool selector**
 (it answers what Class used to: "where do this creature's cards come from?"). Attunement +
