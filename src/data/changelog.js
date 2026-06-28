@@ -6,6 +6,10 @@
 
 /** @type {{version:string, date:string, notes:string[]}[]} newest first */
 export const CHANGELOG = [
+  { version: 'v3.89.0', date: '2026-06-28', notes: [
+    'Creature taxonomy reworked: there are now three BODY TYPES (Humanoid, Beast, Aberration) plus DESCRIPTIVE SUBTYPES (Mechanical, Elemental, Giant, Demonic, and more) that layer on in any combination. A creature’s biology now reads as its subtypes followed by its body-type name — e.g. a giant, demonic, mechanical beast-humanoid reads “Giant Demonic Mechanical Chimera”. Dragonkin/Giant/Elemental/Mechanical/Demon/Undead are no longer standalone biologies.',
+    'The Editor’s Monster page now picks a Body Type + any combination of Subtypes; roster creatures were re-tagged (Ironhide is a Giant Humanoid, Emberwisp an Elemental Aberration, Cogwright a Mechanical Humanoid…). Subtypes are display + tagging for now; their card packages come next.',
+  ] },
   { version: 'v3.88.0', date: '2026-06-28', notes: [
     'Humanoids now have a WEAPON system — the Humanoid counterpart to Beast anatomy. Each archetype is proficient with a set of weapons (Sword, Axe, Dagger, Bow, Staff, Shield…), and the weapons you give a creature add their own cards to its deck and show as its special factors. 12 weapons, 28 new cards; pick them on the Editor’s Monster page when biology is Humanoid.',
     'Hybrid creatures now show their true combined name from the biology matrix (a Beast/Humanoid reads as “Chimera”) instead of listing both bases.',

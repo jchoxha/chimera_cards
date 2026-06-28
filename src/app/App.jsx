@@ -13,7 +13,7 @@ import RunScreen from '../ui/run/RunScreen.jsx';
 import Codex from '../ui/Codex.jsx';
 import SelectScreen from './SelectScreen.jsx';
 import CreatureCreator from './CreatureCreator.jsx';
-import { ATTUNEMENT_BASES, BIOLOGY_BASES, legalAttunements } from '../data/synthesis.js';
+import { ATTUNEMENT_BASES, BODY_TYPES, SUBTYPES, legalAttunements } from '../data/synthesis.js';
 import { attunementCards } from '../engine/cards/attunementPool.js';
 import { beastPool, BEAST_FAMILIES, defaultAnatomy } from '../engine/cards/beastPool.js';
 import { humanoidWeaponPool, weaponsForArchetype, defaultWeapons } from '../engine/cards/humanoidPool.js';
@@ -85,7 +85,7 @@ function potentialPool(def = {}) {
  *  The deck is always auto-generated from the typings (no per-monster custom decks here). */
 function buildCustomCreature(def) {
   const c = makeCreature({ id: def.id, name: def.name, class: def.class, biology: def.biology, attunement: def.attunement,
-    family: def.family || null, anatomy: def.anatomy || null, weapons: def.weapons || null, size: def.size || 'regular',
+    family: def.family || null, anatomy: def.anatomy || null, weapons: def.weapons || null, subtypes: def.subtypes || null, size: def.size || 'regular',
     pool: basePoolFor({ klass: def.class?.[0], biology: def.biology, family: def.family, anatomy: def.anatomy, weapons: def.weapons }) });
   // The Editor (admin tool) can attach a hand-built deck; the end-user creator never does.
   if (def.customDeck && def.customDeck.length) c.deck = def.customDeck.map((card) => ({ ...card }));
@@ -195,7 +195,7 @@ export default function App() {
   if (view === 'codex') return <Codex initialTab={codexTab} backLabel={codexReturn === 'menu' ? 'Menu' : 'Back'} onMenu={() => setView(codexReturn)} />;
   if (view === 'editor') return (
     <EditorHub onMenu={() => setView('menu')} monsterProps={{
-      defs: customDefs, classes: ARCHETYPES, biologies: BIOLOGY_BASES, attunements: ATTUNEMENT_BASES,
+      defs: customDefs, classes: ARCHETYPES, biologies: BODY_TYPES, subtypeOptions: SUBTYPES, attunements: ATTUNEMENT_BASES,
       legalFor: (k) => legalAttunements([k]), buildPool: potentialPool, families: BEAST_FAMILIES,
       onSave: saveCustomDef, onDelete: deleteCustomCreature,
     }} />
@@ -211,7 +211,7 @@ export default function App() {
   );
   if (view === 'createCreature') return (
     <CreatureCreator
-      classes={ARCHETYPES} biologies={BIOLOGY_BASES} attunements={ATTUNEMENT_BASES}
+      classes={ARCHETYPES} biologies={BODY_TYPES} attunements={ATTUNEMENT_BASES}
       legalFor={(k) => legalAttunements([k])}
       onCreate={createCustomCreature}
       onCancel={() => setView('select')}

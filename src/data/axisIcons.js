@@ -81,6 +81,21 @@ export const ANATOMY_ICON = Object.freeze({
   Roar: 'game-icons:lion',
 });
 
+/** Descriptive Subtype → game-icons id (composition/affliction overlays, §9). */
+export const SUBTYPE_ICON = Object.freeze({
+  Mechanical: 'game-icons:gears',
+  Elemental: 'game-icons:fluffy-flame',
+  Giant: 'game-icons:giant',
+  Demonic: 'game-icons:daemon-skull',
+  Undead: 'game-icons:skeleton',
+  Hallowed: 'game-icons:angel-wings',
+  Feral: 'game-icons:claw-slashes',
+  Ancient: 'game-icons:stone-tablet',
+  Swarm: 'game-icons:bee',
+  Cursed: 'game-icons:hexes',
+  Spectral: 'game-icons:ghost',
+});
+
 /** Humanoid Weapon noun-tags (a Humanoid's "special factors") → game-icons id. */
 export const WEAPON_ICON = Object.freeze({
   Sword: 'game-icons:broadsword',

@@ -37,11 +37,12 @@ export default function CreatureCreator({ classes = [], biologies = [], attuneme
     if (aiTypings) {
       typings = await inferTypings(name, lore, description);
     } else {
-      typings = { class: [klass], biology: [biology], attunement: atts.length ? atts : ['Physical'] };
+      typings = { class: [klass], biology: [biology], attunement: atts.length ? atts : ['Physical'], subtypes: [] };
     }
     onCreate({
       name: name.trim() || `${typings.attunement[0]} ${typings.class[0]}`,
       class: typings.class, biology: typings.biology, attunement: typings.attunement,
+      subtypes: typings.subtypes || [],
       lore: lore.trim() || null,
       description: description.trim() || null,
     });

@@ -2,9 +2,9 @@
 // base (from the locked synthesis data) has an icon, attunements have a color, and
 // the card/creature resolvers behave. Run: node src/data/__icons__.mjs (test:icons)
 
-import { CLASS_BASES, BIOLOGY_BASES, ATTUNEMENT_BASES } from './synthesis.js';
+import { CLASS_BASES, BIOLOGY_BASES, ATTUNEMENT_BASES, SUBTYPES } from './synthesis.js';
 import {
-  ARCHETYPE_ICON, BIOLOGY_ICON, ATTUNEMENT_ICON, ATTUNEMENT_COLOR,
+  ARCHETYPE_ICON, BIOLOGY_ICON, ATTUNEMENT_ICON, ATTUNEMENT_COLOR, SUBTYPE_ICON,
   axisIcon, cardIcon, creatureIcon, creatureColor,
 } from './axisIcons.js';
 
@@ -16,6 +16,7 @@ console.log('Every archetype/biology/attunement base has a valid icon id:');
 for (const c of CLASS_BASES) ok(isIcon(ARCHETYPE_ICON[c]), `archetype ${c} → ${ARCHETYPE_ICON[c]}`);
 for (const b of BIOLOGY_BASES) ok(isIcon(BIOLOGY_ICON[b]), `biology ${b} → ${BIOLOGY_ICON[b]}`);
 for (const a of ATTUNEMENT_BASES) ok(isIcon(ATTUNEMENT_ICON[a]), `attunement ${a} → ${ATTUNEMENT_ICON[a]}`);
+for (const s of SUBTYPES) ok(isIcon(SUBTYPE_ICON[s]), `subtype ${s} → ${SUBTYPE_ICON[s]}`);
 
 console.log('Every attunement has an identity color:');
 for (const a of ATTUNEMENT_BASES) ok(/^#[0-9a-f]{6}$/i.test(ATTUNEMENT_COLOR[a] || ''), `attunement ${a} → ${ATTUNEMENT_COLOR[a]}`);

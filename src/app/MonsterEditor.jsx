@@ -21,10 +21,10 @@ const Icon = ({ icon, ...rest }) => <iconify-icon icon={icon} {...rest}></iconif
 function emptyDef(classes, biologies) {
   return { id: null, name: '', lore: '', description: '', class: [classes[0] || 'Warrior'],
     biology: [biologies[0] || 'Humanoid'], attunement: ['Physical'], size: 'regular',
-    family: null, anatomy: [], weapons: [], customDeck: null };
+    family: null, anatomy: [], weapons: [], subtypes: [], customDeck: null };
 }
 
-export default function MonsterEditor({ defs = [], classes = [], biologies = [], attunements = [], legalFor, buildPool, families = [], onSave, onDelete, onMenu, tabs }) {
+export default function MonsterEditor({ defs = [], classes = [], biologies = [], attunements = [], subtypeOptions = [], legalFor, buildPool, families = [], onSave, onDelete, onMenu, tabs }) {
   const [editing, setEditing] = useState(null); // a def being edited, or null = list
   const [building, setBuilding] = useState(false);
 
@@ -145,6 +145,22 @@ export default function MonsterEditor({ defs = [], classes = [], biologies = [],
                     {allowedWeapons.map((tag) => (
                       <label key={tag} className={`anatTag${(editing.weapons || []).includes(tag) ? ' on' : ''}`}>
                         <input type="checkbox" checked={(editing.weapons || []).includes(tag)} onChange={() => toggleIn('weapons', tag)} />
+                        {tag}
+                      </label>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {subtypeOptions.length > 0 && (
+              <div className="crAxes">
+                <div className="crDeckHead">Descriptive Subtypes</div>
+                <div className="crFld"><span>Subtypes <em>(composition/affliction overlays — any combination; e.g. Giant + Mechanical)</em></span>
+                  <div className="beastAnatomy">
+                    {subtypeOptions.map((tag) => (
+                      <label key={tag} className={`anatTag${(editing.subtypes || []).includes(tag) ? ' on' : ''}`}>
+                        <input type="checkbox" checked={(editing.subtypes || []).includes(tag)} onChange={() => toggleIn('subtypes', tag)} />
                         {tag}
                       </label>
                     ))}

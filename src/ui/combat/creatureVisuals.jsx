@@ -7,7 +7,8 @@
 // ╚══════════════════════════════════════════════════════════════════╝
 import React from 'react';
 import { frameStyle } from './frames.js';
-import { creatureIcon, creatureColor, ATTUNEMENT_ICON, ATTUNEMENT_COLOR, submatrixIcons, specialFactors, biologyName } from '../../data/axisIcons.js';
+import { creatureIcon, creatureColor, ATTUNEMENT_ICON, ATTUNEMENT_COLOR, submatrixIcons, specialFactors } from '../../data/axisIcons.js';
+import { creatureBiologyName } from '../../data/synthesis.js';
 import { creatureArt } from '../../data/artPool.js';
 import { ELEMENT_COLOR, FORMS } from '../../systems/elements.jsx';
 
@@ -228,7 +229,8 @@ export function CardFace({ f, side, matchup, onEffect, onInfo, onName, extraClas
         {f.axes && (f.axes.biology || (() => { const sf = specialFactors(f.axes); return sf.length; })()) && (() => {
           const factors = specialFactors(f.axes);
           const bios = Array.isArray(f.axes.biology) ? f.axes.biology : (f.axes.biology ? [f.axes.biology] : []);
-          const bioName = biologyName(bios);
+          const subs = Array.isArray(f.axes.subtypes) ? f.axes.subtypes : (f.axes.subtypes ? [f.axes.subtypes] : []);
+          const bioName = creatureBiologyName(bios, subs);
           return (
             <div className="axesLine">
               {bioName

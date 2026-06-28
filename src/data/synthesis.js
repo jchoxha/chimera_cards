@@ -17,6 +17,30 @@ export const CLASS_BASES = Object.freeze(["Warrior", "Rogue", "Mage", "Warlock",
 export const BIOLOGY_BASES = Object.freeze(["Beast", "Humanoid", "Undead", "Dragonkin", "Elemental", "Demon", "Mechanical", "Giant", "Aberration"]);
 export const ATTUNEMENT_BASES = Object.freeze(["Physical", "Fire", "Frost", "Nature", "Arcane", "Shadow", "Holy", "Void", "Water", "Air", "Stone", "Energy", "Mind"]);
 
+// ── Body Types + Descriptive Subtypes (docs/biology-kits.md §9, the reworked model) ──
+// BODY TYPE = the creature's FORM (one or two; the biology axis now holds these).
+export const BODY_TYPES = Object.freeze(["Humanoid", "Beast", "Aberration"]);
+// DESCRIPTIVE SUBTYPES = composition/affliction overlays (zero or more; a trait/card package,
+// not a full kit). Mechanical/Elemental/Giant/Demonic built first; the rest are backlog.
+export const SUBTYPES = Object.freeze(["Mechanical", "Elemental", "Giant", "Demonic", "Undead", "Hallowed", "Feral", "Ancient", "Swarm", "Cursed", "Spectral"]);
+/** Canonical display order for subtype prefixes — English adjective order:
+ *  SIZE → CONDITION/ORIGIN → COMPOSITION (so "Giant Demonic Mechanical Chimera"). */
+export const SUBTYPE_ORDER = Object.freeze(["Giant", "Ancient", "Feral", "Cursed", "Hallowed", "Demonic", "Undead", "Spectral", "Swarm", "Elemental", "Mechanical"]);
+
+/** Sort a creature's subtypes into canonical prefix order (unknown ones go last, stable). */
+export function orderSubtypes(subtypes = []) {
+  const idx = (s) => { const i = SUBTYPE_ORDER.indexOf(s); return i === -1 ? SUBTYPE_ORDER.length : i; };
+  return [...(subtypes || [])].filter(Boolean).sort((a, b) => idx(a) - idx(b));
+}
+
+/** The full biological identity name: ordered subtype prefixes + the body-type synthesis name.
+ *  e.g. (["Beast","Humanoid"], ["Mechanical","Giant","Demonic"]) → "Giant Demonic Mechanical Chimera". */
+export function creatureBiologyName(bodyTypes = [], subtypes = []) {
+  const bts = Array.isArray(bodyTypes) ? bodyTypes.filter(Boolean) : [bodyTypes].filter(Boolean);
+  const base = bts.length >= 2 ? synthName("biology", bts[0], bts[1]) : (bts[0] || "");
+  return [...orderSubtypes(subtypes), base].filter(Boolean).join(" ");
+}
+
 /** Unordered-pair -> hybrid name. Diagonal (a===a) is the base itself. */
 export const CLASS_SYNTHESIS = Object.freeze({
   "Engineer|Mage": "Artificer",

@@ -366,8 +366,12 @@ Partition by *form*; a creature has **1–2** (pairwise hybrid matrix).
   attunement axis (red=Fire, blue=Frost/Water…); **Breath** becomes an Anatomy tag.
 - **Aberration** — *neither* person nor animal: formless, geometric, eldritch, plant, ooze,
   crystal, abstract. The **catch-all FORM**, which is what makes the trichotomy exhaustive. Kit:
-  TBD — **deliberately WIDE families** (Eldritch · Construct-abstract · Ooze · Plant · Formless…)
-  so the big tent has internal texture (see §9.4).
+  **wide, EXHAUSTIVE families** so the big tent has texture (Jeton — confirmed). Family list:
+  **Eldritch** (cosmic/tentacled horrors) · **Construct** (animated objects / abstract built
+  forms — the *non*-Mechanical-subtype constructs: stone golems, living statues) · **Ooze**
+  (slimes, gels, amorphous) · **Flora** (plants, fungi, treants) · **Crystalline** (gem/mineral
+  beings) · **Formless** (gas, energy, shadow, clouds — the immaterial). These six are meant to
+  span *every* non-person/non-animal form; special factors TBD when we author Aberration.
 
 The 3 body-type hybrids already have names in `BIOLOGY_SYNTHESIS`: Beast|Humanoid = **Chimera**,
 Beast|Aberration = **Anomalous**, Humanoid|Aberration = **Warped**.
@@ -415,13 +419,19 @@ accept Aberration = "other form," broadly, and give it **wide internal families*
 texture (don't add a 4th body type). Alternative: keep Aberration narrowly eldritch + add a generic
 "Construct/Other" form — rejected as it breaks the clean three.
 
-### 9.5 Open refinements (small — settle alongside the build)
-1. **Triple body-type hybrid** (Beast+Humanoid+Aberration) — allow, or cap at 2? (proposal: cap 2.)
-2. **Subtype stacking** — truly any combination (Giant+Mechanical+Demonic)? (proposal: yes; the
-   rarity/deck budget keeps it fair; soft-cap ~2 for sanity/UI.)
-3. **Aberration families** — wide (§9.4) confirmed?
-4. **Subtype display** — where do subtype icons live on the card? Options: (a) a second small lane
-   under the body-type/special-factor line, (b) prefix badges on the name, (c) fold into the corner
-   cluster as extra chips. (proposal: a slim subtype lane; keep the corner = body-type kits only.)
-5. **Draconic family** — confirm Breath-as-anatomy + attunement-as-chroma; any Draconic-only
-   signatures (hoard, flight) as family cards?
+### 9.5 RESOLVED conventions (Jeton, 2026-06-28 PM)
+1. **Aberration families** — WIDE + exhaustive (§9.1/§9.4), **Flora** (renamed from Plant). ✅
+2. **Card display:**
+   - **Corner = the Circle/Pill cluster** holds the **base/hybrid body-type KIT icons** (one per
+     body type — Beast family / Humanoid archetype / Aberration strain). Subtypes do NOT go here.
+   - **Biology name (where the biology label already sits, left under the name)** = the subtypes
+     **prefixing** the body-type synthesis name, e.g. a *Mechanical + Giant + Demonic + Beast +
+     Humanoid* reads **"Giant Demonic Mechanical Chimera"**. **Special factors (weapons/anatomy)**
+     stay on the **right** of that line, as already decided.
+   - **Subtype ordering** = English-adjective order **SIZE → CONDITION/ORIGIN → COMPOSITION**:
+     `Giant` · (Ancient · Feral · Cursed · Hallowed · Demonic · Undead · Spectral · Swarm) ·
+     `Elemental` · `Mechanical`. (Satisfies the example: Giant < Demonic < Mechanical.) Stored in
+     `SUBTYPE_ORDER`; `creatureBiologyName(bodyTypes, subtypes)` joins ordered-subtypes + synth name.
+3. **Still open (settle during build):** triple body-type hybrid cap (proposal: cap at 2);
+   subtype stacking cap (proposal: any combination legal, soft-cap ~2 for UI); Draconic family
+   specifics (Breath-as-anatomy + attunement-as-chroma; optional hoard/flight signatures).
