@@ -3,8 +3,9 @@
 > Status: **framework LOCKED (2026-06-27); Beast + Humanoid BUILT (v3.85/3.88).** Per-biology
 > card content is authored one biology at a time. This reframes the §7 generator and the §14
 > "card content" plane of `docs/synthesis-matrix-spec.md`. **⚠ OPEN REDESIGN (§8, 2026-06-28):
-> demoting some "biologies" (Undead, Giant, maybe Demon) to condition/template MODIFIERS rather
-> than standalone bases — decide before authoring the remaining biologies.**
+> demoting Undead + Giant to condition/template MODIFIERS (the only two that aren't kit-worthy
+> standalone bodies; Mechanical/Demon/etc. STAY bases — their overlays are hybrids) — decide
+> before authoring the remaining biologies.**
 
 ## Answered framework decisions (2026-06-27, Jeton)
 1. **Axis-2 is reused per biology AND multi-valued.** Keep all 3 tag slots for everyone;
@@ -266,40 +267,55 @@ per-biology *content* pass, stepping through one biology at a time:
 > instead of standing alone. This section is a **PROPOSAL pending sign-off** — nothing here
 > is built, and it would amend the LOCKED biology base list in `src/data/synthesis.js`.
 
-### 8.1 The test
-A **base biology** answers *"what is its body built/made as?"* A **condition** answers
-*"what state is it in / what's been done to it?"* — and a condition can sensibly apply to many
-bodies (a skeletal **dragon**, a giant **beast**, a demonic **humanoid**).
+### 8.1 The test (SHARPENED — Jeton's "is Mechanical a descriptor?" question, 2026-06-28)
+A first cut asked "noun vs adjective," but that's too loose: **almost every type can be used as
+an adjective** (mechanical wolf, demonic knight, elemental serpent, mutated hound). The real
+discriminator is **mechanical/design, not grammatical**:
+
+> **Does it have a standalone, kit-worthy BODY — or is it only a TRAIT PACKAGE that always
+> rides a host?**
+> - **Standalone full kit → BASE.** A pure robot/golem *is* a complete creature with its own
+>   rich kit (chassis, modules, overheat, constructs). It is not a "mechanized *something*."
+> - **Package-only, no standalone body → CONDITION.** "Giant" tells you scale, nothing about the
+>   body ("a giant *what?*"). "Undead" is a *state of death* applied to a former body ("an undead
+>   *what?*"). Neither is a complete creature on its own.
+
+**Key consequence:** the "X-ified" overlay sense (mechanized/demonic/elemental *beast*) is ALREADY
+covered by the **two-base hybrid** mechanism — and SHOULD be, because both halves are kit-rich. A
+clockwork wolf = `[Beast, Mechanical]` = **Cybeast**; a mechadragon = `[Dragonkin, Mechanical]` =
+**Geargon**; a possessed human = `[Humanoid, Demon]` = **Fiend** (all already named in
+`BIOLOGY_SYNTHESIS`). So **dual-natured types stay BASES** — we do NOT need Mechanical/Demon/
+Elemental conditions; their overlays are hybrids.
 
 | Current "biology" | Verdict | Why |
 |---|---|---|
-| **Beast** | **Base** | a body plan |
-| **Humanoid** | **Base** | a body plan |
-| **Dragonkin** | **Base** | a body plan (reptilian winged) |
-| **Mechanical** | **Base** | a built body (a "cyborg" overlay could be a *condition* later) |
-| **Elemental** | **Base** | a body made of element |
-| **Aberration** | **Base** (lean) | an alien body — though "mutated/warped X" is condition-ish |
-| **Demon** | **Borderline → demote?** | a demon is a being, but "demonic/possessed/corrupted X" is a classic template |
-| **Undead** | **Demote → condition** | skeletal/zombie/ghost is a *version of* a body (Stitched beast, Ghoul humanoid…) |
-| **Giant** | **Demote → condition** | a giant is a *very large* body — and overlaps our existing **size** ladder |
+| **Beast** | **Base** | standalone body, full kit (Families + Anatomy) |
+| **Humanoid** | **Base** | standalone body, full kit (Archetypes + Weapons) |
+| **Dragonkin** | **Base** | standalone body, full kit (Flights + Anatomy/Breath) |
+| **Mechanical** | **Base** ✔ | a pure robot/golem IS the body — kit-rich (Chassis + Modules). "Mechanized X" = the X\|Mechanical **hybrid** (Cybeast/Geargon), not a condition |
+| **Elemental** | **Base** | a being made of element; "infused X" = the X\|Elemental hybrid |
+| **Aberration** | **Base** | an alien body with its own kit; "mutated X" = the X\|Aberration hybrid |
+| **Demon** | **Base** (revised — was "demote?") | kit-rich (castes/summons/sacrifice); "demonic X" = the X\|Demon **hybrid** (Fiend/Felbeast…), so no separate *Fiendish* condition needed |
+| **Undead** | **Condition** | no standalone body — a *state of death* on a former body (Stitched beast, Ghoul humanoid, Scourgewyrm…) |
+| **Giant** | **Condition** | pure **scale** descriptor ("a giant *what?*") — and overlaps the existing **size** ladder |
 
 ### 8.2 Proposed two-tier model
-- **Base biologies (recommended 6):** Beast · Humanoid · Dragonkin · Mechanical · Elemental ·
-  Aberration. Each owns a **full kit system** (axis-2 + special factors), per §1–§3.
-- **Conditions / templates (NEW tier):** a creature optionally carries **0–1 condition** layered
-  on its base. A condition grants a **small trait/card package** (NOT a full kit, NO axis-2 tag):
+- **Base biologies (7, all kit-worthy standalone bodies):** Beast · Humanoid · Dragonkin ·
+  Mechanical · Elemental · Aberration · Demon. Each owns a **full kit** (axis-2 + special factors).
+- **Conditions / templates (NEW tier):** a creature optionally carries **0–1 condition** on its
+  base. A condition grants a **trait/card package** (NOT a full kit, NO axis-2 tag):
   - **Undead** — undying (cheat death once), Decay/rot, immune to poison/fear, reanimate.
     Flavor subtypes: *Skeletal · Rotting · Spectral · Lich.*
-  - **Giant** — forces Large+ size, Stomp/Quake AoE, Throw, immovable; fewer-but-bigger cards.
-    (Ties into the size ladder rather than duplicating it.)
-  - **Fiendish** *(if Demon is demoted)* — Sacrifice, Curse, fel damage, summon imps.
-- **New conditions to flesh it out (proposed, pick a starting few):**
-  - **Hallowed** — the holy counterpart to Fiendish: regen, ward, smite.
+  - **Giant** — gates size to Large+, Stomp/Quake AoE, Throw, immovable; fewer-but-bigger cards
+    (rides the size ladder for stats, adds its own mechanics on top).
+- **New conditions to flesh it out (proposed; these are genuinely package-only overlays, not
+  standalone bodies — pick a starting few):**
+  - **Hallowed** — holy-touched: regen, ward, smite (the angelic counterpart).
   - **Feral** — wild/berserk: frenzy, more damage while hurt, little defense.
   - **Ancient** — old & powerful: slow start, scaling payoff (elder dragons, elder things).
   - **Swarm** — many-bodied: multiply, sacrifice bodies, weak individually.
   - **Cursed/Plagued** — spreads debuffs at a cost to itself.
-  - *(backlog: Spectral, Mechanized/Augmented, Aberrant — each overlaps a base, hold for now.)*
+  - **Spectral** — incorporeal: evasion/phase, fear (could also be an Undead subtype).
 
 ### 8.3 Where conditions live (data model — RECOMMENDED: Option C)
 - **A — new 4th axis "Condition."** Cleanest conceptually, but adds an axis everywhere.
@@ -315,15 +331,18 @@ bodies (a skeletal **dragon**, a giant **beast**, a demonic **humanoid**).
 
 ### 8.4 Open decisions (need Jeton's call before building more biologies)
 1. **Adopt the base-vs-condition split at all?** (proposal: yes.)
-2. **Demote which?** Undead + Giant (proposal: yes). **Demon** → demote to *Fiendish*, or keep as
-   a base? (proposal: demote, but it's iconic — your call.) Keep **Aberration** as a base? (lean yes.)
-3. **Data model:** A / B / **C** (proposal: C — bases + modifiers in the biology slot).
-4. **Starting condition set:** Undead, Giant (+ Fiendish if Demon demoted) + how many of the new
-   ones (Hallowed/Feral/Ancient/Swarm/Cursed) to author first?
+2. **Demote which?** Under the sharpened test, **only Undead + Giant** demote — every other type
+   (incl. **Mechanical** and **Demon**) is a kit-worthy standalone body and STAYS a base; their
+   overlay senses are hybrids. (proposal: demote exactly Undead + Giant.)
+3. **Data model:** A / B / **C** (proposal: C — bases + modifiers share the biology slot).
+4. **Starting condition set:** Undead + Giant first; then how many of the new ones
+   (Hallowed/Feral/Ancient/Swarm/Cursed/Spectral) to author?
 5. **Giant vs size:** does Giant-the-condition just *gate* size to Large+, or also add its own
    stomp/throw kit on top of raw size scaling? (proposal: both — size scales stats, the condition
    adds mechanics.)
+6. **Two modifiers?** Allow e.g. an Undead + Giant creature, or cap at one condition? (proposal:
+   cap at one to start.)
 
 If we adopt C, the build order for "remaining biologies" shrinks: we author **Dragonkin /
-Mechanical / Elemental / Aberration** as full kits, and **Undead / Giant / Fiendish (+ new)** as
+Mechanical / Elemental / Aberration / Demon** as full kits, and **Undead / Giant (+ new)** as
 lighter **condition packages** — less work and a cleaner taxonomy.
