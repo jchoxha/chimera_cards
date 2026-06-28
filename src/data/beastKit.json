@@ -54,9 +54,26 @@
         { "id": "beast_fam_amphibian_tonguelash", "name": "Tongue Lash", "attunement": "Physical", "imbue": 1, "type": "attack", "cost": 1, "rarity": "uncommon", "effects": [{ "op": "damage", "value": 7 }] },
         { "id": "beast_fam_amphibian_adapt", "name": "Adapt", "attunement": "Physical", "type": "skill", "cost": 1, "rarity": "uncommon", "effects": [{ "op": "block", "value": 5 }, { "op": "draw", "value": 1 }] }
       ]
+    },
+    "Draconic": {
+      "theme": "Dragons (Dragonkin folded in) — a charged Breath weapon, heavy scales, aerial dominance, and a growing hoard. Chroma comes from the creature's attunement.",
+      "anatomy": ["Breath", "Teeth", "Claws", "Wings", "Tail", "Hide"],
+      "signatures": [
+        { "id": "beast_fam_draconic_wingbeat", "name": "Wingbeat", "attunement": "Physical", "type": "skill", "cost": 1, "rarity": "common", "starter": true, "effects": [{ "op": "block", "value": 6 }, { "op": "draw", "value": 1 }] },
+        { "id": "beast_fam_draconic_hoard", "name": "Hoard", "attunement": "Physical", "type": "power", "cost": 1, "rarity": "uncommon", "trigger": { "on": "turnStart", "effects": [{ "op": "block", "value": 3 }, { "op": "buff", "status": "strength", "value": 1 }] } },
+        { "id": "beast_fam_draconic_dread", "name": "Draconic Dread", "attunement": "Physical", "type": "skill", "cost": 1, "rarity": "rare", "effects": [{ "op": "debuff", "status": "weak", "value": 2, "scope": "wholeEnemySide" }, { "op": "debuff", "status": "vulnerable", "value": 1, "scope": "wholeEnemySide" }] }
+      ]
     }
   },
   "anatomy": {
+    "Breath": {
+      "theme": "A charged elemental breath weapon — big, often hits the whole enemy line (element = the creature's attunement).",
+      "cards": [
+        { "id": "beast_anat_breath_gout", "name": "Breath", "attunement": "Physical", "imbue": 1, "type": "attack", "cost": 1, "rarity": "common", "effects": [{ "op": "damage", "value": 5, "scope": "wholeEnemySide" }] },
+        { "id": "beast_anat_breath_searing", "name": "Searing Breath", "attunement": "Physical", "imbue": 1, "type": "attack", "cost": 2, "rarity": "uncommon", "effects": [{ "op": "damage", "value": 8, "scope": "wholeEnemySide" }] },
+        { "id": "beast_anat_breath_cataclysm", "name": "Cataclysm Breath", "attunement": "Physical", "imbue": 1, "type": "attack", "cost": 3, "rarity": "rare", "effects": [{ "op": "damage", "value": 14, "scope": "wholeEnemySide" }] }
+      ]
+    },
     "Claws": {
       "theme": "Quick raking multi-hit attacks that stack Bleed.",
       "cards": [

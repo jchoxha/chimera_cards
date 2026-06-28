@@ -17,6 +17,7 @@ import { ATTUNEMENT_BASES, BODY_TYPES, SUBTYPES, legalAttunements } from '../dat
 import { attunementCards } from '../engine/cards/attunementPool.js';
 import { beastPool, BEAST_FAMILIES, defaultAnatomy } from '../engine/cards/beastPool.js';
 import { humanoidWeaponPool, weaponsForArchetype, defaultWeapons } from '../engine/cards/humanoidPool.js';
+import { aberrationPool, ABERRATION_FAMILIES, defaultAberrationAnatomy } from '../engine/cards/aberrationPool.js';
 import { reskinDeck, attunementVariants } from '../engine/cards/reskin.js';
 import { makeCreature } from '../engine/content/generate.js';
 import { resolvePools } from '../data/collections.js';
@@ -52,7 +53,11 @@ function basePoolFor({ klass, biology, family, anatomy, weapons }) {
     const fam = family || BEAST_FAMILIES[0];
     out.push(...beastPool({ family: fam, anatomy: anatomy?.length ? anatomy : defaultAnatomy(fam) }));
   }
-  if (!out.length) out.push(...(POOLS[klass] || []));   // other biologies: archetype stand-in until their kit exists
+  if (bios.includes('Aberration')) {
+    const fam = ABERRATION_FAMILIES.includes(family) ? family : ABERRATION_FAMILIES[0];
+    out.push(...aberrationPool({ family: fam, anatomy: anatomy?.length ? anatomy : defaultAberrationAnatomy(fam) }));
+  }
+  if (!out.length) out.push(...(POOLS[klass] || []));   // body types w/o a built kit: archetype stand-in
   return out;
 }
 const rosterPool = (r) => basePoolFor({ klass: r.class, biology: r.biology, family: r.family, anatomy: r.anatomy, weapons: r.weapons });

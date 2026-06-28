@@ -1,0 +1,124 @@
+{
+  "_note": "Aberration biology kit (docs/biology-kits.md §9.1/§9.4). Aberration is the catch-all FORM (anything not clearly person or animal). Its families are WIDE + exhaustive: Eldritch/Construct/Ooze/Flora/Crystalline/Formless. Structure parallels beastKit: {family, anatomy[]}, where 'anatomy' = aberrant-feature noun tags (Tentacle/Eye/Maw/Pseudopod/Spore/Shard/Miasma/Roots/Mandible). Cards authored Physical + imbue (re-skinned to the creature's attunement). Loaded by engine/cards/aberrationPool.js. Numbers provisional.",
+  "families": {
+    "Eldritch": {
+      "theme": "Cosmic horrors — madness, fear, and unknowable assaults on the mind.",
+      "anatomy": ["Tentacle", "Eye", "Maw", "Miasma"],
+      "signatures": [
+        { "id": "abr_fam_eldritch_whisper", "name": "Maddening Whisper", "attunement": "Physical", "type": "skill", "cost": 1, "rarity": "common", "starter": true, "effects": [{ "op": "debuff", "status": "confuse", "value": 1 }, { "op": "draw", "value": 1 }] },
+        { "id": "abr_fam_eldritch_pulse", "name": "Eldritch Pulse", "attunement": "Physical", "imbue": 1, "type": "attack", "cost": 2, "rarity": "uncommon", "effects": [{ "op": "damage", "value": 5, "scope": "wholeEnemySide" }, { "op": "debuff", "status": "confuse", "value": 1, "scope": "wholeEnemySide" }] },
+        { "id": "abr_fam_eldritch_unknowable", "name": "Unknowable", "attunement": "Physical", "type": "skill", "cost": 1, "rarity": "rare", "effects": [{ "op": "block", "value": 6 }, { "op": "draw", "value": 2 }] }
+      ]
+    },
+    "Construct": {
+      "theme": "Animated objects and abstract built forms — durable, relentless, geometric.",
+      "anatomy": ["Shard", "Maw", "Mandible"],
+      "signatures": [
+        { "id": "abr_fam_construct_harden", "name": "Harden", "attunement": "Physical", "type": "skill", "cost": 1, "rarity": "common", "starter": true, "effects": [{ "op": "block", "value": 8, "brace": true }] },
+        { "id": "abr_fam_construct_reassemble", "name": "Reassemble", "attunement": "Physical", "type": "power", "cost": 1, "rarity": "uncommon", "trigger": { "on": "turnStart", "effects": [{ "op": "block", "value": 4 }] } },
+        { "id": "abr_fam_construct_geometry", "name": "Geometry", "attunement": "Physical", "imbue": 1, "type": "attack", "cost": 2, "rarity": "rare", "effects": [{ "op": "damage", "value": 6, "valueFrom": "selfBlock" }] }
+      ]
+    },
+    "Ooze": {
+      "theme": "Amorphous slimes — engulf, dissolve, and absorb to recover.",
+      "anatomy": ["Pseudopod", "Maw", "Miasma", "Tentacle"],
+      "signatures": [
+        { "id": "abr_fam_ooze_ooze", "name": "Ooze", "attunement": "Physical", "type": "skill", "cost": 1, "rarity": "common", "starter": true, "effects": [{ "op": "block", "value": 5 }, { "op": "debuff", "status": "poison", "value": 2 }] },
+        { "id": "abr_fam_ooze_engulf", "name": "Engulf", "attunement": "Physical", "imbue": 1, "type": "attack", "cost": 2, "rarity": "uncommon", "effects": [{ "op": "damage", "value": 8 }, { "op": "heal", "value": 4 }] },
+        { "id": "abr_fam_ooze_dissolve", "name": "Dissolve", "attunement": "Physical", "type": "skill", "cost": 1, "rarity": "rare", "effects": [{ "op": "debuff", "status": "poison", "value": 3, "scope": "wholeEnemySide" }] }
+      ]
+    },
+    "Flora": {
+      "theme": "Plants and fungi — toxins, regeneration, and entangling growth.",
+      "anatomy": ["Roots", "Spore", "Tentacle", "Miasma"],
+      "signatures": [
+        { "id": "abr_fam_flora_photosynth", "name": "Photosynthesis", "attunement": "Physical", "type": "skill", "cost": 1, "rarity": "common", "starter": true, "effects": [{ "op": "buff", "status": "regen", "value": 3 }] },
+        { "id": "abr_fam_flora_thornburst", "name": "Thornburst", "attunement": "Physical", "imbue": 1, "type": "attack", "cost": 2, "rarity": "uncommon", "effects": [{ "op": "damage", "value": 4, "scope": "wholeEnemySide" }, { "op": "debuff", "status": "poison", "value": 2, "scope": "wholeEnemySide" }] },
+        { "id": "abr_fam_flora_overgrow", "name": "Overgrow", "attunement": "Physical", "type": "power", "cost": 1, "rarity": "rare", "trigger": { "on": "turnStart", "effects": [{ "op": "buff", "status": "regen", "value": 2 }] } }
+      ]
+    },
+    "Crystalline": {
+      "theme": "Gem and mineral beings — hard, reflective, and sharp.",
+      "anatomy": ["Shard", "Eye", "Mandible"],
+      "signatures": [
+        { "id": "abr_fam_crystalline_skin", "name": "Crystal Skin", "attunement": "Physical", "type": "skill", "cost": 1, "rarity": "common", "starter": true, "effects": [{ "op": "block", "value": 9, "brace": true }] },
+        { "id": "abr_fam_crystalline_refract", "name": "Refract", "attunement": "Physical", "imbue": 1, "type": "attack", "cost": 1, "rarity": "uncommon", "effects": [{ "op": "block", "value": 4 }, { "op": "damage", "value": 5 }] },
+        { "id": "abr_fam_crystalline_prism", "name": "Prismatic Edge", "attunement": "Physical", "type": "skill", "cost": 1, "rarity": "rare", "effects": [{ "op": "buff", "status": "dexterity", "value": 1 }, { "op": "buff", "status": "strength", "value": 1 }] }
+      ]
+    },
+    "Formless": {
+      "theme": "Gas, energy, and shadow — immaterial, evasive, pervasive.",
+      "anatomy": ["Miasma", "Eye", "Tentacle"],
+      "signatures": [
+        { "id": "abr_fam_formless_drift", "name": "Drift", "attunement": "Physical", "type": "skill", "cost": 1, "rarity": "common", "starter": true, "effects": [{ "op": "block", "value": 5 }, { "op": "draw", "value": 1 }] },
+        { "id": "abr_fam_formless_permeate", "name": "Permeate", "attunement": "Physical", "type": "skill", "cost": 1, "rarity": "uncommon", "effects": [{ "op": "debuff", "status": "expose", "value": 2, "scope": "wholeEnemySide" }] },
+        { "id": "abr_fam_formless_engulf", "name": "Enshroud", "attunement": "Physical", "imbue": 1, "type": "attack", "cost": 2, "rarity": "rare", "effects": [{ "op": "damage", "value": 7 }, { "op": "debuff", "status": "weak", "value": 1 }] }
+      ]
+    }
+  },
+  "anatomy": {
+    "Tentacle": {
+      "theme": "Grasping limbs — multi-hit strikes that grip and weaken.",
+      "cards": [
+        { "id": "abr_anat_tentacle_lash", "name": "Lash", "attunement": "Physical", "imbue": 1, "type": "attack", "cost": 1, "rarity": "common", "effects": [{ "op": "damage", "value": 4, "hits": 2 }] },
+        { "id": "abr_anat_tentacle_constrict", "name": "Constrict", "attunement": "Physical", "imbue": 1, "type": "attack", "cost": 2, "rarity": "uncommon", "effects": [{ "op": "damage", "value": 7 }, { "op": "debuff", "status": "weak", "value": 2 }] }
+      ]
+    },
+    "Eye": {
+      "theme": "Unblinking gaze — confuse and expose what it sees.",
+      "cards": [
+        { "id": "abr_anat_eye_gaze", "name": "Baleful Gaze", "attunement": "Physical", "type": "skill", "cost": 1, "rarity": "common", "effects": [{ "op": "debuff", "status": "vulnerable", "value": 2 }] },
+        { "id": "abr_anat_eye_stare", "name": "Maddening Stare", "attunement": "Physical", "type": "skill", "cost": 1, "rarity": "uncommon", "effects": [{ "op": "debuff", "status": "confuse", "value": 1 }, { "op": "debuff", "status": "expose", "value": 2 }] }
+      ]
+    },
+    "Maw": {
+      "theme": "A devouring maw — heavy bites that feed the aberration.",
+      "cards": [
+        { "id": "abr_anat_maw_bite", "name": "Devour", "attunement": "Physical", "imbue": 1, "type": "attack", "cost": 1, "rarity": "common", "effects": [{ "op": "damage", "value": 7 }, { "op": "heal", "value": 2 }] },
+        { "id": "abr_anat_maw_engulf", "name": "Gulp", "attunement": "Physical", "imbue": 1, "type": "attack", "cost": 2, "rarity": "uncommon", "effects": [{ "op": "damage", "value": 12 }] }
+      ]
+    },
+    "Pseudopod": {
+      "theme": "Amorphous limbs — bludgeon and reabsorb.",
+      "cards": [
+        { "id": "abr_anat_pseudopod_slam", "name": "Slam", "attunement": "Physical", "imbue": 1, "type": "attack", "cost": 1, "rarity": "common", "effects": [{ "op": "damage", "value": 6 }] },
+        { "id": "abr_anat_pseudopod_absorb", "name": "Absorb", "attunement": "Physical", "type": "skill", "cost": 1, "rarity": "uncommon", "effects": [{ "op": "block", "value": 6 }, { "op": "heal", "value": 3 }] }
+      ]
+    },
+    "Spore": {
+      "theme": "Bursting spores — spreading Poison clouds.",
+      "cards": [
+        { "id": "abr_anat_spore_burst", "name": "Spore Burst", "attunement": "Physical", "imbue": 1, "type": "attack", "cost": 1, "rarity": "common", "effects": [{ "op": "damage", "value": 3, "scope": "wholeEnemySide" }, { "op": "debuff", "status": "poison", "value": 1, "scope": "wholeEnemySide" }] },
+        { "id": "abr_anat_spore_infest", "name": "Sporeling", "attunement": "Physical", "type": "skill", "cost": 1, "rarity": "uncommon", "effects": [{ "op": "debuff", "status": "poison", "value": 4 }] }
+      ]
+    },
+    "Shard": {
+      "theme": "Crystalline projectiles — multi-hit shards and braced edges.",
+      "cards": [
+        { "id": "abr_anat_shard_volley", "name": "Shard Volley", "attunement": "Physical", "imbue": 1, "type": "attack", "cost": 1, "rarity": "common", "effects": [{ "op": "damage", "value": 3, "hits": 2 }] },
+        { "id": "abr_anat_shard_wall", "name": "Crystallize", "attunement": "Physical", "type": "skill", "cost": 1, "rarity": "uncommon", "effects": [{ "op": "block", "value": 7, "brace": true }] }
+      ]
+    },
+    "Miasma": {
+      "theme": "Toxic gas — sapping the whole enemy line.",
+      "cards": [
+        { "id": "abr_anat_miasma_cloud", "name": "Miasma", "attunement": "Physical", "type": "skill", "cost": 1, "rarity": "common", "effects": [{ "op": "debuff", "status": "weak", "value": 1, "scope": "wholeEnemySide" }] },
+        { "id": "abr_anat_miasma_corrode", "name": "Corrode", "attunement": "Physical", "imbue": 1, "type": "attack", "cost": 2, "rarity": "uncommon", "effects": [{ "op": "damage", "value": 4, "scope": "wholeEnemySide" }, { "op": "debuff", "status": "poison", "value": 2, "scope": "wholeEnemySide" }] }
+      ]
+    },
+    "Roots": {
+      "theme": "Entangling roots — pin foes and drain them.",
+      "cards": [
+        { "id": "abr_anat_roots_entangle", "name": "Entangle", "attunement": "Physical", "imbue": 1, "type": "attack", "cost": 1, "rarity": "common", "effects": [{ "op": "damage", "value": 5 }, { "op": "debuff", "status": "weak", "value": 1 }] },
+        { "id": "abr_anat_roots_drain", "name": "Drain Roots", "attunement": "Physical", "imbue": 1, "type": "attack", "cost": 2, "rarity": "uncommon", "effects": [{ "op": "damage", "value": 6 }, { "op": "heal", "value": 4 }] }
+      ]
+    },
+    "Mandible": {
+      "theme": "Crushing pincers — heavy hits that cause Bleed.",
+      "cards": [
+        { "id": "abr_anat_mandible_pincer", "name": "Pincer", "attunement": "Physical", "imbue": 1, "type": "attack", "cost": 1, "rarity": "common", "effects": [{ "op": "damage", "value": 6 }, { "op": "debuff", "status": "bleed", "value": 2 }] },
+        { "id": "abr_anat_mandible_crush", "name": "Crush", "attunement": "Physical", "imbue": 1, "type": "attack", "cost": 2, "rarity": "uncommon", "effects": [{ "op": "damage", "value": 11 }] }
+      ]
+    }
+  }
+}

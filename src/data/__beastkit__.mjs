@@ -13,11 +13,11 @@ const ok = (c, m) => (c ? pass++ : (fail++, console.error('  ✗', m)));
 
 const families = Object.keys(KIT.families);
 const anatomy = Object.keys(KIT.anatomy);
-// The locked noun-only tag set (Roar is the allowed behaviour exception).
-const NOUN_TAGS = ['Claws', 'Teeth', 'Beak', 'Horns', 'Tail', 'Hooves', 'Wings', 'Quills', 'Venom', 'Hide', 'Shell', 'Roar'];
+// The locked noun-only tag set (Roar + Breath are the allowed exceptions).
+const NOUN_TAGS = ['Claws', 'Teeth', 'Beak', 'Horns', 'Tail', 'Hooves', 'Wings', 'Quills', 'Venom', 'Hide', 'Shell', 'Roar', 'Breath'];
 
-console.log('Families (4–6 scientific classes):');
-ok(families.length >= 4 && families.length <= 6, `expected 4–6 families, got ${families.length}`);
+console.log('Families (scientific classes + Draconic):');
+ok(families.length >= 4 && families.length <= 8, `expected 4–8 families, got ${families.length}`);
 for (const f of families) {
   const fam = KIT.families[f];
   ok(typeof fam.theme === 'string' && fam.theme.length > 0, `${f}: missing theme`);

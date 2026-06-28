@@ -22,7 +22,7 @@ export const ROSTER = Object.freeze([
   { id: 'ironhide',    name: 'Ironhide',    class: 'Warrior',  biology: ['Humanoid'],   attunement: ['Physical'],        baseHp: 60, size: 'large', subtypes: ['Giant'], weapons: ['Hammer', 'Shield'], blurb: 'A mountain of a brawler — colossal HP, immovable.' },
   { id: 'voltfang',    name: 'Voltfang',    class: 'Warrior',  biology: ['Beast'],      attunement: ['Physical', 'Energy'], baseHp: 55, family: 'Mammalian', anatomy: ['Teeth', 'Claws', 'Roar'], blurb: 'A feral skirmisher whose strikes shock and tax the foe.' },
   { id: 'nightveil',   name: 'Nightveil',   class: 'Rogue',    biology: ['Humanoid'],   attunement: ['Shadow'],          baseHp: 52, weapons: ['Dagger', 'Sword'], blurb: 'A duelist who strikes from the dark and chains the kill.' },
-  { id: 'emberwisp',   name: 'Emberwisp',   class: 'Mage',     biology: ['Aberration'], attunement: ['Fire'],            baseHp: 50, size: 'small', subtypes: ['Elemental'], blurb: 'A living flame — fragile, but its spells burn and detonate.' },
+  { id: 'emberwisp',   name: 'Emberwisp',   class: 'Mage',     biology: ['Aberration'], attunement: ['Fire'],            baseHp: 50, size: 'small', subtypes: ['Elemental'], family: 'Formless', anatomy: ['Miasma', 'Eye'], blurb: 'A living flame — fragile, but its spells burn and detonate.' },
   { id: 'frostmind',   name: 'Frostmind',   class: 'Mage',     biology: ['Humanoid'],   attunement: ['Frost'],           baseHp: 52, weapons: ['Staff', 'Wand'], blurb: 'A frost-caster who chills and locks down the battlefield.' },
   { id: 'grimsoul',    name: 'Grimsoul',    class: 'Warlock',  biology: ['Humanoid'],   attunement: ['Shadow'],          baseHp: 56, subtypes: ['Undead'], weapons: ['Staff', 'Dagger'], blurb: "An undying caster who pays HP it doesn't fear losing." },
   { id: 'dawnkeeper',  name: 'Dawnkeeper',  class: 'Priest',   biology: ['Humanoid'],   attunement: ['Holy'],            baseHp: 55, weapons: ['Mace', 'Shield'], blurb: 'A holy protector — heals the line and smites the wicked.' },
@@ -30,7 +30,7 @@ export const ROSTER = Object.freeze([
   { id: 'tidecaller',  name: 'Tidecaller',  class: 'Shaman',   biology: ['Humanoid'],   attunement: ['Water'],           baseHp: 54, subtypes: ['Elemental'], weapons: ['Staff', 'Spear'], blurb: 'A water-shaman who soaks foes for devastating follow-ups.' },
   { id: 'wildeye',     name: 'Wildeye',     class: 'Ranger',   biology: ['Beast'],      attunement: ['Nature'],          baseHp: 53, family: 'Avian', anatomy: ['Beak', 'Wings', 'Claws'], blurb: 'A hunter who marks its prey and snipes past the front line.' },
   { id: 'cogwright',   name: 'Cogwright',   class: 'Engineer', biology: ['Humanoid'],   attunement: ['Stone'],           baseHp: 58, subtypes: ['Mechanical'], weapons: ['Wand', 'Shield'], blurb: 'A gadgeteer who builds an unbreakable wall of Block.' },
-  { id: 'maw',         name: 'Maw',         class: 'Warrior',  biology: ['Aberration'], attunement: ['Void'],            baseHp: 54, blurb: 'An eldritch horror whose blows rot armor, buffs, and powers.' },
+  { id: 'maw',         name: 'Maw',         class: 'Warrior',  biology: ['Aberration'], attunement: ['Void'],            baseHp: 54, family: 'Eldritch', anatomy: ['Tentacle', 'Maw', 'Eye'], blurb: 'An eldritch horror whose blows rot armor, buffs, and powers.' },
 ]);
 
 /**

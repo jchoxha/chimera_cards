@@ -63,6 +63,14 @@ export const FAMILY_ICON = Object.freeze({
   Piscine: 'game-icons:angler-fish',
   Insectoid: 'game-icons:scorpion',
   Amphibian: 'game-icons:frog',
+  Draconic: 'game-icons:dragon-head',
+  // Aberration families
+  Eldritch: 'game-icons:tentacle-heart',
+  Construct: 'game-icons:cube',
+  Ooze: 'game-icons:slime',
+  Flora: 'game-icons:high-grass',
+  Crystalline: 'game-icons:crystal-cluster',
+  Formless: 'game-icons:dust-cloud',
 });
 
 /** Beast Anatomy noun-tags (a Beast's "special factors") → game-icons id. */
@@ -79,6 +87,17 @@ export const ANATOMY_ICON = Object.freeze({
   Hide: 'game-icons:animal-hide',
   Shell: 'game-icons:turtle-shell',
   Roar: 'game-icons:lion',
+  Breath: 'game-icons:dragon-breath',
+  // Aberration aberrant-feature tags (the Aberration analogue of beast anatomy)
+  Tentacle: 'game-icons:tentacle-strike',
+  Eye: 'game-icons:evil-eyes',
+  Maw: 'game-icons:sharp-lips',
+  Pseudopod: 'game-icons:slime',
+  Spore: 'game-icons:spotted-mushroom',
+  Shard: 'game-icons:crystal-shine',
+  Miasma: 'game-icons:poison-gas',
+  Roots: 'game-icons:root-tip',
+  Mandible: 'game-icons:pincers',
 });
 
 /** Descriptive Subtype → game-icons id (composition/affliction overlays, §9). */
@@ -184,23 +203,26 @@ export function creatureColor(c) {
 
 const listOf = (v) => (Array.isArray(v) ? v : v != null ? [v] : []);
 
-/** Catch-all corner icon for instinct-driven creatures that have NO archetype
- *  (Beasts, Aberrations — anything without a Humanoid body type / trained class). */
-export const NONARCHETYPE_ICON = 'game-icons:beast-eye';
+/** Catch-all corner icons for instinct-driven creatures with NO archetype — body-type
+ *  specific: a Beast reads as primal instinct, an Aberration as eldritch unreality. */
+export const NONARCHETYPE_ICON = 'game-icons:beast-eye';        // Beast (default) catch-all
+export const ABERRATION_NONARCH_ICON = 'game-icons:eyestalk';  // Aberration's own catch-all
 
 /**
  * The TOP-LEFT corner icon — STRICTLY the creature's ARCHETYPE (its trained class),
  * or the non-archetype catch-all for instinct-driven creatures. Archetype applies only
- * to a Humanoid body type (incl. a Beast|Humanoid hybrid); Beasts/Aberrations get the
- * catch-all. Returns a 1-element [{ key, icon, label }] (kept as an array for the
- * cluster renderer; families/subtypes now live in the NAME, not the corner).
+ * to a Humanoid body type (incl. a Beast|Humanoid hybrid); a pure Beast gets the beast
+ * catch-all, a pure Aberration its own eldritch catch-all. Returns a 1-element
+ * [{ key, icon, label }] (families/subtypes now live in the NAME, not the corner).
  */
 export function submatrixIcons(c) {
   const bios = listOf(c?.biology);
   const cls = first(c, 'class');
   const hasArchetype = (!bios.length || bios.includes('Humanoid')) && !!cls;
   if (hasArchetype) return [{ key: 'arch', icon: ARCHETYPE_ICON[cls] || NONARCHETYPE_ICON, label: cls }];
-  return [{ key: 'wild', icon: NONARCHETYPE_ICON, label: 'Instinctive (no archetype)' }];
+  const aberrant = bios.includes('Aberration');
+  return [{ key: 'wild', icon: aberrant ? ABERRATION_NONARCH_ICON : NONARCHETYPE_ICON,
+    label: aberrant ? 'Aberrant (no archetype)' : 'Instinctive (no archetype)' }];
 }
 
 /** First/primary corner icon (for minis / back-compat). */
@@ -220,8 +242,9 @@ export function specialFactors(c) {
       for (const t of listOf(c?.anatomy)) if (ANATOMY_ICON[t]) out.push({ key: `an-${t}`, icon: ANATOMY_ICON[t], label: t });
     } else if (bio === 'Humanoid') {
       for (const t of listOf(c?.weapons)) if (WEAPON_ICON[t]) out.push({ key: `wp-${t}`, icon: WEAPON_ICON[t], label: t });
+    } else if (bio === 'Aberration') {
+      for (const t of listOf(c?.anatomy)) if (ANATOMY_ICON[t]) out.push({ key: `ab-${t}`, icon: ANATOMY_ICON[t], label: t });
     }
-    // other biologies add their special factors when their kit is built.
   }
   return out;
 }
