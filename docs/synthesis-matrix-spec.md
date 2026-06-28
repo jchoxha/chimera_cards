@@ -4,6 +4,16 @@
 > `REVIEW`.** Amends `combat-engine-spec.md` §1.1 (single 1–2 "type" cap → **1–2 per
 > axis**) and retires the 16-element set (replaced by the 13 attunements). LOCKED source
 > data lives in `src/data/synthesis.js`. **Fusion/breeding is PAUSED** (see §6).
+>
+> **⚠ SUPERSEDED IN PART by `docs/biology-kits.md` (2026-06-27/28).** This spec describes
+> **Class** as the universal kit/pool driver. That is now **Humanoid-only**: **Biology
+> selects the kit system** (the "card content" plane below is **BiologyKit × Attunement**,
+> where Humanoid's kit *is* the Class×Attunement plane this doc describes; Beast =
+> Family+Anatomy; etc.). The §1 axis-2 column ("Class") is **biology-conditional and
+> multi-valued** (one tag per biology base). Read `docs/biology-kits.md` first — it owns the
+> kit framework, the per-biology systems, and the §7/§14 generator amendments. The
+> **biology base list itself is under active review** (see biology-kits.md §8: demoting some
+> "biologies" to condition/template modifiers).
 
 ## 0. Goal
 

@@ -1,10 +1,10 @@
 # Biology Kit Systems — biology selects how a creature's card pool is built
 
-> Status: **direction captured 2026-06-27; the 5 framework questions ANSWERED 2026-06-27
-> (Jeton).** The framework below is now **LOCKED**; per-biology card content is still to be
-> authored one biology at a time (Beast first). This reframes the §7 generator and the §14
-> "card content" plane of `docs/synthesis-matrix-spec.md` — read that first for the 3-axis
-> taxonomy.
+> Status: **framework LOCKED (2026-06-27); Beast + Humanoid BUILT (v3.85/3.88).** Per-biology
+> card content is authored one biology at a time. This reframes the §7 generator and the §14
+> "card content" plane of `docs/synthesis-matrix-spec.md`. **⚠ OPEN REDESIGN (§8, 2026-06-28):
+> demoting some "biologies" (Undead, Giant, maybe Demon) to condition/template MODIFIERS rather
+> than standalone bases — decide before authoring the remaining biologies.**
 
 ## Answered framework decisions (2026-06-27, Jeton)
 1. **Axis-2 is reused per biology AND multi-valued.** Keep all 3 tag slots for everyone;
@@ -255,3 +255,75 @@ per-biology *content* pass, stepping through one biology at a time:
   keeps a two-kit creature fair. Principle locked (equal union); tuning open.
 - **Generator/data-model migration** (§6): axis-2 becomes a multi-valued, biology-keyed set;
   `inferTypings` infers biology + each biology's axis-2 tag; editor/UI show multiple kit tags.
+
+---
+
+## 8. OPEN REDESIGN — base biologies vs condition templates (PROPOSAL, 2026-06-28)
+
+> Jeton's observation: not all 9 "biologies" are the same *kind* of thing. Some are genuine
+> **body plans** (what a creature **is**); others read more like **conditions / templates**
+> (what's been **done** to it, or a flavor overlay), and could ride on top of a body plan
+> instead of standing alone. This section is a **PROPOSAL pending sign-off** — nothing here
+> is built, and it would amend the LOCKED biology base list in `src/data/synthesis.js`.
+
+### 8.1 The test
+A **base biology** answers *"what is its body built/made as?"* A **condition** answers
+*"what state is it in / what's been done to it?"* — and a condition can sensibly apply to many
+bodies (a skeletal **dragon**, a giant **beast**, a demonic **humanoid**).
+
+| Current "biology" | Verdict | Why |
+|---|---|---|
+| **Beast** | **Base** | a body plan |
+| **Humanoid** | **Base** | a body plan |
+| **Dragonkin** | **Base** | a body plan (reptilian winged) |
+| **Mechanical** | **Base** | a built body (a "cyborg" overlay could be a *condition* later) |
+| **Elemental** | **Base** | a body made of element |
+| **Aberration** | **Base** (lean) | an alien body — though "mutated/warped X" is condition-ish |
+| **Demon** | **Borderline → demote?** | a demon is a being, but "demonic/possessed/corrupted X" is a classic template |
+| **Undead** | **Demote → condition** | skeletal/zombie/ghost is a *version of* a body (Stitched beast, Ghoul humanoid…) |
+| **Giant** | **Demote → condition** | a giant is a *very large* body — and overlaps our existing **size** ladder |
+
+### 8.2 Proposed two-tier model
+- **Base biologies (recommended 6):** Beast · Humanoid · Dragonkin · Mechanical · Elemental ·
+  Aberration. Each owns a **full kit system** (axis-2 + special factors), per §1–§3.
+- **Conditions / templates (NEW tier):** a creature optionally carries **0–1 condition** layered
+  on its base. A condition grants a **small trait/card package** (NOT a full kit, NO axis-2 tag):
+  - **Undead** — undying (cheat death once), Decay/rot, immune to poison/fear, reanimate.
+    Flavor subtypes: *Skeletal · Rotting · Spectral · Lich.*
+  - **Giant** — forces Large+ size, Stomp/Quake AoE, Throw, immovable; fewer-but-bigger cards.
+    (Ties into the size ladder rather than duplicating it.)
+  - **Fiendish** *(if Demon is demoted)* — Sacrifice, Curse, fel damage, summon imps.
+- **New conditions to flesh it out (proposed, pick a starting few):**
+  - **Hallowed** — the holy counterpart to Fiendish: regen, ward, smite.
+  - **Feral** — wild/berserk: frenzy, more damage while hurt, little defense.
+  - **Ancient** — old & powerful: slow start, scaling payoff (elder dragons, elder things).
+  - **Swarm** — many-bodied: multiply, sacrifice bodies, weak individually.
+  - **Cursed/Plagued** — spreads debuffs at a cost to itself.
+  - *(backlog: Spectral, Mechanized/Augmented, Aberrant — each overlaps a base, hold for now.)*
+
+### 8.3 Where conditions live (data model — RECOMMENDED: Option C)
+- **A — new 4th axis "Condition."** Cleanest conceptually, but adds an axis everywhere.
+- **B — flat template tags** on the creature (a perks list). Lightweight, but parallel to nothing.
+- **C — split the biology vocabulary into BASES + MODIFIERS, reuse the existing 1–2 biology
+  slot (RECOMMENDED).** A creature's biology = **exactly one base + at most one modifier**, OR
+  **two bases** (a true cross-body hybrid). This *subsumes* today's model: `[Beast]` (pure),
+  `[Beast, Undead]` (undead beast — Beast base + Undead modifier), `[Beast, Humanoid]` (Chimera —
+  two bases). The union/synthesis machinery already handles 2 entries, and `BIOLOGY_SYNTHESIS`
+  already names the modified pairs (Stitched = Beast|Undead, Ghoul = Humanoid|Undead, Behemoth =
+  Beast|Giant…). New rules: a **modifier can't be the sole biology** (needs a base); a modifier
+  contributes a **trait package, not a kit/axis-2 tag**; (TBD) disallow two modifiers.
+
+### 8.4 Open decisions (need Jeton's call before building more biologies)
+1. **Adopt the base-vs-condition split at all?** (proposal: yes.)
+2. **Demote which?** Undead + Giant (proposal: yes). **Demon** → demote to *Fiendish*, or keep as
+   a base? (proposal: demote, but it's iconic — your call.) Keep **Aberration** as a base? (lean yes.)
+3. **Data model:** A / B / **C** (proposal: C — bases + modifiers in the biology slot).
+4. **Starting condition set:** Undead, Giant (+ Fiendish if Demon demoted) + how many of the new
+   ones (Hallowed/Feral/Ancient/Swarm/Cursed) to author first?
+5. **Giant vs size:** does Giant-the-condition just *gate* size to Large+, or also add its own
+   stomp/throw kit on top of raw size scaling? (proposal: both — size scales stats, the condition
+   adds mechanics.)
+
+If we adopt C, the build order for "remaining biologies" shrinks: we author **Dragonkin /
+Mechanical / Elemental / Aberration** as full kits, and **Undead / Giant / Fiendish (+ new)** as
+lighter **condition packages** — less work and a cleaner taxonomy.
