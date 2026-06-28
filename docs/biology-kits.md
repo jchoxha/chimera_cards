@@ -1,9 +1,26 @@
 # Biology Kit Systems — biology selects how a creature's card pool is built
 
-> Status: **direction captured 2026-06-27 (Jeton, late-night).** ONE decision is
-> **LOCKED**; everything else here is a **DRAFT proposal / seeds** for review.
-> This reframes the §7 generator and the §14 "card content" plane of
-> `docs/synthesis-matrix-spec.md` — read that first for the 3-axis taxonomy.
+> Status: **direction captured 2026-06-27; the 5 framework questions ANSWERED 2026-06-27
+> (Jeton).** The framework below is now **LOCKED**; per-biology card content is still to be
+> authored one biology at a time (Beast first). This reframes the §7 generator and the §14
+> "card content" plane of `docs/synthesis-matrix-spec.md` — read that first for the 3-axis
+> taxonomy.
+
+## Answered framework decisions (2026-06-27, Jeton)
+1. **Axis-2 is reused per biology AND multi-valued.** Keep all 3 tag slots for everyone;
+   the 2nd slot's vocabulary is biology-conditional (Humanoid → Archetype, Beast → Family,
+   …). A creature's axis-2 holds **one tag per biology base it has**, so a Beast|Humanoid
+   hybrid carries **both** an Archetype tag **and** a Beast Family tag.
+2. **Beast uses BOTH** Families (behaviour + signatures) **and** Anatomy tags (pool bulk).
+3. **4–6 sub-types per biology** to start; we step through each biology deliberately (e.g.
+   Dragonkin will get Anatomy **plus** 4–6 "flights" keyed to colours/characteristics that
+   mesh with the attunement matrix).
+4. **Hybrids combine elegantly with NO primary/secondary** — the creature simply **gets the
+   tags (and their kits) from BOTH base biologies**, merged into one pool.
+5. **Beast is built first.**
+6. Beast Families = **basic scientific animal classes** (Mammalian, Reptilian, …). Anatomy
+   tags are **all nouns, never verbs** (Teeth/Beak, not Bite); Roar is an allowed exception;
+   Shell is included.
 
 ---
 
@@ -31,24 +48,23 @@ Attunement and size stay exactly as they are today (orthogonal layers). Only the
 
 ---
 
-## 1. The structural fork (OPEN — needs a call)
+## 1. The axis-2 model — RESOLVED: biology-conditional + multi-valued
 
-Today every creature carries a **Class** (the 2nd axis is mandatory). If non-humanoids
-have no archetype, what fills that slot?
+Keep the 3-axis *structure*; the **2nd axis's vocabulary is biology-conditional.**
+"Archetype" is just the *Humanoid name* for axis-2. For a Beast the same slot holds a
+**Family**; Mechanical → **Chassis**; Undead → **type**; etc. Each biology defines its own
+axis-2 enum + kit templates, and "Humanoid → Archetype" is just one row of that table.
 
-- **Option A — nullable Class.** Class becomes Humanoid-only; non-humanoids have
-  `class: null`. Simplest data change, but the "triple" stops being uniform and a lot of
-  code assumes a class is present (`POOLS[class]`, reward pools, generator).
-- **Option B — biology-conditional axis-2 vocabulary (RECOMMENDED).** Keep the 3-axis
-  *structure*; the **2nd axis's vocabulary depends on biology.** "Archetype" is just the
-  *Humanoid name* for axis-2. For a Beast, the same slot holds a **Family**; for
-  Mechanical, a **Chassis**; for Undead, an **Undead type**; etc. Every creature still has
-  a clean triple `(axis2, biology, attunement)` — the data model barely moves, but each
-  biology defines its own axis-2 enum + kit templates.
+**Axis-2 is MULTI-VALUED, keyed to the creature's biology bases.** A creature gets **one
+axis-2 tag per biology it has**:
+- Pure Humanoid → 1 Archetype tag.
+- Pure Beast → 1 Family tag.
+- **Beast|Humanoid → an Archetype tag AND a Beast Family tag** (both kits contribute).
 
-I recommend **Option B**: it preserves the generator's shape and the synthesis-matrix
-data model, and it makes "Humanoid → Archetype" just one row of a general table. The rest
-of this doc assumes B, but the choice is yours.
+So the stored shape is no longer "one class string" but a small set of `(system, tag)`
+pairs derived from the biology bases — e.g. `[{Archetype: 'Warrior'}, {Family: 'Mammalian'}]`.
+The generator unions every base biology's kit (see §4). This keeps a clean, uniform record
+for every creature while letting hybrids legitimately speak two kit languages at once.
 
 ---
 
@@ -85,23 +101,27 @@ The existing system: Warrior · Rogue · Mage · Warlock · Priest · Shaman · 
 Engineer (+ 28 hybrids), each a full StS-style discipline. See `docs/archetype-design.md`.
 No change except: this is now **one biology's** kit, not the universal one.
 
-### 3.2 Beast — Families + Anatomy *(the idea that kicked this off)*
-**Two lenses that compose:**
-- **Family** (WoW-hunter-pet style) — the behaviour themer + a signature trick. Seeds:
-  **Predator** (ambush burst / stealth), **Pack** (summon/ally synergy, "the more the
-  deadlier"), **Reptile** (tough, cold-blooded ramp), **Raptor/Bird** (aerial, dive,
-  evasion), **Insectoid** (swarm, venom, multiply), **Aquatic** (Soak/control),
-  **Ungulate/Horned** (charge, knockback), **Primate** (tools/throw, adaptive).
-  Family ≈ the archetype-equivalent: it sets the AI + a few signature cards.
-- **Anatomy / Arsenal** — the physical tools the creature actually has; the pool's
-  **bulk** is assembled from these tags: **Claws** (multi-hit), **Bite/Fangs** (heavy
-  single + bleed), **Horns/Antlers** (charge/gore), **Tail** (sweep/AoE), **Hooves/
-  Stomp**, **Wings** (dive/dodge), **Quills/Spines** (thorns/retaliate), **Venom**
-  (poison), **Hide/Armor** (block), **Roar** (buff/fear).
+### 3.2 Beast — Families + Anatomy *(built first; the idea that kicked this off)*
+**Two lenses that compose.** A beast is defined by `{family, anatomy[]}`.
 
-**Composition rule (draft):** Family picks behaviour + ~2–3 signature cards; the
-creature's **anatomy tag list fills the rest** of the pool. A winged, horned predator =
-Pounce + Gore + Dive. A beast is defined by `{family, anatomy[]}`.
+- **Family** = the **basic scientific animal class** (Jeton: stick to real taxonomy, not
+  playstyle labels). It themes behaviour/AI + a few signature cards. Starter 4–6:
+  **Mammalian** (adaptable; pack/pursuit, balanced), **Reptilian** (cold-blooded; tough,
+  ramps, ambush), **Avian** (aerial; evasion, dive, tempo), **Piscine** (aquatic; Soak /
+  flow / control), **Insectoid/Arthropod** (swarm; multiply, venom, fragile-but-many),
+  **Amphibian** (versatile; toxins, adaptation, terrain). Family is the
+  archetype-equivalent for beasts.
+- **Anatomy / Arsenal** = the physical tools the creature has; the pool's **bulk** is
+  assembled from these tags. **All tags are NOUNS** (the body part), not actions —
+  card names express the verb, tags don't. Starter set: **Claws**, **Teeth/Fangs**,
+  **Beak**, **Horns** (incl. antlers/tusks), **Tail**, **Hooves**, **Wings**, **Quills**
+  (spines), **Venom** (gland), **Hide**, **Shell**, **Roar** *(allowed exception — a
+  behaviour, but iconic)*.
+
+**Composition rule:** Family picks behaviour + ~2–3 signature cards; the creature's
+**anatomy tag list fills the rest** of the pool (a winged, horned beast draws its Wing and
+Horn cards). Anatomy should be plausible for the Family (Avian → Beak/Wings, not Hooves) —
+the generator constrains anatomy by family.
 
 ### 3.3 Undead — Affliction & Reanimation *(seed)*
 Decay/rot DoTs (Decay already exists), life-drain, **raise/reassemble** minions, status
@@ -109,11 +129,15 @@ immunities (no poison/fear), **Undying** (cheat death once). Types: **Skeletal**
 fragile bodies, reassemble), **Ghostly** (phase/evasion, fear), **Plague/Zombie** (spread
 infection), **Lich** (curse-caster — bridges toward archetype casting).
 
-### 3.4 Dragonkin — Breath & Hoard *(seed)*
-Signature **Breath weapon** (one big charged attack, element = attunement). Plus
-**scales** (heavy block/resist), **aerial** (positioning/dodge), **hoard/greed** (scales
-with gold/cards), **draconic might** (raw stat dominance). Roles: **Wyrm** (bruiser),
-**Drake** (agile flyer), **Wyvern** (venom).
+### 3.4 Dragonkin — Breath, Anatomy & Flights *(seed; Jeton wants Anatomy + Flights)*
+Like Beast, Dragonkin gets **Anatomy** tags (Scales → block/resist, Breath → big charged
+attack scaled by attunement, Wings → aerial dodge, Claws, Tail, Hoard-sense…) **plus** an
+axis-2 set of **4–6 Flights** — dragon lineages with **key colours/characteristics chosen
+to mesh with the attunement matrix** (e.g. a Red/Fire flight, Blue/Frost-or-Water, Black/
+Void-or-Shadow, Green/Nature, Gold/Holy, Bronze/Stone-or-Arcane — final mapping when we
+step through Dragonkin). Flight = the behaviour/identity themer; Anatomy fills the pool;
+attunement skins the element. Plus **hoard/greed** (scales with gold/cards) and **draconic
+might** (raw stat dominance) as cross-flight motifs.
 
 ### 3.5 Elemental — Pure Attunement Embodiment *(seed)*
 These creatures **are** their element — the most attunement-coupled biology. Pool is
@@ -144,31 +168,29 @@ mid-fight), eldritch Void/Decay, deliberate randomness, breaking normal constrai
 
 ---
 
-## 4. Hybrids (1–2 biology bases)
+## 4. Hybrids (1–2 biology bases) — UNION, no primary/secondary
 
 A creature carries up to two biology bases; the hybrid **name already exists** in
 `src/data/synthesis.js` `BIOLOGY_SYNTHESIS` (Chimera, Dragonspawn, Cybeast, Felbeast,
 Ghoul, Augmented, Behemoth, Primal, Stitched, …). That name = the merged-kit identity.
 
-**Graft rule (draft):** the **primary** biology's system is the *frame*; the **secondary**
-biology grafts in its **signature cluster** (a handful of its most identifying cards).
+**RESOLVED (Jeton): hybrids combine elegantly with NO frame/graft hierarchy — the creature
+simply gets the tags AND kits of BOTH base biologies, merged into one pool.** Per §1, axis-2
+holds **one tag per biology**, so a hybrid speaks both kit languages at full strength:
 
-- **Humanoid hybrids → archetype frame + grafted arsenal.** This is exactly the locked
-  decision: Humanoid hybrids *do* use the archetype system, augmented by the other half.
-  - **Chimera** (Beast|Humanoid) = an archetype build + Claw/Bite cards.
-  - **Dragonspawn** (Dragonkin|Humanoid) = archetype + a Breath card.
-  - **Augmented** (Humanoid|Mechanical) = archetype + bolt-on modules.
-  - **Ghoul** (Humanoid|Undead) = archetype + an affliction/undying signature.
-- **Two non-humanoids → blend the two native systems.** Primary biology's bulk pool +
-  secondary's signature cluster.
-  - **Cybeast** (Beast|Mechanical) = beast anatomy pool + a few modules.
-  - **Felbeast** (Beast|Demon) = beast arsenal + a curse/sacrifice signature.
-  - **Behemoth** (Beast|Giant) = beast arsenal scaled toward giant mass.
+- **Beast|Humanoid "Chimera"** → an **Archetype** tag *and* a **Family** + Anatomy tags →
+  a pool that is genuinely *both* a trained discipline *and* a beast arsenal. (This is the
+  locked "Humanoid hybrids use the archetype system" — they do, alongside their beast kit.)
+- **Dragonkin|Humanoid "Dragonspawn"** → Archetype + a Flight + dragon Anatomy.
+- **Beast|Mechanical "Cybeast"** → a Family + Anatomy + a Chassis + Modules.
+- **Beast|Demon "Felbeast"** → a Family + Anatomy + a Caste + pact/curse cards.
 
-**Primacy question (OPEN):** when neither base is Humanoid, which is primary — listed
-order, the "more physical" one, or player/generator choice? Default proposal: **the first
-base in the stored pair is primary** (deterministic), secondary grafts ~3–5 signature
-cards.
+**Merge mechanics to design when we build hybrids (post-Beast):** how much of each kit lands
+(full union risks bloated/overpowered decks), de-duplication when both kits offer similar
+cards, and how the **deck-size / rarity budget** (§14) keeps a two-kit creature fair. The
+*principle* is locked (equal union of both biologies' tags); the *budgeting* is the tuning
+problem. Anatomy plausibility still applies (a Cybeast's mechanical half may swap organic
+parts for analogues — armor-plating for Hide, etc.).
 
 ---
 
@@ -204,13 +226,18 @@ Not building tonight — capture only. When we do:
 
 ---
 
-## 7. Open questions for the morning
+## 7. Status — framework answered; per-biology authoring remains
 
-1. **Axis-2 model: Option A (nullable Class) or B (biology-conditional axis-2)?** (I
-   recommend B.)
-2. **Beast:** confirm Family = behaviour-themer + signatures, Anatomy tags = pool bulk?
-   First family list + first anatomy-tag list?
-3. **Counts:** how many families/types per biology to start (proposing 4–6)?
-4. **Hybrid primacy** when neither base is Humanoid (proposing: first listed base = primary).
-5. Which biology to **flesh out + build first** after Humanoid? (Beast is the natural pick
-   — it's the one you described and the most "arsenal-driven," so it proves the framework.)
+The 5 framework questions are **answered** (see the box at the top). What's left is the
+per-biology *content* pass, stepping through one biology at a time:
+
+- **Beast (next, building first):** finalise the 4–6 Families (Mammalian/Reptilian/Avian/
+  Piscine/Insectoid/Amphibian) + the Anatomy noun-tag set + which anatomy each family allows,
+  then author the card clusters (Family signatures + per-Anatomy cards) as data.
+- **Then each other biology** gets the same treatment (Dragonkin = Anatomy + 4–6 Flights
+  mapped to the attunement matrix; Undead/Demon/Mechanical/Giant/Elemental/Aberration per
+  their §3 seeds).
+- **Hybrid budgeting** (§4): how much of each kit lands + dedup + the deck/rarity budget that
+  keeps a two-kit creature fair. Principle locked (equal union); tuning open.
+- **Generator/data-model migration** (§6): axis-2 becomes a multi-valued, biology-keyed set;
+  `inferTypings` infers biology + each biology's axis-2 tag; editor/UI show multiple kit tags.

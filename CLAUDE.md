@@ -15,19 +15,23 @@ This repo currently holds **two codebases** that coexist:
    (StS2-grounded). This is the active direction. Playable combat demo at
    https://jchoxha.github.io/chimera_cards/combat.html
 
-**🧬 NEW DIRECTION CAPTURED (2026-06-27, Jeton) — BIOLOGY SELECTS THE KIT SYSTEM.**
-**LOCKED decision:** the **archetype/Class system (Warrior/Rogue/Mage/…) applies ONLY to
-Humanoids + Humanoid hybrids.** Every other biology gets its own native kit system —
-**Beast = Families (WoW-pet-style behaviour) + Anatomy/arsenal tags (claws/bite/horns…)
-that build the pool**; Undead/Dragonkin/Elemental/Demon/Mechanical/Giant/Aberration each
-get a native system (seeds drafted). So **Biology is promoted to the primary card-pool
-selector** (it now answers what Class used to: "where do this creature's cards come
-from?"); attunement + size stay orthogonal. Full framework, per-biology seeds, the
-hybrid graft rule, the generator/§14 impact, and **5 open questions** are in
-**`docs/biology-kits.md`** — read it before touching the §7 generator. Recommended axis-2
-model: keep the triple but make axis-2's *vocabulary* biology-conditional ("Archetype" =
-the Humanoid name for axis-2; Beast = Family; etc.). **Nothing built yet — design capture
-only; flesh out one biology at a time (Beast first).**
+**🧬 NEW DIRECTION — BIOLOGY SELECTS THE KIT SYSTEM (framework LOCKED 2026-06-27, Jeton).**
+The **archetype/Class system (Warrior/Rogue/Mage/…) applies ONLY to Humanoids**; every other
+biology gets its own native kit system, so **Biology is the primary card-pool selector**
+(it answers what Class used to: "where do this creature's cards come from?"). Attunement +
+size stay orthogonal. **Resolved framework decisions:** (1) **axis-2 is biology-conditional
+AND multi-valued** — keep all 3 tag slots; the 2nd slot's vocabulary depends on biology
+(Humanoid→Archetype, Beast→Family, Mechanical→Chassis…) and a creature holds **one axis-2 tag
+per biology base**, so a **Beast|Humanoid carries BOTH an Archetype tag and a Beast Family
+tag**. (2) **Beast uses BOTH Families + Anatomy** — Families = **basic scientific animal
+classes** (Mammalian/Reptilian/Avian/Piscine/Insectoid/Amphibian), Anatomy = **noun** tags
+(Claws/Teeth/Beak/Horns/Tail/Hooves/Wings/Quills/Venom/Hide/Shell + Roar) that build the pool
+bulk. (3) **4–6 sub-types per biology** to start, stepping through each (Dragonkin = Anatomy +
+4–6 Flights keyed to colours that mesh with the attunement matrix). (4) **Hybrids = elegant
+UNION of BOTH biologies' tags/kits — no primary/secondary** (budgeting TBD). (5) **Beast is
+built first.** Full framework + per-biology seeds + generator/§14 impact in
+**`docs/biology-kits.md`** — read before touching the §7 generator. **Nothing built yet —
+design only; author one biology at a time (Beast next).**
 
 **Stack decision:** stay on **Vite + React + JS** for now (no TS migration yet);
 spec "TS interfaces" are JSDoc `@typedef`s. Renderer when we build the view = **Phaser**
