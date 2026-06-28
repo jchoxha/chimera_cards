@@ -26,3 +26,10 @@
 .meCardMeta { font-size: 11px; color: #8a82a8; margin-top: 2px; font-style: italic; }
 .meCardBtns { display: flex; gap: 8px; justify-content: center; margin-top: 10px; }
 .meEditor .selBtn.rm, .meCard .selBtn.rm { border-color: #a5453a; color: #ffbdb3; }
+
+/* Beast kit: anatomy tag picker. */
+.beastAnatomy { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 4px; }
+.anatTag { display: inline-flex; align-items: center; gap: 5px; padding: 4px 10px; border-radius: 999px;
+  border: 1px solid #4a4370; background: #241c3c; color: #cfc6ec; font-size: 13px; cursor: pointer; }
+.anatTag.on { background: linear-gradient(135deg, #6a5d9a, #b98a3a); color: #fff; border-color: #d8b15a; }
+.anatTag input { accent-color: #b98a3a; }

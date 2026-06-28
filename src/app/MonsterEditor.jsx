@@ -11,6 +11,7 @@ import React, { useState } from 'react';
 import DeckBuilder from '../ui/deck/DeckBuilder.jsx';
 import { deckToCounts } from '../engine/deck/budget.js';
 import { FORM_ORDER, FORMS, formLabel } from '../data/forms.js';
+import { anatomyForFamily } from '../engine/cards/beastPool.js';
 import { ARCHETYPE_ICON, BIOLOGY_ICON, ATTUNEMENT_ICON, ATTUNEMENT_COLOR, creatureIcon, creatureColor } from '../data/axisIcons.js';
 import './creator.css';
 
@@ -18,10 +19,11 @@ const Icon = ({ icon, ...rest }) => <iconify-icon icon={icon} {...rest}></iconif
 
 function emptyDef(classes, biologies) {
   return { id: null, name: '', lore: '', description: '', class: [classes[0] || 'Warrior'],
-    biology: [biologies[0] || 'Humanoid'], attunement: ['Physical'], size: 'regular', customDeck: null };
+    biology: [biologies[0] || 'Humanoid'], attunement: ['Physical'], size: 'regular',
+    family: null, anatomy: [], customDeck: null };
 }
 
-export default function MonsterEditor({ defs = [], classes = [], biologies = [], attunements = [], legalFor, buildPool, onSave, onDelete, onMenu, tabs }) {
+export default function MonsterEditor({ defs = [], classes = [], biologies = [], attunements = [], legalFor, buildPool, families = [], onSave, onDelete, onMenu, tabs }) {
   const [editing, setEditing] = useState(null); // a def being edited, or null = list
   const [building, setBuilding] = useState(false);
 
@@ -29,14 +31,22 @@ export default function MonsterEditor({ defs = [], classes = [], biologies = [],
     const klass = editing.class[0];
     const atts = (editing.attunement || []).filter(Boolean);
     const legal = legalFor ? legalFor(klass) : attunements;
+    const isBeast = (editing.biology || []).includes('Beast');
+    const family = editing.family || families[0] || null;
+    const allowedAnatomy = isBeast ? anatomyForFamily(family) : [];
     const preview = { class: [klass], biology: [editing.biology[0]], attunement: atts.length ? atts : ['Physical'] };
     const color = creatureColor(preview);
     const set = (patch) => setEditing((e) => ({ ...e, ...patch }));
+    const toggleAnatomy = (tag) => set({
+      anatomy: (editing.anatomy || []).includes(tag)
+        ? editing.anatomy.filter((t) => t !== tag)
+        : [...(editing.anatomy || []), tag],
+    });
 
     if (building) {
       return (
         <DeckBuilder
-          pool={buildPool(klass, atts.length ? atts : ['Physical'])}
+          pool={buildPool(editing)}
           title={`Build ${editing.name || klass}'s deck`}
           subtitle={`${klass} · ${editing.biology[0]} · ${atts.join(' / ') || 'Physical'}`}
           initial={editing.customDeck ? deckToCounts(editing.customDeck) : {}}
@@ -82,7 +92,7 @@ export default function MonsterEditor({ defs = [], classes = [], biologies = [],
                 </select>
               </label>
               <label className="crFld"><span>Biology</span>
-                <select value={editing.biology[0]} onChange={(e) => set({ biology: [e.target.value] })}>
+                <select value={editing.biology[0]} onChange={(e) => set({ biology: [e.target.value], family: null, anatomy: [], customDeck: null })}>
                   {biologies.map((bb) => <option key={bb} value={bb}>{bb}</option>)}
                 </select>
               </label>
@@ -104,6 +114,27 @@ export default function MonsterEditor({ defs = [], classes = [], biologies = [],
               </label>
             </div>
 
+            {isBeast && (
+              <div className="crAxes">
+                <div className="crDeckHead">Beast Kit</div>
+                <label className="crFld"><span>Family</span>
+                  <select value={family || ''} onChange={(e) => set({ family: e.target.value, anatomy: [], customDeck: null })}>
+                    {families.map((f) => <option key={f} value={f}>{f}</option>)}
+                  </select>
+                </label>
+                <div className="crFld"><span>Anatomy <em>(pick the body parts that build its deck)</em></span>
+                  <div className="beastAnatomy">
+                    {allowedAnatomy.map((tag) => (
+                      <label key={tag} className={`anatTag${(editing.anatomy || []).includes(tag) ? ' on' : ''}`}>
+                        <input type="checkbox" checked={(editing.anatomy || []).includes(tag)} onChange={() => { toggleAnatomy(tag); set({ customDeck: null }); }} />
+                        {tag}
+                      </label>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            )}
+
             <div className="crAxes">
               <div className="crDeckHead">Deck</div>
               <div className="crDeckBuild">
@@ -117,7 +148,12 @@ export default function MonsterEditor({ defs = [], classes = [], biologies = [],
             </div>
 
             <button className="selBtn go crCreate" disabled={!editing.name.trim()}
-              onClick={() => { onSave({ ...editing, name: editing.name.trim() }); setEditing(null); }}>
+              onClick={() => {
+                const out = { ...editing, name: editing.name.trim() };
+                if (isBeast) { out.family = family; out.anatomy = (editing.anatomy || []).filter((t) => allowedAnatomy.includes(t)); }
+                else { out.family = null; out.anatomy = []; }
+                onSave(out); setEditing(null);
+              }}>
               {editing.id ? 'Save Changes ✓' : 'Create Monster ✓'}
             </button>
           </div>
@@ -147,7 +183,7 @@ export default function MonsterEditor({ defs = [], classes = [], biologies = [],
               <div key={d.id} className="meCard" style={{ '--gl': color }}>
                 <div className="meCardPortrait"><Icon icon={creatureIcon(preview)} style={{ color }} /></div>
                 <div className="meCardName">{d.name}</div>
-                <div className="meCardAxes">{(d.class || []).join('/')} · {(d.biology || []).join('/')} · {(d.attunement || []).join('/')}</div>
+                <div className="meCardAxes">{(d.biology || []).includes('Beast') && d.family ? `${d.family} · ` : ''}{(d.class || []).join('/')} · {(d.biology || []).join('/')} · {(d.attunement || []).join('/')}</div>
                 <div className="meCardMeta">{formLabel(d.size) || 'Regular'}{d.customDeck ? ` · ${d.customDeck.length}-card deck` : ' · auto deck'}</div>
                 <div className="meCardBtns">
                   <button className="selBtn" onClick={() => setEditing({ ...emptyDef(classes, biologies), ...d, lore: d.lore || '', description: d.description || '', size: d.size || 'regular' })}>✎ Edit</button>

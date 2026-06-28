@@ -6,6 +6,10 @@
 
 /** @type {{version:string, date:string, notes:string[]}[]} newest first */
 export const CHANGELOG = [
+  { version: 'v3.85.0', date: '2026-06-28', notes: [
+    'Beasts now have their OWN card system (the first biology kit). Instead of an archetype, a Beast draws cards from its Family (a scientific animal class — Mammalian, Reptilian, Avian, Piscine, Insectoid, Amphibian) plus the Anatomy it has (Claws, Teeth, Beak, Horns, Tail, Hooves, Wings, Quills, Venom, Hide, Shell, Roar). 50 new beast cards, re-skinned to the creature’s attunement like any other kit.',
+    'The Editor’s Monster page now shows Family + Anatomy pickers when you set a creature’s biology to Beast, and roster beasts (Voltfang, Thornroot, Wildeye) now fight with real beast kits.',
+  ] },
   { version: 'v3.84.0', date: '2026-06-26', notes: [
     'Creature EVOLUTION (first cut): at a Campfire you can now evolve a party member one size up the ladder (Baby → Small → Regular → Large). It permanently gains HP and Might, and the added HP heals it. Elite and Boss are terminal and can’t evolve. Explained in the Codex.',
   ] },

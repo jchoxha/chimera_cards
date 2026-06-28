@@ -231,9 +231,13 @@ Not building tonight — capture only. When we do:
 The 5 framework questions are **answered** (see the box at the top). What's left is the
 per-biology *content* pass, stepping through one biology at a time:
 
-- **Beast (next, building first):** finalise the 4–6 Families (Mammalian/Reptilian/Avian/
-  Piscine/Insectoid/Amphibian) + the Anatomy noun-tag set + which anatomy each family allows,
-  then author the card clusters (Family signatures + per-Anatomy cards) as data.
+- **Beast — ✅ BUILT (v3.85.0).** 6 Families (Mammalian/Reptilian/Avian/Piscine/Insectoid/
+  Amphibian) + 12 Anatomy noun-tags, each family allowing a plausible subset; 50 cards in
+  `src/data/beastKit.json`, loaded by `src/engine/cards/beastPool.js` (`beastPool({family,
+  anatomy})`), validated by `npm run test:beast` (245 checks). Wired into generation via the
+  app-layer `basePoolFor` (biology selects the base pool; injected into `buildRoster` so
+  roster.js stays JSON-free); the Editor's Monster page exposes Family + Anatomy pickers when
+  biology = Beast. Numbers provisional — tune later.
 - **Then each other biology** gets the same treatment (Dragonkin = Anatomy + 4–6 Flights
   mapped to the attunement matrix; Undead/Demon/Mechanical/Giant/Elemental/Aberration per
   their §3 seeds).

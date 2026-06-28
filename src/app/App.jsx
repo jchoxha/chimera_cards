@@ -15,6 +15,7 @@ import SelectScreen from './SelectScreen.jsx';
 import CreatureCreator from './CreatureCreator.jsx';
 import { ATTUNEMENT_BASES, BIOLOGY_BASES, legalAttunements } from '../data/synthesis.js';
 import { attunementCards } from '../engine/cards/attunementPool.js';
+import { beastPool, BEAST_FAMILIES, defaultAnatomy } from '../engine/cards/beastPool.js';
 import { reskinDeck, attunementVariants } from '../engine/cards/reskin.js';
 import { makeCreature } from '../engine/content/generate.js';
 import { resolvePools } from '../data/collections.js';
@@ -29,7 +30,27 @@ const slug = (s) => String(s || '').toLowerCase().replace(/[^a-z0-9]+/g, '_').re
 // collections (player card packs). Resolved fresh each session start.
 const POOLS = resolvePools();
 const ARCHETYPES = Object.keys(POOLS);                 // archetypes that have a card kit
-const ROSTER = buildRoster(POOLS, POOLS.Warrior || []);
+
+const arr = (v) => (Array.isArray(v) ? v : v != null ? [v] : []);
+
+/** Biology selects the kit (docs/biology-kits.md): the base (Physical) card pool a
+ *  creature draws from BEFORE attunement re-skin. Humanoid (or no biology) → its
+ *  Archetype pool; Beast → its Family+Anatomy pool; both → the union. Beast falls
+ *  back to a default family/anatomy when none is authored. */
+function basePoolFor({ klass, biology, family, anatomy }) {
+  const bios = arr(biology);
+  const out = [];
+  if (!bios.length || bios.includes('Humanoid')) out.push(...(POOLS[klass] || []));
+  if (bios.includes('Beast')) {
+    const fam = family || BEAST_FAMILIES[0];
+    out.push(...beastPool({ family: fam, anatomy: anatomy?.length ? anatomy : defaultAnatomy(fam) }));
+  }
+  if (!out.length) out.push(...(POOLS[klass] || []));   // other biologies: archetype stand-in until their kit exists
+  return out;
+}
+const rosterPool = (r) => basePoolFor({ klass: r.class, biology: r.biology, family: r.family, anatomy: r.anatomy });
+
+const ROSTER = buildRoster(POOLS, POOLS.Warrior || [], rosterPool);
 const DUMMY = buildDummyCreature();
 
 if (import.meta.env.DEV && typeof window !== 'undefined') { window.__useRun = useRun; window.__useCombat = useCombat; }
@@ -44,22 +65,27 @@ function loadIds(key, fallback) {
 }
 const loadTeamIds = () => loadIds(TEAM_KEY, []);
 
-/** The creature's full potential pool: archetype reskinned to its attunement +
- *  that attunement's own cards + variant-access re-elements (§14.3). */
-function poolFor(klass, atts) {
-  const pool = POOLS[klass] || [];
-  return [...reskinDeck(pool, atts), ...attunementCards(atts), ...attunementVariants(pool, atts)];
+/** A creature's full potential pool: its biology base pool reskinned to its
+ *  attunement + that attunement's own cards + variant-access re-elements (§14.3).
+ *  Takes a def-like { class|klass, biology, attunement, family, anatomy }. */
+function potentialPool(def = {}) {
+  const atts = arr(def.attunement?.length ? def.attunement : ['Physical']);
+  const base = basePoolFor({ klass: def.class?.[0] ?? def.klass, biology: def.biology, family: def.family, anatomy: def.anatomy });
+  return [...reskinDeck(base, atts), ...attunementCards(atts), ...attunementVariants(base, atts)];
 }
 
 /** Build a run-ready creature from a custom definition (typings + lore/description).
  *  The deck is always auto-generated from the typings (no per-monster custom decks here). */
 function buildCustomCreature(def) {
-  const c = makeCreature({ id: def.id, name: def.name, class: def.class, biology: def.biology, attunement: def.attunement, size: def.size || 'regular', pool: POOLS[def.class?.[0]] || [] });
+  const c = makeCreature({ id: def.id, name: def.name, class: def.class, biology: def.biology, attunement: def.attunement, size: def.size || 'regular',
+    pool: basePoolFor({ klass: def.class?.[0], biology: def.biology, family: def.family, anatomy: def.anatomy }) });
   // The Editor (admin tool) can attach a hand-built deck; the end-user creator never does.
   if (def.customDeck && def.customDeck.length) c.deck = def.customDeck.map((card) => ({ ...card }));
   c.blurb = def.lore || def.blurb || `A custom ${(def.attunement || []).join('/')} ${(def.class || []).join('/')}.`;
   c.lore = def.lore || null;
   c.description = def.description || null;
+  c.family = def.family || null;
+  c.anatomy = def.anatomy || null;
   c.meta = { portrait: null, custom: true };
   c.custom = true;
   return c;
@@ -147,11 +173,8 @@ export default function App() {
     setView('menu');
   }
 
-  /** A single creature's potential pool (archetype reskinned + attunement cards + variants). */
-  function creatureRewardPool(c) {
-    const pool = POOLS[c.class?.[0]] || [];
-    return [...reskinDeck(pool, c.attunement), ...attunementCards(c.attunement), ...attunementVariants(pool, c.attunement)];
-  }
+  /** A single creature's potential pool (biology base reskinned + attunement cards + variants). */
+  function creatureRewardPool(c) { return potentialPool(c); }
   function beginRun() {
     const creatures = team;
     if (!creatures.length) { setView('select'); return; }
@@ -167,7 +190,7 @@ export default function App() {
   if (view === 'editor') return (
     <EditorHub onMenu={() => setView('menu')} monsterProps={{
       defs: customDefs, classes: ARCHETYPES, biologies: BIOLOGY_BASES, attunements: ATTUNEMENT_BASES,
-      legalFor: (k) => legalAttunements([k]), buildPool: poolFor,
+      legalFor: (k) => legalAttunements([k]), buildPool: potentialPool, families: BEAST_FAMILIES,
       onSave: saveCustomDef, onDelete: deleteCustomCreature,
     }} />
   );

@@ -30,8 +30,12 @@ bulk. (3) **4–6 sub-types per biology** to start, stepping through each (Drago
 4–6 Flights keyed to colours that mesh with the attunement matrix). (4) **Hybrids = elegant
 UNION of BOTH biologies' tags/kits — no primary/secondary** (budgeting TBD). (5) **Beast is
 built first.** Full framework + per-biology seeds + generator/§14 impact in
-**`docs/biology-kits.md`** — read before touching the §7 generator. **Nothing built yet —
-design only; author one biology at a time (Beast next).**
+**`docs/biology-kits.md`** — read before touching the §7 generator. **BEAST IS BUILT
+(v3.85.0):** 6 Families + 12 Anatomy tags, 50 cards in `src/data/beastKit.json`, loader
+`src/engine/cards/beastPool.js` (`beastPool({family,anatomy})`), `test:beast` (245); wired into
+generation via app-layer `basePoolFor` (biology selects the base pool, injected into
+`buildRoster` so roster.js stays JSON-free) + Editor Monster-page Family/Anatomy pickers. **Next
+biology to author: pick from Undead/Dragonkin/Mechanical/etc.** (the §3 seeds).
 
 **Stack decision:** stay on **Vite + React + JS** for now (no TS migration yet);
 spec "TS interfaces" are JSDoc `@typedef`s. Renderer when we build the view = **Phaser**
