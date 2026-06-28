@@ -27,6 +27,18 @@ not yet built — §9.3; settle §9.4 (Aberration breadth) + §9.5 refinements f
 below (axis-2 per body type: Humanoid→Archetype+Weapons BUILT, Beast→Family+Anatomy BUILT) still
 holds — it now hangs off body types, and subtypes are a new modifier tier. *Historical: the
 "biology selects the kit" framing (LOCKED 2026-06-27) and the base/condition split (§8) led here.*
+**ALL 3 BODY TYPES + SUBTYPES BUILT (v3.91.0):** Humanoid (archetypes+weapons), Beast
+(7 families incl. **Draconic** + **Breath** anatomy, `beastKit.json`/`beastPool.js`,
+`test:beast` 276), **Aberration** (6 wide families Eldritch/Construct/Ooze/Flora/Crystalline/
+Formless + 9 aberrant-feature tags, `aberrationKit.json`/`aberrationPool.js`, `test:aberration`
+182). **Subtype card packages** (Mechanical/Elemental/Giant/Demonic) in `subtypeKit.json`/
+`subtypePool.js` (`test:subtype` 61), stacked via `basePoolFor`. **Naming** is data-driven in
+`data/biologyNaming.js` (`FAMILY_NOUN`+`FUSIONS`, reusing `BIOLOGY_SYNTHESIS`; reference list in
+biology-kits.md §9.6) — Draconic+Giant="Leviathan", Mammalian+Mechanical="Cybeast", etc. The
+**corner is archetype-only** with body-type catch-alls (beast-eye / eyestalk for Beast/Aberration).
+**Still TODO:** matchups.js still keys constitution on the old 9 biologies (re-key onto body
+types + subtypes); Codex still lists old biologies; Giant subtype doesn't yet gate size; subtype
+mechanical depth (Giant's throw/immovable etc. are cards, not yet special rules).
 
 **🧬 PRIOR FRAMING (2026-06-27) — BIOLOGY SELECTS THE KIT SYSTEM.**
 The **archetype/Class system (Warrior/Rogue/Mage/…) applies ONLY to Humanoids**; every other

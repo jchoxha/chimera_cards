@@ -26,23 +26,39 @@ export const FAMILY_NOUN = Object.freeze({
 });
 
 /** "<core noun>|<subtype>" → a fused name that REPLACES the noun and consumes the
- *  subtype. Authored from the synthesis matrix; add lines freely. Fusions chain
- *  (the fused name can fuse again with another subtype). */
+ *  subtype. Reuses the synthesis matrix (`BIOLOGY_SYNTHESIS`) wherever the old
+ *  9-biology pair maps onto a (form/family, subtype) combo; new names coined where
+ *  the matrix had none. Fusions CHAIN (the fused name can fuse again with another
+ *  subtype). Anything without a fusion falls back to ordered subtype prefixes, so
+ *  this table is "comprehensive enough" — add a line to coin any new convention.
+ *  (docs/biology-kits.md §9.6 has the generated reference list.) */
 export const FUSIONS = Object.freeze({
-  // Dragon (Draconic Beast) fusions
-  'Dragon|Giant': 'Leviathan',
-  'Dragon|Undead': 'Scourgewyrm',
-  'Dragon|Mechanical': 'Geargon',
-  'Dragon|Demonic': 'Hellwing',
-  // generic Beast fusions
-  'Beast|Giant': 'Behemoth',
-  'Beast|Mechanical': 'Cybeast',
-  'Beast|Demonic': 'Felbeast',
-  'Beast|Undead': 'Stitched',
-  // Humanoid fusions (cyborgs/giants stay "Mechanical/Giant Humanoid"; only the
-  // fully-transformed read as their own noun)
-  'Humanoid|Demonic': 'Fiend',
-  'Humanoid|Undead': 'Ghoul',
+  // ── Beast (Mammalian noun "Beast") — from the Beast|X matrix rows ──
+  'Beast|Mechanical': 'Cybeast',     // Beast|Mechanical
+  'Beast|Giant': 'Behemoth',         // Beast|Giant
+  'Beast|Demonic': 'Felbeast',       // Beast|Demon
+  'Beast|Elemental': 'Primal',       // Beast|Elemental
+  'Beast|Undead': 'Stitched',        // Beast|Undead
+  // ── Dragon (Draconic Beast) — from the Dragonkin|X matrix rows ──
+  'Dragon|Mechanical': 'Geargon',    // Dragonkin|Mechanical
+  'Dragon|Giant': 'Leviathan',       // Dragonkin|Giant
+  'Dragon|Demonic': 'Hellwing',      // Dragonkin|Demon
+  'Dragon|Elemental': 'Aspect',      // Dragonkin|Elemental
+  'Dragon|Undead': 'Scourgewyrm',    // Dragonkin|Undead
+  // ── Humanoid — from the Humanoid|X matrix rows ──
+  'Humanoid|Mechanical': 'Augmented',// Humanoid|Mechanical
+  'Humanoid|Giant': 'Half-Giant',    // Giant|Humanoid
+  'Humanoid|Demonic': 'Fiend',       // Demon|Humanoid
+  'Humanoid|Elemental': 'Attuned',   // Elemental|Humanoid
+  'Humanoid|Undead': 'Ghoul',        // Humanoid|Undead
+  // ── Aberration families — flagship fusions where the matrix name reads well;
+  //    the rest stay readable prefix-form ("Mechanical Horror", "Giant Ooze"…) ──
+  'Construct|Mechanical': 'Golem',   // a mechanical construct (cf. Elemental|Mechanical=Golem)
+  'Horror|Demonic': 'Eldritch',      // Aberration|Demon=Eldritch
+  'Wisp|Elemental': 'Elemental',     // a Formless elemental reads simply as "Elemental"
+  // ── second-order fusions (a fused noun + another subtype) for iconic combos ──
+  'Behemoth|Undead': 'Abomination',  // Giant+Undead Beast (cf. Giant|Undead=Abomination)
+  'Fiend|Giant': 'Pitlord',          // Demon|Giant=Pitlord
 });
 
 /**

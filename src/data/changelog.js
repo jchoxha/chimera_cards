@@ -6,6 +6,11 @@
 
 /** @type {{version:string, date:string, notes:string[]}[]} newest first */
 export const CHANGELOG = [
+  { version: 'v3.91.0', date: '2026-06-28', notes: [
+    'Aberrations now have their own kit — six wide families (Eldritch, Construct, Ooze, Flora, Crystalline, Formless) with aberrant features (Tentacle, Eye, Maw, Spore…), 36 new cards. An aberration’s card reads as its family (Eldritch → “Horror”, Formless → “Wisp”), and it gets its own corner mark distinct from beasts.',
+    'Dragons folded into the Beast kit as the Draconic family, with a charged Breath weapon (and chromatic identity now comes from attunement). Descriptive subtypes (Mechanical, Elemental, Giant, Demonic) now add real card packages to a creature, stacking in any combination.',
+    'Comprehensive creature naming: combinations of body type + family + subtypes resolve to curated names from the matrix (Draconic+Giant = “Leviathan”; Mammalian+Mechanical = “Cybeast”; Humanoid+Demonic = “Fiend”…), with readable fallbacks. See the reference list in the design doc.',
+  ] },
   { version: 'v3.90.0', date: '2026-06-28', notes: [
     'Creature names are smarter and easy to customize. The body-type family now reads into the name (a Draconic beast is a “Dragon”), and curated fusions collapse combos into evocative names — e.g. a giant, undead, draconic beast reads “Undead Leviathan”. New conventions are one-line edits in src/data/biologyNaming.js (FAMILY_NOUN + FUSIONS).',
     'The top-left corner of a card is now strictly the creature’s Archetype; instinct-driven creatures (Beasts, Aberrations) show a single catch-all “no-archetype” mark instead. Family/subtype info lives in the name now.',

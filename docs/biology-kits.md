@@ -442,3 +442,36 @@ texture (don't add a 4th body type). Alternative: keep Aberration narrowly eldri
    subtype stacking cap (proposal: any combination legal, soft-cap ~2 for UI); Draconic family
    specifics (Breath-as-anatomy + attunement-as-chroma; optional hoard/flight signatures);
    curated hybrid-name FUSIONS (families don't yet flavor a 2-body name beyond the synth name).
+
+### 9.6 Comprehensive biological-name reference (generated 2026-06-28)
+Built by `data/biologyNaming.js` (`FAMILY_NOUN` + `FUSIONS`, reusing `BIOLOGY_SYNTHESIS`;
+new names coined where the matrix had none). Anything without a fusion uses readable
+prefix form, so the table is open-ended — add a `FUSIONS`/`FAMILY_NOUN` line to coin more.
+
+**Pure body types:** Humanoid → *Humanoid* · Beast(Mammalian) → *Beast* · Aberration(Eldritch) → *Horror*
+**Body-type hybrids:** Beast|Humanoid → *Chimera* · Beast|Aberration → *Anomalous* · Humanoid|Aberration → *Warped*
+
+**Beast families (pure):** Mammalian → *Beast* · Reptilian → *Reptile* · Avian → *Bird* ·
+Piscine → *Fish* · Insectoid → *Insect* · Amphibian → *Amphibian* · Draconic → *Dragon*
+
+**Aberration families (pure):** Eldritch → *Horror* · Construct → *Construct* · Ooze → *Ooze* ·
+Flora → *Flora* · Crystalline → *Crystal* · Formless → *Wisp*
+
+**Family + a subtype (matrix-derived fusions):**
+
+| + subtype | Beast (Mammalian) | Draconic | Humanoid |
+|---|---|---|---|
+| Mechanical | Cybeast | Geargon | Augmented |
+| Elemental | Primal | Aspect | Attuned |
+| Giant | Behemoth | Leviathan | Half-Giant |
+| Demonic | Felbeast | Hellwing | Fiend |
+| Undead | Stitched | Scourgewyrm | Ghoul |
+
+Aberration families default to prefix form (Mechanical Horror, Giant Ooze, Demonic Crystal…)
+with flagship fusions: Construct+Mechanical → *Golem*, Eldritch+Demonic → *Eldritch*,
+Formless+Elemental → *Elemental*.
+
+**Multi-subtype (prefixes + chained fusions):** Draconic+Giant+Undead → **Undead Leviathan** ·
+Mammalian+Giant+Undead → **Abomination** (Behemoth→Abomination) · Mammalian+Demonic+Giant →
+**Demonic Behemoth** · Chimera+Giant+Demonic+Mechanical → **Giant Demonic Mechanical Chimera** ·
+Humanoid+Demonic+Giant → **Demonic Half-Giant**.
