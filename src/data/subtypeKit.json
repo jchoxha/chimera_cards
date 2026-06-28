@@ -1,0 +1,41 @@
+{
+  "_note": "Descriptive Subtype card packages (docs/biology-kits.md §9.2). A subtype is a composition/affliction overlay that adds a small card PACKAGE to a creature's pool (on top of its body-type kit), NOT a full kit. Applies to any body type in any combination. Cards authored Physical + imbue (re-skinned to the creature's attunement). Loaded by engine/cards/subtypePool.js. Numbers provisional.",
+  "subtypes": {
+    "Mechanical": {
+      "theme": "Built/constructed — modules, overheat, deployed constructs, self-repair.",
+      "cards": [
+        { "id": "sub_mech_plating", "name": "Plating", "attunement": "Physical", "type": "skill", "cost": 1, "rarity": "common", "effects": [{ "op": "block", "value": 8, "brace": true }] },
+        { "id": "sub_mech_overclock", "name": "Overclock", "attunement": "Physical", "type": "skill", "cost": 0, "rarity": "uncommon", "effects": [{ "op": "energy", "value": 1 }, { "op": "draw", "value": 1 }, { "op": "pay", "hp": 2 }] },
+        { "id": "sub_mech_turret", "name": "Deploy Turret", "attunement": "Physical", "type": "power", "cost": 1, "rarity": "uncommon", "trigger": { "on": "turnStart", "effects": [{ "op": "damage", "value": 4, "scope": "enemyActiveTarget" }] } },
+        { "id": "sub_mech_repair", "name": "Self-Repair", "attunement": "Physical", "type": "skill", "cost": 1, "rarity": "rare", "effects": [{ "op": "buff", "status": "regen", "value": 3 }, { "op": "block", "value": 4 }] }
+      ]
+    },
+    "Elemental": {
+      "theme": "Made of an element — leans hard on attunement, overload, form-shifting.",
+      "cards": [
+        { "id": "sub_elem_surge", "name": "Elemental Surge", "attunement": "Physical", "imbue": 1, "type": "attack", "cost": 1, "rarity": "common", "effects": [{ "op": "damage", "value": 7 }] },
+        { "id": "sub_elem_channel", "name": "Channel Element", "attunement": "Physical", "type": "skill", "cost": 1, "rarity": "uncommon", "effects": [{ "op": "buff", "status": "amplify", "value": 1 }, { "op": "draw", "value": 1 }] },
+        { "id": "sub_elem_overload", "name": "Overload", "attunement": "Physical", "imbue": 1, "type": "attack", "cost": 2, "rarity": "uncommon", "effects": [{ "op": "damage", "value": 6, "scope": "wholeEnemySide" }] },
+        { "id": "sub_elem_body", "name": "Elemental Body", "attunement": "Physical", "type": "skill", "cost": 1, "rarity": "rare", "effects": [{ "op": "block", "value": 6 }, { "op": "buff", "status": "regen", "value": 2 }] }
+      ]
+    },
+    "Giant": {
+      "theme": "Titanic scale — stomp, throw, quake, immovable. Fewer but bigger hits.",
+      "cards": [
+        { "id": "sub_giant_stomp", "name": "Stomp", "attunement": "Physical", "imbue": 1, "type": "attack", "cost": 1, "rarity": "common", "effects": [{ "op": "damage", "value": 5, "scope": "wholeEnemySide" }] },
+        { "id": "sub_giant_hurl", "name": "Hurl", "attunement": "Physical", "imbue": 1, "type": "attack", "cost": 2, "rarity": "uncommon", "effects": [{ "op": "damage", "value": 16 }] },
+        { "id": "sub_giant_immovable", "name": "Immovable", "attunement": "Physical", "type": "skill", "cost": 2, "rarity": "uncommon", "effects": [{ "op": "block", "value": 16, "brace": true }] },
+        { "id": "sub_giant_quake", "name": "Quake", "attunement": "Physical", "imbue": 1, "type": "attack", "cost": 2, "rarity": "rare", "effects": [{ "op": "damage", "value": 7, "scope": "wholeEnemySide" }, { "op": "debuff", "status": "weak", "value": 1, "scope": "wholeEnemySide" }] }
+      ]
+    },
+    "Demonic": {
+      "theme": "Fiend-touched — sacrifice, curse, fel damage, summoning.",
+      "cards": [
+        { "id": "sub_demon_felbolt", "name": "Fel Bolt", "attunement": "Physical", "imbue": 1, "type": "attack", "cost": 1, "rarity": "common", "effects": [{ "op": "damage", "value": 6 }, { "op": "debuff", "status": "vulnerable", "value": 1 }] },
+        { "id": "sub_demon_curse", "name": "Curse", "attunement": "Physical", "type": "skill", "cost": 1, "rarity": "uncommon", "effects": [{ "op": "debuff", "status": "vulnerable", "value": 2 }, { "op": "debuff", "status": "weak", "value": 2 }] },
+        { "id": "sub_demon_sacrifice", "name": "Sacrifice", "attunement": "Physical", "imbue": 1, "type": "attack", "cost": 0, "rarity": "uncommon", "effects": [{ "op": "pay", "hp": 4 }, { "op": "damage", "value": 12 }] },
+        { "id": "sub_demon_imp", "name": "Summon Imp", "attunement": "Physical", "type": "power", "cost": 1, "rarity": "rare", "trigger": { "on": "turnStart", "effects": [{ "op": "damage", "value": 3, "scope": "enemyActiveTarget" }, { "op": "buff", "status": "strength", "value": 1 }] } }
+      ]
+    }
+  }
+}
