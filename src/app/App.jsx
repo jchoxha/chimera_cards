@@ -77,15 +77,14 @@ function potentialPool(def = {}) {
 /** Build a run-ready creature from a custom definition (typings + lore/description).
  *  The deck is always auto-generated from the typings (no per-monster custom decks here). */
 function buildCustomCreature(def) {
-  const c = makeCreature({ id: def.id, name: def.name, class: def.class, biology: def.biology, attunement: def.attunement, size: def.size || 'regular',
+  const c = makeCreature({ id: def.id, name: def.name, class: def.class, biology: def.biology, attunement: def.attunement,
+    family: def.family || null, anatomy: def.anatomy || null, size: def.size || 'regular',
     pool: basePoolFor({ klass: def.class?.[0], biology: def.biology, family: def.family, anatomy: def.anatomy }) });
   // The Editor (admin tool) can attach a hand-built deck; the end-user creator never does.
   if (def.customDeck && def.customDeck.length) c.deck = def.customDeck.map((card) => ({ ...card }));
   c.blurb = def.lore || def.blurb || `A custom ${(def.attunement || []).join('/')} ${(def.class || []).join('/')}.`;
   c.lore = def.lore || null;
   c.description = def.description || null;
-  c.family = def.family || null;
-  c.anatomy = def.anatomy || null;
   c.meta = { portrait: null, custom: true };
   c.custom = true;
   return c;

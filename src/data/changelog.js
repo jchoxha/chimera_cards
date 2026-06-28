@@ -6,6 +6,9 @@
 
 /** @type {{version:string, date:string, notes:string[]}[]} newest first */
 export const CHANGELOG = [
+  { version: 'v3.86.0', date: '2026-06-28', notes: [
+    'Creature cards redesigned to show each creature’s kit at a glance. Size now reads as part of the name (e.g. “Large Ironhide”). The top-left corner shows the creature’s major kit icon — its Archetype for Humanoids, its Family for Beasts. Under the name, its Biology sits on the left and its special factors line up on the right as icons (for Beasts, one per Anatomy part — Claws, Teeth, Roar…).',
+  ] },
   { version: 'v3.85.0', date: '2026-06-28', notes: [
     'Beasts now have their OWN card system (the first biology kit). Instead of an archetype, a Beast draws cards from its Family (a scientific animal class — Mammalian, Reptilian, Avian, Piscine, Insectoid, Amphibian) plus the Anatomy it has (Claws, Teeth, Beak, Horns, Tail, Hooves, Wings, Quills, Venom, Hide, Shell, Roar). 50 new beast cards, re-skinned to the creature’s attunement like any other kit.',
     'The Editor’s Monster page now shows Family + Anatomy pickers when you set a creature’s biology to Beast, and roster beasts (Voltfang, Thornroot, Wildeye) now fight with real beast kits.',

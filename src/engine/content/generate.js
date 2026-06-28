@@ -27,7 +27,7 @@ const slug = (s) => String(s || '').toLowerCase().replace(/[^a-z0-9]+/g, '-').re
  * @param {number} [a.deckSize]            starter size (default 10)
  * @returns {Object} run party member { id,name,class,biology,attunement,stats,maxHp,hp,deck }
  */
-export function makeCreature({ id, name, class: klass, biology, attunement, pool = [], baseHp = 55, deckSize = 10, size = 'regular' }) {
+export function makeCreature({ id, name, class: klass, biology, attunement, family = null, anatomy = null, pool = [], baseHp = 55, deckSize = 10, size = 'regular' }) {
   const cls = Array.isArray(klass) ? klass : [klass].filter(Boolean);
   const bio = Array.isArray(biology) ? biology : [biology].filter(Boolean);
   const att = Array.isArray(attunement) ? attunement : [attunement].filter(Boolean);
@@ -45,6 +45,7 @@ export function makeCreature({ id, name, class: klass, biology, attunement, pool
     class: cls.length ? cls : null,
     biology: bio.length ? bio : null,
     attunement: att.length ? att : ['Physical'],
+    family: family || null, anatomy: anatomy || null,   // Beast kit axis-2 + special factors
     size: form.id, stats: statLine, maxHp, hp: maxHp, deck,
     meta: { form: form.id },
   };

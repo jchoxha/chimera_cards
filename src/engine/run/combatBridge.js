@@ -30,6 +30,8 @@ export function creatureToFighter(m, over = {}) {
   if (m.class) f.class = m.class;
   if (m.biology) f.biology = m.biology;
   if (m.attunement) f.attunement = m.attunement;
+  if (m.family) f.family = m.family;       // Beast kit: family (axis-2) + anatomy (special factors)
+  if (m.anatomy) f.anatomy = m.anatomy;
   if (m.portrait) f.meta = { ...f.meta, portrait: m.portrait };
   // carry the creature's SIZE (form) so the combat card shows its size badge
   const form = over.form || m.size || m.meta?.form;

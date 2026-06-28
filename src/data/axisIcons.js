@@ -53,6 +53,32 @@ export const ATTUNEMENT_ICON = Object.freeze({
   Mind: 'game-icons:brain',
 });
 
+/** Beast Family (the Beast biology's axis-2) → game-icons id. */
+export const FAMILY_ICON = Object.freeze({
+  Mammalian: 'game-icons:wolf-head',
+  Reptilian: 'game-icons:snake',
+  Avian: 'game-icons:raven',
+  Piscine: 'game-icons:angler-fish',
+  Insectoid: 'game-icons:scorpion',
+  Amphibian: 'game-icons:frog',
+});
+
+/** Beast Anatomy noun-tags (a Beast's "special factors") → game-icons id. */
+export const ANATOMY_ICON = Object.freeze({
+  Claws: 'game-icons:claws',
+  Teeth: 'game-icons:fangs',
+  Beak: 'game-icons:toucan',
+  Horns: 'game-icons:bull-horns',
+  Tail: 'game-icons:reptile-tail',
+  Hooves: 'game-icons:hoof',
+  Wings: 'game-icons:feathered-wing',
+  Quills: 'game-icons:spikes',
+  Venom: 'game-icons:poison-bottle',
+  Hide: 'game-icons:animal-hide',
+  Shell: 'game-icons:turtle-shell',
+  Roar: 'game-icons:lion',
+});
+
 /** Attunement → identity color (frames, tints, the creature-silhouette color). */
 export const ATTUNEMENT_COLOR = Object.freeze({
   Physical: '#c9c4b0', Fire: '#ff5a3c', Frost: '#7ad7ff', Nature: '#6ad24a',
@@ -121,4 +147,40 @@ export function creatureIcon(c) {
 export function creatureColor(c) {
   const att = first(c, 'attunement') ?? (Array.isArray(c?.types) ? (c.types[0]?.type ?? c.types[0]) : null);
   return ATTUNEMENT_COLOR[att] || '#c9a66b';
+}
+
+/** Read an axis value that may be a string or a [base] array. */
+function one(v) { return Array.isArray(v) ? v[0] ?? null : v ?? null; }
+
+/**
+ * The "major submatrix" delineator shown TOP-LEFT of a creature card — the icon for
+ * its biology's kit system. Beast → its Family icon; everyone else → its Archetype
+ * icon (Humanoid weapons system reuses archetype for now). Falls back to the biology
+ * icon. `c` = a creature/axes-like with biology/class/family.
+ */
+export function submatrixIcon(c) {
+  const bio = first(c, 'biology');
+  if (bio === 'Beast') { const fam = one(c?.family); if (FAMILY_ICON[fam]) return FAMILY_ICON[fam]; }
+  const cls = first(c, 'class');
+  return ARCHETYPE_ICON[cls] || BIOLOGY_ICON[bio] || DEFAULT_CREATURE_ICON;
+}
+
+/** Human-readable label for the submatrix delineator (Family for Beasts, else Archetype). */
+export function submatrixLabel(c) {
+  const bio = first(c, 'biology');
+  if (bio === 'Beast') return one(c?.family) || 'Beast';
+  return first(c, 'class') || bio || '';
+}
+
+/**
+ * The "special factors" row (right side, under the name): one entry per kit detail.
+ * Beast → each Anatomy tag it has. (Humanoid weapons TBD.) Returns [{ key, icon, label }].
+ */
+export function specialFactors(c) {
+  const bio = first(c, 'biology');
+  if (bio === 'Beast') {
+    const an = Array.isArray(c?.anatomy) ? c.anatomy : [];
+    return an.filter((t) => ANATOMY_ICON[t]).map((t) => ({ key: t, icon: ANATOMY_ICON[t], label: t }));
+  }
+  return [];
 }

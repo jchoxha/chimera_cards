@@ -7,7 +7,7 @@
 // ╚══════════════════════════════════════════════════════════════════╝
 import React from 'react';
 import { frameStyle } from './frames.js';
-import { creatureIcon, creatureColor, ATTUNEMENT_ICON, ATTUNEMENT_COLOR } from '../../data/axisIcons.js';
+import { creatureIcon, creatureColor, ATTUNEMENT_ICON, ATTUNEMENT_COLOR, submatrixIcon, submatrixLabel, specialFactors } from '../../data/axisIcons.js';
 import { creatureArt } from '../../data/artPool.js';
 import { ELEMENT_COLOR, FORMS } from '../../systems/elements.jsx';
 
@@ -85,6 +85,23 @@ export function SizeBadge({ form }) {
   return <div className="size"><span className="bdg">{f.badge}</span>{f.label}</div>;
 }
 export function artScale(form) { return FORMS[form]?.art ?? 1; }
+
+/** The size word prefixed onto a creature's name ("Large Ironhide"); '' for Regular. */
+export function sizeWord(form) { return FORMS[form]?.label || ''; }
+
+/** Top-left "major submatrix" badge: the kit-system icon (Archetype for Humanoid,
+ *  Family for Beast). `axes` = the card's axes object; `onClick` opens its info. */
+export function SubmatrixBadge({ axes, onClick }) {
+  if (!axes) return null;
+  const icon = submatrixIcon(axes);
+  const label = submatrixLabel(axes);
+  return (
+    <div className={`submatrix${onClick ? ' clickable' : ''}`} title={label || undefined}
+      onClick={onClick ? (e) => { e.stopPropagation(); onClick(); } : undefined}>
+      <Icon icon={icon} />
+    </div>
+  );
+}
 
 export function elementBadge(el, onClick) {
   if (!el) return null;
@@ -175,7 +192,7 @@ export function CardFace({ f, side, matchup, onEffect, onInfo, onName, extraClas
       className={`frame combat ${fr.finish}${extraClass}`}
       style={{ background: fr.background }}>
       {fr.holo && <div className="holo" />}
-      <SizeBadge form={f.form} />
+      <SubmatrixBadge axes={f.axes} onClick={onInfo && f.axes ? () => onInfo({ kind: 'axis', axis: f.axes.biology?.[0] === 'Beast' ? 'biology' : 'class', value: f.axes.biology?.[0] === 'Beast' ? f.axes.biology : f.axes.class }) : undefined} />
       {elementBadge(badgeEl, onInfo ? () => onInfo({ kind: 'axis', axis: 'attunement', value: f.axes?.attunement ?? [badgeEl] }) : undefined)}
       <span className={`sideTag ${isFoe ? 'foe' : 'you'}`}>{isFoe ? 'FOE' : 'YOU'}</span>
       {f.block > 0 && (
@@ -203,19 +220,24 @@ export function CardFace({ f, side, matchup, onEffect, onInfo, onName, extraClas
           })()}
         </div>
         <div className={`nameBan${nameClick ? ' clickable' : ''}`} onClick={nameClick}
-          title={onName ? `${f.name} — open bestiary page` : (seeCreature ? `${f.name} — tap for details` : undefined)}>{f.name}{f.hp <= 0 ? ' 💀' : ''}</div>
-        {f.axes && (f.axes.class || f.axes.biology || f.axes.attunement) && (
-          <div className="axesLine">
-            {[['class', f.axes.class?.[0]], ['biology', f.axes.biology?.[0]], ['attunement', f.axes.attunement?.[0]]]
-              .filter(([, v]) => v)
-              .map(([axis, v], i) => (
-                <React.Fragment key={axis}>
-                  {i > 0 && <span className="axDot"> · </span>}
-                  <button className="axTok" onClick={onInfo ? (e) => { e.stopPropagation(); axisInfo(axis); } : undefined}>{v}</button>
-                </React.Fragment>
-              ))}
-          </div>
-        )}
+          title={onName ? `${f.name} — open bestiary page` : (seeCreature ? `${f.name} — tap for details` : undefined)}>
+          {sizeWord(f.form) ? <span className="sizeWord">{sizeWord(f.form)} </span> : null}{f.name}{f.hp <= 0 ? ' 💀' : ''}</div>
+        {f.axes && (f.axes.biology || (() => { const sf = specialFactors(f.axes); return sf.length; })()) && (() => {
+          const factors = specialFactors(f.axes);
+          const bio = f.axes.biology?.[0];
+          return (
+            <div className="axesLine">
+              {bio
+                ? <button className="bioTok" onClick={onInfo ? (e) => { e.stopPropagation(); axisInfo('biology'); } : undefined}>{bio}</button>
+                : <span />}
+              <span className="factorRow">
+                {factors.map((fac) => (
+                  <span key={fac.key} className="factorIcon" title={fac.label}><Icon icon={fac.icon} /></span>
+                ))}
+              </span>
+            </div>
+          );
+        })()}
         <div className={onInfo ? 'hpClick' : undefined} onClick={seeCreature}><HpBar hp={f.hp} maxHp={f.maxHp} /></div>
         {matchup && <div className={`match ${matchup.good ? 'good' : 'bad'}${onInfo ? ' clickable' : ''}`}
           onClick={onInfo ? (e) => { e.stopPropagation(); onInfo({ kind: 'matchup', matchup, atk: badgeEl, def: matchup.def }); } : undefined}>
