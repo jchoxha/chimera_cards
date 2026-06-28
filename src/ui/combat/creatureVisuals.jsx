@@ -8,7 +8,7 @@
 import React from 'react';
 import { frameStyle } from './frames.js';
 import { creatureIcon, creatureColor, ATTUNEMENT_ICON, ATTUNEMENT_COLOR, submatrixIcons, specialFactors } from '../../data/axisIcons.js';
-import { creatureBiologyName } from '../../data/synthesis.js';
+import { biologyDisplayName } from '../../data/biologyNaming.js';
 import { creatureArt } from '../../data/artPool.js';
 import { ELEMENT_COLOR, FORMS } from '../../systems/elements.jsx';
 
@@ -230,7 +230,8 @@ export function CardFace({ f, side, matchup, onEffect, onInfo, onName, extraClas
           const factors = specialFactors(f.axes);
           const bios = Array.isArray(f.axes.biology) ? f.axes.biology : (f.axes.biology ? [f.axes.biology] : []);
           const subs = Array.isArray(f.axes.subtypes) ? f.axes.subtypes : (f.axes.subtypes ? [f.axes.subtypes] : []);
-          const bioName = creatureBiologyName(bios, subs);
+          const fams = f.axes.family ? [f.axes.family] : [];
+          const bioName = biologyDisplayName(bios, fams, subs);
           return (
             <div className="axesLine">
               {bioName

@@ -421,17 +421,24 @@ texture (don't add a 4th body type). Alternative: keep Aberration narrowly eldri
 
 ### 9.5 RESOLVED conventions (Jeton, 2026-06-28 PM)
 1. **Aberration families** — WIDE + exhaustive (§9.1/§9.4), **Flora** (renamed from Plant). ✅
-2. **Card display:**
-   - **Corner = the Circle/Pill cluster** holds the **base/hybrid body-type KIT icons** (one per
-     body type — Beast family / Humanoid archetype / Aberration strain). Subtypes do NOT go here.
-   - **Biology name (where the biology label already sits, left under the name)** = the subtypes
-     **prefixing** the body-type synthesis name, e.g. a *Mechanical + Giant + Demonic + Beast +
-     Humanoid* reads **"Giant Demonic Mechanical Chimera"**. **Special factors (weapons/anatomy)**
-     stay on the **right** of that line, as already decided.
-   - **Subtype ordering** = English-adjective order **SIZE → CONDITION/ORIGIN → COMPOSITION**:
-     `Giant` · (Ancient · Feral · Cursed · Hallowed · Demonic · Undead · Spectral · Swarm) ·
-     `Elemental` · `Mechanical`. (Satisfies the example: Giant < Demonic < Mechanical.) Stored in
-     `SUBTYPE_ORDER`; `creatureBiologyName(bodyTypes, subtypes)` joins ordered-subtypes + synth name.
+2. **Card display (REVISED 2026-06-28 PM-2):**
+   - **Corner = STRICTLY the Archetype** (a Humanoid body type's trained class), or a single
+     **catch-all "non-archetype" icon** (`NONARCHETYPE_ICON` = beast-eye) for instinct-driven
+     creatures (Beasts/Aberrations, and Beast-without-Humanoid). Families/subtypes are NOT in the
+     corner anymore — they moved into the name. (A Beast|Humanoid hybrid shows the archetype.)
+   - **Biology name (left, under the name)** now reads as **subtype prefixes + a core noun built
+     from body type + FAMILY**, via the **easy-to-extend** `data/biologyNaming.js`:
+     - `FAMILY_NOUN` — a Beast/Aberration family's noun (Draconic→"Dragon", Mammalian→"Beast",
+       Eldritch→"Horror"…).
+     - `FUSIONS` — `"<noun>|<subtype>"` → a fused name that consumes the subtype and chains
+       (Dragon+Giant→"Leviathan"; Beast+Giant→"Behemoth"; Beast+Mechanical→"Cybeast"…).
+     - Anything not fused → ordered subtype prefixes + the noun. So **a Giant+Undead Draconic
+       Beast → "Undead Leviathan"**; Mammalian Beast → "Beast"; Elemental Aberration; Giant
+       Demonic Mechanical Chimera (hybrid uses the body-type synth name). **To coin a new
+       convention, add ONE line to `FAMILY_NOUN` or `FUSIONS`.**
+   - **Special factors (weapons/anatomy)** stay on the **right** of that line.
+   - **Subtype prefix ordering** = `SUBTYPE_ORDER` (SIZE → CONDITION → COMPOSITION).
 3. **Still open (settle during build):** triple body-type hybrid cap (proposal: cap at 2);
    subtype stacking cap (proposal: any combination legal, soft-cap ~2 for UI); Draconic family
-   specifics (Breath-as-anatomy + attunement-as-chroma; optional hoard/flight signatures).
+   specifics (Breath-as-anatomy + attunement-as-chroma; optional hoard/flight signatures);
+   curated hybrid-name FUSIONS (families don't yet flavor a 2-body name beyond the synth name).

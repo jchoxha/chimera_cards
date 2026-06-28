@@ -182,36 +182,30 @@ export function creatureColor(c) {
   return ATTUNEMENT_COLOR[att] || '#c9a66b';
 }
 
-/** Read an axis value that may be a string or a [base] array. */
-function one(v) { return Array.isArray(v) ? v[0] ?? null : v ?? null; }
 const listOf = (v) => (Array.isArray(v) ? v : v != null ? [v] : []);
 
-/** The kit icon + label for ONE biology base (the corner delineator for that base):
- *  Beast → its Family icon; Humanoid → its Archetype icon; other biologies → their own
- *  biology icon (until their kit/axis-2 is built). */
-function kitFor(bio, c) {
-  if (bio === 'Beast') { const fam = one(c?.family); return { icon: FAMILY_ICON[fam] || BIOLOGY_ICON.Beast, label: fam || 'Beast' }; }
-  if (bio === 'Humanoid') { const cls = first(c, 'class'); return { icon: ARCHETYPE_ICON[cls] || BIOLOGY_ICON.Humanoid, label: cls || 'Humanoid' }; }
-  return { icon: BIOLOGY_ICON[bio] || DEFAULT_CREATURE_ICON, label: bio };
-}
+/** Catch-all corner icon for instinct-driven creatures that have NO archetype
+ *  (Beasts, Aberrations — anything without a Humanoid body type / trained class). */
+export const NONARCHETYPE_ICON = 'game-icons:beast-eye';
 
 /**
- * The "major submatrix" delineators shown TOP-LEFT — ONE per biology base, so a hybrid
- * (max 2 biologies) shows both kit icons (e.g. Beast|Humanoid → Family + Archetype).
- * Returns [{ key, icon, label }]. Legacy creatures (no biology) fall back to archetype.
+ * The TOP-LEFT corner icon — STRICTLY the creature's ARCHETYPE (its trained class),
+ * or the non-archetype catch-all for instinct-driven creatures. Archetype applies only
+ * to a Humanoid body type (incl. a Beast|Humanoid hybrid); Beasts/Aberrations get the
+ * catch-all. Returns a 1-element [{ key, icon, label }] (kept as an array for the
+ * cluster renderer; families/subtypes now live in the NAME, not the corner).
  */
 export function submatrixIcons(c) {
   const bios = listOf(c?.biology);
-  if (!bios.length) {
-    const cls = first(c, 'class');
-    return [{ key: 'k0', icon: ARCHETYPE_ICON[cls] || creatureIcon(c), label: cls || '' }];
-  }
-  return bios.map((bio, i) => ({ key: `k${i}`, ...kitFor(bio, c) }));
+  const cls = first(c, 'class');
+  const hasArchetype = (!bios.length || bios.includes('Humanoid')) && !!cls;
+  if (hasArchetype) return [{ key: 'arch', icon: ARCHETYPE_ICON[cls] || NONARCHETYPE_ICON, label: cls }];
+  return [{ key: 'wild', icon: NONARCHETYPE_ICON, label: 'Instinctive (no archetype)' }];
 }
 
-/** First/primary submatrix icon (for minis / back-compat). */
-export function submatrixIcon(c) { return submatrixIcons(c)[0]?.icon || DEFAULT_CREATURE_ICON; }
-/** Joined label of every submatrix delineator (e.g. "Mammalian · Warrior"). */
+/** First/primary corner icon (for minis / back-compat). */
+export function submatrixIcon(c) { return submatrixIcons(c)[0]?.icon || NONARCHETYPE_ICON; }
+/** Corner label (the archetype name, or the catch-all). */
 export function submatrixLabel(c) { return submatrixIcons(c).map((x) => x.label).filter(Boolean).join(' · '); }
 
 /**

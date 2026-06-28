@@ -6,6 +6,10 @@
 
 /** @type {{version:string, date:string, notes:string[]}[]} newest first */
 export const CHANGELOG = [
+  { version: 'v3.90.0', date: '2026-06-28', notes: [
+    'Creature names are smarter and easy to customize. The body-type family now reads into the name (a Draconic beast is a “Dragon”), and curated fusions collapse combos into evocative names — e.g. a giant, undead, draconic beast reads “Undead Leviathan”. New conventions are one-line edits in src/data/biologyNaming.js (FAMILY_NOUN + FUSIONS).',
+    'The top-left corner of a card is now strictly the creature’s Archetype; instinct-driven creatures (Beasts, Aberrations) show a single catch-all “no-archetype” mark instead. Family/subtype info lives in the name now.',
+  ] },
   { version: 'v3.89.0', date: '2026-06-28', notes: [
     'Creature taxonomy reworked: there are now three BODY TYPES (Humanoid, Beast, Aberration) plus DESCRIPTIVE SUBTYPES (Mechanical, Elemental, Giant, Demonic, and more) that layer on in any combination. A creature’s biology now reads as its subtypes followed by its body-type name — e.g. a giant, demonic, mechanical beast-humanoid reads “Giant Demonic Mechanical Chimera”. Dragonkin/Giant/Elemental/Mechanical/Demon/Undead are no longer standalone biologies.',
     'The Editor’s Monster page now picks a Body Type + any combination of Subtypes; roster creatures were re-tagged (Ironhide is a Giant Humanoid, Emberwisp an Elemental Aberration, Cogwright a Mechanical Humanoid…). Subtypes are display + tagging for now; their card packages come next.',
