@@ -1,96 +1,118 @@
 // ╔══════════════════════════════════════════════════════════════════╗
 // ║ MODULE: ui/TeamManager — view + reorder the team (Active Vanguard +     ║
-// ║ bench) by DRAG-AND-DROP. Shared by the team assembler AND the run        ║
-// ║ (between combats). The FIRST member is the Vanguard; reordering returns  ║
-// ║ the new id order via onReorder. Optional onRemove / onSelect.            ║
-// ║ Pointer-based drag so it works with mouse AND touch.                     ║
+// ║ bench) as a row of CARDS, dragged-to-reorder with the SAME ghost-follow  ║
+// ║ system as the combat hand (a floating copy tracks the cursor; the order  ║
+// ║ commits on drop, so there's no live-reflow glitch). Tap a card = details ║
+// ║ (onSelect). The FIRST member is the Vanguard; reordering returns the new  ║
+// ║ id order via onReorder. Mouse + touch via pointer events.                ║
 // ╚══════════════════════════════════════════════════════════════════╝
 import React, { useRef, useState } from 'react';
 import { creatureIcon, creatureColor } from '../data/axisIcons.js';
 import './teamManager.css';
 
 const Icon = ({ icon, ...rest }) => <iconify-icon icon={icon} {...rest}></iconify-icon>;
+const DRAG_THRESHOLD = 6; // px before a tap becomes a drag
+
+/** The inner visual of a team card — reused by the real card AND the drag ghost. */
+function CardBody({ m, i, color }) {
+  const portrait = m.meta?.portrait || m.portrait;
+  return (
+    <>
+      <span className="tmcPos">{i === 0 ? <Icon icon="game-icons:star-formation" /> : i + 1}</span>
+      <div className="tmcArt" style={{ '--gl': color }}>
+        {portrait
+          ? <img src={portrait} alt="" draggable={false} />
+          : <Icon icon={creatureIcon(m)} style={{ color }} />}
+      </div>
+      <div className="tmcName">{m.name}</div>
+      <div className="tmcRole">{i === 0 ? '★ Vanguard' : 'Bench'}</div>
+      {m.hp != null && m.maxHp != null && (
+        <div className="tmcHp"><i style={{ width: `${Math.max(0, (m.hp / m.maxHp) * 100)}%` }} /><em>{m.hp}/{m.maxHp}</em></div>
+      )}
+    </>
+  );
+}
 
 export default function TeamManager({ members = [], onReorder, onRemove, onSelect, title = 'Your Team' }) {
   const ids = members.map((m) => m.id);
   const listRef = useRef(null);
-  const drag = useRef(null);                 // { id, fromY }
-  const [dragId, setDragId] = useState(null);
-  const [overId, setOverId] = useState(null);
+  const drag = useRef(null);                 // { id, x, y, startX, startY, overId, moved }
+  const [d, setD] = useState(null);          // render mirror of drag.current
 
   const reorderTo = (movingId, targetId) => {
     if (!movingId || movingId === targetId) return;
     const cur = ids.slice();
     const from = cur.indexOf(movingId);
-    let to = targetId ? cur.indexOf(targetId) : cur.length - 1;
+    const to = cur.indexOf(targetId);
     if (from < 0 || to < 0) return;
     cur.splice(from, 1);
     cur.splice(to, 0, movingId);
     onReorder && onReorder(cur);
   };
 
-  const rowIdAt = (clientY) => {
-    const el = listRef.current; if (!el) return null;
-    for (const row of el.querySelectorAll('[data-tmid]')) {
-      const r = row.getBoundingClientRect();
-      if (clientY >= r.top && clientY <= r.bottom) return row.getAttribute('data-tmid');
-    }
-    // above the first / below the last
-    const rows = [...el.querySelectorAll('[data-tmid]')];
-    if (!rows.length) return null;
-    if (clientY < rows[0].getBoundingClientRect().top) return rows[0].getAttribute('data-tmid');
-    return rows[rows.length - 1].getAttribute('data-tmid');
-  };
-
   function onPointerDown(e, id) {
-    if (e.target.closest('.tmBtn, .tmCrest')) return;     // let buttons/crest work
-    drag.current = { id };
-    setDragId(id);
+    if (e.target.closest('.tmRm')) return;   // let the remove button work
+    e.preventDefault();
     try { e.currentTarget.setPointerCapture(e.pointerId); } catch { /* noop */ }
+    drag.current = { id, x: e.clientX, y: e.clientY, startX: e.clientX, startY: e.clientY, overId: null, moved: false };
+    setD({ ...drag.current });
   }
   function onPointerMove(e) {
-    if (!drag.current) return;
-    const target = rowIdAt(e.clientY);
-    setOverId(target);
-    if (target && target !== drag.current.id) { reorderTo(drag.current.id, target); }
+    const g = drag.current;
+    if (!g) return;
+    g.x = e.clientX; g.y = e.clientY;
+    if (!g.moved && Math.hypot(e.clientX - g.startX, e.clientY - g.startY) > DRAG_THRESHOLD) g.moved = true;
+    if (g.moved) {
+      const el = document.elementFromPoint(e.clientX, e.clientY);
+      const dz = el && el.closest ? el.closest('[data-tmid]') : null;
+      g.overId = dz ? dz.getAttribute('data-tmid') : null;
+    }
+    setD({ ...g });
   }
-  function onPointerUp() { drag.current = null; setDragId(null); setOverId(null); }
+  function onPointerUp() {
+    const g = drag.current;
+    drag.current = null;
+    setD(null);
+    if (!g) return;
+    if (!g.moved) { const m = members.find((x) => x.id === g.id); if (m && onSelect) onSelect(m); return; }
+    if (g.overId && g.overId !== g.id) reorderTo(g.id, g.overId);
+  }
 
   if (!members.length) return <div className="tmEmpty">No creatures yet.</div>;
+
+  const dragging = !!d && d.moved;
+  const dragMember = dragging ? members.find((m) => m.id === d.id) : null;
+  const dragIdx = dragging ? ids.indexOf(d.id) : -1;
 
   return (
     <div className="teamMgr">
       {title && <div className="tmTitle">{title}</div>}
-      <div className="tmList" ref={listRef}>
+      <div className="tmCards" ref={listRef}>
         {members.map((m, i) => {
           const color = creatureColor(m);
           const dead = m.hp != null && m.hp <= 0;
-          const pct = m.maxHp ? Math.max(0, (m.hp / m.maxHp) * 100) : 100;
           return (
             <div key={m.id} data-tmid={m.id} draggable={false} onDragStart={(e) => e.preventDefault()}
-              className={`tmRow${i === 0 ? ' vanguard' : ''}${dead ? ' dead' : ''}${dragId === m.id ? ' dragging' : ''}${overId === m.id && dragId && dragId !== m.id ? ' over' : ''}`}
+              className={`tmCard${i === 0 ? ' vanguard' : ''}${dead ? ' dead' : ''}${d?.id === m.id && dragging ? ' dragging' : ''}${dragging && d.overId === m.id && d.id !== m.id ? ' over' : ''}`}
               style={{ '--gl': color }}
-              onPointerDown={(e) => onPointerDown(e, m.id)} onPointerMove={onPointerMove} onPointerUp={onPointerUp}>
-              <span className="tmGrip" title="Drag to reorder"><Icon icon="game-icons:move" /></span>
-              <span className="tmPos">{i === 0 ? <Icon icon="game-icons:star-formation" /> : i + 1}</span>
-              <button className="tmCrest" onClick={onSelect ? () => onSelect(m) : undefined} title={onSelect ? `${m.name} — details` : m.name}>
-                {m.meta?.portrait || m.portrait
-                  ? <img src={m.meta?.portrait || m.portrait} alt="" draggable={false} />
-                  : <Icon icon={creatureIcon(m)} style={{ color }} />}
-              </button>
-              <div className="tmInfo">
-                <b>{m.name}</b>
-                <span className="tmRole">{i === 0 ? 'Active Vanguard' : 'Bench'}</span>
-                {m.hp != null && m.maxHp != null && (
-                  <div className="tmHp"><i style={{ width: `${pct}%` }} /><em>{m.hp}/{m.maxHp}</em></div>
-                )}
-              </div>
-              {onRemove && <button className="tmBtn rm" title="Remove" onClick={() => onRemove(m.id)}>✕</button>}
+              onPointerDown={(e) => onPointerDown(e, m.id)} onPointerMove={onPointerMove} onPointerUp={onPointerUp}
+              title={onSelect ? `${m.name} — tap for details, drag to reorder` : m.name}>
+              <CardBody m={m} i={i} color={color} />
+              {onRemove && <button className="tmRm" title="Remove from team" onClick={() => onRemove(m.id)}>✕</button>}
             </div>
           );
         })}
       </div>
-      <p className="tmHint"><Icon icon="game-icons:move" /> Drag a creature to reorder — the top slot is the Active Vanguard.</p>
+      <p className="tmHint"><Icon icon="game-icons:move" /> Drag a card to reorder — the ★ slot is your Active Vanguard. Tap for details.</p>
+
+      {/* the floating ghost — a faithful card copy that follows the cursor */}
+      {dragging && dragMember && (
+        <div className="tmGhost" style={{ left: d.x, top: d.y, '--gl': creatureColor(dragMember) }}>
+          <div className="tmCard ghost" style={{ '--gl': creatureColor(dragMember) }}>
+            <CardBody m={dragMember} i={dragIdx} color={creatureColor(dragMember)} />
+          </div>
+        </div>
+      )}
     </div>
   );
 }

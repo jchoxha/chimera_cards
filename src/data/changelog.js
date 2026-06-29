@@ -6,6 +6,9 @@
 
 /** @type {{version:string, date:string, notes:string[]}[]} newest first */
 export const CHANGELOG = [
+  { version: 'v3.92.0', date: '2026-06-28', notes: [
+    'Your team now displays as a row of CARDS (portrait, name, role, HP) instead of status bars, and reordering uses the same smooth drag as playing a card from your combat hand — a floating copy follows your finger/cursor and the order commits when you drop. No more giant glitchy ghost.',
+  ] },
   { version: 'v3.91.1', date: '2026-06-28', notes: [
     'Fixed the Assemble-Team drag glitch — the browser’s native image-drag was firing on creature portraits, flashing a huge ghost image while you reordered the team. Portraits no longer hijack the drag; team reordering is smooth.',
   ] },
