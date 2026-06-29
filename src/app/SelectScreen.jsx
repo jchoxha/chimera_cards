@@ -122,7 +122,7 @@ export default function SelectScreen({
               style={{ borderColor: chosen ? color : undefined }}>
               <div className="selArt" style={{ '--gl': color }}>
                 {c.meta?.portrait
-                  ? <img src={c.meta.portrait} alt="" />
+                  ? <img src={c.meta.portrait} alt="" draggable={false} />
                   : <iconify-icon class="selIcon" icon={creatureIcon(c)} style={{ color }}></iconify-icon>}
                 {chosen && <span className="selPick">{order === 0 ? '★' : order + 1}</span>}
               </div>

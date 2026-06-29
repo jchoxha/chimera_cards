@@ -209,10 +209,10 @@ export function CardFace({ f, side, matchup, onEffect, onInfo, onName, extraClas
       <div className="inner">
         <div className="art" onClick={seeCreature} title={seeCreature ? `${f.name} — tap for details` : undefined}>
           {(() => {
-            if (f.portrait) return <img className="creature artImg gen" src={f.portrait} alt="" />;
+            if (f.portrait) return <img className="creature artImg gen" src={f.portrait} alt="" draggable={false} />;
             const bio = f.axes?.biology;
             const art = bio ? creatureArt({ id: f.id, biology: bio }) : null;
-            if (art) return <img className="creature artImg" src={art} alt="" />;
+            if (art) return <img className="creature artImg" src={art} alt="" draggable={false} />;
             return <>
               <div className="moon" /><div className="mtn" />
               {f.icon

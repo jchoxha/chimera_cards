@@ -67,7 +67,7 @@ export default function TeamManager({ members = [], onReorder, onRemove, onSelec
           const dead = m.hp != null && m.hp <= 0;
           const pct = m.maxHp ? Math.max(0, (m.hp / m.maxHp) * 100) : 100;
           return (
-            <div key={m.id} data-tmid={m.id}
+            <div key={m.id} data-tmid={m.id} draggable={false} onDragStart={(e) => e.preventDefault()}
               className={`tmRow${i === 0 ? ' vanguard' : ''}${dead ? ' dead' : ''}${dragId === m.id ? ' dragging' : ''}${overId === m.id && dragId && dragId !== m.id ? ' over' : ''}`}
               style={{ '--gl': color }}
               onPointerDown={(e) => onPointerDown(e, m.id)} onPointerMove={onPointerMove} onPointerUp={onPointerUp}>
@@ -75,7 +75,7 @@ export default function TeamManager({ members = [], onReorder, onRemove, onSelec
               <span className="tmPos">{i === 0 ? <Icon icon="game-icons:star-formation" /> : i + 1}</span>
               <button className="tmCrest" onClick={onSelect ? () => onSelect(m) : undefined} title={onSelect ? `${m.name} — details` : m.name}>
                 {m.meta?.portrait || m.portrait
-                  ? <img src={m.meta?.portrait || m.portrait} alt="" />
+                  ? <img src={m.meta?.portrait || m.portrait} alt="" draggable={false} />
                   : <Icon icon={creatureIcon(m)} style={{ color }} />}
               </button>
               <div className="tmInfo">

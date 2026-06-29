@@ -6,6 +6,9 @@
 
 /** @type {{version:string, date:string, notes:string[]}[]} newest first */
 export const CHANGELOG = [
+  { version: 'v3.91.1', date: '2026-06-28', notes: [
+    'Fixed the Assemble-Team drag glitch — the browser’s native image-drag was firing on creature portraits, flashing a huge ghost image while you reordered the team. Portraits no longer hijack the drag; team reordering is smooth.',
+  ] },
   { version: 'v3.91.0', date: '2026-06-28', notes: [
     'Aberrations now have their own kit — six wide families (Eldritch, Construct, Ooze, Flora, Crystalline, Formless) with aberrant features (Tentacle, Eye, Maw, Spore…), 36 new cards. An aberration’s card reads as its family (Eldritch → “Horror”, Formless → “Wisp”), and it gets its own corner mark distinct from beasts.',
     'Dragons folded into the Beast kit as the Draconic family, with a charged Breath weapon (and chromatic identity now comes from attunement). Descriptive subtypes (Mechanical, Elemental, Giant, Demonic) now add real card packages to a creature, stacking in any combination.',

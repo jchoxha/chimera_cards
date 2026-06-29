@@ -5,7 +5,9 @@
 .tmList { display: flex; flex-direction: column; gap: 6px; }
 .tmRow { display: flex; align-items: center; gap: 9px; padding: 6px 9px; border-radius: 10px;
   background: #1a1430; border: 1.5px solid var(--gl, #3a3358); cursor: grab; touch-action: none;
-  user-select: none; -webkit-user-select: none; transition: box-shadow .1s, transform .1s, opacity .1s; }
+  user-select: none; -webkit-user-select: none; -webkit-user-drag: none; transition: box-shadow .1s, transform .1s, opacity .1s; }
+.tmRow img, .tmRow * { -webkit-user-drag: none; }
+.tmCrest img { pointer-events: none; }
 .tmRow.vanguard { box-shadow: 0 0 10px color-mix(in srgb, var(--gl, #f0c84a) 40%, transparent); border-color: #c9a23a; }
 .tmRow.dead { opacity: .45; filter: grayscale(.8); }
 .tmRow.dragging { opacity: .55; cursor: grabbing; box-shadow: 0 8px 20px #000a; transform: scale(1.02); }
