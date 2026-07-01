@@ -6,6 +6,9 @@
 
 /** @type {{version:string, date:string, notes:string[]}[]} newest first */
 export const CHANGELOG = [
+  { version: 'v3.92.1', date: '2026-06-28', notes: [
+    'Drag reordering now reflows live: as you drag a team card over another, the cards slide to their new slots in real time (not just on release), so you can see exactly where it will land. In combat, lifting a card out of your hand now smoothly closes the gap. Both use the same FLIP slide animation.',
+  ] },
   { version: 'v3.92.0', date: '2026-06-28', notes: [
     'Your team now displays as a row of CARDS (portrait, name, role, HP) instead of status bars, and reordering uses the same smooth drag as playing a card from your combat hand — a floating copy follows your finger/cursor and the order commits when you drop. No more giant glitchy ghost.',
   ] },

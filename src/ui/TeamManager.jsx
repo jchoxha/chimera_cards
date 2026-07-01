@@ -8,6 +8,7 @@
 // ╚══════════════════════════════════════════════════════════════════╝
 import React, { useRef, useState } from 'react';
 import { creatureIcon, creatureColor } from '../data/axisIcons.js';
+import { useFlip } from './useFlip.js';
 import './teamManager.css';
 
 const Icon = ({ icon, ...rest }) => <iconify-icon icon={icon} {...rest}></iconify-icon>;
@@ -36,8 +37,10 @@ function CardBody({ m, i, color }) {
 export default function TeamManager({ members = [], onReorder, onRemove, onSelect, title = 'Your Team' }) {
   const ids = members.map((m) => m.id);
   const listRef = useRef(null);
-  const drag = useRef(null);                 // { id, x, y, startX, startY, overId, moved }
+  const drag = useRef(null);                 // { id, x, y, startX, startY, overId, moved, lastOver }
   const [d, setD] = useState(null);          // render mirror of drag.current
+  const cardEls = useRef(new Map());         // id → card element (for FLIP)
+  useFlip(ids.join(','), cardEls);           // slide cards to new slots when the order changes
 
   const reorderTo = (movingId, targetId) => {
     if (!movingId || movingId === targetId) return;
@@ -66,6 +69,15 @@ export default function TeamManager({ members = [], onReorder, onRemove, onSelec
       const el = document.elementFromPoint(e.clientX, e.clientY);
       const dz = el && el.closest ? el.closest('[data-tmid]') : null;
       g.overId = dz ? dz.getAttribute('data-tmid') : null;
+      // LIVE reorder: as the ghost passes over another card, slot the dragged card
+      // there so the row reflows (FLIP animates the slide). Guard against re-firing
+      // on the same target each frame.
+      if (g.overId && g.overId !== g.id && g.overId !== g.lastOver) {
+        g.lastOver = g.overId;
+        reorderTo(g.id, g.overId);
+      } else if (!g.overId) {
+        g.lastOver = null;
+      }
     }
     setD({ ...g });
   }
@@ -74,8 +86,8 @@ export default function TeamManager({ members = [], onReorder, onRemove, onSelec
     drag.current = null;
     setD(null);
     if (!g) return;
-    if (!g.moved) { const m = members.find((x) => x.id === g.id); if (m && onSelect) onSelect(m); return; }
-    if (g.overId && g.overId !== g.id) reorderTo(g.id, g.overId);
+    if (!g.moved) { const m = members.find((x) => x.id === g.id); if (m && onSelect) onSelect(m); }
+    // order already committed live during the drag
   }
 
   if (!members.length) return <div className="tmEmpty">No creatures yet.</div>;
@@ -93,7 +105,8 @@ export default function TeamManager({ members = [], onReorder, onRemove, onSelec
           const dead = m.hp != null && m.hp <= 0;
           return (
             <div key={m.id} data-tmid={m.id} draggable={false} onDragStart={(e) => e.preventDefault()}
-              className={`tmCard${i === 0 ? ' vanguard' : ''}${dead ? ' dead' : ''}${d?.id === m.id && dragging ? ' dragging' : ''}${dragging && d.overId === m.id && d.id !== m.id ? ' over' : ''}`}
+              ref={(el) => { if (el) cardEls.current.set(m.id, el); else cardEls.current.delete(m.id); }}
+              className={`tmCard${i === 0 ? ' vanguard' : ''}${dead ? ' dead' : ''}${d?.id === m.id && dragging ? ' dragging' : ''}`}
               style={{ '--gl': color }}
               onPointerDown={(e) => onPointerDown(e, m.id)} onPointerMove={onPointerMove} onPointerUp={onPointerUp}
               title={onSelect ? `${m.name} — tap for details, drag to reorder` : m.name}>

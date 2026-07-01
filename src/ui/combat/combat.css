@@ -289,7 +289,9 @@ html:has(.cmbt),body:has(.cmbt){height:100%;margin:0;overflow:hidden}
   filter:drop-shadow(0 16px 24px #000c)}
 /* gentle invitation that a card can be played this turn */
 .move.playable .cost{box-shadow:0 2px 6px #000a,0 0 0 2px var(--goldB),0 0 10px #ffd34d88}
-.move.dragging{opacity:.28;filter:grayscale(.4)}
+/* lifted out of the hand: collapse its footprint so the others close the gap
+   (siblings slide via the FLIP animator); the drag ghost represents the card. */
+.move.dragging{width:0!important;min-width:0;margin:0!important;padding:0!important;border-width:0!important;opacity:0;pointer-events:none;overflow:hidden}
 
 /* ---------- drag-to-target ---------- */
 .droppable{outline:2px dashed #ffd34daa;outline-offset:3px;border-radius:14px;

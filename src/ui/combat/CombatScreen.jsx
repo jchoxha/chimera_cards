@@ -16,6 +16,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import { useCombat } from '../../store/combatStore.js';
 import { elementMultiplier, ELEMENT_COLOR } from '../../systems/elements.jsx';
 import { frameStyle } from './frames.js';
+import { useFlip } from '../useFlip.js';
 import { creatureIcon, creatureColor, cardIcon as axisCardIcon, ATTUNEMENT_ICON, ATTUNEMENT_COLOR } from '../../data/axisIcons.js';
 import { cardArt } from '../../data/artPool.js';
 import { cardText, linkifySegments, KEYWORD_GLOSSARY } from '../../engine/cards/cardText.js';
@@ -447,6 +448,9 @@ export default function CombatScreen({ onMenu, onRestart, embedded, onCodex } = 
   const [notice, setNotice] = useState(null);
   const [drag, setDrag] = useState(null);   // { card, side, validIds, x, y, overId, moved }
   const dragRef = useRef(null);
+  const handEls = useRef(new Map());        // hand card id → element (for FLIP gap-close)
+  // FLIP the hand so siblings slide to close the gap when a card is lifted out.
+  useFlip(drag && drag.moved ? drag.card.id : 'none', handEls);
   const [floaters, setFloaters] = useState([]);  // transient floating damage/heal/block numbers
   const seenRef = useRef(0);                      // # of log events already turned into floaters
   const [turnBanner, setTurnBanner] = useState(null);  // transient "YOUR TURN" / "ENEMY TURN" sweep
@@ -702,6 +706,7 @@ export default function CombatScreen({ onMenu, onRestart, embedded, onCodex } = 
                 const isPressed = !dragging && drag?.card?.id === c.id;
                 return (
                   <div key={`${c.id}-${i}`}
+                    ref={(el) => { if (el) handEls.current.set(c.id, el); else handEls.current.delete(c.id); }}
                     className={`frame move ${f.finish}${unplayable ? ' unplayable' : ''}${isDragging ? ' dragging' : ''}${isPressed ? ' pressed' : ''}${!unplayable ? ' playable' : ''}`}
                     style={{ background: f.background, transform: `translateY(${lift}px) rotate(${rot}deg)` }}
                     draggable={false}
