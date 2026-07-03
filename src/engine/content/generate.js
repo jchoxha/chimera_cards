@@ -32,7 +32,10 @@ export function makeCreature({ id, name, class: klass, biology, attunement, fami
   const bio = Array.isArray(biology) ? biology : [biology].filter(Boolean);
   const att = Array.isArray(attunement) ? attunement : [attunement].filter(Boolean);
 
-  const { hpMult, stats } = biologyStats(bio);
+  const subs = Array.isArray(subtypes) ? subtypes.filter(Boolean) : subtypes ? [subtypes] : [];
+  const { hpMult, stats } = biologyStats(bio, subs, family);
+  // The Giant subtype GATES size: a Giant creature is at least Large.
+  if (subs.includes('Giant') && (formOf(size).order ?? 2) < formOf('large').order) size = 'large';
   // SIZE (form) scales HP and adds a flat Might bonus on top of biology.
   const form = formOf(size);
   const maxHp = Math.max(1, Math.round(baseHp * hpMult * form.hpMult));
@@ -47,7 +50,7 @@ export function makeCreature({ id, name, class: klass, biology, attunement, fami
     attunement: att.length ? att : ['Physical'],
     family: family || null, anatomy: anatomy || null,   // Beast kit axis-2 + special factors
     weapons: weapons || null,                            // Humanoid special factors
-    subtypes: subtypes || null,                          // descriptive subtypes (Mechanical/Giant/…)
+    subtypes: subs.length ? subs : null,                 // descriptive subtypes (Mechanical/Giant/…)
     size: form.id, stats: statLine, maxHp, hp: maxHp, deck,
     meta: { form: form.id },
   };

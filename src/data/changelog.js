@@ -6,6 +6,12 @@
 
 /** @type {{version:string, date:string, notes:string[]}[]} newest first */
 export const CHANGELOG = [
+  { version: 'v3.93.0', date: '2026-07-03', notes: [
+    'Fixed a major regression from the body-type rework: subtypes and families had stopped affecting stats and elemental matchups. Ironhide has his Giant bulk back (125 HP), Grimsoul his Undead resistances, Cogwright his Mechanical armor, and Draconic beasts their dragon toughness. The Giant subtype now also forces a creature to at least Large size.',
+    'Every starter deck is now guaranteed a basic Strike and Defend — beasts and aberrations whose kits had no block card were starting runs with tiny, defenseless decks (a big reason runs felt unwinnable).',
+    'Run enemies now fight with their real kits too: a beast foe uses its family + anatomy cards, a humanoid its weapons, instead of everyone borrowing archetype decks. Enemy HP tiers gently re-tuned for the new kits.',
+    'The on-card SUPER EFFECTIVE / RESISTED banner now uses the exact same matchup engine as the damage numbers, so it can never disagree with what actually lands. The Codex now teaches the Body Type + Subtype model.',
+  ] },
   { version: 'v3.92.1', date: '2026-06-28', notes: [
     'Drag reordering now reflows live: as you drag a team card over another, the cards slide to their new slots in real time (not just on release), so you can see exactly where it will land. In combat, lifting a card out of your hand now smoothly closes the gap. Both use the same FLIP slide animation.',
   ] },

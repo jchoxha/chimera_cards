@@ -31,7 +31,7 @@ export const EFFECT_INFO = {
 /** The three taxonomy axes — what each one means for a creature. */
 export const AXIS_INFO = {
   class: { name: 'Archetype', icon: 'game-icons:gladius', desc: 'Its character build — the theme and signature mechanics that shape its card pool and play style.' },
-  biology: { name: 'Biology', icon: 'game-icons:dna2', desc: 'Its body — drives base stats and HP, and gives an innate weakness/resistance to certain attunement elements.' },
+  biology: { name: 'Biology', icon: 'game-icons:dna2', desc: 'Its body — a BODY TYPE (Humanoid, Beast, or Aberration — the form, which selects its card kit) plus any descriptive SUBTYPES (Mechanical, Elemental, Giant, Demonic…). Together they drive base stats and HP, add subtype cards to its pool, and give innate weaknesses/resistances to certain attunement elements.' },
   attunement: { name: 'Attunement', icon: 'game-icons:embrace-energy', desc: 'Its element — shapes the damage type of its attacks, its elemental matchups, and the signature status its imbued strikes inflict.' },
 };
 

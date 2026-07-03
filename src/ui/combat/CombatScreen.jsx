@@ -14,7 +14,8 @@
 // ╚══════════════════════════════════════════════════════════════════╝
 import React, { useEffect, useRef, useState } from 'react';
 import { useCombat } from '../../store/combatStore.js';
-import { elementMultiplier, ELEMENT_COLOR } from '../../systems/elements.jsx';
+import { ELEMENT_COLOR } from '../../systems/elements.jsx';
+import { computeMatchup } from '../../engine/content/matchups.js';
 import { frameStyle } from './frames.js';
 import { useFlip } from '../useFlip.js';
 import { creatureIcon, creatureColor, cardIcon as axisCardIcon, ATTUNEMENT_ICON, ATTUNEMENT_COLOR } from '../../data/axisIcons.js';
@@ -539,10 +540,12 @@ export default function CombatScreen({ onMenu, onRestart, embedded, onCodex } = 
   const over = snap.phase === 'victory' || snap.phase === 'defeat';
 
   let matchup = null;
-  if (activeMon?.element && featured?.element) {
-    const mult = elementMultiplier(activeMon.element, featured.element);
-    if (mult > 1) matchup = { good: true, label: 'SUPER EFFECTIVE', atk: activeMon.element, def: featured.element };
-    else if (mult < 1) matchup = { good: false, label: 'RESISTED', atk: activeMon.element, def: featured.element };
+  if (activeMon && featured) {
+    // the SAME engine the damage op uses (attunement layer × constitution layer),
+    // so the banner never disagrees with the numbers that actually land.
+    const m = computeMatchup(activeMon, featured);
+    if (m.total > 1) matchup = { good: true, label: 'SUPER EFFECTIVE', atk: m.best ?? activeMon.element, def: featured.element };
+    else if (m.total < 1) matchup = { good: false, label: 'RESISTED', atk: m.best ?? activeMon.element, def: featured.element };
   }
 
   const allFighters = [...player.fighters, ...enemy.fighters];

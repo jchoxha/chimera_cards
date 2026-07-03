@@ -14,55 +14,15 @@ import Codex from '../ui/Codex.jsx';
 import SelectScreen from './SelectScreen.jsx';
 import CreatureCreator from './CreatureCreator.jsx';
 import { ATTUNEMENT_BASES, BODY_TYPES, SUBTYPES, legalAttunements } from '../data/synthesis.js';
-import { attunementCards } from '../engine/cards/attunementPool.js';
-import { beastPool, BEAST_FAMILIES, defaultAnatomy } from '../engine/cards/beastPool.js';
-import { humanoidWeaponPool, weaponsForArchetype, defaultWeapons } from '../engine/cards/humanoidPool.js';
-import { aberrationPool, ABERRATION_FAMILIES, defaultAberrationAnatomy } from '../engine/cards/aberrationPool.js';
-import { subtypeCards } from '../engine/cards/subtypePool.js';
-import { reskinDeck, attunementVariants } from '../engine/cards/reskin.js';
+import { BEAST_FAMILIES } from '../engine/cards/beastPool.js';
 import { makeCreature } from '../engine/content/generate.js';
-import { resolvePools } from '../data/collections.js';
+import { POOLS, ARCHETYPES, basePoolFor, rosterPool, potentialPool } from './pools.js';
 import { buildRoster, buildDummyCreature } from '../data/roster.js';
 import { APP_VERSION } from '../version.js';
 import { CHANGELOG } from '../data/changelog.js';
 import './app.css';
 
 const slug = (s) => String(s || '').toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_|_$/g, '');
-
-// Archetype card pools keyed by class name — base game overlaid by any ENABLED
-// collections (player card packs). Resolved fresh each session start.
-const POOLS = resolvePools();
-const ARCHETYPES = Object.keys(POOLS);                 // archetypes that have a card kit
-
-const arr = (v) => (Array.isArray(v) ? v : v != null ? [v] : []);
-
-/** Biology selects the kit (docs/biology-kits.md): the base (Physical) card pool a
- *  creature draws from BEFORE attunement re-skin. Humanoid (or no biology) → its
- *  Archetype pool; Beast → its Family+Anatomy pool; both → the union. Beast falls
- *  back to a default family/anatomy when none is authored. */
-function basePoolFor({ klass, biology, family, anatomy, weapons, subtypes }) {
-  const bios = arr(biology);
-  const out = [];
-  if (!bios.length || bios.includes('Humanoid')) {
-    out.push(...(POOLS[klass] || []));
-    if (bios.includes('Humanoid')) {
-      const w = (weapons?.length ? weapons : defaultWeapons(klass)).filter((t) => weaponsForArchetype(klass).includes(t));
-      out.push(...humanoidWeaponPool(w));
-    }
-  }
-  if (bios.includes('Beast')) {
-    const fam = family || BEAST_FAMILIES[0];
-    out.push(...beastPool({ family: fam, anatomy: anatomy?.length ? anatomy : defaultAnatomy(fam) }));
-  }
-  if (bios.includes('Aberration')) {
-    const fam = ABERRATION_FAMILIES.includes(family) ? family : ABERRATION_FAMILIES[0];
-    out.push(...aberrationPool({ family: fam, anatomy: anatomy?.length ? anatomy : defaultAberrationAnatomy(fam) }));
-  }
-  if (!out.length) out.push(...(POOLS[klass] || []));   // body types w/o a built kit: archetype stand-in
-  out.push(...subtypeCards(subtypes));                  // descriptive subtypes add their packages
-  return out;
-}
-const rosterPool = (r) => basePoolFor({ klass: r.class, biology: r.biology, family: r.family, anatomy: r.anatomy, weapons: r.weapons, subtypes: r.subtypes });
 
 const ROSTER = buildRoster(POOLS, POOLS.Warrior || [], rosterPool);
 const DUMMY = buildDummyCreature();
@@ -78,15 +38,6 @@ function loadIds(key, fallback) {
   try { const v = JSON.parse(localStorage.getItem(key)); return Array.isArray(v) ? v : fallback; } catch { return fallback; }
 }
 const loadTeamIds = () => loadIds(TEAM_KEY, []);
-
-/** A creature's full potential pool: its biology base pool reskinned to its
- *  attunement + that attunement's own cards + variant-access re-elements (§14.3).
- *  Takes a def-like { class|klass, biology, attunement, family, anatomy }. */
-function potentialPool(def = {}) {
-  const atts = arr(def.attunement?.length ? def.attunement : ['Physical']);
-  const base = basePoolFor({ klass: def.class?.[0] ?? def.klass, biology: def.biology, family: def.family, anatomy: def.anatomy, weapons: def.weapons, subtypes: def.subtypes });
-  return [...reskinDeck(base, atts), ...attunementCards(atts), ...attunementVariants(base, atts)];
-}
 
 /** Build a run-ready creature from a custom definition (typings + lore/description).
  *  The deck is always auto-generated from the typings (no per-monster custom decks here). */

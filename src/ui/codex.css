@@ -94,3 +94,4 @@
 .cxKw { background: #1c1410; border: 1px solid #4a3a22; border-radius: 8px; padding: 7px 10px; }
 .cxKw b { color: var(--gold4, #e8c878); font-family: 'Cinzel', serif; margin-right: 6px; }
 .cxKw span { color: #c9b58e; font-size: 13px; }
+.cxSub { font-size: 13px; color: #c9b58e; margin: 10px 0 6px; }

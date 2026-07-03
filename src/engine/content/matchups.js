@@ -49,21 +49,28 @@ export const ATTUNEMENT_MATCHUP = Object.freeze({
   Mind:     { strong: ['Holy', 'Physical'], weak: ['Shadow', 'Arcane'] },
 });
 
-// ── Layer 2: biology → attunement constitution (REVIEW v0, §4.2 redesign) ─────
-// For each biology: which incoming ELEMENTS it is WEAK to (takes x1.25) or
-// RESISTS (x0.8). Provisional — to be designed in depth. `note` documents the
-// flavor; some biologies also have engine-level immunities via their passive
-// trait (see spec §7.1) which are handled separately, not here.
+// ── Layer 2: constitution → attunement (REVIEW v0, §4.2 + §9 re-key) ─────────
+// Which incoming ELEMENTS a defender is WEAK to (takes x1.25) or RESISTS (x0.8),
+// keyed by its BODY TYPE(s) + descriptive SUBTYPES + stat-relevant FAMILY
+// (Draconic). Legacy 9-biology names keep their rows so old saves still resolve.
 export const BIOLOGY_ATTUNEMENT = Object.freeze({
+  // body types (the FORM)
   Beast:      { weak: ['Fire', 'Mind'],      resist: ['Physical', 'Nature'] },
   Humanoid:   { weak: ['Shadow', 'Mind'],    resist: ['Physical'] },
+  Aberration: { weak: ['Holy'],              resist: ['Void', 'Arcane'] },
+  // descriptive subtypes (composition/affliction) — also the legacy-name rows
   Undead:     { weak: ['Holy', 'Fire'],      resist: ['Shadow', 'Void', 'Frost'] },
-  Dragonkin:  { weak: ['Frost', 'Arcane'],   resist: ['Fire', 'Physical'] },
   Elemental:  { weak: ['Void'],              resist: ['Physical'] },
-  Demon:      { weak: ['Holy'],              resist: ['Fire', 'Shadow'] },
   Mechanical: { weak: ['Energy', 'Water'],   resist: ['Physical'] },
   Giant:      { weak: ['Mind', 'Air'],       resist: ['Physical', 'Stone'] },
-  Aberration: { weak: ['Holy'],              resist: ['Void', 'Arcane'] },
+  Demonic:    { weak: ['Holy'],              resist: ['Fire', 'Shadow'] },
+  Hallowed:   { weak: ['Shadow', 'Void'],    resist: ['Holy'] },
+  Spectral:   { weak: ['Holy', 'Arcane'],    resist: ['Physical'] },
+  Cursed:     { weak: ['Holy'],              resist: ['Shadow'] },
+  // stat-relevant family (Dragonkin fold-in) + legacy names
+  Draconic:   { weak: ['Frost', 'Arcane'],   resist: ['Fire', 'Physical'] },
+  Dragonkin:  { weak: ['Frost', 'Arcane'],   resist: ['Fire', 'Physical'] },
+  Demon:      { weak: ['Holy'],              resist: ['Fire', 'Shadow'] },
 });
 
 // ── Attunement signature statuses (spec §5.1) — the "imbue" rider ─────────────
@@ -117,7 +124,17 @@ export function attunementsOf(f) {
 }
 /** @param {any} f */
 export function biologiesOf(f) {
-  return Array.isArray(f?.biology) ? f.biology.filter(Boolean) : [];
+  const v = Array.isArray(f?.biology) ? f.biology : f?.axes?.biology;
+  return Array.isArray(v) ? v.filter(Boolean) : [];
+}
+/** All the keys a defender's CONSTITUTION reads from: body type(s) + descriptive
+ *  subtypes + a stat-relevant family (Draconic). De-duped; reads Fighter,
+ *  snapshot (`axes.*`), or creature shapes. @param {any} f */
+export function constitutionKeysOf(f) {
+  const rawSubs = Array.isArray(f?.subtypes) ? f.subtypes : f?.axes?.subtypes;
+  const subs = Array.isArray(rawSubs) ? rawSubs.filter(Boolean) : [];
+  const fam = f?.family ?? f?.axes?.family;
+  return [...new Set([...biologiesOf(f), ...subs, ...(fam ? [fam] : [])])];
 }
 /** @param {any} f */
 export function classesOf(f) {
@@ -155,7 +172,7 @@ function bioVsElement(bio, atk) {
 export function computeMatchup(attacker, defender) {
   const atkEls = attunementsOf(attacker);
   const defEls = attunementsOf(defender);
-  const defBios = biologiesOf(defender);
+  const defBios = constitutionKeysOf(defender);
 
   if (atkEls.length === 0) {
     return { total: 1, best: null, attune: 1, biology: 1, selfResisted: false, overridden: [], label: '' };

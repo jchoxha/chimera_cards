@@ -30,21 +30,56 @@ for (const file of readdirSync(CARDS_DIR).filter((f) => f.endsWith('.json'))) {
 }
 const FALLBACK = POOLS.Warrior || [];
 
+// The biology KIT data (fs-read: node can't import JSON modules) + a mini
+// resolver mirroring app/pools.js basePoolFor, so the harness fights with the
+// SAME kit decks the game deals (beast anatomy, aberration features, weapons,
+// subtype packages).
+const DATA_DIR = join(HERE, '../../data');
+const readJson = (f) => JSON.parse(readFileSync(join(DATA_DIR, f), 'utf8'));
+const BEAST_KIT = readJson('beastKit.json');
+const ABERR_KIT = readJson('aberrationKit.json');
+const HUMANOID_KIT = readJson('humanoidKit.json');
+const SUBTYPE_KIT = readJson('subtypeKit.json');
+const kitPool = (kit, family, anatomy) => {
+  const fam = kit.families[family] ? family : Object.keys(kit.families)[0];
+  const allowed = new Set(kit.families[fam].anatomy);
+  const tags = (anatomy?.length ? anatomy : kit.families[fam].anatomy.slice(0, 3)).filter((t) => allowed.has(t));
+  return [...kit.families[fam].signatures, ...tags.flatMap((t) => kit.anatomy[t]?.cards ?? [])];
+};
+function basePool(r) {
+  const bios = r.biology || [];
+  const out = [];
+  if (!bios.length || bios.includes('Humanoid')) {
+    out.push(...(POOLS[r.class] || FALLBACK));
+    if (bios.includes('Humanoid')) {
+      const prof = HUMANOID_KIT.proficiency[r.class] || [];
+      const w = (r.weapons?.length ? r.weapons : prof.slice(0, 2)).filter((t) => prof.includes(t));
+      out.push(...w.flatMap((t) => HUMANOID_KIT.weapons[t]?.cards ?? []));
+    }
+  }
+  if (bios.includes('Beast')) out.push(...kitPool(BEAST_KIT, r.family, r.anatomy));
+  if (bios.includes('Aberration')) out.push(...kitPool(ABERR_KIT, r.family, r.anatomy));
+  if (!out.length) out.push(...(POOLS[r.class] || FALLBACK));
+  for (const s of r.subtypes || []) out.push(...(SUBTYPE_KIT.subtypes[s]?.cards ?? []));
+  return out;
+}
+
+// Mirrors data/roster.js (inlined: roster.js carries Vite-only imports).
 const ROSTER = [
-  { id: 'ironhide', name: 'Ironhide', class: 'Warrior', biology: ['Giant'], attunement: ['Physical'], baseHp: 60 },
-  { id: 'voltfang', name: 'Voltfang', class: 'Warrior', biology: ['Beast'], attunement: ['Physical', 'Energy'], baseHp: 55 },
-  { id: 'nightveil', name: 'Nightveil', class: 'Rogue', biology: ['Humanoid'], attunement: ['Shadow'], baseHp: 52 },
-  { id: 'emberwisp', name: 'Emberwisp', class: 'Mage', biology: ['Elemental'], attunement: ['Fire'], baseHp: 50 },
-  { id: 'frostmind', name: 'Frostmind', class: 'Mage', biology: ['Humanoid'], attunement: ['Frost'], baseHp: 52 },
-  { id: 'grimsoul', name: 'Grimsoul', class: 'Warlock', biology: ['Undead'], attunement: ['Shadow'], baseHp: 56 },
-  { id: 'dawnkeeper', name: 'Dawnkeeper', class: 'Priest', biology: ['Humanoid'], attunement: ['Holy'], baseHp: 55 },
-  { id: 'thornroot', name: 'Thornroot', class: 'Shaman', biology: ['Beast'], attunement: ['Nature'], baseHp: 55 },
-  { id: 'tidecaller', name: 'Tidecaller', class: 'Shaman', biology: ['Elemental'], attunement: ['Water'], baseHp: 54 },
-  { id: 'wildeye', name: 'Wildeye', class: 'Ranger', biology: ['Beast'], attunement: ['Nature'], baseHp: 53 },
-  { id: 'cogwright', name: 'Cogwright', class: 'Engineer', biology: ['Mechanical'], attunement: ['Stone'], baseHp: 58 },
-  { id: 'maw', name: 'Maw', class: 'Warrior', biology: ['Aberration'], attunement: ['Void'], baseHp: 54 },
+  { id: 'ironhide', name: 'Ironhide', class: 'Warrior', biology: ['Humanoid'], attunement: ['Physical'], baseHp: 60, size: 'large', subtypes: ['Giant'], weapons: ['Hammer', 'Shield'] },
+  { id: 'voltfang', name: 'Voltfang', class: 'Warrior', biology: ['Beast'], attunement: ['Physical', 'Energy'], baseHp: 55, family: 'Mammalian', anatomy: ['Teeth', 'Claws', 'Roar'] },
+  { id: 'nightveil', name: 'Nightveil', class: 'Rogue', biology: ['Humanoid'], attunement: ['Shadow'], baseHp: 52, weapons: ['Dagger', 'Sword'] },
+  { id: 'emberwisp', name: 'Emberwisp', class: 'Mage', biology: ['Aberration'], attunement: ['Fire'], baseHp: 50, size: 'small', subtypes: ['Elemental'], family: 'Formless', anatomy: ['Miasma', 'Eye'] },
+  { id: 'frostmind', name: 'Frostmind', class: 'Mage', biology: ['Humanoid'], attunement: ['Frost'], baseHp: 52, weapons: ['Staff', 'Wand'] },
+  { id: 'grimsoul', name: 'Grimsoul', class: 'Warlock', biology: ['Humanoid'], attunement: ['Shadow'], baseHp: 56, subtypes: ['Undead'], weapons: ['Staff', 'Dagger'] },
+  { id: 'dawnkeeper', name: 'Dawnkeeper', class: 'Priest', biology: ['Humanoid'], attunement: ['Holy'], baseHp: 55, weapons: ['Mace', 'Shield'] },
+  { id: 'thornroot', name: 'Thornroot', class: 'Shaman', biology: ['Beast'], attunement: ['Nature'], baseHp: 55, family: 'Reptilian', anatomy: ['Venom', 'Hide', 'Tail'] },
+  { id: 'tidecaller', name: 'Tidecaller', class: 'Shaman', biology: ['Humanoid'], attunement: ['Water'], baseHp: 54, subtypes: ['Elemental'], weapons: ['Staff', 'Spear'] },
+  { id: 'wildeye', name: 'Wildeye', class: 'Ranger', biology: ['Beast'], attunement: ['Nature'], baseHp: 53, family: 'Avian', anatomy: ['Beak', 'Wings', 'Claws'] },
+  { id: 'cogwright', name: 'Cogwright', class: 'Engineer', biology: ['Humanoid'], attunement: ['Stone'], baseHp: 58, subtypes: ['Mechanical'], weapons: ['Wand', 'Shield'] },
+  { id: 'maw', name: 'Maw', class: 'Warrior', biology: ['Aberration'], attunement: ['Void'], baseHp: 54, family: 'Eldritch', anatomy: ['Tentacle', 'Maw', 'Eye'] },
 ];
-const build = (r) => makeCreature({ ...r, pool: POOLS[r.class] || FALLBACK });
+const build = (r) => makeCreature({ ...r, pool: basePool(r) });
 const CREATURES = Object.fromEntries(ROSTER.map((r) => [r.id, build(r)]));
 
 // Enemy bands + per-tier HP multipliers — kept in sync with engine/run/encounters.js.
@@ -64,17 +99,19 @@ function rosterFighter(id, hpMult) {
   const maxHp = Math.max(1, Math.round(c.maxHp * hpMult));
   const f = createFighter({ id: `${tag}-${id}`, name: c.name, types: c.attunement.map((a) => ({ type: a, weight: 1 })), hp: maxHp, maxHp, stats: c.stats });
   f.class = c.class; f.biology = c.biology; f.attunement = c.attunement;
+  if (c.family) f.family = c.family; if (c.anatomy) f.anatomy = c.anatomy;
+  if (c.subtypes) f.subtypes = c.subtypes; if (c.weapons) f.weapons = c.weapons;
   f.deck.drawPile = (c.deck ?? []).map((card) => ({ ...card, id: `${tag}:${card.id}` }));
   return f;
 }
 const pick = (rng, band) => band[Math.floor(rng.next() * band.length)];
 function enemiesForNode(type, floor, rng) {
   const fm = floorMult(floor);
-  if (type === 'boss') return [rosterFighter(pick(rng, BANDS.boss), 2.0 * fm), rosterFighter(pick(rng, BANDS.boss), 1.0 * fm)];
-  if (type === 'elite') return [rosterFighter(pick(rng, BANDS.elite), 1.3 * fm), rosterFighter(pick(rng, BANDS.elite), 1.1 * fm)];
+  if (type === 'boss') return [rosterFighter(pick(rng, BANDS.boss), 1.8 * fm), rosterFighter(pick(rng, BANDS.boss), 0.9 * fm)];
+  if (type === 'elite') return [rosterFighter(pick(rng, BANDS.elite), 1.15 * fm), rosterFighter(pick(rng, BANDS.elite), 0.95 * fm)];
   const band = floor <= 3 ? 'early' : floor <= 6 ? 'mid' : 'late';
-  if (floor >= 5 && rng.next() < 0.45) return [rosterFighter(pick(rng, BANDS[band]), 0.85 * fm), rosterFighter(pick(rng, BANDS[band]), 0.7 * fm)];
-  return [rosterFighter(pick(rng, BANDS[band]), 0.85 * fm)];
+  if (floor >= 5 && rng.next() < 0.45) return [rosterFighter(pick(rng, BANDS[band]), 0.78 * fm), rosterFighter(pick(rng, BANDS[band]), 0.62 * fm)];
+  return [rosterFighter(pick(rng, BANDS[band]), 0.78 * fm)];
 }
 
 // ── Autoplay policy ──────────────────────────────────────────────────────────

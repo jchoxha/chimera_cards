@@ -36,9 +36,18 @@ Formless + 9 aberrant-feature tags, `aberrationKit.json`/`aberrationPool.js`, `t
 `data/biologyNaming.js` (`FAMILY_NOUN`+`FUSIONS`, reusing `BIOLOGY_SYNTHESIS`; reference list in
 biology-kits.md §9.6) — Draconic+Giant="Leviathan", Mammalian+Mechanical="Cybeast", etc. The
 **corner is archetype-only** with body-type catch-alls (beast-eye / eyestalk for Beast/Aberration).
-**Still TODO:** matchups.js still keys constitution on the old 9 biologies (re-key onto body
-types + subtypes); Codex still lists old biologies; Giant subtype doesn't yet gate size; subtype
-mechanical depth (Giant's throw/immovable etc. are cards, not yet special rules).
+**MIGRATION REGRESSIONS FIXED (v3.93.0):** stats (`biology.js` → BODY_PROFILE ×
+SUBTYPE_PROFILE × FAMILY_PROFILE, legacy rows kept) + constitutions (`matchups.js`
+`constitutionKeysOf` = bodies ∪ subtypes ∪ Draconic family, snapshot-`axes.*`-tolerant) are
+re-keyed; the Giant subtype gates size to Large+; the Codex teaches body types + subtypes; the
+card matchup banner uses `computeMatchup` (not the legacy 16-element matrix). **Pool builders
+unified in `src/app/pools.js`** (App + Codex + run encounters all use it — enemies now fight
+with their kit decks); `starterDeck` GUARANTEES a Strike + Defend base (kit pools without block
+cards were producing defenseless 6-card decks). Balance harness re-synced to the kit era
+(fs-read kits, current roster rows); enemy tier multipliers gently re-tuned (normal 0.78/0.62,
+elite 1.15/0.95, boss 1.8/0.9). **Still TODO:** kit-era balance needs a HUMAN play pass (the
+greedy bot reaches ~floor 5, wins ~5% — weak lower bound); subtype mechanical depth (Giant's
+throw/immovable etc. are cards, not yet special rules).
 
 **🧬 PRIOR FRAMING (2026-06-27) — BIOLOGY SELECTS THE KIT SYSTEM.**
 The **archetype/Class system (Warrior/Rogue/Mage/…) applies ONLY to Humanoids**; every other

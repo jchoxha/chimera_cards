@@ -90,5 +90,28 @@ console.log('Breakdown shape (for the live UI readout, B3):');
     'computeMatchup returns {total,best,attune,biology,label,...}');
 }
 
+
+console.log('Subtype + family constitutions (§9 re-key):');
+{ // a Giant Humanoid resists Stone via its Giant SUBTYPE (Humanoid alone is neutral)
+  const giant = matchupMultiplier(A(['Stone']), { attunement: ['Physical'], biology: ['Humanoid'], subtypes: ['Giant'] });
+  const plain = matchupMultiplier(A(['Stone']), { attunement: ['Physical'], biology: ['Humanoid'] });
+  ok(near(giant, MAG.BIO_RESIST) && near(plain, 1), `Stone -> Giant Humanoid = ${giant} via the subtype (plain ${plain})`);
+}
+{ // Undead subtype: weak to Holy stacks with... Humanoid neutral to Holy
+  const r = matchupMultiplier(A(['Holy']), { attunement: ['Shadow'], biology: ['Humanoid'], subtypes: ['Undead'] });
+  ok(r > 1, `Holy -> Undead Humanoid is weak (${r})`);
+}
+{ // Draconic family: weak to Frost
+  const r = matchupMultiplier(A(['Frost']), { attunement: ['Fire'], biology: ['Beast'], family: 'Draconic' });
+  ok(r > matchupMultiplier(A(['Frost']), { attunement: ['Fire'], biology: ['Beast'] }),
+    'Frost hits a Draconic beast harder than a plain beast');
+}
+{ // snapshot shape (axes.*) resolves the same as the fighter shape
+  const fighter = { attunement: ['Shadow'], biology: ['Humanoid'], subtypes: ['Undead'] };
+  const snap = { types: [{ type: 'Shadow', weight: 1 }], axes: { biology: ['Humanoid'], subtypes: ['Undead'] } };
+  ok(near(matchupMultiplier(A(['Holy']), fighter), matchupMultiplier(A(['Holy']), snap)),
+    'snapshot axes.* shape == fighter shape');
+}
+
 console.log(`\nmatchups: ${pass} passed, ${fail} failed`);
 process.exit(fail ? 1 : 0);

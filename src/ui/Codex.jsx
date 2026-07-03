@@ -11,9 +11,10 @@ import React, { useState } from 'react';
 import { EFFECT_INFO, AXIS_INFO, ATTUNEMENT_SIGNATURE, SYSTEM_INFO } from '../data/codex.js';
 import { REACTIONS, REACTION_INFO } from '../engine/cards/reactions.js';
 import { KEYWORD_GLOSSARY } from '../engine/cards/cardText.js';
-import { ARCHETYPE_ICON, BIOLOGY_ICON, ATTUNEMENT_ICON, ATTUNEMENT_COLOR, creatureIcon, creatureColor } from '../data/axisIcons.js';
-import { CLASS_BASES, BIOLOGY_BASES, ATTUNEMENT_BASES } from '../data/synthesis.js';
+import { ARCHETYPE_ICON, BIOLOGY_ICON, ATTUNEMENT_ICON, ATTUNEMENT_COLOR, SUBTYPE_ICON, creatureIcon, creatureColor } from '../data/axisIcons.js';
+import { CLASS_BASES, BODY_TYPES, SUBTYPES, ATTUNEMENT_BASES } from '../data/synthesis.js';
 import { buildRoster } from '../data/roster.js';
+import { POOLS, rosterPool } from '../app/pools.js';
 import { bestiaryEntry } from '../data/bestiary.js';
 import { describeCard } from '../engine/cards/cardText.js';
 import { attunementCards } from '../engine/cards/attunementPool.js';
@@ -22,16 +23,14 @@ import MoveCard from './combat/MoveCard.jsx';
 import './combat/combat.css';
 import './codex.css';
 
-// Bundled archetype pools → the generator → the playable roster (for the Bestiary).
-const BUNDLE = import.meta.glob('../data/cards/*.json', { eager: true });
-const FILES = Object.values(BUNDLE).map((m) => m.default ?? m);
-const POOLS = Object.fromEntries(FILES.map((f) => [f.class, f.cards || []]));
-const ROSTER = buildRoster(POOLS, POOLS.Warrior || []);
+// The SHARED biology-aware pools (app/pools) → the generator → the playable
+// roster, so the Bestiary shows the same kits/decks the game actually deals.
+const ROSTER = buildRoster(POOLS, POOLS.Warrior || [], rosterPool);
 
 // Every card the player can encounter, grouped: one group per archetype + an
 // "Elemental" group for the attunement signature cards (§14.3).
 const CARD_GROUPS = [
-  ...FILES.map((f) => ({ key: f.class, label: f.class, cards: (f.cards || []) })),
+  ...Object.entries(POOLS).map(([klass, cards]) => ({ key: klass, label: klass, cards })),
   { key: 'Elemental', label: 'Elemental', cards: attunementCards(ATTUNEMENT_BASES) },
 ];
 
@@ -117,7 +116,11 @@ function AxesTab() {
       <div className="cxAxisBlock">
         <div className="cxCardHead"><Icon icon={AXIS_INFO.biology.icon} /> {AXIS_INFO.biology.name}</div>
         <p>{AXIS_INFO.biology.desc}</p>
-        <div className="cxChips">{BIOLOGY_BASES.map((b) => <AxisRow key={b} icon={BIOLOGY_ICON[b] || 'game-icons:dna2'} name={b} />)}</div>
+        <div className="cxChips">{BODY_TYPES.map((b) => <AxisRow key={b} icon={BIOLOGY_ICON[b] || 'game-icons:dna2'} name={b} />)}</div>
+        <p className="cxSub"><b>Descriptive subtypes</b> layer onto any body type (in any combination), adding
+          their own cards and elemental constitutions — a mechanical giant beast-man reads
+          “Giant Mechanical Chimera”:</p>
+        <div className="cxChips">{SUBTYPES.map((s) => <AxisRow key={s} icon={SUBTYPE_ICON[s] || 'game-icons:dna2'} name={s} />)}</div>
       </div>
       <div className="cxAxisBlock">
         <div className="cxCardHead"><Icon icon={AXIS_INFO.attunement.icon} /> {AXIS_INFO.attunement.name}</div>

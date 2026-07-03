@@ -9,14 +9,11 @@
 
 import { buildRoster } from '../../data/roster.js';
 import { creatureToFighter } from './combatBridge.js';
+import { POOLS, rosterPool } from '../../app/pools.js';
 
-// Archetype card pools keyed by class name (bundled JSON), for the generator.
-const CARD_FILES = import.meta.glob('../../data/cards/*.json', { eager: true });
-const POOLS = Object.fromEntries(
-  Object.values(CARD_FILES).map((m) => { const f = m.default ?? m; return [f.class, f.cards || []]; }),
-);
-// The generated roster of enemies (rebuilt once; same creatures as the player roster).
-const ENEMY_ROSTER = buildRoster(POOLS, POOLS.Warrior || []);
+// The generated roster of enemies (rebuilt once; the SAME biology-aware kit pools
+// the player roster uses via app/pools — a beast foe fights with its beast kit).
+const ENEMY_ROSTER = buildRoster(POOLS, POOLS.Warrior || [], rosterPool);
 const BY_ID = Object.fromEntries(ENEMY_ROSTER.map((c) => [c.id, c]));
 
 // Curated bestiary bands so difficulty + theme don't swing wildly with a random
@@ -79,17 +76,18 @@ export function enemyForNode(node, rng) {
   const floor = node.floor ?? 0;
   const fm = floorMult(floor);
 
-  // Per-tier HP multipliers tuned via the headless balance harness (≈33% autoplay
-  // win rate to the boss with deck growth — a fair baseline; skilled play does better).
+  // Per-tier HP multipliers, re-tuned for the kit era via the headless balance
+  // harness (the greedy autoplay bot reaches ~floor 5 and wins ~5% — a WEAK lower
+  // bound; skilled play does far better). REVIEW: needs a human-play balance pass.
   if (node.type === 'boss') {
     // A strong leader (Boss size) + one lieutenant (Elite) on the bench.
     const [leader, aide] = pickDistinct(2, rng, 'boss');
-    return [rosterFighter(leader, 2.0 * fm, 'boss'), rosterFighter(aide, 1.0 * fm, 'elite')];
+    return [rosterFighter(leader, 1.8 * fm, 'boss'), rosterFighter(aide, 0.9 * fm, 'elite')];
   }
   if (node.type === 'elite') {
     // A beefy Elite pair.
     const [a, b] = pickDistinct(2, rng, 'elite');
-    return [rosterFighter(a, 1.3 * fm, 'elite'), rosterFighter(b, 1.1 * fm, 'elite')];
+    return [rosterFighter(a, 1.15 * fm, 'elite'), rosterFighter(b, 0.95 * fm, 'elite')];
   }
   // Normal combat: pick from the floor-appropriate band; a single foe early, a
   // chance of a second on deeper floors.
@@ -97,8 +95,8 @@ export function enemyForNode(node, rng) {
   const pair = floor >= 5 && rng && rng.next && rng.next() < 0.45;
   if (pair) {
     const [a, b] = pickDistinct(2, rng, band);
-    return [rosterFighter(a, 0.85 * fm), rosterFighter(b, 0.7 * fm)];
+    return [rosterFighter(a, 0.78 * fm), rosterFighter(b, 0.62 * fm)];
   }
   const [pick] = pickDistinct(1, rng, band);
-  return [rosterFighter(pick, 0.85 * fm)];
+  return [rosterFighter(pick, 0.78 * fm)];
 }

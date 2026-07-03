@@ -93,10 +93,15 @@ export function starterDeck(cards, attunement = ['Physical'], max = 10) {
   const els = atts.length ? atts : ['Physical'];
 
   const basics = cards.filter((c) => c.rarity === 'basic');
+  // Every starter deck is GUARANTEED a Strike and a Defend base: prefer the pool's
+  // own basics, else any pool card with the op, else a synthesized generic — a kit
+  // pool with no block card (e.g. a Teeth/Claws beast) must still be able to defend.
   const strikeBase = basics.find((c) => c.type === 'attack' && (c.effects || []).some((o) => o.op === 'damage'))
-    || cards.find((c) => c.type === 'attack' && (c.effects || []).some((o) => o.op === 'damage'));
+    || cards.find((c) => c.type === 'attack' && (c.effects || []).some((o) => o.op === 'damage'))
+    || { id: 'starter_strike', name: 'Strike', type: 'attack', cost: 1, rarity: 'basic', attunement: 'Physical', effects: [{ op: 'damage', value: 6 }] };
   const defendBase = basics.find((c) => (c.effects || []).some((o) => o.op === 'block'))
-    || cards.find((c) => (c.effects || []).some((o) => o.op === 'block'));
+    || cards.find((c) => (c.effects || []).some((o) => o.op === 'block'))
+    || { id: 'starter_defend', name: 'Defend', type: 'skill', cost: 1, rarity: 'basic', attunement: 'Physical', effects: [{ op: 'block', value: 5 }] };
 
   // A Strike variant: ONLY its damage op(s), no imbue/status/riders — a clean basic
   // attack. Its damage element cycles through the creature's attunement(s).
