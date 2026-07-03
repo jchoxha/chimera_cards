@@ -6,6 +6,9 @@
 
 /** @type {{version:string, date:string, notes:string[]}[]} newest first */
 export const CHANGELOG = [
+  { version: 'v3.95.0', date: '2026-07-03', notes: [
+    'Three new roster creatures show off the taxonomy: EMBERDRAKE (a Draconic beast — searing Breath, raking dives), GRIZZLORD (a true Chimera — a Beast/Humanoid hybrid fighting with claws, teeth AND an axe), and FELHOUND (a Demonic beast that trades its own blood for cursed strikes). All three also appear as enemies in the mid/late act.',
+  ] },
   { version: 'v3.94.0', date: '2026-07-03', notes: [
     'AI creature creation now infers the FULL kit: describe “an ancient undead dragon with fiery breath” and you get a Draconic Beast with Teeth/Wings/Breath anatomy, Giant + Undead + Ancient subtypes, Fire attunement — and its card reads “Ancient Undead Leviathan”. Humanoids get inferred weapons; aberrations get inferred families and features.',
     'Creature placeholder art now matches the new taxonomy: a Draconic beast draws dragons, an Undead humanoid draws skeletons, an Ooze draws slimes (family → subtype → body type, most specific first).',

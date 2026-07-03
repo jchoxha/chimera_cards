@@ -24,11 +24,11 @@ const BANDS = {
   // weaker / simpler foes for the opening floors
   early: ['emberwisp', 'nightveil', 'voltfang', 'wildeye'],
   // the bulk of the act
-  mid: ['frostmind', 'grimsoul', 'dawnkeeper', 'thornroot', 'tidecaller', 'voltfang', 'wildeye'],
+  mid: ['frostmind', 'grimsoul', 'dawnkeeper', 'thornroot', 'tidecaller', 'voltfang', 'wildeye', 'felhound'],
   // tougher foes deep in the act
-  late: ['ironhide', 'cogwright', 'maw', 'grimsoul', 'frostmind', 'dawnkeeper'],
+  late: ['ironhide', 'cogwright', 'maw', 'grimsoul', 'frostmind', 'dawnkeeper', 'emberdrake', 'grizzlord'],
   // dedicated elite threats
-  elite: ['ironhide', 'cogwright', 'maw', 'grimsoul'],
+  elite: ['ironhide', 'cogwright', 'maw', 'grimsoul', 'emberdrake', 'grizzlord'],
   // act bosses (the big bads)
   boss: ['maw', 'ironhide', 'cogwright'],
 };

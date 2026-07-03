@@ -31,6 +31,10 @@ export const ROSTER = Object.freeze([
   { id: 'wildeye',     name: 'Wildeye',     class: 'Ranger',   biology: ['Beast'],      attunement: ['Nature'],          baseHp: 53, family: 'Avian', anatomy: ['Beak', 'Wings', 'Claws'], blurb: 'A hunter who marks its prey and snipes past the front line.' },
   { id: 'cogwright',   name: 'Cogwright',   class: 'Engineer', biology: ['Humanoid'],   attunement: ['Stone'],           baseHp: 58, subtypes: ['Mechanical'], weapons: ['Wand', 'Shield'], blurb: 'A gadgeteer who builds an unbreakable wall of Block.' },
   { id: 'maw',         name: 'Maw',         class: 'Warrior',  biology: ['Aberration'], attunement: ['Void'],            baseHp: 54, family: 'Eldritch', anatomy: ['Tentacle', 'Maw', 'Eye'], blurb: 'An eldritch horror whose blows rot armor, buffs, and powers.' },
+  // §9 flagships — show off the Draconic family, the hybrid matrix, and a Demonic subtype.
+  { id: 'emberdrake',  name: 'Emberdrake',  class: 'Warrior',  biology: ['Beast'],      attunement: ['Fire'],            baseHp: 50, family: 'Draconic', anatomy: ['Breath', 'Wings', 'Claws'], blurb: 'A young dragon — searing breath, raking dives, and draconic bulk.' },
+  { id: 'grizzlord',   name: 'Grizzlord',   class: 'Warrior',  biology: ['Beast', 'Humanoid'], attunement: ['Physical'], baseHp: 57, family: 'Mammalian', anatomy: ['Claws', 'Teeth'], weapons: ['Axe'], blurb: 'A chimera of bear and berserker — claws, teeth, AND an axe.' },
+  { id: 'felhound',    name: 'Felhound',    class: 'Rogue',    biology: ['Beast'],      attunement: ['Shadow'],          baseHp: 52, family: 'Mammalian', anatomy: ['Teeth', 'Claws'], subtypes: ['Demonic'], blurb: 'A felbeast that trades its own blood for cursed, vicious strikes.' },
 ]);
 
 /**

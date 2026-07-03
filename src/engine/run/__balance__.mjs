@@ -78,6 +78,9 @@ const ROSTER = [
   { id: 'wildeye', name: 'Wildeye', class: 'Ranger', biology: ['Beast'], attunement: ['Nature'], baseHp: 53, family: 'Avian', anatomy: ['Beak', 'Wings', 'Claws'] },
   { id: 'cogwright', name: 'Cogwright', class: 'Engineer', biology: ['Humanoid'], attunement: ['Stone'], baseHp: 58, subtypes: ['Mechanical'], weapons: ['Wand', 'Shield'] },
   { id: 'maw', name: 'Maw', class: 'Warrior', biology: ['Aberration'], attunement: ['Void'], baseHp: 54, family: 'Eldritch', anatomy: ['Tentacle', 'Maw', 'Eye'] },
+  { id: 'emberdrake', name: 'Emberdrake', class: 'Warrior', biology: ['Beast'], attunement: ['Fire'], baseHp: 50, family: 'Draconic', anatomy: ['Breath', 'Wings', 'Claws'] },
+  { id: 'grizzlord', name: 'Grizzlord', class: 'Warrior', biology: ['Beast', 'Humanoid'], attunement: ['Physical'], baseHp: 57, family: 'Mammalian', anatomy: ['Claws', 'Teeth'], weapons: ['Axe'] },
+  { id: 'felhound', name: 'Felhound', class: 'Rogue', biology: ['Beast'], attunement: ['Shadow'], baseHp: 52, family: 'Mammalian', anatomy: ['Teeth', 'Claws'], subtypes: ['Demonic'] },
 ];
 const build = (r) => makeCreature({ ...r, pool: basePool(r) });
 const CREATURES = Object.fromEntries(ROSTER.map((r) => [r.id, build(r)]));
@@ -85,9 +88,9 @@ const CREATURES = Object.fromEntries(ROSTER.map((r) => [r.id, build(r)]));
 // Enemy bands + per-tier HP multipliers — kept in sync with engine/run/encounters.js.
 const BANDS = {
   early: ['emberwisp', 'nightveil', 'voltfang', 'wildeye'],
-  mid: ['frostmind', 'grimsoul', 'dawnkeeper', 'thornroot', 'tidecaller', 'voltfang', 'wildeye'],
-  late: ['ironhide', 'cogwright', 'maw', 'grimsoul', 'frostmind', 'dawnkeeper'],
-  elite: ['ironhide', 'cogwright', 'maw', 'grimsoul'],
+  mid: ['frostmind', 'grimsoul', 'dawnkeeper', 'thornroot', 'tidecaller', 'voltfang', 'wildeye', 'felhound'],
+  late: ['ironhide', 'cogwright', 'maw', 'grimsoul', 'frostmind', 'dawnkeeper', 'emberdrake', 'grizzlord'],
+  elite: ['ironhide', 'cogwright', 'maw', 'grimsoul', 'emberdrake', 'grizzlord'],
   boss: ['maw', 'ironhide', 'cogwright'],
 };
 const floorMult = (floor) => 1 + Math.max(0, floor) * 0.03;
