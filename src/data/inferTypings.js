@@ -8,6 +8,9 @@
 // ╚══════════════════════════════════════════════════════════════════╝
 import { askClaudeJson } from '../ai/claude.js';
 import { CLASS_BASES, BODY_TYPES, SUBTYPES, ATTUNEMENT_BASES } from './synthesis.js';
+import { BEAST_FAMILIES, anatomyForFamily, defaultAnatomy } from '../engine/cards/beastPool.js';
+import { ABERRATION_FAMILIES, anatomyForAberrationFamily, defaultAberrationAnatomy } from '../engine/cards/aberrationPool.js';
+import { weaponsForArchetype, defaultWeapons } from '../engine/cards/humanoidPool.js';
 
 // keyword → axis value (lowercase). First strong hit wins by score.
 const CLASS_KW = {
@@ -40,6 +43,41 @@ const SUBTYPE_KW = {
   Cursed: ['cursed', 'plagued', 'hexed', 'doomed', 'blighted'],
   Spectral: ['spectral', 'ghostly', 'incorporeal', 'ethereal', 'phantasmal'],
 };
+// Kit specifics: family / anatomy / weapon keyword maps (validated vs the kits).
+const FAMILY_KW = {
+  Draconic: ['dragon', 'drake', 'wyrm', 'wyvern', 'draconic'],
+  Avian: ['bird', 'avian', 'wing', 'hawk', 'raven', 'owl', 'eagle', 'feather', 'beak'],
+  Reptilian: ['lizard', 'snake', 'serpent', 'reptile', 'scale', 'croc', 'turtle', 'gecko'],
+  Piscine: ['fish', 'shark', 'eel', 'aquatic', 'fin', 'gill', 'sea creature'],
+  Insectoid: ['insect', 'spider', 'bug', 'beetle', 'mantis', 'wasp', 'hive', 'chitin', 'scorpion'],
+  Amphibian: ['frog', 'toad', 'newt', 'axolotl', 'amphibian'],
+  Mammalian: ['wolf', 'bear', 'cat', 'lion', 'tiger', 'fox', 'hound', 'boar', 'fur', 'mammal', 'stag', 'ram'],
+  Eldritch: ['eldritch', 'tentacle', 'horror', 'cosmic', 'unspeakable', 'mad'],
+  Ooze: ['ooze', 'slime', 'gel', 'blob', 'amorphous'],
+  Flora: ['plant', 'fungus', 'mushroom', 'tree', 'vine', 'flora', 'treant', 'moss'],
+  Crystalline: ['crystal', 'gem', 'prism', 'mineral', 'quartz'],
+  Construct: ['construct', 'golem', 'statue', 'animated'],
+  Formless: ['formless', 'mist', 'cloud', 'gas', 'shadowy mass', 'wisp', 'energy being'],
+};
+const ANATOMY_KW = {
+  Claws: ['claw', 'talon'], Teeth: ['teeth', 'fang', 'bite', 'jaw', 'maw'], Beak: ['beak'],
+  Horns: ['horn', 'antler', 'tusk'], Tail: ['tail'], Hooves: ['hoof', 'hooves'],
+  Wings: ['wing', 'flight', 'fly'], Quills: ['quill', 'spine', 'barb'], Venom: ['venom', 'poison', 'toxic'],
+  Hide: ['hide', 'thick skin', 'fur'], Shell: ['shell', 'carapace'], Roar: ['roar', 'howl', 'bellow'],
+  Breath: ['breath', 'breathe'],
+  Tentacle: ['tentacle'], Eye: ['eye', 'gaze', 'stare'], Pseudopod: ['pseudopod'],
+  Spore: ['spore'], Shard: ['shard', 'crystal'], Miasma: ['miasma', 'gas', 'fume'],
+  Roots: ['root'], Mandible: ['mandible', 'pincer'],
+};
+const WEAPON_KW = {
+  Sword: ['sword', 'blade'], Axe: ['axe'], Dagger: ['dagger', 'knife', 'knives'], Bow: ['bow', 'arrow', 'archer'],
+  Crossbow: ['crossbow', 'bolt'], Spear: ['spear', 'lance', 'polearm'], Mace: ['mace'], Hammer: ['hammer', 'maul'],
+  Staff: ['staff'], Wand: ['wand'], Shield: ['shield'], Fist: ['fist', 'unarmed', 'martial'],
+};
+const matchTags = (text, kwMap, valid) => Object.entries(kwMap)
+  .filter(([tag, kws]) => valid.includes(tag) && kws.some((k) => text.includes(k)))
+  .map(([tag]) => tag);
+
 const ATT_KW = {
   Fire: ['fire', 'flame', 'ember', 'burn', 'blaze', 'lava', 'magma', 'inferno', 'scorch', 'cinder', 'pyro', 'molten', 'ash'],
   Frost: ['frost', 'ice', 'cold', 'snow', 'freeze', 'glacier', 'winter', 'chill', 'frozen', 'hail', 'icy'],
@@ -85,11 +123,33 @@ function matchSubtypes(text) {
 /** Heuristic typings from name + lore + description (always available, offline). */
 export function inferTypingsHeuristic(name, lore = '', description = '') {
   const text = `${name} ${lore} ${description}`.toLowerCase();
+  const body = bestMatch(text, BODY_KW, BODY_TYPES, 'Humanoid');
+  const klass = bestMatch(text, CLASS_KW, CLASS_BASES, 'Warrior');
+  // Kit specifics per body type: a family + the anatomy/weapons the text names
+  // (validated against the kit's allowed sets, with sensible defaults).
+  let family = null, anatomy = [], weapons = [];
+  if (body === 'Beast') {
+    family = bestMatch(text, FAMILY_KW, BEAST_FAMILIES, 'Mammalian');
+    const allowed = anatomyForFamily(family);
+    anatomy = matchTags(text, ANATOMY_KW, allowed);
+    if (anatomy.length < 2) anatomy = [...new Set([...anatomy, ...defaultAnatomy(family)])].slice(0, 3);
+  } else if (body === 'Aberration') {
+    family = bestMatch(text, FAMILY_KW, ABERRATION_FAMILIES, 'Eldritch');
+    const allowed = anatomyForAberrationFamily(family);
+    anatomy = matchTags(text, ANATOMY_KW, allowed);
+    if (anatomy.length < 2) anatomy = [...new Set([...anatomy, ...defaultAberrationAnatomy(family)])].slice(0, 3);
+  } else {
+    const prof = weaponsForArchetype(klass);
+    weapons = matchTags(text, WEAPON_KW, prof);
+    if (!weapons.length) weapons = defaultWeapons(klass);
+    weapons = weapons.slice(0, 2);
+  }
   return {
-    class: [bestMatch(text, CLASS_KW, CLASS_BASES, 'Warrior')],
-    biology: [bestMatch(text, BODY_KW, BODY_TYPES, 'Humanoid')],
+    class: [klass],
+    biology: [body],
     attunement: [bestMatch(text, ATT_KW, ATTUNEMENT_BASES, 'Physical')],
     subtypes: matchSubtypes(text),
+    family, anatomy, weapons,
   };
 }
 
@@ -115,11 +175,19 @@ Respond ONLY with JSON: {"class":"…","biology":"…","attunement":"…","subty
     if (json) {
       const pick = (v, valid, fb) => (valid.includes(v) ? [v] : fb);
       const subs = Array.isArray(json.subtypes) ? json.subtypes.filter((s) => SUBTYPES.includes(s)) : fallback.subtypes;
+      const biology = pick(json.biology, BODY_TYPES, fallback.biology);
+      const klass = pick(json.class, CLASS_BASES, fallback.class);
+      // Re-derive the kit specifics (family/anatomy/weapons) for the CHOSEN body
+      // type via the keyword heuristic — keeps them valid for the actual kit.
+      const kit = inferTypingsHeuristic(`${biology[0]} ${klass[0]} ${name}`, lore, description);
       return {
-        class: pick(json.class, CLASS_BASES, fallback.class),
-        biology: pick(json.biology, BODY_TYPES, fallback.biology),
+        class: klass,
+        biology,
         attunement: pick(json.attunement, ATTUNEMENT_BASES, fallback.attunement),
         subtypes: subs,
+        family: biology[0] === kit.biology[0] ? kit.family : null,
+        anatomy: biology[0] === kit.biology[0] ? kit.anatomy : [],
+        weapons: biology[0] === kit.biology[0] ? kit.weapons : [],
       };
     }
   } catch { /* fall through to heuristic */ }

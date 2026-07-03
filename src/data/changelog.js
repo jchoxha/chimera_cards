@@ -6,6 +6,11 @@
 
 /** @type {{version:string, date:string, notes:string[]}[]} newest first */
 export const CHANGELOG = [
+  { version: 'v3.94.0', date: '2026-07-03', notes: [
+    'AI creature creation now infers the FULL kit: describe “an ancient undead dragon with fiery breath” and you get a Draconic Beast with Teeth/Wings/Breath anatomy, Giant + Undead + Ancient subtypes, Fire attunement — and its card reads “Ancient Undead Leviathan”. Humanoids get inferred weapons; aberrations get inferred families and features.',
+    'Creature placeholder art now matches the new taxonomy: a Draconic beast draws dragons, an Undead humanoid draws skeletons, an Ooze draws slimes (family → subtype → body type, most specific first).',
+    'Codex bestiary pages now show the full biological identity (subtype-prefixed name + family) and the creature’s anatomy/weapons.',
+  ] },
   { version: 'v3.93.0', date: '2026-07-03', notes: [
     'Fixed a major regression from the body-type rework: subtypes and families had stopped affecting stats and elemental matchups. Ironhide has his Giant bulk back (125 HP), Grimsoul his Undead resistances, Cogwright his Mechanical armor, and Draconic beasts their dragon toughness. The Giant subtype now also forces a creature to at least Large size.',
     'Every starter deck is now guaranteed a basic Strike and Defend — beasts and aberrations whose kits had no block card were starting runs with tiny, defenseless decks (a big reason runs felt unwinnable).',

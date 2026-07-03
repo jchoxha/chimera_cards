@@ -84,30 +84,56 @@ export function cardArt(card) {
   return f ? itemUrl(f) : null;
 }
 
-// Biology → being-name keywords (the pack is mostly animals; best-effort buckets).
+// Body/family/subtype → being-name keywords (the pack is mostly animals;
+// best-effort buckets, matched MOST-SPECIFIC-FIRST: family → subtype → body type).
 const BIO_KEYWORDS = {
+  // body types
   Beast: ['bear', 'wolf', 'fox', 'hare', 'bat', 'dog', 'cat', 'boar', 'parrot', 'rat', 'deer', 'ram', 'mouse', 'snail', 'crab', 'fish', 'eel', 'spider', 'ant', 'bee'],
   Aberration: ['coral', 'tentacle', 'eye', 'gossip', 'squid', 'slime', 'blob', 'geo', 'grab', 'grub'],
-  Elemental: ['salamander', 'electro', 'aurora', 'spark', 'fire', 'flame', 'ice', 'storm', 'gust', 'circow', 'equestion'],
-  Dragonkin: ['dragon', 'drake', 'wyrm', 'lizard', 'salamander', 'serpent', 'snake', 'chameleon'],
+  Humanoid: ['man', 'person', 'knight', 'goblin', 'orc'],
+  // Beast families
+  Draconic: ['dragon', 'drake', 'wyrm', 'lizard', 'salamander', 'serpent', 'snake', 'chameleon'],
+  Avian: ['parrot', 'bird', 'bat', 'owl', 'crow', 'raven', 'hawk'],
+  Reptilian: ['lizard', 'snake', 'serpent', 'chameleon', 'turtle', 'croc'],
+  Piscine: ['fish', 'eel', 'shark', 'crab', 'squid', 'coral'],
+  Insectoid: ['spider', 'ant', 'bee', 'grub', 'beetle', 'moth', 'scorpion'],
+  Amphibian: ['frog', 'toad', 'newt', 'salamander'],
+  Mammalian: ['bear', 'wolf', 'fox', 'hare', 'dog', 'cat', 'boar', 'rat', 'deer', 'ram', 'mouse'],
+  // Aberration families
+  Eldritch: ['tentacle', 'eye', 'squid', 'coral'],
+  Ooze: ['slime', 'blob', 'grub'],
+  Flora: ['mush', 'tree', 'plant', 'flower', 'shroom'],
+  Crystalline: ['geo', 'crystal', 'gem', 'golem'],
+  Construct: ['golem', 'statue', 'geo'],
+  Formless: ['ghost', 'spirit', 'wisp', 'spark'],
+  // descriptive subtypes
   Undead: ['skull', 'bone', 'ghost', 'zombie', 'skeleton', 'spirit'],
-  Demon: ['demon', 'imp', 'devil', 'fiend'],
+  Demonic: ['demon', 'imp', 'devil', 'fiend'],
   Mechanical: ['mech', 'robot', 'golem', 'bot'],
   Giant: ['giant', 'troll', 'ogre', 'whale'],
-  Humanoid: ['man', 'person', 'knight', 'goblin', 'orc'],
+  Elemental: ['salamander', 'electro', 'aurora', 'spark', 'fire', 'flame', 'ice', 'storm', 'gust'],
 };
 
 /**
  * Placeholder creature silhouette URL, or null → caller falls back to the
- * biology/attunement icon. Picks a being by biology keywords (else any), stable
- * per creature id.
+ * biology/attunement icon. Keywords are gathered most-specific-first — the
+ * creature's FAMILY, then its SUBTYPES, then its body type(s) — so a Draconic
+ * beast draws dragons and an Undead humanoid draws skeletons. Stable per id.
  */
 export function creatureArt(creature) {
-  const bio = Array.isArray(creature?.biology) ? creature.biology[0] : null;
-  const kws = bio && BIO_KEYWORDS[bio];
-  let group = kws ? BEINGS.filter((f) => kws.some((k) => f.toLowerCase().includes(k))) : [];
-  if (!group.length) group = BEINGS;
-  const f = pick(group, `${creature?.id || creature?.name || 'x'}|${bio || ''}`);
+  const bios = Array.isArray(creature?.biology) ? creature.biology : [];
+  const subs = Array.isArray(creature?.subtypes) ? creature.subtypes : [];
+  const keys = [creature?.family, ...subs, ...bios].filter(Boolean);
+  let group = [];
+  for (const key of keys) {
+    const kws = BIO_KEYWORDS[key];
+    if (!kws) continue;
+    group = BEINGS.filter((f) => kws.some((k) => f.toLowerCase().includes(k)));
+    if (group.length) break;                    // most specific bucket with any art wins
+  }
+  if (!group.length && bios.length) group = BEINGS;   // has a body → any being
+  if (!group.length) return null;                      // no biology at all → icon fallback
+  const f = pick(group, `${creature?.id || creature?.name || 'x'}|${keys[0] || ''}`);
   return f ? beingUrl(f) : null;
 }
 

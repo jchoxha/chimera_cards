@@ -211,7 +211,7 @@ export function CardFace({ f, side, matchup, onEffect, onInfo, onName, extraClas
           {(() => {
             if (f.portrait) return <img className="creature artImg gen" src={f.portrait} alt="" draggable={false} />;
             const bio = f.axes?.biology;
-            const art = bio ? creatureArt({ id: f.id, biology: bio }) : null;
+            const art = bio ? creatureArt({ id: f.id, biology: bio, family: f.axes?.family, subtypes: f.axes?.subtypes }) : null;
             if (art) return <img className="creature artImg" src={art} alt="" draggable={false} />;
             return <>
               <div className="moon" /><div className="mtn" />

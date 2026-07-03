@@ -7,7 +7,8 @@
 // ╚══════════════════════════════════════════════════════════════════╝
 
 import React from 'react';
-import { ARCHETYPE_ICON, BIOLOGY_ICON, ATTUNEMENT_ICON, ATTUNEMENT_COLOR, creatureIcon, creatureColor } from '../data/axisIcons.js';
+import { ARCHETYPE_ICON, BIOLOGY_ICON, ATTUNEMENT_ICON, ATTUNEMENT_COLOR, creatureIcon, creatureColor, specialFactors } from '../data/axisIcons.js';
+import { biologyDisplayName } from '../data/biologyNaming.js';
 import { AXIS_INFO, ATTUNEMENT_SIGNATURE } from '../data/codex.js';
 import { bestiaryEntry } from '../data/bestiary.js';
 import './MonsterPage.css';
@@ -31,6 +32,10 @@ function normalize(c) {
     klass: arr(axes.class ?? c.class),
     biology: arr(axes.biology ?? c.biology),
     attunement: arr(axes.attunement ?? c.attunement),
+    family: axes.family ?? c.family ?? null,
+    anatomy: arr(axes.anatomy ?? c.anatomy),
+    weapons: arr(axes.weapons ?? c.weapons),
+    subtypes: arr(axes.subtypes ?? c.subtypes),
     stats: c.stats || null,
     maxHp: c.maxHp ?? c.hp ?? null,
     portrait: c.portrait ?? c.meta?.portrait ?? null,
@@ -69,7 +74,9 @@ export default function MonsterPage({ creature, entry }) {
 
       <div className="mpAxes">
         <Axis axis="class" val={m.klass[0]} ic={ARCHETYPE_ICON[m.klass[0]] || 'game-icons:gladius'} />
-        <Axis axis="biology" val={m.biology[0]} ic={BIOLOGY_ICON[m.biology[0]] || 'game-icons:dna2'} />
+        <Axis axis="biology" val={biologyDisplayName(m.biology, m.family ? [m.family] : [], m.subtypes) || m.biology[0]}
+          ic={BIOLOGY_ICON[m.biology[0]] || 'game-icons:dna2'}
+          extra={(() => { const sf = specialFactors(m); return sf.length ? sf.map((f) => f.label).join(' · ') : null; })()} />
         <Axis axis="attunement" val={att} ic={ATTUNEMENT_ICON[att] || 'game-icons:embrace-energy'} col={ATTUNEMENT_COLOR[att]} extra={att && ATTUNEMENT_SIGNATURE[att] ? `→ ${ATTUNEMENT_SIGNATURE[att]}` : null} />
       </div>
 

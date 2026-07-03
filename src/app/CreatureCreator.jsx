@@ -43,6 +43,9 @@ export default function CreatureCreator({ classes = [], biologies = [], attuneme
       name: name.trim() || `${typings.attunement[0]} ${typings.class[0]}`,
       class: typings.class, biology: typings.biology, attunement: typings.attunement,
       subtypes: typings.subtypes || [],
+      family: typings.family || null,
+      anatomy: typings.anatomy || [],
+      weapons: typings.weapons || [],
       lore: lore.trim() || null,
       description: description.trim() || null,
     });
