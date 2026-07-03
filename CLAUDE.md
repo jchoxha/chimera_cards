@@ -61,6 +61,19 @@ generateArt` when a key is present). ALL output validated + clamped (`sanitizeFo
 Offline → `inferTypings` heuristics (word-boundary matching, family→body tiebreak) + template
 flavor. Signature cards LEAD `basePoolFor` so the starter recipe picks them; defs persist
 `signatureCards`/`portraitSvg`/`artPrompt`. CreatureCreator "Forge with AI" is the default path.
+**🎬 COMBAT PRESENTATION PASS (v3.98.0):** (1) **Staged enemy turn** — `VanguardManager` split into
+`endTurnPlayerHalf`/`endTurnStaged`/`_beginEnemyTurn`/`stepEnemyAction`/`finishEnemyTurn` (the sync
+`endTurn()` is preserved for tests/bots); `combatStore.endTurnAnimated(stepMs=1000)` pumps ONE enemy
+action per beat and publishes `enemyActing {actor,label,kind,step}` → CombatScreen shows a big
+`.enemyAnnounce` banner ("Emberwisp uses Miasma") per action; End Turn disabled while acting; all
+combat starts reset `enemyActing`. (2) **Card deal-in** — a `dealKey` bumped on each player-phase
+start remounts the hand; the fan transform lives in the `--fanT` custom property so `@keyframes
+dealIn` flies each card in from the deck (70ms stagger) and ENDS at the fan pose. (3) **Team
+assembly pool view** — the creature modal shows "Starting Deck" + "Full Card Pool"
+(`potentialPool`, deduped, sorted by `RARITY_POINTS`). (4) **Sizes utilized** — CardFace portrait
+`<img>`s scale by `artScale(form)` (transform-origin bottom: bosses loom, babies shrink); the size
+word ("Large Ironhide") shows on MiniFighter rails + the select grid; HP/Might form scaling was
+already live in the generator.
 
 **🧬 PRIOR FRAMING (2026-06-27) — BIOLOGY SELECTS THE KIT SYSTEM.**
 The **archetype/Class system (Warrior/Rogue/Mage/…) applies ONLY to Humanoids**; every other

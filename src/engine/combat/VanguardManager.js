@@ -843,6 +843,17 @@ export class VanguardManager {
   endTurn() {
     const s = this.state;
     if (s.phase !== PHASES.PLAYER) return s;
+    this.endTurnPlayerHalf();
+    if (this._checkEnd()) return s;
+    // Hand off to enemy turn
+    this.enemyTurn();
+    return s;
+  }
+
+  /** The player-end half of endTurn (discard, ticks, deaths) — shared by the
+   *  synchronous endTurn() and the staged endTurnStaged(). */
+  endTurnPlayerHalf() {
+    const s = this.state;
 
     // PLAYER END
     s.phase = PHASES.DISCARD;
@@ -869,12 +880,22 @@ export class VanguardManager {
     this._tickStatuses('player', 'duration');
 
     this._resolveDeaths();
-
-    if (this._checkEnd()) return s;
-
-    // Hand off to enemy turn
-    this.enemyTurn();
     return s;
+  }
+
+  /**
+   * STAGED variant for the animated UI: ends the player's turn and BEGINS the
+   * enemy turn (block decay/energy/turnStart), but does NOT execute the plan —
+   * the caller then pumps stepEnemyAction() with delays and finally calls
+   * finishEnemyTurn(). Returns false if the combat ended before the enemy acts.
+   */
+  endTurnStaged() {
+    const s = this.state;
+    if (s.phase !== PHASES.PLAYER) return false;
+    this.endTurnPlayerHalf();
+    if (this._checkEnd()) return false;
+    this._beginEnemyTurn();
+    return true;
   }
 
   // ── Enemy Turn ─────────────────────────────────────────────────────────────
@@ -885,8 +906,16 @@ export class VanguardManager {
    * tick player DoTs, tick enemy Regen, decrement enemy duration debuffs, and loop.
    */
   enemyTurn() {
+    this._beginEnemyTurn();
+    while (this.state.phase === PHASES.ENEMY && this.stepEnemyAction()) { /* sequential */ }
+    if (this.state.phase === PHASES.ENEMY) this.finishEnemyTurn();
+  }
+
+  /** Enemy-turn SETUP: phase flip, block decay, energy reset, turnStart hooks. */
+  _beginEnemyTurn() {
     const s = this.state;
     s.phase = PHASES.ENEMY;
+    this._enemyStepIdx = 0;
     this._emit('phase', { phase: PHASES.ENEMY });
 
     // 1. Decay enemy block at start of enemy's turn
@@ -915,13 +944,29 @@ export class VanguardManager {
     // Fire enemy powers that hook the start of the turn.
     this._resetTurnCounters('enemy');
     this._fire('enemy', 'turnStart');
+  }
 
-    // 2. Execute telegraphed telegraphed actions sequentially
-    for (const action of s.enemyPlan) {
-      this.executeEnemyAction(action);
-      this._resolveDeaths();
-      if (this._checkEnd()) return;
-    }
+  /**
+   * Execute the NEXT telegraphed enemy action. Returns the action just resolved
+   * (so the UI can announce it), or null when the plan is exhausted / the actor
+   * side can no longer act. Safe to call repeatedly.
+   */
+  stepEnemyAction() {
+    const s = this.state;
+    if (s.phase !== PHASES.ENEMY) return null;
+    const action = (s.enemyPlan || [])[this._enemyStepIdx ?? 0];
+    if (!action) return null;
+    this._enemyStepIdx = (this._enemyStepIdx ?? 0) + 1;
+    this.executeEnemyAction(action);
+    this._resolveDeaths();
+    this._checkEnd();
+    return action;
+  }
+
+  /** Enemy-turn WRAP-UP: turnEnd hooks, ticks, discard, next round. */
+  finishEnemyTurn() {
+    const s = this.state;
+    if (s.phase !== PHASES.ENEMY) return;
 
     // ENEMY END
     // Fire enemy powers that hook the end of the turn.

@@ -188,6 +188,9 @@ export function CardFace({ f, side, matchup, onEffect, onInfo, onName, extraClas
   const isFoe = side === 'enemy';
   const fr = frameStyle({ types: f.types, element: f.element, rarity: f.rarity });
   const scale = { transform: `scale(${artScale(f.form)})` };
+  // Portraits grow from the ground up so Large/Boss creatures visibly LOOM
+  // (the .art box clips the overflow) and Baby/Small ones read tiny.
+  const scaleImg = { transform: `scale(${artScale(f.form)})`, transformOrigin: '50% 100%' };
   const seeCreature = onInfo ? (e) => { e.stopPropagation(); onInfo({ kind: 'creature', id: f.id }); } : undefined;
   const nameClick = onName ? (e) => { e.stopPropagation(); onName(); } : seeCreature;
   const axisInfo = (axis) => onInfo && onInfo({ kind: 'axis', axis, value: f.axes?.[axis] });
@@ -213,10 +216,10 @@ export function CardFace({ f, side, matchup, onEffect, onInfo, onName, extraClas
       <div className="inner">
         <div className="art" onClick={seeCreature} title={seeCreature ? `${f.name} — tap for details` : undefined}>
           {(() => {
-            if (f.portrait) return <img className="creature artImg gen" src={f.portrait} alt="" draggable={false} />;
+            if (f.portrait) return <img className="creature artImg gen" src={f.portrait} alt="" draggable={false} style={scaleImg} />;
             const bio = f.axes?.biology;
             const art = bio ? creatureArt({ id: f.id, biology: bio, family: f.axes?.family, subtypes: f.axes?.subtypes }) : null;
-            if (art) return <img className="creature artImg" src={art} alt="" draggable={false} />;
+            if (art) return <img className="creature artImg" src={art} alt="" draggable={false} style={scaleImg} />;
             return <>
               <div className="moon" /><div className="mtn" />
               {f.icon

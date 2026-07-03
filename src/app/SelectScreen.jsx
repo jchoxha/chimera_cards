@@ -8,12 +8,14 @@
 // ╚══════════════════════════════════════════════════════════════════╝
 import React, { useState } from 'react';
 import { ARCHETYPE_ICON, BIOLOGY_ICON, ATTUNEMENT_ICON, ATTUNEMENT_COLOR, creatureIcon, creatureColor } from '../data/axisIcons.js';
-import { CardFace } from '../ui/combat/creatureVisuals.jsx';
+import { CardFace, sizeWord } from '../ui/combat/creatureVisuals.jsx';
 import DeckDropdown from '../ui/combat/DeckDropdown.jsx';
 import MonsterPage from '../ui/MonsterPage.jsx';
 import TeamManager from '../ui/TeamManager.jsx';
 import { AXIS_INFO, EFFECT_INFO, ATTUNEMENT_SIGNATURE } from '../data/codex.js';
 import { REACTIONS } from '../engine/cards/reactions.js';
+import { RARITY_POINTS } from '../engine/types.js';
+import { potentialPool } from './pools.js';
 import '../ui/combat/combat.css';
 import './select.css';
 
@@ -29,6 +31,15 @@ function toFace(c) {
     stats: c.stats, portrait: c.meta?.portrait ?? c.portrait ?? null,
     form: c.meta?.form ?? c.size ?? 'regular', rarity: 'common',
   };
+}
+
+/** A creature's FULL potential card pool (kit + subtypes + attunement + variants),
+ *  sorted up the rarity ladder so the browse reads basic → godly. */
+function fullPool(c) {
+  const pool = potentialPool(c);
+  const seen = new Set();
+  const uniq = pool.filter((card) => { if (seen.has(card.id)) return false; seen.add(card.id); return true; });
+  return uniq.sort((a, b) => (RARITY_POINTS[a.rarity] ?? 1) - (RARITY_POINTS[b.rarity] ?? 1) || String(a.name).localeCompare(String(b.name)));
 }
 
 const MAX = 3;
@@ -126,7 +137,7 @@ export default function SelectScreen({
                   : <iconify-icon class="selIcon" icon={creatureIcon(c)} style={{ color }}></iconify-icon>}
                 {chosen && <span className="selPick">{order === 0 ? '★' : order + 1}</span>}
               </div>
-              <div className="selName">{c.name}</div>
+              <div className="selName">{(() => { const sw = sizeWord(c.meta?.form ?? c.size); return sw ? `${sw} ` : ''; })()}{c.name}</div>
               <div className="selAxes">
                 <Axis icon={ARCHETYPE_ICON[c.class?.[0]] || 'game-icons:rosa-shield'} label={c.class?.[0]} />
                 <Axis icon={BIOLOGY_ICON[c.biology?.[0]] || 'game-icons:paw-print'} label={c.biology?.[0]} />
@@ -158,7 +169,9 @@ export default function SelectScreen({
                   onInfo={(info) => { if (info.kind === 'axis') setSelInfo(info); else if (info.kind === 'effect') setSelInfo({ kind: 'effect', id: info.id }); }}
                   onName={() => setBestiaryId(c.id)} />
               </div>
-              <DeckDropdown cards={c.deck || []} label="Deck" empty="Auto-generated from its typings." />
+              <DeckDropdown cards={c.deck || []} label="Starting Deck" empty="Auto-generated from its typings." />
+              <DeckDropdown cards={fullPool(c)} label="Full Card Pool" icon="game-icons:card-random"
+                empty="No pool — this creature has no kit sources yet." />
               <div className="selModalActions">
                 {inTeam
                   ? <>

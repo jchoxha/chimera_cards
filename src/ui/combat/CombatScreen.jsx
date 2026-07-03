@@ -26,7 +26,7 @@ import { CHANGELOG } from '../../data/changelog.js';
 import { REACTIONS, forecastReactions, REACTION_INFO } from '../../engine/cards/reactions.js';
 import { EFFECT_INFO, AXIS_INFO, ATTUNEMENT_SIGNATURE } from '../../data/codex.js';
 import MonsterPage from '../MonsterPage.jsx';
-import { CardFace, MiniStatus, ELEMENT_ICON, powerLabel, powerIcon } from './creatureVisuals.jsx';
+import { CardFace, MiniStatus, ELEMENT_ICON, powerLabel, powerIcon, sizeWord } from './creatureVisuals.jsx';
 import DeckDropdown from './DeckDropdown.jsx';
 import './combat.css';
 
@@ -313,7 +313,7 @@ function MiniFighter({ f, side, vanguard, swapCost, swappable, droppable, dropHo
       <div className="mfTop">
         <span className="mfName">
           {vanguard && <Icon icon="game-icons:star-formation" className="vgIcon" />}
-          {f.name}
+          {sizeWord(f.form) ? `${sizeWord(f.form)} ` : ''}{f.name}
         </span>
         {(f.axes && (f.axes.attunement || f.axes.biology))
           ? <Icon className="mfEl" icon={creatureIcon({ biology: f.axes.biology, attunement: f.axes.attunement, types: f.types })} style={{ color: creatureColor({ attunement: f.axes.attunement, types: f.types }) }} />
@@ -439,7 +439,7 @@ const CODEX_TAB = {
 };
 
 export default function CombatScreen({ onMenu, onRestart, embedded, onCodex } = {}) {
-  const { snap, log, startCombat, play, swap, peekAll, endTurn, reward, rollReward, startedAt } = useCombat();
+  const { snap, log, startCombat, play, swap, peekAll, endTurn, endTurnAnimated, enemyActing, reward, rollReward, startedAt } = useCombat();
   const [nowTick, setNowTick] = useState(() => Date.now());
   // Unified info modal is a STACK: opening a modal (or clicking a link inside one)
   // PUSHES on top; closing (X / click-out) POPS one level back to the modal beneath.
@@ -456,6 +456,7 @@ export default function CombatScreen({ onMenu, onRestart, embedded, onCodex } = 
   const seenRef = useRef(0);                      // # of log events already turned into floaters
   const [turnBanner, setTurnBanner] = useState(null);  // transient "YOUR TURN" / "ENEMY TURN" sweep
   const prevPhaseRef = useRef(null);
+  const [dealKey, setDealKey] = useState(0);           // bumped when a fresh hand is dealt → replays the deal-in animation
 
   // Auto-start only the standalone demo (no host shell driving setup like the app menu).
   useEffect(() => { if (!snap && !onMenu) startCombat(); }, [snap, startCombat, onMenu]);
@@ -521,6 +522,7 @@ export default function CombatScreen({ onMenu, onRestart, embedded, onCodex } = 
     const prev = prevPhaseRef.current;
     prevPhaseRef.current = phase;
     if (!phase || phase === prev) return undefined;
+    if (phase === 'player') setDealKey((k) => k + 1);   // fresh hand → deal-in animation (incl. the opening hand)
     if (phase !== 'player' && phase !== 'enemy') return undefined;
     if (prev === null) return undefined;   // don't announce the initial mount
     setTurnBanner({ key: Date.now(), kind: phase });
@@ -708,10 +710,10 @@ export default function CombatScreen({ onMenu, onRestart, embedded, onCodex } = 
                 const isDragging = dragging && drag?.card?.id === c.id;
                 const isPressed = !dragging && drag?.card?.id === c.id;
                 return (
-                  <div key={`${c.id}-${i}`}
+                  <div key={`${dealKey}-${c.id}`}
                     ref={(el) => { if (el) handEls.current.set(c.id, el); else handEls.current.delete(c.id); }}
-                    className={`frame move ${f.finish}${unplayable ? ' unplayable' : ''}${isDragging ? ' dragging' : ''}${isPressed ? ' pressed' : ''}${!unplayable ? ' playable' : ''}`}
-                    style={{ background: f.background, transform: `translateY(${lift}px) rotate(${rot}deg)` }}
+                    className={`frame move dealIn ${f.finish}${unplayable ? ' unplayable' : ''}${isDragging ? ' dragging' : ''}${isPressed ? ' pressed' : ''}${!unplayable ? ' playable' : ''}`}
+                    style={{ background: f.background, '--fanT': `translateY(${lift}px) rotate(${rot}deg)`, transform: 'var(--fanT)', animationDelay: `${i * 70}ms` }}
                     draggable={false}
                     onPointerDown={(e) => onCardPointerDown(e, c, unplayable)}
                     onPointerMove={onCardPointerMove}
@@ -776,7 +778,8 @@ export default function CombatScreen({ onMenu, onRestart, embedded, onCodex } = 
                 </button>
               )}
             </div>
-            <button className="endBtn" disabled={!isPlayerTurn} onClick={endTurn}>
+            <button className="endBtn" disabled={!isPlayerTurn || !!enemyActing}
+              onClick={() => (endTurnAnimated ? endTurnAnimated() : endTurn())}>
               END TURN <Icon icon="game-icons:fast-forward-button" />
             </button>
           </div>
@@ -829,6 +832,14 @@ export default function CombatScreen({ onMenu, onRestart, embedded, onCodex } = 
       )}
 
       {notice && <div className="toast"><Icon icon="game-icons:cancel" /> {notice}</div>}
+
+      {/* enemy action announcement — the staged enemy turn names each move as it resolves */}
+      {enemyActing && (
+        <div key={`ea-${enemyActing.step}`} className="enemyAnnounce">
+          <Icon icon={INTENT_ICON[enemyActing.kind] || 'game-icons:crossed-swords'} />
+          <span><b>{enemyActing.actor}</b> {enemyActing.label}</span>
+        </div>
+      )}
 
       {/* turn handover banner */}
       {turnBanner && (

@@ -200,7 +200,7 @@ export const useCombat = create((set, get) => ({
       log: (e) => events.push(stampEvent(e)),
     });
     vm.startCombat();
-    set({ vm, _events: events, snap: snapshot(vm), version: 1, log: [...events], reward: null, startedAt: Date.now() });
+    set({ vm, _events: events, snap: snapshot(vm), version: 1, log: [...events], reward: null, enemyActing: null, startedAt: Date.now() });
   },
 
   /**
@@ -229,7 +229,7 @@ export const useCombat = create((set, get) => ({
     vm.startCombat();
     // startedAt is the timer ORIGIN: backdate it by elapsedMs so the playtime
     // clock continues from where a resumed run/practice left off (not from 0).
-    set({ vm, _events: events, snap: snapshot(vm), version: 1, log: [...events], reward: null, startedAt: Date.now() - (elapsedMs || 0) });
+    set({ vm, _events: events, snap: snapshot(vm), version: 1, log: [...events], reward: null, enemyActing: null, startedAt: Date.now() - (elapsedMs || 0) });
   },
 
   /**
@@ -249,7 +249,7 @@ export const useCombat = create((set, get) => ({
     });
     vm.startCombat();
     applyRelics(vm, relics);
-    set({ vm, _events: events, snap: snapshot(vm), version: 1, log: [...events], reward: null, startedAt: Date.now() - (elapsedMs || 0) });
+    set({ vm, _events: events, snap: snapshot(vm), version: 1, log: [...events], reward: null, enemyActing: null, startedAt: Date.now() - (elapsedMs || 0) });
   },
 
   /** Use a potion (consumable) during combat. */
@@ -298,6 +298,47 @@ export const useCombat = create((set, get) => ({
     if (!vm) return;
     vm.endTurn();
     set((st) => ({ snap: snapshot(vm), version: st.version + 1, log: [..._events] }));
+  },
+
+  /** Whether the ANIMATED enemy turn is playing out (End Turn disabled). */
+  enemyActing: null,   // null | { actor, label, kind, step }
+
+  /**
+   * End the player turn with a STAGED, StS-style enemy turn: each telegraphed
+   * enemy action resolves on its own beat (~1s apart) with an on-screen
+   * announcement, instead of the whole turn slamming through in one frame.
+   */
+  endTurnAnimated(stepMs = 1000) {
+    const { vm, _events } = get();
+    if (!vm || get().enemyActing) return;
+    const publish = () => set((st) => ({ snap: snapshot(vm), version: st.version + 1, log: [..._events] }));
+    if (!vm.endTurnStaged()) {                 // combat ended before the enemy acted
+      set({ enemyActing: null });
+      publish();
+      return;
+    }
+    publish();                                  // show the discard/turn handoff
+    let step = 0;
+    const pump = () => {
+      const cur = get();
+      if (cur.vm !== vm) return;               // combat was restarted/abandoned
+      const action = vm.stepEnemyAction();
+      if (action) {
+        step += 1;
+        const actor = vm.state.enemy.fighters.find((f) => f.id === action.actor);
+        const label = action.silhouette === 'swap'
+          ? 'swaps in a new Vanguard'
+          : `uses ${action.detail?.cardName || action.silhouette || 'a move'}`;
+        set({ enemyActing: { actor: actor?.name || 'The enemy', label, kind: action.silhouette, step } });
+        publish();
+        setTimeout(pump, stepMs);
+      } else {
+        vm.finishEnemyTurn();
+        set({ enemyActing: null });
+        publish();
+      }
+    };
+    setTimeout(pump, Math.min(450, stepMs));
   },
 
   /** Roll the post-victory card reward offering. */

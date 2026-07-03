@@ -353,6 +353,23 @@ html:has(.cmbt),body:has(.cmbt){height:100%;margin:0;overflow:hidden}
   78%{opacity:1;transform:translate(-50%,-50%) scale(1)}
   100%{opacity:0;transform:translate(-50%,-50%) scale(1.04)}}
 
+/* ---------- enemy action announcement (staged enemy turn) ---------- */
+.enemyAnnounce{position:fixed;top:26%;left:50%;transform:translate(-50%,-50%);z-index:118;pointer-events:none;
+  display:flex;align-items:center;gap:10px;background:#2a0f12ee;border:1.5px solid #ff9c9c;
+  color:#ffe3e3;font-family:'Cinzel',serif;font-weight:700;font-size:clamp(14px,2.4vw,20px);
+  letter-spacing:.5px;padding:10px 20px;border-radius:12px;box-shadow:0 10px 30px #000c,0 0 22px #ff6b6b44;
+  white-space:nowrap;max-width:92vw;overflow:hidden;text-overflow:ellipsis;animation:announceIn .3s ease}
+.enemyAnnounce iconify-icon{font-size:1.3em;color:#ff9c9c;width:1em;height:1em;flex:none}
+.enemyAnnounce b{color:#ffd34d;font-family:'Cinzel Decorative',serif}
+@keyframes announceIn{0%{opacity:0;transform:translate(-50%,-50%) scale(.8)}
+  60%{transform:translate(-50%,-50%) scale(1.06)}100%{opacity:1;transform:translate(-50%,-50%) scale(1)}}
+
+/* ---------- card deal-in (StS-style): each new hand flies in from the deck ---------- */
+.hand .move.dealIn{animation:dealIn .38s cubic-bezier(.22,.9,.32,1.15) backwards}
+@keyframes dealIn{
+  0%{opacity:0;transform:translate(-26vw,26vh) rotate(-22deg) scale(.5)}
+  100%{opacity:1;transform:var(--fanT,none)}}
+
 /* status pips pop in when first applied */
 .pip,.chip{animation:pipIn .28s ease}
 @keyframes pipIn{0%{opacity:0;transform:scale(.4)}60%{transform:scale(1.15)}100%{opacity:1;transform:scale(1)}}

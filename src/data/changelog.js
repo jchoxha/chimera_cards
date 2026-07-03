@@ -6,6 +6,12 @@
 
 /** @type {{version:string, date:string, notes:string[]}[]} newest first */
 export const CHANGELOG = [
+  { version: 'v3.98.0', date: '2026-07-03', notes: [
+    'The enemy turn now plays out ACTION BY ACTION, Slay-the-Spire style: each move resolves on its own beat with a big on-screen announcement (“Emberwisp uses Miasma!”) so you can actually follow what hit you — no more whole turns slamming through in one frame.',
+    'Cards are DEALT into your hand each turn — they fly in from the deck one after another and settle into the fan.',
+    'Team assembly now shows a creature’s FULL CARD POOL (kit + subtypes + elements + forged signature moves, sorted up the rarity ladder) alongside its Starting Deck — see everything it can learn before you commit.',
+    'Sizes are visible everywhere: portraits scale with a creature’s size (Bosses loom, Babies are tiny), and the size word (“Large Ironhide”) now shows on bench minis and the team-assembly grid, not just the big card.',
+  ] },
   { version: 'v3.97.0', date: '2026-07-03', notes: [
     'THE CREATURE FORGE — the game’s core fantasy is live. Write anything (even just a name) and one intelligently-prompted AI call authors the whole creature: name, two paragraphs of lore, a physical description, full typings (body types, subtypes, family, anatomy/weapons, archetype, attunements, size), 2–3 BESPOKE signature moves woven into its deck, an art prompt — and, with an API key, a style-locked portrait drawn on the spot.',
     'Everything the AI writes is validated and clamped against the engine (axis legality, card-op vocabulary, fair numeric budgets per energy), so forged creatures are always playable and never broken. With no API key the forge still works via keyword heuristics + templated flavor.',
