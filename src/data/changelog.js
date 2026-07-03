@@ -6,6 +6,12 @@
 
 /** @type {{version:string, date:string, notes:string[]}[]} newest first */
 export const CHANGELOG = [
+  { version: 'v3.96.0', date: '2026-07-03', notes: [
+    'EVERY card can now be upgraded at a Campfire. Cards without a hand-authored upgrade get a fair auto-derived “+” version (bigger damage/Block/statuses/draw — or cheaper when there’s nothing to grow). Beast, aberration, weapon, subtype and elemental cards all upgrade now.',
+    'Subtypes gained innate TRAITS you can feel: Mechanical creatures re-plate 2 Block every turn, Undead knit back Regen when struck, Demonic dread Weakens the enemy Vanguard, Elementals discharge 2 damage at turn’s end, and Giants start every combat with 6 braced Block. Traits show as pips on the card.',
+    'The Editor can now author true HYBRIDS — pick a 2nd body type and both kits’ pickers appear (a Beast/Humanoid gets Family + Anatomy AND Weapons).',
+    'Emberdrake, Grizzlord and Felhound got full bestiary pages (lore, strategy, tips). The balance bot now reads the enemy’s telegraphed turn and blocks like a player — new baseline: ~15% bot win rate (a floor; real players upgrade, evolve, and drink potions).',
+  ] },
   { version: 'v3.95.0', date: '2026-07-03', notes: [
     'Three new roster creatures show off the taxonomy: EMBERDRAKE (a Draconic beast — searing Breath, raking dives), GRIZZLORD (a true Chimera — a Beast/Humanoid hybrid fighting with claws, teeth AND an axe), and FELHOUND (a Demonic beast that trades its own blood for cursed strikes). All three also appear as enemies in the mid/late act.',
   ] },

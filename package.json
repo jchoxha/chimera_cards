@@ -32,6 +32,7 @@
     "test:subtype": "node src/data/__subtypekit__.mjs",
     "test:generate": "node src/engine/content/__generate__.mjs",
     "test:evolve": "node src/engine/content/__evolve__.mjs",
+    "test:upgrade": "node src/engine/cards/__upgrade__.mjs",
     "test:kits": "node src/data/__kits__.mjs"
   },
   "dependencies": {

@@ -34,6 +34,7 @@ export function creatureToFighter(m, over = {}) {
   if (m.anatomy) f.anatomy = m.anatomy;
   if (m.weapons) f.weapons = m.weapons;    // Humanoid special factors (weapons)
   if (m.subtypes) f.subtypes = m.subtypes; // descriptive subtypes (Mechanical/Giant/…)
+  applySubtypeTraits(f, m.subtypes);        // innate trait powers (show as pips)
   if (m.portrait) f.meta = { ...f.meta, portrait: m.portrait };
   // carry the creature's SIZE (form) so the combat card shows its size badge
   const form = over.form || m.size || m.meta?.form;
@@ -72,6 +73,30 @@ export function startRunCombat(runState, enemyFighters, { room = 'combat' } = {}
   vm.startCombat();
   applyRelics(vm, runState.relics);
   return vm;
+}
+
+// ── Innate subtype TRAITS (docs/biology-kits.md §9.2 — mechanical depth) ──────
+// Each descriptive subtype grants a small always-on trait power (rendered as a
+// persistent pip), so a Mechanical/Undead/Demonic/Elemental/Giant creature FEELS
+// different beyond its card package. Numbers REVIEW/tunable.
+const SUBTYPE_TRAITS = Object.freeze({
+  Mechanical: { source: 'mechanical_plating', on: 'turnStart', effects: [{ op: 'block', value: 2 }] },                                  // armor reknits each turn
+  Undead: { source: 'undead_deathless', on: 'onDamageTaken', effects: [{ op: 'buff', status: 'regen', value: 1 }] },                     // the dead knit back together
+  Demonic: { source: 'demonic_dread', on: 'turnStart', effects: [{ op: 'debuff', status: 'weak', value: 1, scope: 'enemyActiveTarget' }] }, // dread presence
+  Elemental: { source: 'elemental_overflow', on: 'turnEnd', effects: [{ op: 'damage', value: 2, scope: 'enemyActiveTarget' }] },         // elemental discharge
+});
+
+/** Register each subtype's innate trait power; Giant instead starts combats with
+ *  a slab of braced Block (its colossal frame). */
+function applySubtypeTraits(f, subtypes = []) {
+  for (const s of subtypes || []) {
+    const t = SUBTYPE_TRAITS[s];
+    if (t) {
+      f.powers = f.powers ?? [];
+      f.powers.push({ source: t.source, on: t.on, effects: t.effects.map((o) => ({ ...o })), duration: null, attunement: null });
+    }
+    if (s === 'Giant') f.bracedBlock = (f.bracedBlock ?? 0) + 6;
+  }
 }
 
 /**

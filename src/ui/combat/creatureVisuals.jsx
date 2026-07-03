@@ -42,6 +42,10 @@ export function powerIcon(id) {
   if (s.includes('construct') || s.includes('golem') || s.includes('wall')) return 'game-icons:stone-tower';
   if (s.includes('companion') || s.includes('hawk') || s.includes('wolf')) return 'game-icons:wolf-head';
   if (s.includes('bloodlust') || s.includes('rage') || s.includes('rampart') || s.includes('juggernaut')) return 'game-icons:enrage';
+  if (s.includes('plating')) return 'game-icons:gears';
+  if (s.includes('deathless')) return 'game-icons:skeleton';
+  if (s.includes('dread')) return 'game-icons:daemon-skull';
+  if (s.includes('overflow')) return 'game-icons:fluffy-flame';
   if (s.includes('regen') || s.includes('prayer') || s.includes('faith')) return 'game-icons:prayer';
   if (s.includes('channel') || s.includes('overload') || s.includes('arcane')) return 'game-icons:magic-swirl';
   return 'game-icons:embedded-lightning-rune';

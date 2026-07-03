@@ -96,9 +96,15 @@ export default function MonsterEditor({ defs = [], classes = [], biologies = [],
                   {classes.map((c) => <option key={c} value={c}>{c}</option>)}
                 </select>
               </label>
-              <label className="crFld"><span>Biology</span>
-                <select value={editing.biology[0]} onChange={(e) => set({ biology: [e.target.value], family: null, anatomy: [], weapons: [], customDeck: null })}>
+              <label className="crFld"><span>Body Type</span>
+                <select value={editing.biology[0]} onChange={(e) => set({ biology: [e.target.value, editing.biology[1]].filter(Boolean).filter((v, i, a) => a.indexOf(v) === i), family: null, anatomy: [], weapons: [], customDeck: null })}>
                   {biologies.map((bb) => <option key={bb} value={bb}>{bb}</option>)}
+                </select>
+              </label>
+              <label className="crFld"><span>+ 2nd body type <em>(hybrid)</em></span>
+                <select value={editing.biology[1] || ''} onChange={(e) => set({ biology: [editing.biology[0], e.target.value].filter(Boolean), customDeck: null })}>
+                  <option value="">(none)</option>
+                  {biologies.filter((bb) => bb !== editing.biology[0]).map((bb) => <option key={bb} value={bb}>{bb}</option>)}
                 </select>
               </label>
               <label className="crFld"><span>Attunement</span>

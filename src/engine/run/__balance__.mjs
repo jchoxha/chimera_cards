@@ -122,7 +122,25 @@ const effList = (card) => (Array.isArray(card.effects) ? card.effects : []);
 const cardDmg = (card) => effList(card).filter((o) => o.op === 'damage').reduce((n, o) => n + (Number(o.value) || 0) * (Number(o.hits) || 1), 0);
 const cardBlock = (card) => effList(card).filter((o) => o.op === 'block').reduce((n, o) => n + (Number(o.value) || 0), 0);
 
-/** Play one full player turn with a simple "defend-when-low, else hit hardest" policy. */
+/** Estimate the damage the enemy's telegraphed plan will land this turn. */
+function incomingDamage(vm) {
+  let total = 0;
+  for (const a of vm.state.enemy.plan || []) {
+    const d = a?.detail || {};
+    if (typeof d.value === 'number') {
+      const hits = typeof d.hits === 'number' ? d.hits : 1;
+      total += d.value * hits;
+    } else if (d.effects && typeof d.effects.dmg === 'number') {
+      const hits = typeof d.effects.hits === 'number' ? d.effects.hits : 1;
+      total += d.effects.dmg * hits;
+    }
+  }
+  return total;
+}
+
+/** Play one full player turn: block up to the telegraphed incoming damage, spend
+ *  the rest on the hardest hits (a fair StS-player facsimile — still no potions,
+ *  reactions plays, or targeting finesse, so it remains a LOWER bound). */
 function playTurn(vm) {
   let guard = 0;
   while (vm.state.phase === 'player' && guard++ < 40) {
@@ -145,10 +163,17 @@ function playTurn(vm) {
       return !c.keywords?.includes('unplayable') && c.cost !== -2 && cost <= energy;
     });
     if (!playable.length) break;
+
+    // Block while the telegraphed incoming damage exceeds our current mitigation
+    // (always when low); otherwise spend on the biggest damage available.
+    const incoming = incomingDamage(vm);
+    const mitigated = (p.block || 0) + (p.bracedBlock || 0);
     const low = p.hp / p.maxHp < 0.40;
+    const wantBlock = (incoming > mitigated + 2 && p.hp - (incoming - mitigated) < p.maxHp * 0.6) || low;
     let choice = null;
-    if (low) choice = playable.filter(cardBlock).sort((a, b) => cardBlock(b) - cardBlock(a))[0];
+    if (wantBlock) choice = playable.filter(cardBlock).sort((a, b) => cardBlock(b) - cardBlock(a))[0];
     if (!choice) choice = playable.filter((c) => cardDmg(c) > 0).sort((a, b) => cardDmg(b) - cardDmg(a))[0];
+    if (!choice) choice = playable.filter(cardBlock).sort((a, b) => cardBlock(b) - cardBlock(a))[0];
     if (!choice) choice = playable.sort((a, b) => (b.cost === -1 ? energy : b.cost) - (a.cost === -1 ? energy : a.cost))[0];
     if (!choice) break;
     if (vm.play(choice.id) === false) {

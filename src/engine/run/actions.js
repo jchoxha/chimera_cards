@@ -7,6 +7,7 @@
 
 import { reachableFrom, nodeById } from './map.js';
 import { evolve } from '../content/evolve.js';
+import { upgradeFor } from '../cards/upgrade.js';
 
 const member = (s, id) => s.party.find((p) => p.id === id) || s.party[0] || null;
 
@@ -41,11 +42,12 @@ export const ACTIONS = {
     const m = member(s, memberId); if (!m) return;
     const i = m.deck.findIndex((c) => c.id === cardId); if (i !== -1) m.deck.splice(i, 1);
   },
-  /** Upgrade a card via an explicit `patch`, else the card's own `upgrade` payload. */
+  /** Upgrade a card via an explicit `patch`, the card's own `upgrade` payload,
+   *  or (for the many kit cards without one) an AUTO-DERIVED upgrade. */
   upgradeCard: (s, { memberId, cardId, patch }) => {
     const m = member(s, memberId); if (!m) return;
     const c = m.deck.find((x) => x.id === cardId); if (!c || c.upgraded) return;
-    const up = patch ?? c.upgrade;
+    const up = patch ?? upgradeFor(c);
     if (up) Object.assign(c, up);
     c.upgraded = true;
     if (!c.name.endsWith('+')) c.name = `${c.name}+`;

@@ -45,9 +45,14 @@ unified in `src/app/pools.js`** (App + Codex + run encounters all use it — ene
 with their kit decks); `starterDeck` GUARANTEES a Strike + Defend base (kit pools without block
 cards were producing defenseless 6-card decks). Balance harness re-synced to the kit era
 (fs-read kits, current roster rows); enemy tier multipliers gently re-tuned (normal 0.78/0.62,
-elite 1.15/0.95, boss 1.8/0.9). **Still TODO:** kit-era balance needs a HUMAN play pass (the
-greedy bot reaches ~floor 5, wins ~5% — weak lower bound); subtype mechanical depth (Giant's
-throw/immovable etc. are cards, not yet special rules).
+elite 1.15/0.95, boss 1.8/0.9). **FUN/FIX PASS (v3.96.0):** campfire upgrades work for EVERY card via auto-derived "+"
+versions (`engine/cards/upgrade.js` `deriveUpgrade`/`upgradeFor`, authored payloads win;
+`test:upgrade` 10); **subtypes grant innate TRAIT powers** (combatBridge `SUBTYPE_TRAITS`:
+Mechanical plating +2 Block/turn · Undead regen-when-struck · Demonic dread Weak aura ·
+Elemental turn-end discharge · Giant starts with 6 braced Block — shown as pips); the Editor
+authors true hybrids (2nd body type select); flagship bestiary lore; the balance bot now reads
+enemy intent + blocks (baseline ~15% bot win — a floor, players also upgrade/evolve/potion).
+**Still TODO:** kit-era balance human play pass; deeper subtype rules (Giant throw/immovable).
 
 **🧬 PRIOR FRAMING (2026-06-27) — BIOLOGY SELECTS THE KIT SYSTEM.**
 The **archetype/Class system (Warrior/Rogue/Mage/…) applies ONLY to Humanoids**; every other

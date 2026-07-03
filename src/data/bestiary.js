@@ -214,6 +214,56 @@ export const BESTIARY = {
       'Apply Decay early so it ticks down their stacks before they peak.',
     ],
   },
+  emberdrake: {
+    id: 'emberdrake', name: 'Emberdrake', title: 'The Kindled Heir',
+    role: 'A Draconic Beast — a sweeping Breath weapon, aerial tempo, and dragon bulk.',
+    lore: [
+      'Every dragon begins as a spark that refuses to go out. Emberdrake is that spark two winters grown: wings still too big for its body, breath still ragged at the edges, pride already fully fledged.',
+      'It hoards instinctively — coins, buttons, one entire campfire kettle — and defends the pile like it is the last warm thing in the world. Perhaps, to a young dragon, it is.',
+    ],
+    gameplay: [
+      'Breath is its engine: a charged exhalation that scorches the WHOLE enemy line, skinned to Fire and detonating Burn primers. Wings keep the cards flowing while the Draconic frame shrugs off hits a common beast could not.',
+      'Sit it in the Vanguard against wide benches and let Breath do the counting. Its Draconic constitution resists Fire and Physical, but Frost and Arcane bite deep — swap it out when the winter casters come forward.',
+    ],
+    tips: [
+      'Breath hits the whole enemy side — best when the bench is full.',
+      'Burn first, then Breath: the detonation compounds across every primed foe.',
+      'Watch for Frost enemies — Draconic scales crack in the cold.',
+    ],
+  },
+  grizzlord: {
+    id: 'grizzlord', name: 'Grizzlord', title: 'The Axe-Bearing Chimera',
+    role: 'A Beast|Humanoid hybrid Warrior — claws, teeth, AND a woodsman’s axe.',
+    lore: [
+      'Nobody agrees which came first — the bear or the berserker. The hill clans say a woodsman loved the wild so hard it loved him back, and what walked out of that winter wore both their shapes and carried his axe.',
+      'Grizzlord speaks seldom, and only in decisions. It has two languages of violence and is fluent in both.',
+    ],
+    gameplay: [
+      'The hybrid advantage is pool WIDTH: Grizzlord draws from the Warrior discipline, the Mammalian beast kit, and its axe — cleaves, mauls, and stance-work in one deck.',
+      'It is the demo’s teaching creature for the union rule: both kits contribute in full. Build it toward whichever half your rewards favor.',
+    ],
+    tips: [
+      'Rewards can lean beast (Bleed/multi-hit) or warrior (stances/Block) — commit to one engine.',
+      'Its axe Cleave answers wide benches; its claws shred single targets.',
+    ],
+  },
+  felhound: {
+    id: 'felhound', name: 'Felhound', title: 'The Debt Collector',
+    role: 'A Demonic Beast Rogue — pays its own blood for cursed, vicious strikes.',
+    lore: [
+      'A hound that followed its master into a summoning circle and came back alone, changed. The fel in its veins is a loan, and the interest is due nightly.',
+      'It is still, in some buried way, a good dog. It sits. It stays. It brings back what it is sent for — or what is left of it.',
+    ],
+    gameplay: [
+      'Felhound plays like a knife with a heartbeat: cheap fast teeth-and-claw strikes, plus the Demonic package — Sacrifice trades its own HP for a burst, Curse loads the target with Weak AND Vulnerable.',
+      'Its Dread Presence trait wilts the enemy Vanguard every turn it fights, and Shadow strikes leave foes Vulnerable to the follow-up.',
+    ],
+    tips: [
+      'Sacrifice is a loan — take it when the kill is THIS turn.',
+      'Curse before the burst: Vulnerable makes every fang count.',
+      'Its own HP is a resource; bring a healer or a campfire plan.',
+    ],
+  },
 };
 
 const norm = (s) => String(s || '').toLowerCase().replace(/[^a-z0-9]+/g, '');

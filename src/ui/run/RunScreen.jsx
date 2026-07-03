@@ -16,6 +16,7 @@ import { RELICS, POTIONS, EVENTS, CURSES } from '../../engine/run/content.js';
 import { draftRunReward } from '../../engine/run/rewards.js';
 import { creatureIcon, creatureColor } from '../../data/axisIcons.js';
 import { evolve, sizeLabel } from '../../engine/content/evolve.js';
+import { upgradedPreview } from '../../engine/cards/upgrade.js';
 import TeamManager from '../TeamManager.jsx';
 import './run.css';
 
@@ -304,9 +305,7 @@ function Room({ run, snap, node, target, setTarget }) {
     const member = snap.party.find((m) => m.id === restMemberId) || snap.party[0];
     const deck = member?.deck || [];
     const selCard = deck.find((c) => c.id === restSel) || null;
-    const upgradePreview = selCard && selCard.upgrade
-      ? { ...selCard, ...selCard.upgrade, name: selCard.name.endsWith('+') ? selCard.name : `${selCard.name}+`, upgraded: true }
-      : null;
+    const upgradePreview = selCard ? upgradedPreview(selCard) : null;
     return (
       <div className="runWrap">
         <h2><Icon icon="game-icons:campfire" /> Campfire</h2>
@@ -360,9 +359,9 @@ function Room({ run, snap, node, target, setTarget }) {
                   <MoveCard c={upgradePreview} />
                 </div>
               )}
-              <button className="runBtn" disabled={!selCard.upgrade}
+              <button className="runBtn" disabled={!upgradePreview}
                 onClick={() => { run.dispatch('upgradeCard', { memberId: member.id, cardId: selCard.id }); run.finishRoom(); }}>
-                {selCard.upgrade ? `Upgrade ${selCard.name}` : 'This card has no upgrade'}
+                {upgradePreview ? `Upgrade ${selCard.name}` : 'This card has no upgrade'}
               </button>
             </div>
           )}
