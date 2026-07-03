@@ -53,6 +53,14 @@ Elemental turn-end discharge · Giant starts with 6 braced Block — shown as pi
 authors true hybrids (2nd body type select); flagship bestiary lore; the balance bot now reads
 enemy intent + blocks (baseline ~15% bot win — a floor, players also upgrade/evolve/potion).
 **Still TODO:** kit-era balance human play pass; deeper subtype rules (Giant throw/immovable).
+**🔮 THE CREATURE FORGE (v3.97.0) — the vision centerpiece:** `src/data/forgeCreature.js`
+`forgeCreature(concept)` — ONE prompted call authors name/lore/description/full typings/2–3
+bespoke signature CardSpecs/artPrompt (+ a sanitized SVG portrait via `ai/claude.js
+generateArt` when a key is present). ALL output validated + clamped (`sanitizeForgedDef`/
+`sanitizeForgedCard`: axis legality, op vocabulary, numeric budgets per cost — hostile-tested).
+Offline → `inferTypings` heuristics (word-boundary matching, family→body tiebreak) + template
+flavor. Signature cards LEAD `basePoolFor` so the starter recipe picks them; defs persist
+`signatureCards`/`portraitSvg`/`artPrompt`. CreatureCreator "Forge with AI" is the default path.
 
 **🧬 PRIOR FRAMING (2026-06-27) — BIOLOGY SELECTS THE KIT SYSTEM.**
 The **archetype/Class system (Warrior/Rogue/Mage/…) applies ONLY to Humanoids**; every other

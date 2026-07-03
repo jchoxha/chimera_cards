@@ -26,7 +26,7 @@ const CLASS_KW = {
 // BODY TYPE = the FORM. Aberration is the catch-all (anything not clearly person/animal).
 const BODY_KW = {
   Humanoid: ['human', 'man', 'woman', 'person', 'folk', 'soldier', 'mortal', 'elf', 'dwarf', 'humanoid', 'figure', 'cloaked', 'knight', 'mage', 'priest', 'warrior'],
-  Beast: ['beast', 'wolf', 'lion', 'bear', 'tiger', 'fox', 'cat', 'dog', 'animal', 'fang', 'claw', 'paw', 'feral', 'predator', 'hound', 'boar', 'ram', 'stag', 'dragon', 'drake', 'wyrm', 'lizard', 'serpent', 'reptile', 'bird', 'fish', 'insect'],
+  Beast: ['beast', 'wolf', 'lion', 'bear', 'tiger', 'fox', 'cat', 'dog', 'animal', 'fang', 'claw', 'paw', 'feral', 'predator', 'hound', 'boar', 'ram', 'stag', 'dragon', 'drake', 'wyrm', 'lizard', 'serpent', 'reptile', 'bird', 'fish', 'insect', 'turtle', 'tortoise', 'crab', 'shark', 'frog', 'toad', 'spider', 'scorpion', 'hawk', 'raven', 'owl'],
   Aberration: ['aberration', 'eldritch', 'horror', 'tentacle', 'eye', 'alien', 'mutant', 'abomination', 'cosmic', 'writhing', 'ooze', 'slime', 'crystal', 'plant', 'fungus', 'flora', 'formless', 'cloud', 'construct', 'golem', 'wisp', 'essence', 'elemental', 'living flame'],
 };
 // DESCRIPTIVE SUBTYPES — composition/affliction overlays (0–N).
@@ -34,7 +34,7 @@ const SUBTYPE_KW = {
   Mechanical: ['machine', 'robot', 'mech', 'gear', 'automaton', 'clockwork', 'steam', 'brass', 'metal', 'iron', 'cog', 'cyborg', 'augmented'],
   Elemental: ['elemental', 'living flame', 'embodiment', 'essence', 'primordial', 'made of', 'infused', 'attuned'],
   Giant: ['giant', 'titan', 'colossus', 'behemoth', 'huge', 'massive', 'towering', 'mountainous', 'gargantuan'],
-  Demonic: ['demon', 'demonic', 'devil', 'fiend', 'imp', 'hell', 'infernal', 'fel', 'possessed', 'corrupted'],
+  Demonic: ['demon', 'demonic', 'devil', 'fiend', 'imp', 'hellish', 'hellspawn', 'infernal', 'fel', 'possessed', 'corrupted'],
   Undead: ['undead', 'skeleton', 'zombie', 'ghost', 'lich', 'wraith', 'bone', 'grave', 'corpse', 'revenant', 'phantom', 'rotting'],
   Hallowed: ['hallowed', 'blessed', 'sacred', 'celestial', 'angelic', 'divine'],
   Feral: ['feral', 'savage', 'rabid', 'wild', 'frenzied', 'berserk'],
@@ -74,8 +74,10 @@ const WEAPON_KW = {
   Crossbow: ['crossbow', 'bolt'], Spear: ['spear', 'lance', 'polearm'], Mace: ['mace'], Hammer: ['hammer', 'maul'],
   Staff: ['staff'], Wand: ['wand'], Shield: ['shield'], Fist: ['fist', 'unarmed', 'martial'],
 };
+// Word-boundary keyword test ("shell" must NOT match "hell", "impale" not "imp").
+const hasWord = (text, kw) => new RegExp(`\\b${kw.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}`, 'i').test(text);
 const matchTags = (text, kwMap, valid) => Object.entries(kwMap)
-  .filter(([tag, kws]) => valid.includes(tag) && kws.some((k) => text.includes(k)))
+  .filter(([tag, kws]) => valid.includes(tag) && kws.some((k) => hasWord(text, k)))
   .map(([tag]) => tag);
 
 const ATT_KW = {
@@ -100,7 +102,7 @@ function bestMatch(text, kwMap, valid, fallback) {
   for (const [val, kws] of Object.entries(kwMap)) {
     if (valid && !valid.includes(val)) continue;
     let s = 0;
-    for (const kw of kws) if (text.includes(kw)) s += 1;
+    for (const kw of kws) if (hasWord(text, kw)) s += 1;
     if (s) scores[val] = s;
   }
   const ranked = Object.entries(scores).sort((a, b) => b[1] - a[1]);
@@ -115,7 +117,7 @@ function bestMatch(text, kwMap, valid, fallback) {
 /** Every subtype whose keywords hit the text (0–N). */
 function matchSubtypes(text) {
   return Object.entries(SUBTYPE_KW)
-    .filter(([, kws]) => kws.some((kw) => text.includes(kw)))
+    .filter(([, kws]) => kws.some((kw) => hasWord(text, kw)))
     .map(([val]) => val)
     .filter((s) => SUBTYPES.includes(s));
 }
@@ -123,7 +125,16 @@ function matchSubtypes(text) {
 /** Heuristic typings from name + lore + description (always available, offline). */
 export function inferTypingsHeuristic(name, lore = '', description = '') {
   const text = `${name} ${lore} ${description}`.toLowerCase();
-  const body = bestMatch(text, BODY_KW, BODY_TYPES, 'Humanoid');
+  // Body type: direct keywords first; else a FAMILY hit implies its body (a
+  // "turtle" is Reptilian → Beast, an "ooze" is → Aberration); else Humanoid.
+  let body = bestMatch(text, BODY_KW, BODY_TYPES, null);
+  if (!BODY_TYPES.includes(body) || !Object.entries(BODY_KW).some(([, kws]) => kws.some((k) => hasWord(text, k)))) {
+    const beastFam = matchTags(text, FAMILY_KW, BEAST_FAMILIES);
+    const aberrFam = matchTags(text, FAMILY_KW, ABERRATION_FAMILIES);
+    if (beastFam.length) body = 'Beast';
+    else if (aberrFam.length) body = 'Aberration';
+    else body = bestMatch(text, BODY_KW, BODY_TYPES, 'Humanoid');
+  }
   const klass = bestMatch(text, CLASS_KW, CLASS_BASES, 'Warrior');
   // Kit specifics per body type: a family + the anatomy/weapons the text names
   // (validated against the kit's allowed sets, with sensible defaults).

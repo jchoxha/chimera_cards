@@ -8,7 +8,7 @@
 // ║ owns the pools + the create handler + the inference call.                ║
 // ╚══════════════════════════════════════════════════════════════════╝
 import React, { useState } from 'react';
-import { inferTypings } from '../data/inferTypings.js';
+import { forgeCreature } from '../data/forgeCreature.js';
 import { ARCHETYPE_ICON, BIOLOGY_ICON, ATTUNEMENT_ICON, ATTUNEMENT_COLOR, creatureIcon, creatureColor } from '../data/axisIcons.js';
 import './creator.css';
 
@@ -33,19 +33,24 @@ export default function CreatureCreator({ classes = [], biologies = [], attuneme
   const create = async () => {
     if (busy) return;
     setBusy(true);
-    let typings;
     if (aiTypings) {
-      typings = await inferTypings(name, lore, description);
-    } else {
-      typings = { class: [klass], biology: [biology], attunement: atts.length ? atts : ['Physical'], subtypes: [] };
+      // The full forge: one intelligently-prompted call authors typings, bespoke
+      // signature moves, lore, physical description, an art prompt — and (with an
+      // API key) a style-locked SVG portrait. Falls back to heuristics offline.
+      const concept = [name.trim(), lore.trim(), description.trim()].filter(Boolean).join(' — ') || 'a mysterious creature';
+      const def = await forgeCreature(concept);
+      onCreate({
+        ...def,
+        name: name.trim() || def.name,
+        lore: lore.trim() || def.lore,
+        description: description.trim() || def.description,
+      });
+      return;
     }
     onCreate({
-      name: name.trim() || `${typings.attunement[0]} ${typings.class[0]}`,
-      class: typings.class, biology: typings.biology, attunement: typings.attunement,
-      subtypes: typings.subtypes || [],
-      family: typings.family || null,
-      anatomy: typings.anatomy || [],
-      weapons: typings.weapons || [],
+      name: name.trim() || `${atts[0] || 'Physical'} ${klass}`,
+      class: [klass], biology: [biology], attunement: atts.length ? atts : ['Physical'],
+      subtypes: [],
       lore: lore.trim() || null,
       description: description.trim() || null,
     });
@@ -88,7 +93,7 @@ export default function CreatureCreator({ classes = [], biologies = [], attuneme
 
           <label className="crToggle">
             <input type="checkbox" checked={aiTypings} onChange={(e) => setAiTypings(e.target.checked)} />
-            <span>Let an AI choose the matrix typings from the name, lore &amp; description</span>
+            <span><b>Forge with AI</b> — typings, bespoke signature moves, lore &amp; a portrait, all from whatever you write above (even just a name)</span>
           </label>
 
           {!aiTypings && (
@@ -120,7 +125,7 @@ export default function CreatureCreator({ classes = [], biologies = [], attuneme
           <p className="crHint">The deck is generated automatically from the typings. To hand-build a deck, use the Editor.</p>
 
           <button className="selBtn go crCreate" disabled={busy} onClick={create}>
-            {busy ? 'Creating…' : 'Create & Add to Team ✓'}
+            {busy ? (aiTypings ? 'Forging…' : 'Creating…') : (aiTypings ? '⚒ Forge & Add to Team' : 'Create & Add to Team ✓')}
           </button>
         </div>
       </div>

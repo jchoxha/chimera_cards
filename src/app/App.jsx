@@ -44,13 +44,15 @@ const loadTeamIds = () => loadIds(TEAM_KEY, []);
 function buildCustomCreature(def) {
   const c = makeCreature({ id: def.id, name: def.name, class: def.class, biology: def.biology, attunement: def.attunement,
     family: def.family || null, anatomy: def.anatomy || null, weapons: def.weapons || null, subtypes: def.subtypes || null, size: def.size || 'regular',
-    pool: basePoolFor({ klass: def.class?.[0], biology: def.biology, family: def.family, anatomy: def.anatomy, weapons: def.weapons, subtypes: def.subtypes }) });
+    pool: basePoolFor({ klass: def.class?.[0], biology: def.biology, family: def.family, anatomy: def.anatomy, weapons: def.weapons, subtypes: def.subtypes, signatureCards: def.signatureCards }) });
   // The Editor (admin tool) can attach a hand-built deck; the end-user creator never does.
   if (def.customDeck && def.customDeck.length) c.deck = def.customDeck.map((card) => ({ ...card }));
   c.blurb = def.lore || def.blurb || `A custom ${(def.attunement || []).join('/')} ${(def.class || []).join('/')}.`;
   c.lore = def.lore || null;
   c.description = def.description || null;
-  c.meta = { portrait: null, custom: true };
+  c.signatureCards = def.signatureCards || null;
+  c.portrait = def.portraitSvg || null;              // forged SVG portrait (data URI)
+  c.meta = { portrait: def.portraitSvg || null, custom: true };
   c.custom = true;
   return c;
 }

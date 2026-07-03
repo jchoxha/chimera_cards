@@ -6,6 +6,11 @@
 
 /** @type {{version:string, date:string, notes:string[]}[]} newest first */
 export const CHANGELOG = [
+  { version: 'v3.97.0', date: '2026-07-03', notes: [
+    'THE CREATURE FORGE — the game’s core fantasy is live. Write anything (even just a name) and one intelligently-prompted AI call authors the whole creature: name, two paragraphs of lore, a physical description, full typings (body types, subtypes, family, anatomy/weapons, archetype, attunements, size), 2–3 BESPOKE signature moves woven into its deck, an art prompt — and, with an API key, a style-locked portrait drawn on the spot.',
+    'Everything the AI writes is validated and clamped against the engine (axis legality, card-op vocabulary, fair numeric budgets per energy), so forged creatures are always playable and never broken. With no API key the forge still works via keyword heuristics + templated flavor.',
+    'Heuristic upgrades: word-boundary matching (“Gloomshell” no longer reads as demonic), and family keywords now imply the body type (a “turtle” is a Reptilian Beast).',
+  ] },
   { version: 'v3.96.0', date: '2026-07-03', notes: [
     'EVERY card can now be upgraded at a Campfire. Cards without a hand-authored upgrade get a fair auto-derived “+” version (bigger damage/Block/statuses/draw — or cheaper when there’s nothing to grow). Beast, aberration, weapon, subtype and elemental cards all upgrade now.',
     'Subtypes gained innate TRAITS you can feel: Mechanical creatures re-plate 2 Block every turn, Undead knit back Regen when struck, Demonic dread Weakens the enemy Vanguard, Elementals discharge 2 damage at turn’s end, and Giants start every combat with 6 braced Block. Traits show as pips on the card.',

@@ -26,9 +26,11 @@ export const ARCHETYPES = Object.keys(POOLS);          // archetypes that have a
  *  creature draws from BEFORE attunement re-skin. Humanoid (or no biology) → its
  *  Archetype pool + weapons; Beast/Aberration → family + anatomy/features; hybrids →
  *  the union. Descriptive subtypes stack their packages on top. */
-export function basePoolFor({ klass, biology, family, anatomy, weapons, subtypes }) {
+export function basePoolFor({ klass, biology, family, anatomy, weapons, subtypes, signatureCards }) {
   const bios = arr(biology);
-  const out = [];
+  // Forged/bespoke signature cards lead the pool, so the starter-deck recipe
+  // picks them as the creature's signature commons.
+  const out = arr(signatureCards).map((c) => ({ ...c }));
   if (!bios.length || bios.includes('Humanoid')) {
     out.push(...(POOLS[klass] || []));
     if (bios.includes('Humanoid')) {
@@ -50,13 +52,13 @@ export function basePoolFor({ klass, biology, family, anatomy, weapons, subtypes
 }
 
 /** roster-entry → its base pool (the shape buildRoster's poolResolver expects). */
-export const rosterPool = (r) => basePoolFor({ klass: r.class, biology: r.biology, family: r.family, anatomy: r.anatomy, weapons: r.weapons, subtypes: r.subtypes });
+export const rosterPool = (r) => basePoolFor({ klass: r.class, biology: r.biology, family: r.family, anatomy: r.anatomy, weapons: r.weapons, subtypes: r.subtypes, signatureCards: r.signatureCards });
 
 /** A creature's full potential pool: its biology base pool reskinned to its
  *  attunement + that attunement's own cards + variant-access re-elements (§14.3).
  *  Takes a def-like { class|klass, biology, attunement, family, anatomy, weapons, subtypes }. */
 export function potentialPool(def = {}) {
   const atts = arr(def.attunement?.length ? def.attunement : ['Physical']);
-  const base = basePoolFor({ klass: def.class?.[0] ?? def.klass, biology: def.biology, family: def.family, anatomy: def.anatomy, weapons: def.weapons, subtypes: def.subtypes });
+  const base = basePoolFor({ klass: def.class?.[0] ?? def.klass, biology: def.biology, family: def.family, anatomy: def.anatomy, weapons: def.weapons, subtypes: def.subtypes, signatureCards: def.signatureCards });
   return [...reskinDeck(base, atts), ...attunementCards(atts), ...attunementVariants(base, atts)];
 }
