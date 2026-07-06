@@ -461,6 +461,8 @@ export default function CombatScreen({ onMenu, onRestart, embedded, onCodex } = 
   const [fx, setFx] = useState([]);               // spring FX items (projectiles / bursts / numbers)
   const seenRef = useRef(0);                      // # of log events already turned into FX
   const lastActorRef = useRef(null);              // most recent 'play' actor — persists across log batches (staged enemy turn)
+  const fxKeyRef = useRef(0);                      // monotonic FX id — unique keys so react-spring never remounts/restarts
+  const fxTimersRef = useRef([]);                  // impact (kick/flash) delay timers — cleared only on unmount
   const [turnBanner, setTurnBanner] = useState(null);  // transient "YOUR TURN" / "ENEMY TURN" sweep
   const prevPhaseRef = useRef(null);
   const [dealKey, setDealKey] = useState(0);           // bumped when a fresh hand is dealt → replays the deal-in animation
@@ -486,11 +488,10 @@ export default function CombatScreen({ onMenu, onRestart, embedded, onCodex } = 
     const fresh = evs.slice(seenRef.current);
     seenRef.current = evs.length;
     if (!fresh.length) return undefined;
-    const timers = [];
     const raf = requestAnimationFrame(() => {
       const items = [];
-      let n = 0;
-      const key = () => `fx-${Date.now()}-${n++}`;
+      const born = Date.now();
+      const key = () => `fx-${fxKeyRef.current++}`;   // monotonic, unique across batches
       const nodeOf = (id) => document.querySelector(`.combat[data-drop-id="${id}"]`) || document.querySelector(`[data-drop-id="${id}"]`);
       const centerOf = (el) => { const r = el.getBoundingClientRect(); return { x: r.left + r.width / 2, y: r.top + r.height * 0.4 }; };
       const colorFor = (elname) => ATTUNEMENT_COLOR[elname] || ELEMENT_COLOR[elname] || '#ffd34d';
@@ -514,7 +515,7 @@ export default function CombatScreen({ onMenu, onRestart, embedded, onCodex } = 
           }
           items.push({ key: key(), type: 'burst', x: tc.x, y: tc.y, color, delay: impactDelay });
           items.push({ key: key(), type: 'num', x: tc.x, y: tc.y, text: `-${p.hpLoss}`, kind: 'dmg', delay: impactDelay });
-          timers.push(setTimeout(() => { kickEl(tEl, enemyTarget ? -1 : 1); flashEl(tEl); }, impactDelay));
+          fxTimersRef.current.push(setTimeout(() => { kickEl(tEl, enemyTarget ? -1 : 1); flashEl(tEl); }, impactDelay));
         } else if (ev.type === 'heal' && p.amount > 0) {
           items.push({ key: key(), type: 'num', x: tc.x, y: tc.y, text: `+${p.amount}`, kind: 'heal' });
           pulseEl(tEl, '#8ef0a8');
@@ -530,13 +531,21 @@ export default function CombatScreen({ onMenu, onRestart, embedded, onCodex } = 
           items.push({ key: key(), type: 'num', x: tc.x, y: tc.y, text, kind: 'decay' });
         }
       }
-      if (items.length) {
-        setFx((cur) => [...cur, ...items]);
-        timers.push(setTimeout(() => setFx((cur) => cur.filter((f) => !items.some((s) => s.key === f.key))), 1500));
-      }
+      if (items.length) setFx((cur) => [...cur, ...items.map((it) => ({ ...it, born }))]);
     });
-    return () => { cancelAnimationFrame(raf); timers.forEach(clearTimeout); };
+    return () => cancelAnimationFrame(raf);
   }, [log]);
+
+  // Prune spent FX by age on a single stable interval — NOT via per-batch timers
+  // (those got cancelled by this effect's own cleanup on the next log batch during
+  // the staged enemy turn, so FX piled up and kept flashing). Runs for the view's life.
+  useEffect(() => {
+    const iv = setInterval(() => {
+      const now = Date.now();
+      setFx((cur) => (cur.some((f) => now - f.born >= 1500) ? cur.filter((f) => now - f.born < 1500) : cur));
+    }, 300);
+    return () => { clearInterval(iv); fxTimersRef.current.forEach(clearTimeout); fxTimersRef.current = []; };
+  }, []);
   useEffect(() => { setKwTerm(null); }, [infoStack.length]);  // reset keyword popup when the modal stack changes
   useEffect(() => {
     if (!notice) return undefined;

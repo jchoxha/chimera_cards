@@ -6,6 +6,9 @@
 // ║    and bursts on arrival;                                                  ║
 // ║  • BURST — an expanding impact ring at the target;                        ║
 // ║  • NUM — a damage/heal/block number that pops (spring scale) then rises.   ║
+// ║ Each item's spring uses the FUNCTION form of useSpring so it runs ONCE on  ║
+// ║ mount — a sibling FX being added (each enemy beat) re-renders the overlay  ║
+// ║ but must NOT restart already-playing animations (that was the flashing).   ║
 // ║ Card recoil / attacker lunge / hit-flash are done imperatively (WAAPI) in ║
 // ║ CombatScreen on the units' `[data-drop-id]` nodes — see there.            ║
 // ╚══════════════════════════════════════════════════════════════════╝
@@ -13,14 +16,14 @@ import React from 'react';
 import { useSpring, animated } from '@react-spring/web';
 
 function Projectile({ x0, y0, x1, y1, color }) {
-  const s = useSpring({
+  const [s] = useSpring(() => ({
     from: { x: x0, y: y0, sc: 0.3, op: 0 },
     to: async (next) => {
       await next({ op: 1, sc: 1, config: { duration: 70 } });
       await next({ x: x1, y: y1, config: { tension: 260, friction: 20 } });   // arc to target
       await next({ sc: 1.9, op: 0, config: { duration: 130 } });               // burst on impact
     },
-  });
+  }));
   return (
     <animated.div className="fxProj"
       style={{ x: s.x, y: s.y, scale: s.sc, opacity: s.op,
@@ -30,12 +33,12 @@ function Projectile({ x0, y0, x1, y1, color }) {
 }
 
 function Burst({ x, y, color, delay }) {
-  const s = useSpring({ from: { sc: 0.2, op: 0.85 }, to: { sc: 1.9, op: 0 }, delay, config: { tension: 210, friction: 22 } });
+  const [s] = useSpring(() => ({ from: { sc: 0.2, op: 0.85 }, to: { sc: 1.9, op: 0 }, delay, config: { tension: 210, friction: 22 } }));
   return <animated.div className="fxBurst" style={{ left: x, top: y, scale: s.sc, opacity: s.op, borderColor: color }} />;
 }
 
 function Num({ x, y, text, kind, delay }) {
-  const s = useSpring({
+  const [s] = useSpring(() => ({
     from: { sc: 0, ny: 0, op: 0 },
     to: async (next) => {
       await next({ sc: 1.28, op: 1, config: { tension: 420, friction: 11 } });   // pop
@@ -43,7 +46,7 @@ function Num({ x, y, text, kind, delay }) {
       await next({ ny: -52, op: 0, config: { tension: 70, friction: 18 } });       // drift up + fade
     },
     delay,
-  });
+  }));
   return (
     <animated.span className={`floatNum ${kind}`}
       style={{ left: x, top: y, scale: s.sc, y: s.ny, opacity: s.op }}>{text}</animated.span>

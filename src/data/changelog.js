@@ -6,6 +6,10 @@
 
 /** @type {{version:string, date:string, notes:string[]}[]} newest first */
 export const CHANGELOG = [
+  { version: 'v3.100.2', date: '2026-07-06', notes: [
+    'Fixed move effects flashing and never clearing: during the enemy’s turn each attack cancelled the previous effect’s cleanup, so numbers and impact rings piled up and kept flickering. Effects now expire on their own timer and always disappear cleanly.',
+    'Enemy attacks now play the exact same effects as yours — flying bolt, lunge, recoil, impact ring and popping number.',
+  ] },
   { version: 'v3.100.1', date: '2026-07-06', notes: [
     'Fixed the enemy’s move animations: when a foe attacked, its projectile and lunge were skipped (only the impact ring and number showed). Enemy attacks now fire the full effect — bolt flying from the foe into your creature, attacker lunge, recoil and flash — exactly like your own moves.',
   ] },

@@ -166,7 +166,15 @@ state after 1.5s. Reactions/decay render as burst+num too. **v3.100.1 fix:** the
 tracked in a component-level `lastActorRef` (not a per-effect-run local), so ENEMY attacks — whose
 `play` and `damage` events arrive in separate `log` batches during the staged enemy turn — still
 resolve the attacker node and fire the projectile + `lungeEl` (was: enemy moves showed only burst+num).
-Also skips the projectile when `actorId === targetId` (self-target).
+Also skips the projectile when `actorId === targetId` (self-target). **v3.100.2 fix:** FX pruning was
+per-batch `setTimeout`s stored in the effect's `timers` array — but the effect's cleanup runs on EVERY
+`log` change and did `timers.forEach(clearTimeout)`, so each staged enemy beat cancelled the PRIOR
+beat's removal timer → FX piled up and kept flashing. Now each item carries a `born` stamp and a single
+stable interval (mount-only effect) prunes items older than 1500ms; the log effect only cancels its own
+`rAF`. Impact (kick/flash) delay timers moved to `fxTimersRef` (cleared on unmount only). Each FX also
+gets a monotonic `fxKeyRef` id (was `Date.now()`-based, which could collide across batches and remount
+react-spring nodes); the item springs use `useSpring(()=>…)` (function form) so a sibling being added
+never restarts an in-flight animation.
 
 **🧬 PRIOR FRAMING (2026-06-27) — BIOLOGY SELECTS THE KIT SYSTEM.**
 The **archetype/Class system (Warrior/Rogue/Mage/…) applies ONLY to Humanoids**; every other
