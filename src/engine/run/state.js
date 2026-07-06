@@ -124,9 +124,21 @@ export function starterDeck(cards, attunement = ['Physical'], max = 10) {
   if (strikeBase) for (let i = 0; i < 3; i++) add(plainStrike(strikeBase, els[i % els.length]));
   // 3 Defend variants.
   if (defendBase) for (let i = 0; i < 3; i++) add(plainDefend(defendBase));
-  // 1–3 archetype-specific starters: the pool's signature commons (already re-skinned).
+  // Signature starters: the pool's commons (already re-skinned). The pick is
+  // FACTOR-AWARE — every special factor (a Beast's anatomy tag / a Humanoid's
+  // weapon / an Aberration's feature; the kit loaders stamp `card.factor`) gets
+  // one of its commons into the starting deck, so a Venom beast actually STARTS
+  // with a venom move instead of the factor being flavor-only. Pool-order still
+  // leads (forged bespoke signatures sit at the head of the pool).
   const signature = cards.filter((c) => c.rarity === 'common' && c.type !== 'curse' && c.type !== 'status');
-  for (const c of signature.slice(0, 3)) add(c);
+  const slots = Math.max(0, Math.min(4, max - deck.length));
+  const sigPick = [];
+  const covered = new Set();
+  const take = (c) => { if (!sigPick.includes(c) && sigPick.length < slots) { sigPick.push(c); if (c.factor) covered.add(c.factor); } };
+  for (const c of signature.slice(0, 2)) take(c);                               // pool head (bespoke/family signatures)
+  for (const c of signature) if (c.factor && !covered.has(c.factor)) take(c);   // one common per uncovered factor
+  for (const c of signature) take(c);                                           // fill any remaining slots in pool order
+  for (const c of sigPick) add(c);
 
   return deck.slice(0, max);
 }

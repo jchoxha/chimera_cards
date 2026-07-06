@@ -156,7 +156,7 @@ export function inferTypingsHeuristic(name, lore = '', description = '') {
     weapons = weapons.slice(0, 2);
   }
   return {
-    class: [klass],
+    class: body === 'Humanoid' ? [klass] : null,   // archetype is Humanoid-only
     biology: [body],
     attunement: [bestMatch(text, ATT_KW, ATTUNEMENT_BASES, 'Physical')],
     subtypes: matchSubtypes(text),
@@ -187,12 +187,12 @@ Respond ONLY with JSON: {"class":"…","biology":"…","attunement":"…","subty
       const pick = (v, valid, fb) => (valid.includes(v) ? [v] : fb);
       const subs = Array.isArray(json.subtypes) ? json.subtypes.filter((s) => SUBTYPES.includes(s)) : fallback.subtypes;
       const biology = pick(json.biology, BODY_TYPES, fallback.biology);
-      const klass = pick(json.class, CLASS_BASES, fallback.class);
+      const klass = pick(json.class, CLASS_BASES, fallback.class || ['Warrior']);
       // Re-derive the kit specifics (family/anatomy/weapons) for the CHOSEN body
       // type via the keyword heuristic — keeps them valid for the actual kit.
       const kit = inferTypingsHeuristic(`${biology[0]} ${klass[0]} ${name}`, lore, description);
       return {
-        class: klass,
+        class: biology.includes('Humanoid') ? klass : null,   // archetype is Humanoid-only
         biology,
         attunement: pick(json.attunement, ATTUNEMENT_BASES, fallback.attunement),
         subtypes: subs,

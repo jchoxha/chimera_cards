@@ -25,6 +25,7 @@ import { APP_VERSION } from '../../version.js';
 import { CHANGELOG } from '../../data/changelog.js';
 import { REACTIONS, forecastReactions, REACTION_INFO } from '../../engine/cards/reactions.js';
 import { EFFECT_INFO, AXIS_INFO, ATTUNEMENT_SIGNATURE } from '../../data/codex.js';
+import { factorInfo } from '../../data/factorInfo.js';
 import MonsterPage from '../MonsterPage.jsx';
 import { CardFace, MiniStatus, ELEMENT_ICON, powerLabel, powerIcon, sizeWord } from './creatureVisuals.jsx';
 import DeckDropdown from './DeckDropdown.jsx';
@@ -697,15 +698,22 @@ export default function CombatScreen({ onMenu, onRestart, embedded, onCodex } = 
 
           <div className="handWrap">
             <div className="hand">
-              {hand.map((c, i) => {
+              {(() => {
+                // While a card is lifted out, the FAN recomputes over the VISIBLE
+                // cards so the rest re-center + re-angle dynamically (the .18s
+                // transform transition animates the re-fan; FLIP slides the x-shift).
+                const visible = dragging ? hand.filter((c) => c.id !== drag.card.id) : hand;
+                const fanIdx = new Map(visible.map((c, vi) => [c.id, vi]));
+                return hand.map((c, i) => {
                 // Effective cost includes the Shock tax (+1 energy per Shocked ally).
                 const shockTax = player.shockTax || 0;
                 const effCost = (c.cost === -1 || c.cost === -2) ? c.cost : c.cost + shockTax;
                 const taxed = shockTax > 0 && c.cost >= 0;
                 const unplayable = !isPlayerTurn || c.cost === -2 || (c.cost !== -1 && effCost > player.energy);
-                const n = hand.length;
-                const rot = (i - (n - 1) / 2) * 6;
-                const lift = Math.abs(i - (n - 1) / 2) * 4;
+                const n = visible.length || 1;
+                const vi = fanIdx.has(c.id) ? fanIdx.get(c.id) : i;
+                const rot = (vi - (n - 1) / 2) * 6;
+                const lift = Math.abs(vi - (n - 1) / 2) * 4;
                 const f = frameStyle({ element: c.element, rarity: c.rarity });
                 const isDragging = dragging && drag?.card?.id === c.id;
                 const isPressed = !dragging && drag?.card?.id === c.id;
@@ -727,7 +735,8 @@ export default function CombatScreen({ onMenu, onRestart, embedded, onCodex } = 
                     </div>
                   </div>
                 );
-              })}
+                });
+              })()}
             </div>
           </div>
           <div className="playHint">
@@ -930,6 +939,21 @@ export default function CombatScreen({ onMenu, onRestart, embedded, onCodex } = 
                       </div>
                     );
                   })}
+                </div>
+              );
+            })()}
+
+            {info.kind === 'factor' && (() => {
+              const fi = factorInfo(info.tag);
+              if (!fi) return <div><div className="infoHead">{info.tag}</div><p>No details for this trait yet.</p></div>;
+              return (
+                <div>
+                  <div className="infoHead"><Icon icon={fi.icon} /> {fi.tag} <span className="clVer">{fi.kindLabel}</span></div>
+                  <p>{fi.theme}</p>
+                  <div className="rewardRow" style={{ flexWrap: 'wrap' }}>
+                    {fi.cards.map((c) => <MiniCard key={c.id} c={c} onClick={openCard} />)}
+                  </div>
+                  <p className="cdHint">These moves join the creature’s card pool because of this {fi.kind === 'weapon' ? 'weapon' : 'trait'}.</p>
                 </div>
               );
             })()}

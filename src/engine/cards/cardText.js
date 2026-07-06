@@ -52,7 +52,7 @@ export function opPhrase(op, ctx = {}) {
       let s = `Deal ${base}${hits}${scopePhrase(op)}`;
       if (op.scaleBy) s += scalePhrase(op.scaleBy);
       if (op.bonusIf) {
-        if (op.bonusIf.targetHpPctBelow != null) s += ` (${op.bonusMult ? `×${op.bonusMult}` : `+${op.bonusAdd}`} vs targets below ${Math.round(op.bonusIf.targetHpPctBelow * 100)}% HP)`;
+        if (op.bonusIf.targetHpPctBelow != null) { const th = op.bonusIf.targetHpPctBelow; s += ` (${op.bonusMult ? `×${op.bonusMult}` : `+${op.bonusAdd}`} vs targets below ${Math.round(th > 1 ? th : th * 100)}% HP)`; }
         else if (op.bonusIf.stance) s += ` (${op.bonusAdd ? `+${op.bonusAdd}` : 'bonus'} if in ${op.bonusIf.stance})`;
       }
       return s;

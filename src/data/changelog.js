@@ -6,6 +6,14 @@
 
 /** @type {{version:string, date:string, notes:string[]}[]} newest first */
 export const CHANGELOG = [
+  { version: 'v3.99.0', date: '2026-07-06', notes: [
+    'Team assembly now shows REAL creature cards — the roster grid uses the same TCG card you fight with (portrait, size, biology, kit icons), not a custom tile.',
+    'The creature modal is a full two-pane browser: the card + lore + stats on the left, and a tabbed, rarity-grouped card browser (Starting Deck / Full Card Pool) on the right.',
+    'Anatomy & weapon icons are bigger, hoverable, and CLICKABLE — tap one to see what the trait means and the exact moves it grants. And they now MATTER: every anatomy tag / weapon / aberrant feature is guaranteed a move in the starting deck, so a Venom beast starts venomous and an Axe-wielder starts with axe work.',
+    'Drag fixes: team reordering is now insertion-point based — you can freely displace the Vanguard and drag back and forth without it locking up; lifting a hand card dynamically re-fans and re-centers the remaining cards around the gap.',
+    'Archetypes are HUMANOID-ONLY everywhere now: beasts and aberrations are instinct-driven (no class) — enforced in the generator, forge, editor and creator, and shown as “Instinctive” in the bestiary.',
+    'Fixed Execute/Crushing Jaws: their “vs targets below 50% HP” bonus was firing on EVERY hit (and the card text read “5000%”).',
+  ] },
   { version: 'v3.98.0', date: '2026-07-03', notes: [
     'The enemy turn now plays out ACTION BY ACTION, Slay-the-Spire style: each move resolves on its own beat with a big on-screen announcement (“Emberwisp uses Miasma!”) so you can actually follow what hit you — no more whole turns slamming through in one frame.',
     'Cards are DEALT into your hand each turn — they fly in from the deck one after another and settle into the fan.',

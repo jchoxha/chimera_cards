@@ -108,7 +108,9 @@ export function sanitizeForgedDef(json, concept) {
     name,
     lore: String(json.lore || '').slice(0, 600) || null,
     description: String(json.description || '').slice(0, 500) || null,
-    class: [klass], biology, attunement, subtypes, family, anatomy, weapons,
+    // Archetype is HUMANOID-ONLY: instinct-driven bodies carry no trained class.
+    class: biology.includes('Humanoid') ? [klass] : null,
+    biology, attunement, subtypes, family, anatomy, weapons,
     size: FORM_ORDER.includes(json.size) && json.size !== 'elite' && json.size !== 'boss' ? json.size : 'regular',
   };
   def.signatureCards = (Array.isArray(json.signatureCards) ? json.signatureCards : [])
@@ -175,7 +177,7 @@ export async function forgeCreature(concept, { withPortrait = true } = {}) {
   } catch { /* fall through */ }
   if (!def) {
     const t = inferTypingsHeuristic(concept, '', '');
-    def = sanitizeForgedDef({ name: concept.split(/[,.—-]/)[0].trim().slice(0, 22), ...t, biology: t.biology, attunement: t.attunement, class: t.class[0] }, concept);
+    def = sanitizeForgedDef({ name: concept.split(/[,.—-]/)[0].trim().slice(0, 22), ...t, biology: t.biology, attunement: t.attunement, class: t.class?.[0] }, concept);
     const flavor = templateFlavor(def);
     def.lore = flavor.lore; def.description = flavor.description;
     def.forged = 'heuristic';

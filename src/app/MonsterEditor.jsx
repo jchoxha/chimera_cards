@@ -30,17 +30,19 @@ export default function MonsterEditor({ defs = [], classes = [], biologies = [],
   const [building, setBuilding] = useState(false);
 
   if (editing) {
-    const klass = editing.class[0];
-    const atts = (editing.attunement || []).filter(Boolean);
-    const legal = legalFor ? legalFor(klass) : attunements;
     const isBeast = (editing.biology || []).includes('Beast');
     const isAberration = (editing.biology || []).includes('Aberration');
     const isHumanoid = (editing.biology || []).includes('Humanoid');
+    // Archetype is HUMANOID-ONLY (docs/biology-kits.md): non-humanoids are
+    // instinct-driven and carry no class; their attunements aren't class-gated.
+    const klass = isHumanoid ? (editing.class?.[0] || classes[0] || 'Warrior') : null;
+    const atts = (editing.attunement || []).filter(Boolean);
+    const legal = isHumanoid && legalFor ? legalFor(klass) : attunements;
     const familyOpts = isBeast ? families : (isAberration ? ABERRATION_FAMILIES : []);
     const family = editing.family || familyOpts[0] || null;
     const allowedAnatomy = isBeast ? anatomyForFamily(family) : (isAberration ? anatomyForAberrationFamily(family) : []);
     const allowedWeapons = isHumanoid ? weaponsForArchetype(klass) : [];
-    const preview = { class: [klass], biology: [editing.biology[0]], attunement: atts.length ? atts : ['Physical'] };
+    const preview = { class: klass ? [klass] : null, biology: [editing.biology[0]], attunement: atts.length ? atts : ['Physical'] };
     const color = creatureColor(preview);
     const set = (patch) => setEditing((e) => ({ ...e, ...patch }));
     const toggleIn = (key, tag) => set({
@@ -52,8 +54,8 @@ export default function MonsterEditor({ defs = [], classes = [], biologies = [],
       return (
         <DeckBuilder
           pool={buildPool(editing)}
-          title={`Build ${editing.name || klass}'s deck`}
-          subtitle={`${klass} · ${editing.biology[0]} · ${atts.join(' / ') || 'Physical'}`}
+          title={`Build ${editing.name || klass || editing.biology[0]}'s deck`}
+          subtitle={`${klass ? `${klass} · ` : ''}${editing.biology[0]} · ${atts.join(' / ') || 'Physical'}`}
           initial={editing.customDeck ? deckToCounts(editing.customDeck) : {}}
           onConfirm={(deck) => { set({ customDeck: deck }); setBuilding(false); }}
           onCancel={() => setBuilding(false)}
@@ -72,7 +74,7 @@ export default function MonsterEditor({ defs = [], classes = [], biologies = [],
             <div className="crPortrait"><Icon icon={creatureIcon(preview)} style={{ color }} /></div>
             <div className="crPvName">{editing.name || 'Unnamed'}</div>
             <div className="crPvAxes">
-              <span><Icon icon={ARCHETYPE_ICON[klass] || 'game-icons:gladius'} /> {klass}</span>
+              {klass && <span><Icon icon={ARCHETYPE_ICON[klass] || 'game-icons:gladius'} /> {klass}</span>}
               <span><Icon icon={BIOLOGY_ICON[editing.biology[0]] || 'game-icons:dna2'} /> {editing.biology[0]}</span>
               <span style={{ color: ATTUNEMENT_COLOR[atts[0]] }}><Icon icon={ATTUNEMENT_ICON[atts[0]] || 'game-icons:embrace-energy'} /> {atts.join(' / ') || 'Physical'}</span>
               <span>{formLabel(editing.size) || 'Regular'}</span>
@@ -91,11 +93,13 @@ export default function MonsterEditor({ defs = [], classes = [], biologies = [],
             </label>
 
             <div className="crAxes">
-              <label className="crFld"><span>Archetype</span>
-                <select value={klass} onChange={(e) => set({ class: [e.target.value], weapons: [], customDeck: null })}>
-                  {classes.map((c) => <option key={c} value={c}>{c}</option>)}
-                </select>
-              </label>
+              {isHumanoid && (
+                <label className="crFld"><span>Archetype <em>(Humanoids only)</em></span>
+                  <select value={klass} onChange={(e) => set({ class: [e.target.value], weapons: [], customDeck: null })}>
+                    {classes.map((c) => <option key={c} value={c}>{c}</option>)}
+                  </select>
+                </label>
+              )}
               <label className="crFld"><span>Body Type</span>
                 <select value={editing.biology[0]} onChange={(e) => set({ biology: [e.target.value, editing.biology[1]].filter(Boolean).filter((v, i, a) => a.indexOf(v) === i), family: null, anatomy: [], weapons: [], customDeck: null })}>
                   {biologies.map((bb) => <option key={bb} value={bb}>{bb}</option>)}
@@ -193,6 +197,7 @@ export default function MonsterEditor({ defs = [], classes = [], biologies = [],
             <button className="selBtn go crCreate" disabled={!editing.name.trim()}
               onClick={() => {
                 const out = { ...editing, name: editing.name.trim() };
+                out.class = klass ? [klass] : null;   // archetype is Humanoid-only
                 if (isBeast || isAberration) { out.family = family; out.anatomy = (editing.anatomy || []).filter((t) => allowedAnatomy.includes(t)); }
                 else { out.family = null; out.anatomy = []; }
                 out.weapons = isHumanoid ? (editing.weapons || []).filter((t) => allowedWeapons.includes(t)) : [];
@@ -227,7 +232,7 @@ export default function MonsterEditor({ defs = [], classes = [], biologies = [],
               <div key={d.id} className="meCard" style={{ '--gl': color }}>
                 <div className="meCardPortrait"><Icon icon={creatureIcon(preview)} style={{ color }} /></div>
                 <div className="meCardName">{d.name}</div>
-                <div className="meCardAxes">{(d.biology || []).includes('Beast') && d.family ? `${d.family} · ` : ''}{(d.class || []).join('/')} · {(d.biology || []).join('/')} · {(d.attunement || []).join('/')}</div>
+                <div className="meCardAxes">{[d.family, (d.class || []).join('/'), (d.biology || []).join('/'), (d.attunement || []).join('/')].filter(Boolean).join(' · ')}</div>
                 <div className="meCardMeta">{formLabel(d.size) || 'Regular'}{d.customDeck ? ` · ${d.customDeck.length}-card deck` : ' · auto deck'}</div>
                 <div className="meCardBtns">
                   <button className="selBtn" onClick={() => setEditing({ ...emptyDef(classes, biologies), ...d, lore: d.lore || '', description: d.description || '', size: d.size || 'regular' })}>✎ Edit</button>

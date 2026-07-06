@@ -28,9 +28,13 @@ const slug = (s) => String(s || '').toLowerCase().replace(/[^a-z0-9]+/g, '-').re
  * @returns {Object} run party member { id,name,class,biology,attunement,stats,maxHp,hp,deck }
  */
 export function makeCreature({ id, name, class: klass, biology, attunement, family = null, anatomy = null, weapons = null, subtypes = null, pool = [], baseHp = 55, deckSize = 10, size = 'regular' }) {
-  const cls = Array.isArray(klass) ? klass : [klass].filter(Boolean);
+  let cls = Array.isArray(klass) ? klass : [klass].filter(Boolean);
   const bio = Array.isArray(biology) ? biology : [biology].filter(Boolean);
   const att = Array.isArray(attunement) ? attunement : [attunement].filter(Boolean);
+  // ARCHETYPE IS HUMANOID-ONLY (docs/biology-kits.md): a trained class applies to a
+  // Humanoid body type (incl. hybrids like Beast|Humanoid). Any other creature is
+  // instinct-driven — its cards come from its biology kit, and it carries NO class.
+  if (bio.length && !bio.includes('Humanoid')) cls = [];
 
   const subs = Array.isArray(subtypes) ? subtypes.filter(Boolean) : subtypes ? [subtypes] : [];
   const { hpMult, stats } = biologyStats(bio, subs, family);

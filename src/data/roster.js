@@ -70,7 +70,7 @@ export function buildDummyCreature() {
   const portrait = `${BASE}art/gen/training-dummy.png`;
   return {
     id: 'dummy', name: 'Target Dummy',
-    class: ['Construct'], biology: ['Mechanical'], attunement: ['Physical'],
+    class: null, biology: ['Aberration'], family: 'Construct', attunement: ['Physical'],
     stats: { might: 1, guard: 5, focus: 1, resolve: 5, speed: 0 },
     maxHp: 250, hp: 250, deck: [], signatureCards: [],
     blurb: 'A practice dummy — soaks hits and barely fights back.',

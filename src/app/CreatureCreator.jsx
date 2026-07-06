@@ -26,8 +26,11 @@ export default function CreatureCreator({ classes = [], biologies = [], attuneme
   const [busy, setBusy] = useState(false);
 
   const atts = [att1, att2].filter(Boolean).filter((v, i, a) => a.indexOf(v) === i);
-  const legal = legalFor ? legalFor(klass) : attunements;
-  const preview = { class: [klass], biology: [biology], attunement: atts.length ? atts : ['Physical'] };
+  // Archetype is HUMANOID-ONLY: other body types are instinct-driven (their cards
+  // come from their biology kit), so the archetype picker only shows for Humanoids.
+  const humanoid = biology === 'Humanoid';
+  const legal = humanoid && legalFor ? legalFor(klass) : attunements;
+  const preview = { class: humanoid ? [klass] : null, biology: [biology], attunement: atts.length ? atts : ['Physical'] };
   const color = aiTypings ? '#b98a3a' : creatureColor(preview);
 
   const create = async () => {
@@ -48,8 +51,8 @@ export default function CreatureCreator({ classes = [], biologies = [], attuneme
       return;
     }
     onCreate({
-      name: name.trim() || `${atts[0] || 'Physical'} ${klass}`,
-      class: [klass], biology: [biology], attunement: atts.length ? atts : ['Physical'],
+      name: name.trim() || `${atts[0] || 'Physical'} ${humanoid ? klass : biology}`,
+      class: humanoid ? [klass] : null, biology: [biology], attunement: atts.length ? atts : ['Physical'],
       subtypes: [],
       lore: lore.trim() || null,
       description: description.trim() || null,
@@ -73,7 +76,7 @@ export default function CreatureCreator({ classes = [], biologies = [], attuneme
             <div className="crPvAxes crPvAi"><Icon icon="game-icons:sparkles" /> AI picks the typings</div>
           ) : (
             <div className="crPvAxes">
-              <span><Icon icon={ARCHETYPE_ICON[klass] || 'game-icons:gladius'} /> {klass}</span>
+              {humanoid && <span><Icon icon={ARCHETYPE_ICON[klass] || 'game-icons:gladius'} /> {klass}</span>}
               <span><Icon icon={BIOLOGY_ICON[biology] || 'game-icons:dna2'} /> {biology}</span>
               <span style={{ color: ATTUNEMENT_COLOR[att1] }}><Icon icon={ATTUNEMENT_ICON[att1] || 'game-icons:embrace-energy'} /> {atts.join(' / ') || 'Physical'}</span>
             </div>
@@ -98,11 +101,13 @@ export default function CreatureCreator({ classes = [], biologies = [], attuneme
 
           {!aiTypings && (
             <div className="crAxes">
-              <label className="crFld"><span>Archetype</span>
-                <select value={klass} onChange={(e) => setKlass(e.target.value)}>
-                  {classes.map((c) => <option key={c} value={c}>{c}</option>)}
-                </select>
-              </label>
+              {humanoid && (
+                <label className="crFld"><span>Archetype</span>
+                  <select value={klass} onChange={(e) => setKlass(e.target.value)}>
+                    {classes.map((c) => <option key={c} value={c}>{c}</option>)}
+                  </select>
+                </label>
+              )}
               <label className="crFld"><span>Biology</span>
                 <select value={biology} onChange={(e) => setBiology(e.target.value)}>
                   {biologies.map((b) => <option key={b} value={b}>{b}</option>)}

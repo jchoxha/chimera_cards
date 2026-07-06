@@ -40,7 +40,12 @@ const pool = [
 ];
 { const c = makeCreature({ name: 'Emberfang', class: 'Mage', biology: ['Dragonkin'], attunement: ['Fire'], pool, baseHp: 55 });
   ok(c.maxHp === Math.round(55 * 1.3), `Dragonkin HP scaled (${c.maxHp})`);
-  ok(c.class[0] === 'Mage' && c.attunement[0] === 'Fire', 'axes set');
+  // Archetype is HUMANOID-ONLY: a non-humanoid body drops its class.
+  ok(c.class === null && c.attunement[0] === 'Fire', 'non-humanoid → NO archetype; attunement set');
+  const h = makeCreature({ name: 'Adept', class: 'Mage', biology: ['Humanoid'], attunement: ['Fire'], pool, baseHp: 55 });
+  ok(h.class?.[0] === 'Mage', 'Humanoid keeps its archetype');
+  const hy = makeCreature({ name: 'Chimera', class: 'Mage', biology: ['Beast', 'Humanoid'], attunement: ['Fire'], pool, baseHp: 55 });
+  ok(hy.class?.[0] === 'Mage', 'Humanoid HYBRID keeps its archetype');
   // Recipe: 3 Strike + 3 Defend + 1–3 archetype starters (here the pool has 1 common → 7).
   ok(c.deck.length >= 6 && c.deck.length <= 10, `starter deck built (${c.deck.length} cards)`);
   ok(c.deck.every((card) => card.id.includes('#')), 'deck copies have unique instance ids');

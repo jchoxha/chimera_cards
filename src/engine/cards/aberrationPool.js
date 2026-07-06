@@ -18,6 +18,7 @@ export function aberrationFamilyInfo(family) { return ABERRATION_KIT.families[fa
 export function anatomyForAberrationFamily(family) { return ABERRATION_KIT.families[family]?.anatomy ?? []; }
 export function aberrationFamilySignatures(family) { return (ABERRATION_KIT.families[family]?.signatures ?? []).map(clone); }
 export function aberrationAnatomyCards(tag) { return (ABERRATION_KIT.anatomy[tag]?.cards ?? []).map(clone); }
+export function aberrationAnatomyInfo(tag) { return ABERRATION_KIT.anatomy[tag] || null; }
 
 /** Build an aberration's pool: family signatures ∪ each allowed anatomy tag's cluster. */
 export function aberrationPool({ family, anatomy } = {}) {
@@ -27,7 +28,8 @@ export function aberrationPool({ family, anatomy } = {}) {
   const seen = new Set();
   const push = (cards) => { for (const c of cards) if (!seen.has(c.id)) { seen.add(c.id); out.push(c); } };
   push(aberrationFamilySignatures(family));
-  for (const t of tags) push(aberrationAnatomyCards(t));
+  // Feature cards carry their tag as `factor` (see beastPool) for starter coverage.
+  for (const t of tags) push(aberrationAnatomyCards(t).map((c) => ({ ...c, factor: t })));
   return out;
 }
 

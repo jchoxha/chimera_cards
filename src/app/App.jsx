@@ -47,7 +47,7 @@ function buildCustomCreature(def) {
     pool: basePoolFor({ klass: def.class?.[0], biology: def.biology, family: def.family, anatomy: def.anatomy, weapons: def.weapons, subtypes: def.subtypes, signatureCards: def.signatureCards }) });
   // The Editor (admin tool) can attach a hand-built deck; the end-user creator never does.
   if (def.customDeck && def.customDeck.length) c.deck = def.customDeck.map((card) => ({ ...card }));
-  c.blurb = def.lore || def.blurb || `A custom ${(def.attunement || []).join('/')} ${(def.class || []).join('/')}.`;
+  c.blurb = def.lore || def.blurb || `A custom ${(def.attunement || []).join('/')} ${(def.class || def.biology || []).join('/')}.`;
   c.lore = def.lore || null;
   c.description = def.description || null;
   c.signatureCards = def.signatureCards || null;

@@ -41,7 +41,8 @@ export function humanoidWeaponPool(weapons) {
   const out = [];
   const seen = new Set();
   for (const w of arr(weapons)) {
-    for (const c of weaponCards(w)) if (!seen.has(c.id)) { seen.add(c.id); out.push(c); }
+    // Weapon cards carry their weapon as `factor` (see beastPool) for starter coverage.
+    for (const c of weaponCards(w)) if (!seen.has(c.id)) { seen.add(c.id); out.push({ ...c, factor: w }); }
   }
   return out;
 }

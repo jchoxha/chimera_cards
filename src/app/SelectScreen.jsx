@@ -7,13 +7,14 @@
 // ║ creatures (index 0 = vanguard).                                          ║
 // ╚══════════════════════════════════════════════════════════════════╝
 import React, { useState } from 'react';
-import { ARCHETYPE_ICON, BIOLOGY_ICON, ATTUNEMENT_ICON, ATTUNEMENT_COLOR, creatureIcon, creatureColor } from '../data/axisIcons.js';
-import { CardFace, sizeWord } from '../ui/combat/creatureVisuals.jsx';
-import DeckDropdown from '../ui/combat/DeckDropdown.jsx';
+import { creatureColor } from '../data/axisIcons.js';
+import { CardFace } from '../ui/combat/creatureVisuals.jsx';
+import MoveCard from '../ui/combat/MoveCard.jsx';
 import MonsterPage from '../ui/MonsterPage.jsx';
 import TeamManager from '../ui/TeamManager.jsx';
 import { AXIS_INFO, EFFECT_INFO, ATTUNEMENT_SIGNATURE } from '../data/codex.js';
 import { REACTIONS } from '../engine/cards/reactions.js';
+import { factorInfo } from '../data/factorInfo.js';
 import { RARITY_POINTS } from '../engine/types.js';
 import { potentialPool } from './pools.js';
 import '../ui/combat/combat.css';
@@ -45,10 +46,39 @@ function fullPool(c) {
 const MAX = 3;
 const STAT_LABEL = { might: 'MGT', guard: 'GRD', focus: 'FOC', resolve: 'RSV', speed: 'SPD' };
 
-function Axis({ icon, label, color }) {
-  return <span className="selAxis" title={label} style={color ? { color } : undefined}>
-    <iconify-icon icon={icon}></iconify-icon> {label}
-  </span>;
+/** Tabbed card browser (Starting Deck / Full Card Pool), grouped up the rarity ladder. */
+function CardBrowser({ deck = [], pool = [] }) {
+  const [tab, setTab] = useState('deck');
+  const cards = tab === 'deck' ? deck : pool;
+  const byRarity = new Map();
+  for (const c of cards) { const r = c.rarity || 'common'; if (!byRarity.has(r)) byRarity.set(r, []); byRarity.get(r).push(c); }
+  const groups = [...byRarity.entries()].sort((a, b) => (RARITY_POINTS[a[0]] ?? 1) - (RARITY_POINTS[b[0]] ?? 1));
+  return (
+    <div className="cardBrowser">
+      <div className="cbTabs">
+        <button className={`cbTab${tab === 'deck' ? ' on' : ''}`} onClick={() => setTab('deck')}>
+          <iconify-icon icon="game-icons:card-pickup"></iconify-icon> Starting Deck <em>{deck.length}</em>
+        </button>
+        <button className={`cbTab${tab === 'pool' ? ' on' : ''}`} onClick={() => setTab('pool')}>
+          <iconify-icon icon="game-icons:card-random"></iconify-icon> Full Card Pool <em>{pool.length}</em>
+        </button>
+      </div>
+      <div className="cbBody">
+        {cards.length === 0 && <div className="cbEmpty">{tab === 'deck' ? 'Auto-generated from its typings.' : 'No pool — this creature has no kit sources yet.'}</div>}
+        {groups.map(([rarity, list]) => (
+          <div className="cbGroup" key={rarity}>
+            <div className="cbRarity"><span className={`cbDot r-${rarity}`} />{rarity} <em>{list.length}</em></div>
+            <div className="cbGrid">
+              {list.map((c, i) => <MoveCard key={`${c.id}-${i}`} c={c} />)}
+            </div>
+          </div>
+        ))}
+        {tab === 'pool' && cards.length > 0 && (
+          <p className="cbHint">Everything this creature can learn — from its body, kit factors, subtypes and element. Rewards and shops draw from this pool.</p>
+        )}
+      </div>
+    </div>
+  );
 }
 
 export default function SelectScreen({
@@ -124,33 +154,19 @@ export default function SelectScreen({
           </button>
         )}
         {roster.map((c) => {
-          const att = c.attunement?.[0];
           const order = picked.indexOf(c.id);
           const chosen = order >= 0;
           const color = creatureColor(c);
+          // THE creature card — the same CardFace used in combat (no custom tile).
           return (
-            <button key={c.id} className={`selCard${chosen ? ' chosen' : ''}`} onClick={() => setModalId(c.id)}
-              style={{ borderColor: chosen ? color : undefined }}>
-              <div className="selArt" style={{ '--gl': color }}>
-                {c.meta?.portrait
-                  ? <img src={c.meta.portrait} alt="" draggable={false} />
-                  : <iconify-icon class="selIcon" icon={creatureIcon(c)} style={{ color }}></iconify-icon>}
-                {chosen && <span className="selPick">{order === 0 ? '★' : order + 1}</span>}
-              </div>
-              <div className="selName">{(() => { const sw = sizeWord(c.meta?.form ?? c.size); return sw ? `${sw} ` : ''; })()}{c.name}</div>
-              <div className="selAxes">
-                <Axis icon={ARCHETYPE_ICON[c.class?.[0]] || 'game-icons:rosa-shield'} label={c.class?.[0]} />
-                <Axis icon={BIOLOGY_ICON[c.biology?.[0]] || 'game-icons:paw-print'} label={c.biology?.[0]} />
-                <Axis icon={ATTUNEMENT_ICON[att] || 'game-icons:sparkles'} label={att} color={ATTUNEMENT_COLOR[att]} />
-              </div>
-              <div className="selBlurb">{c.blurb}</div>
-              <div className="selStats">
-                <span className="selHp" title="Max HP">❤ {c.maxHp}</span>
-                {Object.entries(STAT_LABEL).map(([k, lbl]) => (
-                  <span key={k} className="selStat" title={k}>{lbl} {c.stats?.[k] ?? (k === 'speed' ? 0 : 1)}</span>
-                ))}
-              </div>
-            </button>
+            <div key={c.id} role="button" tabIndex={0}
+              className={`selCardWrap modalCardWrap${chosen ? ' chosen' : ''}`}
+              style={{ '--gl': color }}
+              onClick={() => setModalId(c.id)}
+              onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') setModalId(c.id); }}>
+              <CardFace f={toFace(c)} side="ally" />
+              {chosen && <span className="selPick">{order === 0 ? '★' : order + 1}</span>}
+            </div>
           );
         })}
       </div>
@@ -162,41 +178,75 @@ export default function SelectScreen({
         const isVan = picked[0] === c.id;
         return (
           <div className="selModalWrap" onClick={() => setModalId(null)}>
-            <div className="selModal" onClick={(e) => e.stopPropagation()}>
+            <div className="selModal big" onClick={(e) => e.stopPropagation()}>
               <button className="selModalClose" onClick={() => setModalId(null)}>✕</button>
-              <div className="modalCardWrap">
-                <CardFace f={toFace(c)} side="ally"
-                  onInfo={(info) => { if (info.kind === 'axis') setSelInfo(info); else if (info.kind === 'effect') setSelInfo({ kind: 'effect', id: info.id }); }}
-                  onName={() => setBestiaryId(c.id)} />
-              </div>
-              <DeckDropdown cards={c.deck || []} label="Starting Deck" empty="Auto-generated from its typings." />
-              <DeckDropdown cards={fullPool(c)} label="Full Card Pool" icon="game-icons:card-random"
-                empty="No pool — this creature has no kit sources yet." />
-              <div className="selModalActions">
-                {inTeam
-                  ? <>
-                      {!isVan && <button className="selBtn" onClick={() => { promote(c.id); }}>★ Make Vanguard</button>}
-                      <button className="selBtn rm" onClick={() => { remove(c.id); setModalId(null); }}>Remove from Team</button>
-                    </>
-                  : <button className="selBtn go" disabled={picked.length >= MAX}
-                      onClick={() => { toggle(c.id); setModalId(null); }}>
-                      {picked.length >= MAX ? 'Team full (max 3)' : 'Add to Team'}
-                    </button>}
-              </div>
-              <div className="selModalSub">
-                <button className="selBtn ghost" onClick={() => setBestiaryId(c.id)}>📖 Bestiary page</button>
-                <button className="selBtn ghost" onClick={() => exportCreature(c)}>⤓ Export</button>
-                {c.custom && onDeleteCustom && (
-                  <button className="selBtn rm" onClick={() => { if (confirm(`Delete custom creature "${c.name}"?`)) { onDeleteCustom(c.id); remove(c.id); setModalId(null); } }}>🗑 Delete</button>
-                )}
+              <div className="selModalCols">
+                <div className="selModalLeft">
+                  <div className="modalCardWrap">
+                    <CardFace f={toFace(c)} side="ally"
+                      onInfo={(info) => {
+                        if (info.kind === 'axis') setSelInfo(info);
+                        else if (info.kind === 'effect') setSelInfo({ kind: 'effect', id: info.id });
+                        else if (info.kind === 'factor') setSelInfo(info);
+                      }}
+                      onName={() => setBestiaryId(c.id)} />
+                  </div>
+                  {c.blurb && <p className="selLore">{c.blurb}</p>}
+                  <div className="selStats center">
+                    <span className="selHp" title="Max HP">❤ {c.maxHp}</span>
+                    {Object.entries(STAT_LABEL).map(([k, lbl]) => (
+                      <span key={k} className="selStat" title={k}>{lbl} {c.stats?.[k] ?? (k === 'speed' ? 0 : 1)}</span>
+                    ))}
+                  </div>
+                  <div className="selModalActions">
+                    {inTeam
+                      ? <>
+                          {!isVan && <button className="selBtn" onClick={() => { promote(c.id); }}>★ Make Vanguard</button>}
+                          <button className="selBtn rm" onClick={() => { remove(c.id); setModalId(null); }}>Remove from Team</button>
+                        </>
+                      : <button className="selBtn go" disabled={picked.length >= MAX}
+                          onClick={() => { toggle(c.id); setModalId(null); }}>
+                          {picked.length >= MAX ? 'Team full (max 3)' : 'Add to Team'}
+                        </button>}
+                  </div>
+                  <div className="selModalSub">
+                    <button className="selBtn ghost" onClick={() => setBestiaryId(c.id)}>📖 Bestiary</button>
+                    <button className="selBtn ghost" onClick={() => exportCreature(c)}>⤓ Export</button>
+                    {c.custom && onDeleteCustom && (
+                      <button className="selBtn rm" onClick={() => { if (confirm(`Delete custom creature "${c.name}"?`)) { onDeleteCustom(c.id); remove(c.id); setModalId(null); } }}>🗑 Delete</button>
+                    )}
+                  </div>
+                  <p className="selTapHint">Tap the name for its bestiary page · tap a kit icon for the moves it grants.</p>
+                </div>
+                <div className="selModalRight">
+                  <CardBrowser deck={c.deck || []} pool={fullPool(c)} />
+                </div>
               </div>
             </div>
           </div>
         );
       })()}
 
-      {/* Nested axis / status info popup (over the creature modal) */}
+      {/* Nested axis / status / factor info popup (over the creature modal) */}
       {selInfo && (() => {
+        if (selInfo.kind === 'factor') {
+          const fi = factorInfo(selInfo.tag);
+          return (
+            <div className="selModalWrap" style={{ zIndex: 70 }} onClick={() => setSelInfo(null)}>
+              <div className="selInfoBox wide" onClick={(ev) => ev.stopPropagation()}>
+                <button className="selModalClose" onClick={() => setSelInfo(null)}>✕</button>
+                <h3><Icon icon={fi?.icon || 'game-icons:paw-print'} /> {selInfo.tag} <span className="selKind">{fi?.kindLabel || ''}</span></h3>
+                <p>{fi?.theme || 'No details for this trait yet.'}</p>
+                {fi?.cards?.length > 0 && (
+                  <>
+                    <div className="cbGrid">{fi.cards.map((cc) => <MoveCard key={cc.id} c={cc} />)}</div>
+                    <p className="cbHint">These moves join the creature’s card pool because of this {fi.kind === 'weapon' ? 'weapon' : 'trait'}.</p>
+                  </>
+                )}
+              </div>
+            </div>
+          );
+        }
         if (selInfo.kind === 'effect') {
           const e = EFFECT_INFO[selInfo.id] || { name: selInfo.id, icon: 'game-icons:hazard-sign', desc: '' };
           return (

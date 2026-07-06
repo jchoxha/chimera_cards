@@ -247,7 +247,11 @@ export function CardFace({ f, side, matchup, onEffect, onInfo, onName, extraClas
                 : <span />}
               <span className="factorRow">
                 {factors.map((fac) => (
-                  <span key={fac.key} className="factorIcon" title={fac.label}><Icon icon={fac.icon} /></span>
+                  <button key={fac.key} className={`factorIcon${onInfo ? ' clickable' : ''}`}
+                    title={`${fac.label} — tap for its moves`}
+                    onClick={onInfo ? (e) => { e.stopPropagation(); onInfo({ kind: 'factor', tag: fac.label }); } : undefined}>
+                    <Icon icon={fac.icon} />
+                  </button>
                 ))}
               </span>
             </div>

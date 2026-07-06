@@ -42,15 +42,33 @@ export default function TeamManager({ members = [], onReorder, onRemove, onSelec
   const cardEls = useRef(new Map());         // id → card element (for FLIP)
   useFlip(ids.join(','), cardEls);           // slide cards to new slots when the order changes
 
-  const reorderTo = (movingId, targetId) => {
-    if (!movingId || movingId === targetId) return;
+  const reorderToIndex = (movingId, to) => {
     const cur = ids.slice();
     const from = cur.indexOf(movingId);
-    const to = cur.indexOf(targetId);
-    if (from < 0 || to < 0) return;
+    if (from < 0 || to === from) return false;
     cur.splice(from, 1);
-    cur.splice(to, 0, movingId);
+    cur.splice(Math.max(0, Math.min(to, cur.length)), 0, movingId);
     onReorder && onReorder(cur);
+    return true;
+  };
+
+  /** Where the dragged card WANTS to sit: count the other cards whose center
+   *  precedes the cursor in reading order (row above, or same row and left of it).
+   *  Index-based (not element-under-cursor), so ANY slot — including the vanguard
+   *  slot — can be taken, and dragging back and forth re-reorders freely. */
+  const desiredIndex = (movingId, x, y) => {
+    let idx = 0;
+    for (const id of ids) {
+      if (id === movingId) continue;
+      const el = cardEls.current.get(id);
+      if (!el || !el.isConnected) continue;
+      const r = el.getBoundingClientRect();
+      if (!r.width) continue;
+      const cy = r.top + r.height / 2;
+      const before = (cy < y - r.height / 2) || (Math.abs(cy - y) <= r.height / 2 && r.left + r.width / 2 < x);
+      if (before) idx += 1;
+    }
+    return idx;
   };
 
   function onPointerDown(e, id) {
@@ -66,17 +84,13 @@ export default function TeamManager({ members = [], onReorder, onRemove, onSelec
     g.x = e.clientX; g.y = e.clientY;
     if (!g.moved && Math.hypot(e.clientX - g.startX, e.clientY - g.startY) > DRAG_THRESHOLD) g.moved = true;
     if (g.moved) {
-      const el = document.elementFromPoint(e.clientX, e.clientY);
-      const dz = el && el.closest ? el.closest('[data-tmid]') : null;
-      g.overId = dz ? dz.getAttribute('data-tmid') : null;
-      // LIVE reorder: as the ghost passes over another card, slot the dragged card
-      // there so the row reflows (FLIP animates the slide). Guard against re-firing
-      // on the same target each frame.
-      if (g.overId && g.overId !== g.id && g.overId !== g.lastOver) {
-        g.lastOver = g.overId;
-        reorderTo(g.id, g.overId);
-      } else if (!g.overId) {
-        g.lastOver = null;
+      // LIVE reorder to the cursor's insertion index. A short cooldown lets the
+      // FLIP slide (170ms) settle before re-measuring, so mid-animation rects
+      // can't thrash the order back and forth.
+      const now = performance.now();
+      if (!g.lastReorderAt || now - g.lastReorderAt > 190) {
+        const to = desiredIndex(g.id, e.clientX, e.clientY);
+        if (reorderToIndex(g.id, to)) g.lastReorderAt = now;
       }
     }
     setD({ ...g });

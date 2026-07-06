@@ -75,6 +75,25 @@ assembly pool view** — the creature modal shows "Starting Deck" + "Full Card P
 word ("Large Ironhide") shows on MiniFighter rails + the select grid; HP/Might form scaling was
 already live in the generator.
 
+**🃏 ASSEMBLY + FACTORS PASS (v3.99.0, 2026-07-06, Jeton):** (1) **Archetype is HUMANOID-ONLY,
+ENFORCED** — `makeCreature` nulls `class` for any biology without Humanoid (the universal gate);
+also nulled in `inferTypings`/`sanitizeForgedDef`; CreatureCreator + MonsterEditor hide the
+archetype picker for non-humanoids; MonsterPage shows "Instinctive"; the dummy is now an
+Aberration/Construct. `test:generate` asserts it (17). (2) **Factors are mechanically real** —
+kit loaders stamp `card.factor` (anatomy tag / weapon / feature); `starterDeck` signature pick is
+factor-aware (2 pool-head commons → one common per uncovered factor → fill; 4 sig slots), so a
+Venom beast STARTS with a venom move. `data/factorInfo.js` `factorInfo(tag)` = kind + theme +
+cards; CardFace factor icons are 22px buttons → `onInfo({kind:'factor'})` handled in CombatScreen
++ SelectScreen (popup shows the granted moves). (3) **Team assembly uses THE creature card** —
+the roster grid renders CardFace tiles (`.selCardWrap.modalCardWrap`, sideTag hidden); the
+creature modal is a BIG two-pane (`.selModal.big`, card+lore+stats left / `CardBrowser` right:
+Starting Deck ⁄ Full Card Pool tabs, rarity-grouped with headers). (4) **Drag fixes** —
+TeamManager live reorder is INSERTION-INDEX based (reading-order midpoints + 190ms FLIP cooldown;
+fixes the lastOver oscillation lock, vanguard slot freely takeable); the combat hand RE-FANS over
+the visible cards while one is lifted (fan computed over non-dragged cards). (5) Bugfix:
+`targetHpPctBelow` authored as percent (50) in kits vs fraction (0.5) in engine — normalized in
+`effectRegistry` + cardText ("5000% HP" / always-on Execute bonus fixed).
+
 **🧬 PRIOR FRAMING (2026-06-27) — BIOLOGY SELECTS THE KIT SYSTEM.**
 The **archetype/Class system (Warrior/Rogue/Mage/…) applies ONLY to Humanoids**; every other
 biology gets its own native kit system, so **Biology is the primary card-pool selector**

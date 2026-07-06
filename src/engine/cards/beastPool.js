@@ -37,6 +37,11 @@ export function anatomyCards(tag) {
   return (BEAST_KIT.anatomy[tag]?.cards ?? []).map(clone);
 }
 
+/** Anatomy tag metadata { theme, cards[] } (or null for an unknown tag). */
+export function anatomyInfo(tag) {
+  return BEAST_KIT.anatomy[tag] || null;
+}
+
 /**
  * Build a beast's potential pool: family signatures ∪ the card clusters of every
  * anatomy tag the creature has. Unknown/disallowed anatomy is filtered out (an
@@ -51,7 +56,9 @@ export function beastPool({ family, anatomy } = {}) {
   const seen = new Set();
   const push = (cards) => { for (const c of cards) if (!seen.has(c.id)) { seen.add(c.id); out.push(c); } };
   push(familySignatures(family));
-  for (const t of tags) push(anatomyCards(t));
+  // Anatomy cards carry their tag as `factor` so the starter-deck recipe can
+  // guarantee each body part contributes a move (kit differentiation, not flavor).
+  for (const t of tags) push(anatomyCards(t).map((c) => ({ ...c, factor: t })));
   return out;
 }
 

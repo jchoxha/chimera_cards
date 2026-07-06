@@ -73,7 +73,10 @@ export default function MonsterPage({ creature, entry }) {
       </div>
 
       <div className="mpAxes">
-        <Axis axis="class" val={m.klass[0]} ic={ARCHETYPE_ICON[m.klass[0]] || 'game-icons:gladius'} />
+        {m.klass[0]
+          ? <Axis axis="class" val={m.klass[0]} ic={ARCHETYPE_ICON[m.klass[0]] || 'game-icons:gladius'} />
+          : <Axis axis="class" val="Instinctive" ic={m.biology.includes('Aberration') ? 'game-icons:eyestalk' : 'game-icons:beast-eye'}
+              extra="No trained archetype — its moves come from its biology" />}
         <Axis axis="biology" val={biologyDisplayName(m.biology, m.family ? [m.family] : [], m.subtypes) || m.biology[0]}
           ic={BIOLOGY_ICON[m.biology[0]] || 'game-icons:dna2'}
           extra={(() => { const sf = specialFactors(m); return sf.length ? sf.map((f) => f.label).join(' · ') : null; })()} />
@@ -110,7 +113,7 @@ export default function MonsterPage({ creature, entry }) {
         <div className="mpSection">
           <div className="mpSecHead"><Icon icon="game-icons:scroll-quill" /> Field Notes</div>
           <p>
-            A {m.klass[0] || 'creature'} of {m.biology[0] || 'unknown'} stock, attuned to {att || 'no element'}.
+            {m.klass[0] ? `A ${m.klass[0]}` : 'An instinct-driven creature'} of {m.biology[0] || 'unknown'} stock, attuned to {att || 'no element'}.
             Its {att || 'elemental'} attacks inflict <b>{(att && ATTUNEMENT_SIGNATURE[att]) || 'no signature status'}</b>.
             {m.blurb ? ` ${m.blurb}` : ''}
           </p>

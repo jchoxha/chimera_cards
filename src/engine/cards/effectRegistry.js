@@ -119,7 +119,9 @@ export function condMet(cond, env) {
   }
   if (cond.stance != null) return stanceOf(env.caster) === cond.stance;
   if (cond.targetHpPctBelow != null && env.target) {
-    return env.target.maxHp > 0 && env.target.hp / env.target.maxHp < cond.targetHpPctBelow;
+    // Authored as EITHER a fraction (0.5) or a percent (50) — normalize.
+    const th = cond.targetHpPctBelow > 1 ? cond.targetHpPctBelow / 100 : cond.targetHpPctBelow;
+    return env.target.maxHp > 0 && env.target.hp / env.target.maxHp < th;
   }
   return false;
 }
