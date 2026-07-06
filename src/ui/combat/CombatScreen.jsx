@@ -12,13 +12,7 @@
 // ║ Reads ONLY the engine snapshot from combatStore.                    ║
 // ║ UPDATE WHEN: combat UX changes. Not the final Phaser view.          ║
 // ╚══════════════════════════════════════════════════════════════════╝
-import React, { useCallback, useEffect, useRef, useState } from 'react';
-import {
-  DndContext, DragOverlay, PointerSensor, TouchSensor, useSensor, useSensors,
-  useDroppable, pointerWithin,
-} from '@dnd-kit/core';
-import { SortableContext, useSortable, horizontalListSortingStrategy } from '@dnd-kit/sortable';
-import { CSS } from '@dnd-kit/utilities';
+import React, { useEffect, useRef, useState } from 'react';
 import { useCombat } from '../../store/combatStore.js';
 import { ELEMENT_COLOR } from '../../systems/elements.jsx';
 import { computeMatchup } from '../../engine/content/matchups.js';
@@ -34,6 +28,7 @@ import { factorInfo } from '../../data/factorInfo.js';
 import MonsterPage from '../MonsterPage.jsx';
 import { CardFace, MiniStatus, ELEMENT_ICON, powerLabel, powerIcon, sizeWord } from './creatureVisuals.jsx';
 import DeckDropdown from './DeckDropdown.jsx';
+import HandFan from './HandFan.jsx';
 import './combat.css';
 
 const INTENT_ICON = {
@@ -266,17 +261,6 @@ function cardTargetSide(c) {
   return 'ally';
 }
 
-function scopeHint(c) {
-  const sc = cardScope(c);
-  if (/enemyActive/i.test(sc)) return 'can only target the enemy vanguard';
-  if (/friendlyActive|selfOnly/i.test(sc)) return 'can only target your active vanguard';
-  if (/flexEnemy|enemyBench|piercingEnemy/i.test(sc)) return 'can target any foe';
-  if (/flexFriendly|friendlyBench|piercingFriendly/i.test(sc)) return 'can target any ally';
-  if (/anyActive/i.test(sc)) return 'can target either vanguard';
-  if (/^any/i.test(sc)) return 'can target anyone';
-  return cardTargetSide(c) === 'enemy' ? 'can only target the enemy vanguard' : 'can only target your vanguard';
-}
-
 function MiniCard({ c, onClick }) {
   const f = frameStyle({ element: c.element, rarity: c.rarity });
   return (
@@ -294,79 +278,22 @@ function MiniCard({ c, onClick }) {
 }
 
 function AllyCard({ m, droppable, dropHover, dropInvalid, onEffect, onInfo }) {
-  const { setNodeRef } = useDroppable({ id: m.id, data: { kind: 'unit' } });
   const extra = `${droppable ? ' droppable' : ''}${dropHover ? ' dropHover' : ''}${dropInvalid ? ' dropInvalid' : ''}`;
-  return <CardFace f={m} side="ally" onEffect={onEffect} onInfo={onInfo} extraClass={extra} dataId={m.id} dataSide="ally" rootRef={setNodeRef} />;
+  return <CardFace f={m} side="ally" onEffect={onEffect} onInfo={onInfo} extraClass={extra} dataId={m.id} dataSide="ally" />;
 }
 
 function FoeCard({ e, matchup, droppable, dropHover, dropInvalid, onEffect, onInfo }) {
-  const { setNodeRef } = useDroppable({ id: e.id, data: { kind: 'unit' } });
   const extra = `${droppable ? ' droppable' : ''}${dropHover ? ' dropHover' : ''}${dropInvalid ? ' dropInvalid' : ''}`;
-  return <CardFace f={e} side="enemy" matchup={matchup} onEffect={onEffect} onInfo={onInfo} extraClass={extra} dataId={e.id} dataSide="enemy" rootRef={setNodeRef} />;
-}
-
-/** A benched/rail mini that is also a drop target for cards (id namespaced `m:` so
- *  the active unit's big card + its mini don't clash on the same droppable id). */
-function DroppableMini(props) {
-  const { setNodeRef } = useDroppable({ id: `m:${props.f.id}`, data: { kind: 'unit' } });
-  return <MiniFighter {...props} dropRef={setNodeRef} />;
-}
-/** Resolve a droppable id (unit id, or a `m:`-prefixed mini) back to the unit id. */
-const unitIdOf = (dropId) => (typeof dropId === 'string' && dropId.startsWith('m:') ? dropId.slice(2) : dropId);
-
-/** A hand card as a @dnd-kit sortable item. The OUTER node is the sortable slot
- *  (@dnd-kit owns its transform for the reorder shift); the INNER `.move` owns the
- *  fan pose + deal-in fly-in + hover lift, so those animations never fight the
- *  library's transform. Dragging reorders the hand (siblings shift) or, dropped on
- *  a unit, plays it — the parent decides on drop. A tap (distance activation) opens
- *  the card's info. `i`/`n` place it in the fan; `dealKey` re-triggers the fly-in. */
-function SortableHandCard({ c, i, n, unplayable, effCost, taxed, shockTax, onTap, dealKey, collapsed }) {
-  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
-    id: c.id, data: { kind: 'card' },
-    transition: { duration: 240, easing: 'cubic-bezier(.2,0,0,1)' },   // smooth brush-past, not a snap
-  });
-  const f = frameStyle({ element: c.element, rarity: c.rarity });
-  const mid = (n - 1) / 2;
-  const rot = (i - mid) * 5;                 // fan angle
-  const lift = Math.abs(i - mid) * 5;        // arc: outer cards ride lower
-  const slotStyle = {
-    transform: CSS.Transform.toString(transform),   // @dnd-kit reorder shift (outer only)
-    // animate both the reorder transform AND the collapse (width/margin) so the
-    // hand closes smoothly when the card is dragged away and re-opens on return.
-    transition: [transition, 'width .19s ease', 'margin .19s ease'].filter(Boolean).join(', '),
-    opacity: isDragging ? 0 : 1,                     // the DragOverlay shows the lifted card
-    zIndex: isDragging ? 30 : undefined,
-    touchAction: 'none',
-    // dragged clear of the hand → collapse this slot to nothing so the ranks close
-    ...(collapsed ? { width: 0, minWidth: 0, margin: 0, overflow: 'hidden' } : null),
-  };
-  return (
-    <div ref={setNodeRef} className="moveSlot" style={slotStyle}
-      {...attributes} {...listeners} onClick={() => onTap(c)}
-      title={`${c.name} — drag to play / reorder, tap for info`}>
-      <div key={`${dealKey}-${c.id}`}
-        className={`frame move dealIn ${f.finish}${unplayable ? ' unplayable' : ''}${!unplayable ? ' playable' : ''}`}
-        style={{ background: f.background, '--fanT': `translateY(${lift}px) rotate(${rot}deg)`, transform: 'var(--fanT)', animationDelay: `${i * 60}ms` }}>
-        {f.holo && <div className="holo" />}
-        <div className={`cost${taxed ? ' taxed' : ''}`} title={taxed ? `${c.cost} + ${shockTax} Shock tax` : undefined}>{c.cost === -1 ? 'X' : c.cost === -2 ? '—' : effCost}</div>
-        <div className="inner">
-          <div className={`micon ${cardKind(c)}`}><MoveArt c={c} /></div>
-          <div className="mn">{c.name}</div>
-          <div className="mt">{describe(c)}</div>
-        </div>
-      </div>
-    </div>
-  );
+  return <CardFace f={e} side="enemy" matchup={matchup} onEffect={onEffect} onInfo={onInfo} extraClass={extra} dataId={e.id} dataSide="enemy" />;
 }
 
 // ── mini-fighter (side columns) ─────────────────────────────────────────────────
 
-function MiniFighter({ f, side, vanguard, swapCost, swappable, droppable, dropHover, dropInvalid, planActions, onAction, onClick, dropRef }) {
+function MiniFighter({ f, side, vanguard, swapCost, swappable, droppable, dropHover, dropInvalid, planActions, onAction, onClick }) {
   const dead = f.hp <= 0;
   const pct = Math.max(0, (f.hp / f.maxHp) * 100);
   return (
     <div
-      ref={dropRef}
       data-drop-id={f.id}
       data-drop-side={side}
       className={`mf ${side}${vanguard ? ' vanguard' : ''}${dead ? ' dead' : ''}${swappable ? ' swappable' : ''}${droppable ? ' droppable' : ''}${dropHover ? ' dropHover' : ''}${dropInvalid ? ' dropInvalid' : ''}`}
@@ -508,29 +435,10 @@ export default function CombatScreen({ onMenu, onRestart, embedded, onCodex } = 
   const setInfo = (x) => setInfoStack((s) => (x ? [...s, x] : s.slice(0, -1)));
   const [kwTerm, setKwTerm] = useState(null);  // glossary keyword selected inside the card modal
   const [notice, setNotice] = useState(null);
-  // ── @dnd-kit drag state: which hand card is lifted, what it's over, its legal
-  // targets. A card is a SORTABLE item (drop on the hand → reorder) and units are
-  // DROPPABLE (drop on one → play). Tap (no drag) opens info via the click handler. ──
-  const [activeId, setActiveId] = useState(null);   // dragged hand card id (null = idle)
-  const [overId, setOverId] = useState(null);       // droppable currently under the card
-  const [validIds, setValidIds] = useState(null);   // Set of unit ids this card may target
-  const sensors = useSensors(
-    useSensor(PointerSensor, { activationConstraint: { distance: 6 } }),   // <6px = a tap
-    useSensor(TouchSensor, { activationConstraint: { delay: 120, tolerance: 8 } }),
-  );
-  // Pointer-based collision ONLY: the card targets a UNIT the pointer is over
-  // (→ play), else reorders against a hand card the pointer is over (→ shuffle),
-  // else nothing. Using pointerWithin (not closestCenter) means lifting a card UP
-  // toward a target leaves the hand alone — it doesn't reshuffle during transit.
-  const collisionDetection = useCallback((args) => {
-    const containers = args.droppableContainers;   // DroppableContainer[] (an array, not a Map)
-    const kindOf = (id) => containers.find((c) => c.id === id)?.data?.current?.kind;
-    const hits = pointerWithin(args);
-    const overUnit = hits.find((h) => kindOf(h.id) === 'unit');
-    if (overUnit) return [overUnit];
-    const overCard = hits.find((h) => kindOf(h.id) === 'card');
-    return overCard ? [overCard] : [];
-  }, []);
+  // Live hand-drag state reported by HandFan (react-spring/use-gesture) — only used
+  // to HIGHLIGHT which unit the lifted card is hovering. The physics/reorder/play
+  // all live inside HandFan; CombatScreen just reacts to the reported drag.
+  const [handDrag, setHandDrag] = useState(null);   // { dragId, overUnitId, valid } | null
   const [floaters, setFloaters] = useState([]);  // transient floating damage/heal/block numbers
   const seenRef = useRef(0);                      // # of log events already turned into floaters
   const [turnBanner, setTurnBanner] = useState(null);  // transient "YOUR TURN" / "ENEMY TURN" sweep
@@ -672,48 +580,36 @@ export default function CombatScreen({ onMenu, onRestart, embedded, onCodex } = 
     return ids;
   }
 
-  // ── @dnd-kit handlers ─────────────────────────────────────────────────────────
-  const handById = new Map(hand.map((c) => [c.id, c]));
   const cardUnplayable = (c) => {
     if (!c) return true;
     const shockTax = player.shockTax || 0;
     const effCost = (c.cost === -1 || c.cost === -2) ? c.cost : c.cost + shockTax;
     return !isPlayerTurn || c.cost === -2 || (c.cost !== -1 && effCost > player.energy);
   };
-  const onDragStart = ({ active }) => {
-    const card = handById.get(active.id);
-    setActiveId(active.id);
-    setOverId(null);
-    setValidIds(card ? validTargetIds(card) : null);
+  // HandFan callbacks + drop-highlight state.
+  const onPlayCard = (cardId, targetId) => play(cardId, { targetId });
+  const onReorderCard = (cardId, toIndex) => reorderHand(cardId, toIndex);
+  // Reaction forecast surfaced on the lifted card when it's over a valid target.
+  const reactionForecast = (card, unitId) => {
+    if (cardKind(card) !== 'atk') return [];
+    const tgt = [...enemy.fighters, ...player.fighters].find((f) => f.id === unitId);
+    const fx = tgt ? forecastReactions(tgt, cardEl(card)) : [];
+    return fx.map((r) => {
+      const bits = [];
+      if (r.damage) bits.push(`${r.damage} dmg`);
+      if (r.heal) bits.push(`heal ${r.heal}`);
+      for (const a of r.applied) bits.push(`${EFFECT_INFO[a.id]?.name || a.id} +${a.amount}${a.spread ? ' (spread)' : ''}`);
+      return { verb: r.verb, bits: bits.join(', ') };
+    });
   };
-  const onDragOver = ({ over }) => setOverId(over?.id ?? null);
-  const onDragCancel = () => { setActiveId(null); setOverId(null); setValidIds(null); };
-  const onDragEnd = ({ active, over }) => {
-    const card = handById.get(active.id);
-    setActiveId(null); setOverId(null); setValidIds(null);
-    if (!over || !card) return;
-    const kind = over.data?.current?.kind;
-    if (kind === 'unit') {
-      const target = unitIdOf(over.id);
-      if (!cardUnplayable(card) && validTargetIds(card).has(target)) play(card.id, { targetId: target });
-      else if (!cardUnplayable(card)) setNotice(`${card.name} ${scopeHint(card)}.`);
-      return;
-    }
-    // over a hand card → reorder to that card's slot
-    if (over.id !== active.id) {
-      const to = hand.findIndex((c) => c.id === over.id);
-      if (to >= 0) reorderHand(card.id, to);
-    }
-  };
-
-  // Drop-highlight state derived from the live drag (units glow when targetable).
-  const draggingCard = activeId ? handById.get(activeId) : null;
-  const overUnitId = overId ? unitIdOf(overId) : null;
-  const canTarget = (uid) => !!validIds && validIds.has(uid);
+  const draggingCardId = handDrag?.dragId ?? null;
+  const overUnitId = handDrag?.overUnitId ?? null;
+  const draggingCard = draggingCardId ? hand.find((c) => c.id === draggingCardId) : null;
+  const dragValidIds = draggingCard ? validTargetIds(draggingCard) : null;
   const dropProps = (uid) => ({
-    droppable: !!draggingCard && canTarget(uid),
-    dropHover: overUnitId === uid && canTarget(uid),
-    dropInvalid: overUnitId === uid && !!draggingCard && !canTarget(uid),
+    droppable: !!dragValidIds && dragValidIds.has(uid),   // all legal targets glow while dragging
+    dropHover: overUnitId === uid && !!handDrag?.valid,
+    dropInvalid: overUnitId === uid && !handDrag?.valid,
   });
 
   return (
@@ -727,15 +623,13 @@ export default function CombatScreen({ onMenu, onRestart, embedded, onCodex } = 
         <span className="pill ver clickable" onClick={() => setInfo({ kind: 'changelog' })} title="View changelog">{APP_VERSION}</span>
       </div>
 
-      <DndContext sensors={sensors} collisionDetection={collisionDetection}
-        onDragStart={onDragStart} onDragOver={onDragOver} onDragEnd={onDragEnd} onDragCancel={onDragCancel}>
       <div className="arena">
         {/* LEFT: foes · enemy-intent button (forecast lives in a modal now) */}
         <div className="sideCol foesCol">
           <div className="colHead"><Icon icon="game-icons:daemon-skull" /> Foes</div>
           <div className="miniList">
             {allEnemies.map((e) => (
-              <DroppableMini
+              <MiniFighter
                 key={e.id}
                 f={e}
                 side="enemy"
@@ -775,38 +669,19 @@ export default function CombatScreen({ onMenu, onRestart, embedded, onCodex } = 
           </div>
 
           <div className="handWrap">
-            <SortableContext items={hand.map((c) => c.id)} strategy={horizontalListSortingStrategy}>
-              <div className="hand">
-                {(() => {
-                  // "Away" = a card is being dragged but the pointer is NOT over a
-                  // hand card (it's over a unit or empty space) → collapse its slot.
-                  const overIsCard = overId != null && hand.some((c) => c.id === overId);
-                  const dragAway = !!activeId && !overIsCard;
-                  return hand.map((c, i) => {
-                    // Effective cost includes the Shock tax (+1 energy per Shocked ally).
-                    const shockTax = player.shockTax || 0;
-                    const effCost = (c.cost === -1 || c.cost === -2) ? c.cost : c.cost + shockTax;
-                    const taxed = shockTax > 0 && c.cost >= 0;
-                    const unplayable = cardUnplayable(c);
-                    return (
-                      <SortableHandCard
-                        key={c.id}
-                        c={c}
-                        i={i}
-                        n={hand.length}
-                        dealKey={dealKey}
-                        collapsed={c.id === activeId && dragAway}
-                        unplayable={unplayable}
-                        effCost={effCost}
-                        taxed={taxed}
-                        shockTax={shockTax}
-                        onTap={openCard}
-                      />
-                    );
-                  });
-                })()}
-              </div>
-            </SortableContext>
+            <HandFan
+              cards={hand}
+              dealKey={dealKey}
+              disabled={!isPlayerTurn || !!enemyActing}
+              shockTax={player.shockTax || 0}
+              unplayableOf={cardUnplayable}
+              validTargetIdsOf={validTargetIds}
+              onPlay={onPlayCard}
+              onReorder={onReorderCard}
+              onTap={openCard}
+              onDragState={setHandDrag}
+              reactionForecast={reactionForecast}
+            />
           </div>
           <div className="playHint">
             {isPlayerTurn
@@ -824,7 +699,7 @@ export default function CombatScreen({ onMenu, onRestart, embedded, onCodex } = 
               const swapCost = player.manualSwapsThisTurn + 1;
               const swappable = !active && m.hp > 0 && isPlayerTurn && player.energy >= swapCost;
               return (
-                <DroppableMini
+                <MiniFighter
                   key={m.id}
                   f={m}
                   side="ally"
@@ -861,54 +736,6 @@ export default function CombatScreen({ onMenu, onRestart, embedded, onCodex } = 
           </div>
         </div>
       </div>
-
-      {/* the lifted card follows the cursor (dnd-kit renders it in a fixed layer) */}
-      <DragOverlay dropAnimation={{ duration: 180, easing: 'cubic-bezier(.2,.9,.3,1.2)' }}>
-        {draggingCard ? (() => {
-          const f = frameStyle({ element: draggingCard.element, rarity: draggingCard.rarity });
-          const onTarget = !cardUnplayable(draggingCard) && overUnitId && canTarget(overUnitId);
-          const overHand = overId != null && !overUnitId;
-          const badTarget = overUnitId && !canTarget(overUnitId);
-          const hint = onTarget ? 'Release to play'
-            : overHand ? 'Release to reorder'
-              : cardUnplayable(draggingCard) ? 'Not enough energy'
-                : badTarget ? 'Invalid target'
-                  : 'Drag onto a target';
-          const tgt = onTarget ? [...enemy.fighters, ...player.fighters].find((x) => x.id === overUnitId) : null;
-          const fx = tgt && cardKind(draggingCard) === 'atk' ? forecastReactions(tgt, cardEl(draggingCard)) : [];
-          return (
-            <div className="dragOverlayCard">
-              <div className={`frame move dragging-overlay ${f.finish}`} style={{ background: f.background }}>
-                {f.holo && <div className="holo" />}
-                <div className="cost">{draggingCard.cost === -1 ? 'X' : draggingCard.cost === -2 ? '—' : draggingCard.cost}</div>
-                <div className="inner">
-                  <div className={`micon ${cardKind(draggingCard)}`}><MoveArt c={draggingCard} /></div>
-                  <div className="mn">{draggingCard.name}</div>
-                  <div className="mt">{describe(draggingCard)}</div>
-                </div>
-              </div>
-              <div className={`dragHint${badTarget ? ' bad' : ''}`}>{hint}</div>
-              {fx.length > 0 && (
-                <div className="dragReact">
-                  {fx.map((r, i) => {
-                    const bits = [];
-                    if (r.damage) bits.push(`${r.damage} dmg`);
-                    if (r.heal) bits.push(`heal ${r.heal}`);
-                    for (const a of r.applied) bits.push(`${EFFECT_INFO[a.id]?.name || a.id} +${a.amount}${a.spread ? ' (spread)' : ''}`);
-                    return (
-                      <div className="rx" key={i}>
-                        <Icon icon={ATTUNEMENT_ICON[r.element] || 'game-icons:fire'} style={{ color: ATTUNEMENT_COLOR[r.element] }} />
-                        <b>{r.verb}</b>{bits.length ? <span> · {bits.join(', ')}</span> : null}
-                      </div>
-                    );
-                  })}
-                </div>
-              )}
-            </div>
-          );
-        })() : null}
-      </DragOverlay>
-      </DndContext>
 
       {notice && <div className="toast"><Icon icon="game-icons:cancel" /> {notice}</div>}
 

@@ -275,24 +275,22 @@ html:has(.cmbt),body:has(.cmbt){height:100%;margin:0;overflow:hidden}
   color:#bfe0ff;font-family:'Cinzel',serif;font-weight:700;font-size:11px;padding:2px 7px;border-radius:8px;
   display:flex;align-items:center;gap:4px}
 
-/* ---------- center: hand (fanned move cards) ---------- */
+/* ---------- center: hand (SPRING-PHYSICS fan — HandFan.jsx) ---------- */
 .handWrap{flex:0 0 auto;display:flex;justify-content:center;align-items:flex-end;
   height:clamp(132px,22vh,176px)}
-.hand{display:flex;align-items:flex-end;padding:0 12px}
-/* the sortable SLOT: @dnd-kit owns its transform for the reorder shift. Layout +
-   pointer live here; the inner .move carries the fan/deal-in/hover transforms. */
-.moveSlot{flex:0 0 auto;width:clamp(82px,9vw,100px);margin:0 -8px;position:relative;
-  cursor:grab;touch-action:none;user-select:none;-webkit-user-select:none}
-.moveSlot .move{width:100%;margin:0;transform-origin:bottom center;position:relative;
-  transition:transform .18s ease, filter .18s ease;pointer-events:none}
-.moveSlot .move.unplayable{filter:grayscale(.7) brightness(.7)}
-.moveSlot.unplayable{cursor:default}
-/* hover lift — !important is SAFE here: @dnd-kit's transform is on the OUTER slot,
-   this only overrides the inner card's resting fan pose. */
-.moveSlot:hover .move:not(.unplayable){transform:translateY(-22px) scale(1.07)!important;
-  filter:drop-shadow(0 14px 22px #000b);z-index:9}
-/* gentle invitation that a card can be played this turn */
-.moveSlot .move.playable .cost{box-shadow:0 2px 6px #000a,0 0 0 2px var(--goldB),0 0 10px #ffd34d88}
+/* the fan is a relative box; each .handCard is absolutely centred and positioned by
+   its react-spring transform (translate/rotate/scale) — no flex layout to fight. */
+.handFan{position:relative;width:100%;height:100%}
+.handCard{position:absolute;left:50%;bottom:6px;width:clamp(82px,9vw,100px);margin-left:calc(clamp(82px,9vw,100px) / -2);
+  transform-origin:bottom center;cursor:grab;touch-action:none;user-select:none;-webkit-user-select:none;
+  will-change:transform}
+.handCard.unplayable{filter:grayscale(.7) brightness(.7)}
+.handCard.lifted{cursor:grabbing}
+/* a playable card's cost gem glows to invite a play this turn */
+.handCard.playable .cost{box-shadow:0 2px 6px #000a,0 0 0 2px var(--goldB),0 0 10px #ffd34d88}
+/* hint + reaction forecast float above the lifted card */
+.handHintWrap{position:absolute;left:50%;bottom:100%;transform:translateX(-50%);margin-bottom:6px;
+  display:flex;flex-direction:column;align-items:center;gap:4px;pointer-events:none;white-space:nowrap}
 
 /* ---------- drag-to-target ---------- */
 .droppable{outline:2px dashed #ffd34daa;outline-offset:3px;border-radius:14px;
@@ -305,10 +303,7 @@ html:has(.cmbt),body:has(.cmbt){height:100%;margin:0;overflow:hidden}
 .mf.droppable{outline-offset:2px;padding:8px 9px;transform:scale(1.03);transition:transform .12s,padding .12s}
 .mf.dropHover{transform:scale(1.06)}
 @keyframes dropPulse{0%,100%{outline-color:#ffd34d66}50%{outline-color:#ffd34dee}}
-/* @dnd-kit DragOverlay: the lifted card the library floats under the cursor.
-   Width matches a hand card so it never squishes; it lifts + tilts slightly. */
-.dragOverlayCard{width:clamp(88px,9.5vw,108px);pointer-events:none;filter:drop-shadow(0 16px 26px #000d);cursor:grabbing}
-.dragOverlayCard .move.dragging-overlay{width:100%;margin:0;transform:rotate(-3deg) scale(1.06);cursor:grabbing}
+/* drag hint + reaction forecast float above the lifted card (HandFan) */
 .dragHint{margin-top:4px;text-align:center;font-family:'Cinzel',serif;font-size:9px;letter-spacing:.5px;
   color:#9af0bf;text-shadow:0 1px 3px #000;background:#000a;border-radius:6px;padding:2px 4px}
 .dragHint.bad{color:#ff9c9c}
@@ -364,13 +359,7 @@ html:has(.cmbt),body:has(.cmbt){height:100%;margin:0;overflow:hidden}
 @keyframes announceIn{0%{opacity:0;transform:translate(-50%,-50%) scale(.8)}
   60%{transform:translate(-50%,-50%) scale(1.06)}100%{opacity:1;transform:translate(-50%,-50%) scale(1)}}
 
-/* ---------- card deal-in (StS-style): each fresh hand flies in from the deck and
-   lands on its fan pose. Lives on the INNER .move so it can animate transform
-   freely — @dnd-kit's reorder transform is on the OUTER .moveSlot. ---------- */
-.hand .moveSlot .move.dealIn{animation:dealIn .4s cubic-bezier(.2,.85,.3,1.1) backwards}
-@keyframes dealIn{
-  0%{opacity:0;transform:translate(-24vw,32vh) rotate(-24deg) scale(.5)}
-  100%{opacity:1;transform:var(--fanT,none)}}
+/* (the hand deal-in now lives in HandFan.jsx as a react-spring mount `from`) */
 
 /* status pips pop in when first applied */
 .pip,.chip{animation:pipIn .28s ease}

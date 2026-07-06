@@ -6,6 +6,10 @@
 
 /** @type {{version:string, date:string, notes:string[]}[]} newest first */
 export const CHANGELOG = [
+  { version: 'v3.99.6', date: '2026-07-06', notes: [
+    'Rebuilt the combat hand on a physics engine (react-spring + use-gesture — the stack behind the well-known draggable card-fan demos). Cards now move with real spring physics: pick one up and it follows your finger, the rest glide to make room, close the gap when it leaves the hand and re-open a slot when it returns, and everything settles smoothly instead of snapping.',
+    'Drop it on a creature to play, drop it in the hand to reorder, tap it for info — and it always springs back to its correct spot if you let go somewhere else.',
+  ] },
   { version: 'v3.99.5', date: '2026-07-06', notes: [
     'Hand drag polish: dragging a card clear of the hand now closes the gap it left (no more blank slot), and bringing it back re-opens a space where it will land.',
     'Releasing a card away from the hand now returns it to its correct spot in the fan, and the cards glide as you brush a card through them instead of snapping.',

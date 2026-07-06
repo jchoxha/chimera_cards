@@ -138,6 +138,22 @@ c.id===activeId && dragAway`, `dragAway = activeId && !(overId is a hand card)`.
 card's logical index, so the DragOverlay flies it back to the RIGHT spot (not the drag origin).
 `useSortable` given `transition:{duration:240, easing:'cubic-bezier(.2,0,0,1)'}` so siblings glide
 past instead of snapping.
+**🎴 HAND REBUILT AGAIN ON SPRING PHYSICS (v3.99.6) — @dnd-kit REMOVED.** dnd-kit's sortable is
+list-oriented and never felt right for a TCG hand (discrete slot swaps). Replaced with
+**`src/ui/combat/HandFan.jsx`** on **@react-spring/web + @use-gesture/react** (the pmndrs card-fan
+stack; researched — there is NO maintained library built specifically for a TCG hand). Each card is
+a `SpringCard` keyed by IDENTITY (`${dealKey}-${id}`) with its OWN `useSpring` (declarative object
+form; the lifted card gets `immediate` x/y so it tracks the finger, others `config.gentle`). The
+parent `HandFan` holds one `drag` state + computes every card's fan `target` (x/rot/arc by index);
+`targetFor` closes the gap when away (`gapAt==null` → `total=N-1`) and reserves a slot when over the
+hand (`gapAt` from a STABLE rest-center insertion index — no feedback loop). `useDrag` (filterTaps)
+per card: tap→info, drag follows, `last`→ hit-test `elementFromPoint('[data-drop-id]')` (⚠ hit-test
+runs even on `last` where `down` is false; the lifted card is `pointer-events:none` so it sees the
+unit under it) → valid unit=play, over hand=reorder, else spring back. Deal-in = react-spring mount
+`from`(deck)+staggered `delay`. Units reverted to plain `FoeCard`/`AllyCard`/`MiniFighter`
+(highlights from the reported `handDrag` state). `.handFan`/`.handCard` are absolute-positioned (no
+flex layout to fight). Removed: `@dnd-kit/*` deps, `.moveSlot`/`.dragOverlayCard`/dealIn-keyframe CSS.
+TeamManager still uses its own DIY window-drag (untouched).
 
 **🧬 PRIOR FRAMING (2026-06-27) — BIOLOGY SELECTS THE KIT SYSTEM.**
 The **archetype/Class system (Warrior/Rogue/Mage/…) applies ONLY to Humanoids**; every other
