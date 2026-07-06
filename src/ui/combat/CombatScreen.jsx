@@ -12,12 +12,17 @@
 // ║ Reads ONLY the engine snapshot from combatStore.                    ║
 // ║ UPDATE WHEN: combat UX changes. Not the final Phaser view.          ║
 // ╚══════════════════════════════════════════════════════════════════╝
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
+import {
+  DndContext, DragOverlay, PointerSensor, TouchSensor, useSensor, useSensors,
+  useDroppable, pointerWithin, closestCenter,
+} from '@dnd-kit/core';
+import { SortableContext, useSortable, horizontalListSortingStrategy } from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
 import { useCombat } from '../../store/combatStore.js';
 import { ELEMENT_COLOR } from '../../systems/elements.jsx';
 import { computeMatchup } from '../../engine/content/matchups.js';
 import { frameStyle } from './frames.js';
-import { useFlip } from '../useFlip.js';
 import { creatureIcon, creatureColor, cardIcon as axisCardIcon, ATTUNEMENT_ICON, ATTUNEMENT_COLOR } from '../../data/axisIcons.js';
 import { cardArt } from '../../data/artPool.js';
 import { cardText, linkifySegments, KEYWORD_GLOSSARY } from '../../engine/cards/cardText.js';
@@ -289,22 +294,68 @@ function MiniCard({ c, onClick }) {
 }
 
 function AllyCard({ m, droppable, dropHover, dropInvalid, onEffect, onInfo }) {
+  const { setNodeRef } = useDroppable({ id: m.id, data: { kind: 'unit' } });
   const extra = `${droppable ? ' droppable' : ''}${dropHover ? ' dropHover' : ''}${dropInvalid ? ' dropInvalid' : ''}`;
-  return <CardFace f={m} side="ally" onEffect={onEffect} onInfo={onInfo} extraClass={extra} dataId={m.id} dataSide="ally" />;
+  return <CardFace f={m} side="ally" onEffect={onEffect} onInfo={onInfo} extraClass={extra} dataId={m.id} dataSide="ally" rootRef={setNodeRef} />;
 }
 
 function FoeCard({ e, matchup, droppable, dropHover, dropInvalid, onEffect, onInfo }) {
+  const { setNodeRef } = useDroppable({ id: e.id, data: { kind: 'unit' } });
   const extra = `${droppable ? ' droppable' : ''}${dropHover ? ' dropHover' : ''}${dropInvalid ? ' dropInvalid' : ''}`;
-  return <CardFace f={e} side="enemy" matchup={matchup} onEffect={onEffect} onInfo={onInfo} extraClass={extra} dataId={e.id} dataSide="enemy" />;
+  return <CardFace f={e} side="enemy" matchup={matchup} onEffect={onEffect} onInfo={onInfo} extraClass={extra} dataId={e.id} dataSide="enemy" rootRef={setNodeRef} />;
+}
+
+/** A benched/rail mini that is also a drop target for cards (id namespaced `m:` so
+ *  the active unit's big card + its mini don't clash on the same droppable id). */
+function DroppableMini(props) {
+  const { setNodeRef } = useDroppable({ id: `m:${props.f.id}`, data: { kind: 'unit' } });
+  return <MiniFighter {...props} dropRef={setNodeRef} />;
+}
+/** Resolve a droppable id (unit id, or a `m:`-prefixed mini) back to the unit id. */
+const unitIdOf = (dropId) => (typeof dropId === 'string' && dropId.startsWith('m:') ? dropId.slice(2) : dropId);
+
+/** A hand card as a @dnd-kit sortable item. Dragging it reorders the hand (the
+ *  siblings shift) or, dropped on a unit, plays it — the parent decides on drop.
+ *  A click without a drag (distance activation) opens the card's info. */
+function SortableHandCard({ c, unplayable, effCost, taxed, shockTax, onTap }) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: c.id, data: { kind: 'card' } });
+  const f = frameStyle({ element: c.element, rarity: c.rarity });
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    background: f.background,
+    opacity: isDragging ? 0 : 1,      // the DragOverlay shows the lifted card
+    zIndex: isDragging ? 20 : undefined,
+  };
+  return (
+    <div
+      ref={setNodeRef}
+      style={style}
+      className={`frame move ${f.finish}${unplayable ? ' unplayable' : ''}${!unplayable ? ' playable' : ''}`}
+      {...attributes}
+      {...listeners}
+      onClick={() => onTap(c)}
+      title={`${c.name} — drag to play / reorder, tap for info`}
+    >
+      {f.holo && <div className="holo" />}
+      <div className={`cost${taxed ? ' taxed' : ''}`} title={taxed ? `${c.cost} + ${shockTax} Shock tax` : undefined}>{c.cost === -1 ? 'X' : c.cost === -2 ? '—' : effCost}</div>
+      <div className="inner">
+        <div className={`micon ${cardKind(c)}`}><MoveArt c={c} /></div>
+        <div className="mn">{c.name}</div>
+        <div className="mt">{describe(c)}</div>
+      </div>
+    </div>
+  );
 }
 
 // ── mini-fighter (side columns) ─────────────────────────────────────────────────
 
-function MiniFighter({ f, side, vanguard, swapCost, swappable, droppable, dropHover, dropInvalid, planActions, onAction, onClick }) {
+function MiniFighter({ f, side, vanguard, swapCost, swappable, droppable, dropHover, dropInvalid, planActions, onAction, onClick, dropRef }) {
   const dead = f.hp <= 0;
   const pct = Math.max(0, (f.hp / f.maxHp) * 100);
   return (
     <div
+      ref={dropRef}
       data-drop-id={f.id}
       data-drop-side={side}
       className={`mf ${side}${vanguard ? ' vanguard' : ''}${dead ? ' dead' : ''}${swappable ? ' swappable' : ''}${droppable ? ' droppable' : ''}${dropHover ? ' dropHover' : ''}${dropInvalid ? ' dropInvalid' : ''}`}
@@ -430,8 +481,6 @@ function observedMoves(log, fighterId) {
 
 // ── screen ────────────────────────────────────────────────────────────────────
 
-const DRAG_THRESHOLD = 6; // px the pointer must move before a tap becomes a drag
-
 // Which Codex tab an info-modal kind corresponds to (for the "Open in Codex" link).
 const CODEX_TAB = {
   effect: 'statuses', axis: 'axes', reaction: 'reactions', card: 'cards',
@@ -448,16 +497,27 @@ export default function CombatScreen({ onMenu, onRestart, embedded, onCodex } = 
   const setInfo = (x) => setInfoStack((s) => (x ? [...s, x] : s.slice(0, -1)));
   const [kwTerm, setKwTerm] = useState(null);  // glossary keyword selected inside the card modal
   const [notice, setNotice] = useState(null);
-  const [drag, setDrag] = useState(null);   // { card, side, validIds, x, y, overId, moved }
-  const dragRef = useRef(null);
-  const handEls = useRef(new Map());        // hand card id → element (for FLIP gap-close)
-  const handRef = useRef(null);             // the .hand container (for the drag band + insertion)
-  // FLIP the hand so siblings slide when the insertion gap moves (bump) or the
-  // lifted card leaves the hand (close). Re-runs whenever the visual order changes.
-  const flipKey = drag && drag.moved
-    ? `${drag.card.id}|${drag.overHand ? `H${drag.insertIdx ?? ''}` : 'D'}`
-    : 'none';
-  useFlip(flipKey, handEls);
+  // ── @dnd-kit drag state: which hand card is lifted, what it's over, its legal
+  // targets. A card is a SORTABLE item (drop on the hand → reorder) and units are
+  // DROPPABLE (drop on one → play). Tap (no drag) opens info via the click handler. ──
+  const [activeId, setActiveId] = useState(null);   // dragged hand card id (null = idle)
+  const [overId, setOverId] = useState(null);       // droppable currently under the card
+  const [validIds, setValidIds] = useState(null);   // Set of unit ids this card may target
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 6 } }),   // <6px = a tap
+    useSensor(TouchSensor, { activationConstraint: { delay: 120, tolerance: 8 } }),
+  );
+  // A card over a UNIT should PLAY (prefer the unit under the pointer); anywhere
+  // else it REORDERS within the hand (nearest hand card). This mixed sortable +
+  // droppable collision keeps "drag onto a foe" and "shuffle the hand" from fighting.
+  const collisionDetection = useCallback((args) => {
+    const containers = args.droppableContainers;   // DroppableContainer[] (an array, not a Map)
+    const kindOf = (id) => containers.find((c) => c.id === id)?.data?.current?.kind;
+    const overUnit = pointerWithin(args).find((h) => kindOf(h.id) === 'unit');
+    if (overUnit) return [overUnit];
+    const cards = containers.filter((c) => c.data?.current?.kind === 'card');
+    return closestCenter({ ...args, droppableContainers: cards });
+  }, []);
   const [floaters, setFloaters] = useState([]);  // transient floating damage/heal/block numbers
   const seenRef = useRef(0);                      // # of log events already turned into floaters
   const [turnBanner, setTurnBanner] = useState(null);  // transient "YOUR TURN" / "ENEMY TURN" sweep
@@ -536,71 +596,6 @@ export default function CombatScreen({ onMenu, onRestart, embedded, onCodex } = 
     return () => clearTimeout(t);
   }, [phase]);
 
-  // ── window-level card drag ────────────────────────────────────────────────────
-  // A card drag is tracked on the WINDOW (not via pointer capture on the card
-  // element), so the card follows the cursor ANYWHERE on the page and the drag
-  // can never be lost to a re-render. Bound only while a drag is armed.
-  const dragActiveId = drag?.card?.id ?? null;
-  useEffect(() => {
-    if (!dragActiveId) return undefined;
-    const onMove = (e) => {
-      const d = dragRef.current;
-      if (!d) return;
-      d.x = e.clientX; d.y = e.clientY;
-      if (!d.moved && Math.hypot(e.clientX - d.startX, e.clientY - d.startY) > DRAG_THRESHOLD) d.moved = true;
-      if (d.moved) {
-        const el = document.elementFromPoint(e.clientX, e.clientY);
-        const dz = el && el.closest ? el.closest('[data-drop-id]') : null;
-        d.overId = dz ? dz.getAttribute('data-drop-id') : null;
-        // Is the cursor over the hand band? If so, compute where the card would
-        // slot in — the fan opens a gap there (bumping neighbors aside), and a
-        // release inside the hand leaves the card at that position.
-        const hr = handRef.current?.getBoundingClientRect();
-        const pad = 74;
-        const inBand = !!hr && e.clientX > hr.left - pad && e.clientX < hr.right + pad
-          && e.clientY > hr.top - pad && e.clientY < hr.bottom + pad;
-        d.overHand = inBand;
-        if (inBand) {
-          let idx = 0;
-          for (const [id, cel] of handEls.current) {
-            if (id === d.card.id || !cel || !cel.isConnected) continue;
-            const r = cel.getBoundingClientRect();
-            if (r.width && r.left + r.width / 2 < e.clientX) idx += 1;
-          }
-          // small cooldown so the gap doesn't thrash while the FLIP slide settles
-          const now = performance.now();
-          if (idx !== d.insertIdx && (!d.lastInsertAt || now - d.lastInsertAt > 130)) {
-            d.insertIdx = idx; d.lastInsertAt = now;
-          } else if (d.insertIdx == null) {
-            d.insertIdx = idx;
-          }
-        }
-      }
-      setDrag({ ...d });
-    };
-    const onUp = () => {
-      const d = dragRef.current;
-      dragRef.current = null;
-      setDrag(null);
-      if (!d) return;
-      if (!d.moved) { setInfo({ kind: 'card', card: d.card }); return; }   // tap → card info
-      // 1) dropped on a valid target → play it
-      if (!d.unplayable && d.overId && d.validIds.has(d.overId)) { play(d.card.id, { targetId: d.overId }); return; }
-      // 2) released inside the hand → leave it at the slot the gap was holding
-      if (d.overHand && d.insertIdx != null) { reorderHand(d.card.id, d.insertIdx); return; }
-      // 3) dropped on an invalid target → explain; empty space → snap back (no-op)
-      if (d.overId && !d.unplayable) setNotice(`${d.card.name} ${scopeHint(d.card)}.`);
-    };
-    window.addEventListener('pointermove', onMove);
-    window.addEventListener('pointerup', onUp);
-    window.addEventListener('pointercancel', onUp);
-    return () => {
-      window.removeEventListener('pointermove', onMove);
-      window.removeEventListener('pointerup', onUp);
-      window.removeEventListener('pointercancel', onUp);
-    };
-  }, [dragActiveId]);
-
   if (!snap) return <div className="cmbt">Loading…</div>;
 
   const { player, enemy, enemyPlan, peekCharges } = snap;
@@ -664,47 +659,49 @@ export default function CombatScreen({ onMenu, onRestart, embedded, onCodex } = 
     return ids;
   }
 
-  // ── drag-to-target (tap = info, drag = play; the card follows the cursor) ─────
-  // Only ARMS the drag; movement/release are handled by the window-level effect
-  // above, so the card can be dragged anywhere on the page and released to snap back.
-  function onCardPointerDown(e, card, unplayable) {
-    if (over) return;
-    e.preventDefault();
-    dragRef.current = {
-      card, unplayable, side: cardTargetSide(card), validIds: validTargetIds(card),
-      x: e.clientX, y: e.clientY, startX: e.clientX, startY: e.clientY, overId: null, moved: false,
-      overHand: true, insertIdx: null, lastInsertAt: 0,
-    };
-    setDrag({ ...dragRef.current });
-  }
-
-  const validIds = drag?.validIds ?? null;
-  const dragging = !!drag && drag.moved;
-  const isDroppable = (id) => dragging && !drag.unplayable && !!validIds && validIds.has(id);
-  const isHover = (id) => dragging && drag.overId === id;
-
-  // ── hand layout (physical drag) ───────────────────────────────────────────────
-  // While a card is dragged OVER the hand, it holds a full-width placeholder slot
-  // at the insertion index → the fan opens a gap and neighbors slide aside (bump).
-  // Dragged UP out of the hand, its slot collapses so the rest close ranks.
-  const overHand = dragging && drag.overHand;
-  const dragId = dragging ? drag.card.id : null;
-  let handList = hand;                       // DOM/fan order
-  let fanCount = hand.length || 1;
-  let fanIndexOf = new Map(hand.map((c, i) => [c.id, i]));
-  if (dragging) {
-    const without = hand.filter((c) => c.id !== dragId);
-    if (overHand) {
-      const idx = Math.max(0, Math.min(drag.insertIdx ?? without.length, without.length));
-      handList = [...without.slice(0, idx), drag.card, ...without.slice(idx)];
-      fanCount = handList.length || 1;
-      fanIndexOf = new Map(handList.map((c, i) => [c.id, i]));
-    } else {
-      // closed hand: the lifted card collapses; the rest re-fan as one fewer
-      fanCount = without.length || 1;
-      fanIndexOf = new Map(without.map((c, i) => [c.id, i]));
+  // ── @dnd-kit handlers ─────────────────────────────────────────────────────────
+  const handById = new Map(hand.map((c) => [c.id, c]));
+  const cardUnplayable = (c) => {
+    if (!c) return true;
+    const shockTax = player.shockTax || 0;
+    const effCost = (c.cost === -1 || c.cost === -2) ? c.cost : c.cost + shockTax;
+    return !isPlayerTurn || c.cost === -2 || (c.cost !== -1 && effCost > player.energy);
+  };
+  const onDragStart = ({ active }) => {
+    const card = handById.get(active.id);
+    setActiveId(active.id);
+    setOverId(null);
+    setValidIds(card ? validTargetIds(card) : null);
+  };
+  const onDragOver = ({ over }) => setOverId(over?.id ?? null);
+  const onDragCancel = () => { setActiveId(null); setOverId(null); setValidIds(null); };
+  const onDragEnd = ({ active, over }) => {
+    const card = handById.get(active.id);
+    setActiveId(null); setOverId(null); setValidIds(null);
+    if (!over || !card) return;
+    const kind = over.data?.current?.kind;
+    if (kind === 'unit') {
+      const target = unitIdOf(over.id);
+      if (!cardUnplayable(card) && validTargetIds(card).has(target)) play(card.id, { targetId: target });
+      else if (!cardUnplayable(card)) setNotice(`${card.name} ${scopeHint(card)}.`);
+      return;
     }
-  }
+    // over a hand card → reorder to that card's slot
+    if (over.id !== active.id) {
+      const to = hand.findIndex((c) => c.id === over.id);
+      if (to >= 0) reorderHand(card.id, to);
+    }
+  };
+
+  // Drop-highlight state derived from the live drag (units glow when targetable).
+  const draggingCard = activeId ? handById.get(activeId) : null;
+  const overUnitId = overId ? unitIdOf(overId) : null;
+  const canTarget = (uid) => !!validIds && validIds.has(uid);
+  const dropProps = (uid) => ({
+    droppable: !!draggingCard && canTarget(uid),
+    dropHover: overUnitId === uid && canTarget(uid),
+    dropInvalid: overUnitId === uid && !!draggingCard && !canTarget(uid),
+  });
 
   return (
     <div className="cmbt land">
@@ -717,20 +714,20 @@ export default function CombatScreen({ onMenu, onRestart, embedded, onCodex } = 
         <span className="pill ver clickable" onClick={() => setInfo({ kind: 'changelog' })} title="View changelog">{APP_VERSION}</span>
       </div>
 
+      <DndContext sensors={sensors} collisionDetection={collisionDetection}
+        onDragStart={onDragStart} onDragOver={onDragOver} onDragEnd={onDragEnd} onDragCancel={onDragCancel}>
       <div className="arena">
         {/* LEFT: foes · enemy-intent button (forecast lives in a modal now) */}
         <div className="sideCol foesCol">
           <div className="colHead"><Icon icon="game-icons:daemon-skull" /> Foes</div>
           <div className="miniList">
             {allEnemies.map((e) => (
-              <MiniFighter
+              <DroppableMini
                 key={e.id}
                 f={e}
                 side="enemy"
                 vanguard={e.id === activeEnemy?.id}
-                droppable={isDroppable(e.id)}
-                dropHover={isHover(e.id) && isDroppable(e.id)}
-                dropInvalid={isHover(e.id) && !isDroppable(e.id)}
+                {...dropProps(e.id)}
                 onClick={() => setInfo({ kind: 'creature', id: e.id })}
               />
             ))}
@@ -748,9 +745,7 @@ export default function CombatScreen({ onMenu, onRestart, embedded, onCodex } = 
               <FoeCard
                 e={featured}
                 matchup={matchup}
-                droppable={isDroppable(featured.id)}
-                dropHover={isHover(featured.id) && isDroppable(featured.id)}
-                dropInvalid={isHover(featured.id) && !isDroppable(featured.id)}
+                {...dropProps(featured.id)}
                 onEffect={(id) => setInfo({ kind: 'effect', id })}
                 onInfo={setInfo}
               />
@@ -759,9 +754,7 @@ export default function CombatScreen({ onMenu, onRestart, embedded, onCodex } = 
             {activeMon && (
               <AllyCard
                 m={activeMon}
-                droppable={isDroppable(activeMon.id)}
-                dropHover={isHover(activeMon.id) && isDroppable(activeMon.id)}
-                dropInvalid={isHover(activeMon.id) && !isDroppable(activeMon.id)}
+                {...dropProps(activeMon.id)}
                 onEffect={(id) => setInfo({ kind: 'effect', id })}
                 onInfo={setInfo}
               />
@@ -769,42 +762,28 @@ export default function CombatScreen({ onMenu, onRestart, embedded, onCodex } = 
           </div>
 
           <div className="handWrap">
-            <div className="hand" ref={handRef}>
-              {handList.map((c, i) => {
-                // Effective cost includes the Shock tax (+1 energy per Shocked ally).
-                const shockTax = player.shockTax || 0;
-                const effCost = (c.cost === -1 || c.cost === -2) ? c.cost : c.cost + shockTax;
-                const taxed = shockTax > 0 && c.cost >= 0;
-                const unplayable = !isPlayerTurn || c.cost === -2 || (c.cost !== -1 && effCost > player.energy);
-                const isDrag = dragging && c.id === dragId;
-                // fan index: its slot in the current layout; the collapsed lifted
-                // card (closed-hand mode) has no slot, so it borrows its neighbours'.
-                const vi = fanIndexOf.has(c.id) ? fanIndexOf.get(c.id) : i;
-                const rot = (vi - (fanCount - 1) / 2) * 6;
-                const lift = Math.abs(vi - (fanCount - 1) / 2) * 4;
-                const f = frameStyle({ element: c.element, rarity: c.rarity });
-                // In the hand → hold a placeholder gap (.ghosted, keeps width);
-                // lifted out → collapse (.dragging, width 0). The floating ghost is the card.
-                const dragCls = isDrag ? (overHand ? ' ghosted' : ' dragging') : '';
-                const isPressed = !dragging && drag?.card?.id === c.id;
-                return (
-                  <div key={`${dealKey}-${c.id}`}
-                    ref={(el) => { if (el) handEls.current.set(c.id, el); else handEls.current.delete(c.id); }}
-                    className={`frame move dealIn ${f.finish}${unplayable ? ' unplayable' : ''}${dragCls}${isPressed ? ' pressed' : ''}${!unplayable ? ' playable' : ''}`}
-                    style={{ background: f.background, '--fanT': `translateY(${lift}px) rotate(${rot}deg)`, transform: 'var(--fanT)', animationDelay: `${i * 70}ms` }}
-                    draggable={false}
-                    onPointerDown={(e) => onCardPointerDown(e, c, unplayable)}>
-                    {f.holo && <div className="holo" />}
-                    <div className={`cost${taxed ? ' taxed' : ''}`} title={taxed ? `${c.cost} + ${shockTax} Shock tax` : undefined}>{c.cost === -1 ? 'X' : c.cost === -2 ? '—' : effCost}</div>
-                    <div className="inner">
-                      <div className={`micon ${cardKind(c)}`}><MoveArt c={c} /></div>
-                      <div className="mn">{c.name}</div>
-                      <div className="mt">{describe(c)}</div>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
+            <SortableContext items={hand.map((c) => c.id)} strategy={horizontalListSortingStrategy}>
+              <div className="hand" key={dealKey}>
+                {hand.map((c) => {
+                  // Effective cost includes the Shock tax (+1 energy per Shocked ally).
+                  const shockTax = player.shockTax || 0;
+                  const effCost = (c.cost === -1 || c.cost === -2) ? c.cost : c.cost + shockTax;
+                  const taxed = shockTax > 0 && c.cost >= 0;
+                  const unplayable = cardUnplayable(c);
+                  return (
+                    <SortableHandCard
+                      key={c.id}
+                      c={c}
+                      unplayable={unplayable}
+                      effCost={effCost}
+                      taxed={taxed}
+                      shockTax={shockTax}
+                      onTap={openCard}
+                    />
+                  );
+                })}
+              </div>
+            </SortableContext>
           </div>
           <div className="playHint">
             {isPlayerTurn
@@ -822,16 +801,14 @@ export default function CombatScreen({ onMenu, onRestart, embedded, onCodex } = 
               const swapCost = player.manualSwapsThisTurn + 1;
               const swappable = !active && m.hp > 0 && isPlayerTurn && player.energy >= swapCost;
               return (
-                <MiniFighter
+                <DroppableMini
                   key={m.id}
                   f={m}
                   side="ally"
                   vanguard={active}
                   swapCost={swapCost}
                   swappable={swappable}
-                  droppable={isDroppable(m.id)}
-                  dropHover={isHover(m.id) && isDroppable(m.id)}
-                  dropInvalid={isHover(m.id) && !isDroppable(m.id)}
+                  {...dropProps(m.id)}
                   onClick={() => setInfo({ kind: 'creature', id: m.id })}
                 />
               );
@@ -862,54 +839,53 @@ export default function CombatScreen({ onMenu, onRestart, embedded, onCodex } = 
         </div>
       </div>
 
-      {/* dragging ghost — only once it's an actual drag */}
-      {dragging && (
-        <div className="dragGhost" style={{ left: drag.x, top: drag.y }}>
-          <div className={`frame move ${frameStyle({ element: drag.card.element, rarity: drag.card.rarity }).finish}`}
-            style={{ background: frameStyle({ element: drag.card.element, rarity: drag.card.rarity }).background }}>
-            <div className="cost">{drag.card.cost === -1 ? 'X' : drag.card.cost}</div>
-            <div className="inner">
-              <div className={`micon ${cardKind(drag.card)}`}><MoveArt c={drag.card} /></div>
-              <div className="mn">{drag.card.name}</div>
-              <div className="mt">{describe(drag.card)}</div>
-            </div>
-          </div>
-          {(() => {
-            const onTarget = !drag.unplayable && drag.overId && validIds?.has(drag.overId);
-            const badTarget = drag.overId && !validIds?.has(drag.overId) && !drag.overHand;
-            const label = onTarget ? 'Release to play'
-              : drag.overHand ? 'Release to reorder'
-                : drag.unplayable ? 'Not enough energy'
-                  : badTarget ? 'Invalid target'
-                    : `Drag onto a ${drag.side === 'enemy' ? 'foe' : 'ally'}`;
-            return <div className={`dragHint${badTarget ? ' bad' : ''}`}>{label}</div>;
-          })()}
-          {(() => {
-            // Reaction forecast: if this damaging card's element would react with a
-            // status the hovered target carries, show what fires (verb + magnitude).
-            if (!drag.overId || !validIds?.has(drag.overId) || cardKind(drag.card) !== 'atk') return null;
-            const tgt = [...enemy.fighters, ...player.fighters].find((f) => f.id === drag.overId);
-            const fx = tgt ? forecastReactions(tgt, cardEl(drag.card)) : [];
-            if (!fx.length) return null;
-            return (
-              <div className="dragReact">
-                {fx.map((r, i) => {
-                  const bits = [];
-                  if (r.damage) bits.push(`${r.damage} dmg`);
-                  if (r.heal) bits.push(`heal ${r.heal}`);
-                  for (const a of r.applied) bits.push(`${EFFECT_INFO[a.id]?.name || a.id} +${a.amount}${a.spread ? ' (spread)' : ''}`);
-                  return (
-                    <div className="rx" key={i}>
-                      <Icon icon={ATTUNEMENT_ICON[r.element] || 'game-icons:fire'} style={{ color: ATTUNEMENT_COLOR[r.element] }} />
-                      <b>{r.verb}</b>{bits.length ? <span> · {bits.join(', ')}</span> : null}
-                    </div>
-                  );
-                })}
+      {/* the lifted card follows the cursor (dnd-kit renders it in a fixed layer) */}
+      <DragOverlay dropAnimation={{ duration: 180, easing: 'cubic-bezier(.2,.9,.3,1.2)' }}>
+        {draggingCard ? (() => {
+          const f = frameStyle({ element: draggingCard.element, rarity: draggingCard.rarity });
+          const onTarget = !cardUnplayable(draggingCard) && overUnitId && canTarget(overUnitId);
+          const overHand = overId != null && !overUnitId;
+          const badTarget = overUnitId && !canTarget(overUnitId);
+          const hint = onTarget ? 'Release to play'
+            : overHand ? 'Release to reorder'
+              : cardUnplayable(draggingCard) ? 'Not enough energy'
+                : badTarget ? 'Invalid target'
+                  : 'Drag onto a target';
+          const tgt = onTarget ? [...enemy.fighters, ...player.fighters].find((x) => x.id === overUnitId) : null;
+          const fx = tgt && cardKind(draggingCard) === 'atk' ? forecastReactions(tgt, cardEl(draggingCard)) : [];
+          return (
+            <div className="dragOverlayCard">
+              <div className={`frame move dragging-overlay ${f.finish}`} style={{ background: f.background }}>
+                {f.holo && <div className="holo" />}
+                <div className="cost">{draggingCard.cost === -1 ? 'X' : draggingCard.cost === -2 ? '—' : draggingCard.cost}</div>
+                <div className="inner">
+                  <div className={`micon ${cardKind(draggingCard)}`}><MoveArt c={draggingCard} /></div>
+                  <div className="mn">{draggingCard.name}</div>
+                  <div className="mt">{describe(draggingCard)}</div>
+                </div>
               </div>
-            );
-          })()}
-        </div>
-      )}
+              <div className={`dragHint${badTarget ? ' bad' : ''}`}>{hint}</div>
+              {fx.length > 0 && (
+                <div className="dragReact">
+                  {fx.map((r, i) => {
+                    const bits = [];
+                    if (r.damage) bits.push(`${r.damage} dmg`);
+                    if (r.heal) bits.push(`heal ${r.heal}`);
+                    for (const a of r.applied) bits.push(`${EFFECT_INFO[a.id]?.name || a.id} +${a.amount}${a.spread ? ' (spread)' : ''}`);
+                    return (
+                      <div className="rx" key={i}>
+                        <Icon icon={ATTUNEMENT_ICON[r.element] || 'game-icons:fire'} style={{ color: ATTUNEMENT_COLOR[r.element] }} />
+                        <b>{r.verb}</b>{bits.length ? <span> · {bits.join(', ')}</span> : null}
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          );
+        })() : null}
+      </DragOverlay>
+      </DndContext>
 
       {notice && <div className="toast"><Icon icon="game-icons:cancel" /> {notice}</div>}
 

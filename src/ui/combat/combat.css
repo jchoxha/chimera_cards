@@ -283,19 +283,12 @@ html:has(.cmbt),body:has(.cmbt){height:100%;margin:0;overflow:hidden}
   transition:transform .18s ease, filter .18s ease;cursor:grab;position:relative;
   touch-action:none;user-select:none;-webkit-user-select:none}
 .move.unplayable{filter:grayscale(.7) brightness(.7);cursor:default}
-.move:not(.unplayable):hover,.move:not(.unplayable):focus{transform:translateY(-20px) scale(1.06) rotate(0)!important;
+/* hover lift is NON-!important on purpose: while @dnd-kit is dragging it sets an
+   inline transform on the shifting siblings, which must win over this hover pose. */
+.move:not(.unplayable):hover,.move:not(.unplayable):focus{transform:translateY(-20px) scale(1.06);
   filter:drop-shadow(0 14px 22px #000b);z-index:9}
-/* touch: the pressed (grabbed) card pops up so you can see what you have hold of */
-.move.pressed{transform:translateY(-26px) scale(1.14) rotate(0)!important;z-index:11;
-  filter:drop-shadow(0 16px 24px #000c)}
 /* gentle invitation that a card can be played this turn */
 .move.playable .cost{box-shadow:0 2px 6px #000a,0 0 0 2px var(--goldB),0 0 10px #ffd34d88}
-/* lifted out of the hand: collapse its footprint so the others close the gap
-   (siblings slide via the FLIP animator); the drag ghost represents the card. */
-.move.dragging{width:0!important;min-width:0;margin:0!important;padding:0!important;border-width:0!important;opacity:0;pointer-events:none;overflow:hidden}
-/* held OVER the hand: keep the card's full footprint as an open gap (the floating
-   ghost is the visible card), so neighbours are bumped aside to reveal the slot */
-.move.ghosted{opacity:0;pointer-events:none}
 
 /* ---------- drag-to-target ---------- */
 .droppable{outline:2px dashed #ffd34daa;outline-offset:3px;border-radius:14px;
@@ -308,11 +301,10 @@ html:has(.cmbt),body:has(.cmbt){height:100%;margin:0;overflow:hidden}
 .mf.droppable{outline-offset:2px;padding:8px 9px;transform:scale(1.03);transition:transform .12s,padding .12s}
 .mf.dropHover{transform:scale(1.06)}
 @keyframes dropPulse{0%,100%{outline-color:#ffd34d66}50%{outline-color:#ffd34dee}}
-/* the drag ghost is a FAITHFUL copy of the hand card (same size/proportions) so
-   the card never appears to squish or resize while dragging. */
-.dragGhost{position:fixed;z-index:120;pointer-events:none;width:clamp(82px,9vw,100px);
-  transform:translate(-50%,-64%);filter:drop-shadow(0 12px 20px #000c)}
-.dragGhost .move{width:100%;margin:0;cursor:grabbing;transform:none!important}
+/* @dnd-kit DragOverlay: the lifted card the library floats under the cursor.
+   Width matches a hand card so it never squishes; it lifts + tilts slightly. */
+.dragOverlayCard{width:clamp(88px,9.5vw,108px);pointer-events:none;filter:drop-shadow(0 16px 26px #000d);cursor:grabbing}
+.dragOverlayCard .move.dragging-overlay{width:100%;margin:0;transform:rotate(-3deg) scale(1.06);cursor:grabbing}
 .dragHint{margin-top:4px;text-align:center;font-family:'Cinzel',serif;font-size:9px;letter-spacing:.5px;
   color:#9af0bf;text-shadow:0 1px 3px #000;background:#000a;border-radius:6px;padding:2px 4px}
 .dragHint.bad{color:#ff9c9c}
@@ -368,11 +360,10 @@ html:has(.cmbt),body:has(.cmbt){height:100%;margin:0;overflow:hidden}
 @keyframes announceIn{0%{opacity:0;transform:translate(-50%,-50%) scale(.8)}
   60%{transform:translate(-50%,-50%) scale(1.06)}100%{opacity:1;transform:translate(-50%,-50%) scale(1)}}
 
-/* ---------- card deal-in (StS-style): each new hand flies in from the deck ---------- */
-.hand .move.dealIn{animation:dealIn .38s cubic-bezier(.22,.9,.32,1.15) backwards}
-@keyframes dealIn{
-  0%{opacity:0;transform:translate(-26vw,26vh) rotate(-22deg) scale(.5)}
-  100%{opacity:1;transform:var(--fanT,none)}}
+/* ---------- card deal-in: each fresh hand fades/rises in (opacity+filter only, so
+   it never fights the transform @dnd-kit controls for sorting) ---------- */
+.hand .move{animation:dealIn .34s ease backwards}
+@keyframes dealIn{from{opacity:0;filter:brightness(1.4) blur(1px)}to{opacity:1}}
 
 /* status pips pop in when first applied */
 .pip,.chip{animation:pipIn .28s ease}

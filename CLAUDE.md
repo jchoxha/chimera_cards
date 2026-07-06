@@ -109,6 +109,19 @@ of the cursor, 130ms cooldown). `handList` inserts the dragged card as a full-wi
 placeholder (opacity 0, keeps footprint) at insertIdx when overHand, else collapses it (`.dragging`
 width 0 = close-ranks); FLIP keyed on `${dragId}|H${insertIdx}` animates the bump. Release: valid
 target→play, else overHand→`reorderHand(insertIdx)`, else snap back.
+**🎴 HAND DRAG REBUILT ON @dnd-kit (v3.99.3):** the hand-rolled window-pointer/FLIP/insert-idx/
+ghosted-placeholder stack was replaced by **@dnd-kit** (`core`+`sortable`+`utilities`). CombatScreen
+wraps the arena in a `<DndContext>` (`PointerSensor` distance:6 = tap-vs-drag, `TouchSensor`
+delay:120): hand cards are `useSortable` items in a `SortableContext` (horizontal) → drag reorders;
+units are `useDroppable` (`FoeCard`/`AllyCard` = `id`, minis via `DroppableMini` = `m:${id}`,
+`unitIdOf` resolves) → drop plays. Custom `collisionDetection` prefers a unit under the pointer
+(`pointerWithin`) else `closestCenter` over cards only (⚠ `args.droppableContainers` is an ARRAY,
+not a Map — use `.find`, not `.get`). `onDragEnd`: over unit+valid→`play`, over card→`reorderHand(idx)`.
+`DragOverlay` floats the lifted card (+hint +reaction forecast); source card `opacity:0` while
+`isDragging`. `CardFace`/`MiniFighter` gained a `rootRef`/`dropRef` prop. Hand is now a flat
+overlapping row (the fan was dropped for predictability); deal-in is opacity-only so it can't fight
+dnd-kit's transform. TeamManager still uses the DIY window-drag (untouched). Removed: the window
+drag effect, `useFlip` in CombatScreen, `.dragGhost`/`.ghosted`/`.dragging`/`.pressed` CSS.
 
 **🧬 PRIOR FRAMING (2026-06-27) — BIOLOGY SELECTS THE KIT SYSTEM.**
 The **archetype/Class system (Warrior/Rogue/Mage/…) applies ONLY to Humanoids**; every other

@@ -6,6 +6,10 @@
 
 /** @type {{version:string, date:string, notes:string[]}[]} newest first */
 export const CHANGELOG = [
+  { version: 'v3.99.3', date: '2026-07-06', notes: [
+    'Card dragging is rebuilt on a proper drag-and-drop engine (@dnd-kit) instead of hand-rolled pointer tracking — so it behaves predictably now: pick a card up and it follows your cursor smoothly, the hand shifts to reorder, drop it on an enemy/ally to play it, or tap it for info.',
+    'The hand reads as a clean overlapping row of cards (a tidy TCG layout) rather than the previous jittery fan.',
+  ] },
   { version: 'v3.99.2', date: '2026-07-06', notes: [
     'The hand is now physical: as you drag a card across it, the other cards bump aside to open a gap where it will land — and releasing it inside the hand leaves it in that new position. Dragging a card up onto a target still plays it.',
   ] },

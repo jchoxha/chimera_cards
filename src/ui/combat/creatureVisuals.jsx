@@ -184,7 +184,7 @@ export function HpBar({ hp, maxHp }) {
  * tappable; `onName` overrides the name click (e.g. → bestiary). Used by combat
  * (featured cards + creature modal) AND the team assembler's creature modal.
  */
-export function CardFace({ f, side, matchup, onEffect, onInfo, onName, extraClass = '', dataId, dataSide }) {
+export function CardFace({ f, side, matchup, onEffect, onInfo, onName, extraClass = '', dataId, dataSide, rootRef }) {
   const isFoe = side === 'enemy';
   const fr = frameStyle({ types: f.types, element: f.element, rarity: f.rarity });
   const scale = { transform: `scale(${artScale(f.form)})` };
@@ -198,6 +198,7 @@ export function CardFace({ f, side, matchup, onEffect, onInfo, onName, extraClas
   const badgeEl = f.element || f.axes?.attunement?.[0] || null;
   return (
     <div
+      ref={rootRef}
       data-drop-id={dataId}
       data-drop-side={dataSide}
       className={`frame combat ${fr.finish}${extraClass}`}
