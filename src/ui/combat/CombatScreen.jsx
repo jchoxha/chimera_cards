@@ -15,7 +15,7 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
   DndContext, DragOverlay, PointerSensor, TouchSensor, useSensor, useSensors,
-  useDroppable, pointerWithin, closestCenter,
+  useDroppable, pointerWithin,
 } from '@dnd-kit/core';
 import { SortableContext, useSortable, horizontalListSortingStrategy } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
@@ -314,35 +314,39 @@ function DroppableMini(props) {
 /** Resolve a droppable id (unit id, or a `m:`-prefixed mini) back to the unit id. */
 const unitIdOf = (dropId) => (typeof dropId === 'string' && dropId.startsWith('m:') ? dropId.slice(2) : dropId);
 
-/** A hand card as a @dnd-kit sortable item. Dragging it reorders the hand (the
- *  siblings shift) or, dropped on a unit, plays it — the parent decides on drop.
- *  A click without a drag (distance activation) opens the card's info. */
-function SortableHandCard({ c, unplayable, effCost, taxed, shockTax, onTap }) {
+/** A hand card as a @dnd-kit sortable item. The OUTER node is the sortable slot
+ *  (@dnd-kit owns its transform for the reorder shift); the INNER `.move` owns the
+ *  fan pose + deal-in fly-in + hover lift, so those animations never fight the
+ *  library's transform. Dragging reorders the hand (siblings shift) or, dropped on
+ *  a unit, plays it — the parent decides on drop. A tap (distance activation) opens
+ *  the card's info. `i`/`n` place it in the fan; `dealKey` re-triggers the fly-in. */
+function SortableHandCard({ c, i, n, unplayable, effCost, taxed, shockTax, onTap, dealKey }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: c.id, data: { kind: 'card' } });
   const f = frameStyle({ element: c.element, rarity: c.rarity });
-  const style = {
-    transform: CSS.Transform.toString(transform),
+  const mid = (n - 1) / 2;
+  const rot = (i - mid) * 5;                 // fan angle
+  const lift = Math.abs(i - mid) * 5;        // arc: outer cards ride lower
+  const slotStyle = {
+    transform: CSS.Transform.toString(transform),   // @dnd-kit reorder shift (outer only)
     transition,
-    background: f.background,
-    opacity: isDragging ? 0 : 1,      // the DragOverlay shows the lifted card
-    zIndex: isDragging ? 20 : undefined,
+    opacity: isDragging ? 0 : 1,                     // the DragOverlay shows the lifted card
+    zIndex: isDragging ? 30 : undefined,
+    touchAction: 'none',
   };
   return (
-    <div
-      ref={setNodeRef}
-      style={style}
-      className={`frame move ${f.finish}${unplayable ? ' unplayable' : ''}${!unplayable ? ' playable' : ''}`}
-      {...attributes}
-      {...listeners}
-      onClick={() => onTap(c)}
-      title={`${c.name} — drag to play / reorder, tap for info`}
-    >
-      {f.holo && <div className="holo" />}
-      <div className={`cost${taxed ? ' taxed' : ''}`} title={taxed ? `${c.cost} + ${shockTax} Shock tax` : undefined}>{c.cost === -1 ? 'X' : c.cost === -2 ? '—' : effCost}</div>
-      <div className="inner">
-        <div className={`micon ${cardKind(c)}`}><MoveArt c={c} /></div>
-        <div className="mn">{c.name}</div>
-        <div className="mt">{describe(c)}</div>
+    <div ref={setNodeRef} className="moveSlot" style={slotStyle}
+      {...attributes} {...listeners} onClick={() => onTap(c)}
+      title={`${c.name} — drag to play / reorder, tap for info`}>
+      <div key={`${dealKey}-${c.id}`}
+        className={`frame move dealIn ${f.finish}${unplayable ? ' unplayable' : ''}${!unplayable ? ' playable' : ''}`}
+        style={{ background: f.background, '--fanT': `translateY(${lift}px) rotate(${rot}deg)`, transform: 'var(--fanT)', animationDelay: `${i * 60}ms` }}>
+        {f.holo && <div className="holo" />}
+        <div className={`cost${taxed ? ' taxed' : ''}`} title={taxed ? `${c.cost} + ${shockTax} Shock tax` : undefined}>{c.cost === -1 ? 'X' : c.cost === -2 ? '—' : effCost}</div>
+        <div className="inner">
+          <div className={`micon ${cardKind(c)}`}><MoveArt c={c} /></div>
+          <div className="mn">{c.name}</div>
+          <div className="mt">{describe(c)}</div>
+        </div>
       </div>
     </div>
   );
@@ -507,16 +511,18 @@ export default function CombatScreen({ onMenu, onRestart, embedded, onCodex } = 
     useSensor(PointerSensor, { activationConstraint: { distance: 6 } }),   // <6px = a tap
     useSensor(TouchSensor, { activationConstraint: { delay: 120, tolerance: 8 } }),
   );
-  // A card over a UNIT should PLAY (prefer the unit under the pointer); anywhere
-  // else it REORDERS within the hand (nearest hand card). This mixed sortable +
-  // droppable collision keeps "drag onto a foe" and "shuffle the hand" from fighting.
+  // Pointer-based collision ONLY: the card targets a UNIT the pointer is over
+  // (→ play), else reorders against a hand card the pointer is over (→ shuffle),
+  // else nothing. Using pointerWithin (not closestCenter) means lifting a card UP
+  // toward a target leaves the hand alone — it doesn't reshuffle during transit.
   const collisionDetection = useCallback((args) => {
     const containers = args.droppableContainers;   // DroppableContainer[] (an array, not a Map)
     const kindOf = (id) => containers.find((c) => c.id === id)?.data?.current?.kind;
-    const overUnit = pointerWithin(args).find((h) => kindOf(h.id) === 'unit');
+    const hits = pointerWithin(args);
+    const overUnit = hits.find((h) => kindOf(h.id) === 'unit');
     if (overUnit) return [overUnit];
-    const cards = containers.filter((c) => c.data?.current?.kind === 'card');
-    return closestCenter({ ...args, droppableContainers: cards });
+    const overCard = hits.find((h) => kindOf(h.id) === 'card');
+    return overCard ? [overCard] : [];
   }, []);
   const [floaters, setFloaters] = useState([]);  // transient floating damage/heal/block numbers
   const seenRef = useRef(0);                      // # of log events already turned into floaters
@@ -763,8 +769,8 @@ export default function CombatScreen({ onMenu, onRestart, embedded, onCodex } = 
 
           <div className="handWrap">
             <SortableContext items={hand.map((c) => c.id)} strategy={horizontalListSortingStrategy}>
-              <div className="hand" key={dealKey}>
-                {hand.map((c) => {
+              <div className="hand">
+                {hand.map((c, i) => {
                   // Effective cost includes the Shock tax (+1 energy per Shocked ally).
                   const shockTax = player.shockTax || 0;
                   const effCost = (c.cost === -1 || c.cost === -2) ? c.cost : c.cost + shockTax;
@@ -774,6 +780,9 @@ export default function CombatScreen({ onMenu, onRestart, embedded, onCodex } = 
                     <SortableHandCard
                       key={c.id}
                       c={c}
+                      i={i}
+                      n={hand.length}
+                      dealKey={dealKey}
                       unplayable={unplayable}
                       effCost={effCost}
                       taxed={taxed}

@@ -279,16 +279,20 @@ html:has(.cmbt),body:has(.cmbt){height:100%;margin:0;overflow:hidden}
 .handWrap{flex:0 0 auto;display:flex;justify-content:center;align-items:flex-end;
   height:clamp(132px,22vh,176px)}
 .hand{display:flex;align-items:flex-end;padding:0 12px}
-.move{flex:0 0 auto;width:clamp(82px,9vw,100px);margin:0 -8px;transform-origin:bottom center;
-  transition:transform .18s ease, filter .18s ease;cursor:grab;position:relative;
-  touch-action:none;user-select:none;-webkit-user-select:none}
-.move.unplayable{filter:grayscale(.7) brightness(.7);cursor:default}
-/* hover lift is NON-!important on purpose: while @dnd-kit is dragging it sets an
-   inline transform on the shifting siblings, which must win over this hover pose. */
-.move:not(.unplayable):hover,.move:not(.unplayable):focus{transform:translateY(-20px) scale(1.06);
+/* the sortable SLOT: @dnd-kit owns its transform for the reorder shift. Layout +
+   pointer live here; the inner .move carries the fan/deal-in/hover transforms. */
+.moveSlot{flex:0 0 auto;width:clamp(82px,9vw,100px);margin:0 -8px;position:relative;
+  cursor:grab;touch-action:none;user-select:none;-webkit-user-select:none}
+.moveSlot .move{width:100%;margin:0;transform-origin:bottom center;position:relative;
+  transition:transform .18s ease, filter .18s ease;pointer-events:none}
+.moveSlot .move.unplayable{filter:grayscale(.7) brightness(.7)}
+.moveSlot.unplayable{cursor:default}
+/* hover lift — !important is SAFE here: @dnd-kit's transform is on the OUTER slot,
+   this only overrides the inner card's resting fan pose. */
+.moveSlot:hover .move:not(.unplayable){transform:translateY(-22px) scale(1.07)!important;
   filter:drop-shadow(0 14px 22px #000b);z-index:9}
 /* gentle invitation that a card can be played this turn */
-.move.playable .cost{box-shadow:0 2px 6px #000a,0 0 0 2px var(--goldB),0 0 10px #ffd34d88}
+.moveSlot .move.playable .cost{box-shadow:0 2px 6px #000a,0 0 0 2px var(--goldB),0 0 10px #ffd34d88}
 
 /* ---------- drag-to-target ---------- */
 .droppable{outline:2px dashed #ffd34daa;outline-offset:3px;border-radius:14px;
@@ -360,10 +364,13 @@ html:has(.cmbt),body:has(.cmbt){height:100%;margin:0;overflow:hidden}
 @keyframes announceIn{0%{opacity:0;transform:translate(-50%,-50%) scale(.8)}
   60%{transform:translate(-50%,-50%) scale(1.06)}100%{opacity:1;transform:translate(-50%,-50%) scale(1)}}
 
-/* ---------- card deal-in: each fresh hand fades/rises in (opacity+filter only, so
-   it never fights the transform @dnd-kit controls for sorting) ---------- */
-.hand .move{animation:dealIn .34s ease backwards}
-@keyframes dealIn{from{opacity:0;filter:brightness(1.4) blur(1px)}to{opacity:1}}
+/* ---------- card deal-in (StS-style): each fresh hand flies in from the deck and
+   lands on its fan pose. Lives on the INNER .move so it can animate transform
+   freely — @dnd-kit's reorder transform is on the OUTER .moveSlot. ---------- */
+.hand .moveSlot .move.dealIn{animation:dealIn .4s cubic-bezier(.2,.85,.3,1.1) backwards}
+@keyframes dealIn{
+  0%{opacity:0;transform:translate(-24vw,32vh) rotate(-24deg) scale(.5)}
+  100%{opacity:1;transform:var(--fanT,none)}}
 
 /* status pips pop in when first applied */
 .pip,.chip{animation:pipIn .28s ease}

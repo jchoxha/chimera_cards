@@ -118,10 +118,18 @@ units are `useDroppable` (`FoeCard`/`AllyCard` = `id`, minis via `DroppableMini`
 (`pointerWithin`) else `closestCenter` over cards only (⚠ `args.droppableContainers` is an ARRAY,
 not a Map — use `.find`, not `.get`). `onDragEnd`: over unit+valid→`play`, over card→`reorderHand(idx)`.
 `DragOverlay` floats the lifted card (+hint +reaction forecast); source card `opacity:0` while
-`isDragging`. `CardFace`/`MiniFighter` gained a `rootRef`/`dropRef` prop. Hand is now a flat
-overlapping row (the fan was dropped for predictability); deal-in is opacity-only so it can't fight
-dnd-kit's transform. TeamManager still uses the DIY window-drag (untouched). Removed: the window
-drag effect, `useFlip` in CombatScreen, `.dragGhost`/`.ghosted`/`.dragging`/`.pressed` CSS.
+`isDragging`. `CardFace`/`MiniFighter` gained a `rootRef`/`dropRef` prop. TeamManager still uses
+the DIY window-drag (untouched). Removed: the window drag effect, `useFlip` in CombatScreen,
+`.dragGhost`/`.ghosted`/`.dragging`/`.pressed` CSS.
+**HAND POLISH — animations back + no target-scramble (v3.99.4):** `SortableHandCard` is now an
+OUTER `.moveSlot` (the sortable node — @dnd-kit owns its reorder transform) wrapping an INNER
+`.frame.move` that carries the fan pose (`--fanT` by index), the StS deal-in fly-in (`@keyframes
+dealIn` → transform, keyed `${dealKey}-${id}`, 60ms stagger) and the hover pop (`!important` is
+safe now — different node than dnd-kit's transform). Restored the fanned hand + fly-in that the
+flat-row v3.99.3 dropped. `collisionDetection` is now **pointerWithin-only** (unit → play, else the
+hand card under the pointer → reorder, else none) — replacing the `closestCenter` card fallback
+that reshuffled the hand while a card was dragged UP through it toward a target. `.move` base CSS
+(width/margin/cursor) moved to `.moveSlot`; `.move.display`/`.move.tiny` keep their own widths.
 
 **🧬 PRIOR FRAMING (2026-06-27) — BIOLOGY SELECTS THE KIT SYSTEM.**
 The **archetype/Class system (Warrior/Rogue/Mage/…) applies ONLY to Humanoids**; every other

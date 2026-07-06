@@ -6,6 +6,10 @@
 
 /** @type {{version:string, date:string, notes:string[]}[]} newest first */
 export const CHANGELOG = [
+  { version: 'v3.99.4', date: '2026-07-06', notes: [
+    'Brought back the good animations on top of the new drag engine: cards fly in from the deck each turn (staggered) and sit in a proper fanned hand again, with the hover pop restored.',
+    'Fixed the hand getting shuffled when you drag a card up to target a creature — reordering now only happens while the card is actually over the hand, so lifting one out to play it leaves the rest untouched.',
+  ] },
   { version: 'v3.99.3', date: '2026-07-06', notes: [
     'Card dragging is rebuilt on a proper drag-and-drop engine (@dnd-kit) instead of hand-rolled pointer tracking — so it behaves predictably now: pick a card up and it follows your cursor smoothly, the hand shifts to reorder, drop it on an enemy/ally to play it, or tap it for info.',
     'The hand reads as a clean overlapping row of cards (a tidy TCG layout) rather than the previous jittery fan.',
