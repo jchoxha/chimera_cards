@@ -27,7 +27,8 @@
 .selCardWrap .sideTag { display: none; }   /* the combat YOU/FOE tag is meaningless in the roster */
 .selCardWrap .combat .art { min-height: 132px; }
 .selGrid .selCardWrap, .selGrid .selCardWrap * { -webkit-user-drag: none; user-select: none; }
-.selPick { position: absolute; top: -8px; right: -6px; z-index: 7; background: #2a7; color: #fff; border-radius: 50%;
+/* pick-order badge — inside the card, top-center (the combat YOU/FOE tag is hidden here) */
+.selPick { position: absolute; top: 8px; left: 50%; transform: translateX(-50%); z-index: 7; background: #2a7; color: #fff; border-radius: 50%;
   width: 26px; height: 26px; display: grid; place-items: center; font-size: 15px; font-weight: 700;
   border: 2px solid #9be29b; box-shadow: 0 2px 8px #000a; }
 

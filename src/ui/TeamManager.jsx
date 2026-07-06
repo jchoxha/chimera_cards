@@ -6,7 +6,7 @@
 // ║ (onSelect). The FIRST member is the Vanguard; reordering returns the new  ║
 // ║ id order via onReorder. Mouse + touch via pointer events.                ║
 // ╚══════════════════════════════════════════════════════════════════╝
-import React, { useRef, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { creatureIcon, creatureColor } from '../data/axisIcons.js';
 import { useFlip } from './useFlip.js';
 import './teamManager.css';
@@ -37,13 +37,15 @@ function CardBody({ m, i, color }) {
 export default function TeamManager({ members = [], onReorder, onRemove, onSelect, title = 'Your Team' }) {
   const ids = members.map((m) => m.id);
   const listRef = useRef(null);
-  const drag = useRef(null);                 // { id, x, y, startX, startY, overId, moved, lastOver }
+  const drag = useRef(null);                 // { id, x, y, startX, startY, moved, lastReorderAt }
   const [d, setD] = useState(null);          // render mirror of drag.current
   const cardEls = useRef(new Map());         // id → card element (for FLIP)
+  const membersRef = useRef(members);        // always-current members (window handlers read this)
+  membersRef.current = members;
   useFlip(ids.join(','), cardEls);           // slide cards to new slots when the order changes
 
   const reorderToIndex = (movingId, to) => {
-    const cur = ids.slice();
+    const cur = membersRef.current.map((m) => m.id);
     const from = cur.indexOf(movingId);
     if (from < 0 || to === from) return false;
     cur.splice(from, 1);
@@ -58,9 +60,9 @@ export default function TeamManager({ members = [], onReorder, onRemove, onSelec
    *  slot — can be taken, and dragging back and forth re-reorders freely. */
   const desiredIndex = (movingId, x, y) => {
     let idx = 0;
-    for (const id of ids) {
-      if (id === movingId) continue;
-      const el = cardEls.current.get(id);
+    for (const m of membersRef.current) {
+      if (m.id === movingId) continue;
+      const el = cardEls.current.get(m.id);
       if (!el || !el.isConnected) continue;
       const r = el.getBoundingClientRect();
       if (!r.width) continue;
@@ -71,37 +73,54 @@ export default function TeamManager({ members = [], onReorder, onRemove, onSelec
     return idx;
   };
 
+  // A drag is tracked at the WINDOW level (not via pointer capture on the card),
+  // so the ghost follows the cursor ANYWHERE on the page and the drag survives the
+  // live-reorder re-render (capture on the moved card node would be lost). Rebinds
+  // only when a NEW drag begins (keyed on the dragged id).
+  useEffect(() => {
+    if (!d) return undefined;
+    const onMove = (e) => {
+      const g = drag.current;
+      if (!g) return;
+      g.x = e.clientX; g.y = e.clientY;
+      if (!g.moved && Math.hypot(e.clientX - g.startX, e.clientY - g.startY) > DRAG_THRESHOLD) g.moved = true;
+      if (g.moved) {
+        // Only reorder while the cursor is near the team row; drag it into empty
+        // space and the card just floats, then snaps back to its slot on release.
+        const rect = listRef.current?.getBoundingClientRect();
+        const near = rect && e.clientY > rect.top - 90 && e.clientY < rect.bottom + 90;
+        if (near) {
+          const now = performance.now();
+          if (!g.lastReorderAt || now - g.lastReorderAt > 190) {
+            const to = desiredIndex(g.id, e.clientX, e.clientY);
+            if (reorderToIndex(g.id, to)) g.lastReorderAt = now;
+          }
+        }
+      }
+      setD({ ...g });
+    };
+    const onUp = () => {
+      const g = drag.current;
+      drag.current = null;
+      setD(null);
+      if (g && !g.moved) { const m = membersRef.current.find((x) => x.id === g.id); if (m && onSelect) onSelect(m); }
+      // order already committed live during the drag; a far/empty release just snaps back
+    };
+    window.addEventListener('pointermove', onMove);
+    window.addEventListener('pointerup', onUp);
+    window.addEventListener('pointercancel', onUp);
+    return () => {
+      window.removeEventListener('pointermove', onMove);
+      window.removeEventListener('pointerup', onUp);
+      window.removeEventListener('pointercancel', onUp);
+    };
+  }, [d?.id]);
+
   function onPointerDown(e, id) {
     if (e.target.closest('.tmRm')) return;   // let the remove button work
     e.preventDefault();
-    try { e.currentTarget.setPointerCapture(e.pointerId); } catch { /* noop */ }
-    drag.current = { id, x: e.clientX, y: e.clientY, startX: e.clientX, startY: e.clientY, overId: null, moved: false };
-    setD({ ...drag.current });
-  }
-  function onPointerMove(e) {
-    const g = drag.current;
-    if (!g) return;
-    g.x = e.clientX; g.y = e.clientY;
-    if (!g.moved && Math.hypot(e.clientX - g.startX, e.clientY - g.startY) > DRAG_THRESHOLD) g.moved = true;
-    if (g.moved) {
-      // LIVE reorder to the cursor's insertion index. A short cooldown lets the
-      // FLIP slide (170ms) settle before re-measuring, so mid-animation rects
-      // can't thrash the order back and forth.
-      const now = performance.now();
-      if (!g.lastReorderAt || now - g.lastReorderAt > 190) {
-        const to = desiredIndex(g.id, e.clientX, e.clientY);
-        if (reorderToIndex(g.id, to)) g.lastReorderAt = now;
-      }
-    }
-    setD({ ...g });
-  }
-  function onPointerUp() {
-    const g = drag.current;
-    drag.current = null;
-    setD(null);
-    if (!g) return;
-    if (!g.moved) { const m = members.find((x) => x.id === g.id); if (m && onSelect) onSelect(m); }
-    // order already committed live during the drag
+    drag.current = { id, x: e.clientX, y: e.clientY, startX: e.clientX, startY: e.clientY, moved: false, lastReorderAt: 0 };
+    setD({ ...drag.current });               // arms the window-level tracking effect
   }
 
   if (!members.length) return <div className="tmEmpty">No creatures yet.</div>;
@@ -122,7 +141,7 @@ export default function TeamManager({ members = [], onReorder, onRemove, onSelec
               ref={(el) => { if (el) cardEls.current.set(m.id, el); else cardEls.current.delete(m.id); }}
               className={`tmCard${i === 0 ? ' vanguard' : ''}${dead ? ' dead' : ''}${d?.id === m.id && dragging ? ' dragging' : ''}`}
               style={{ '--gl': color }}
-              onPointerDown={(e) => onPointerDown(e, m.id)} onPointerMove={onPointerMove} onPointerUp={onPointerUp}
+              onPointerDown={(e) => onPointerDown(e, m.id)}
               title={onSelect ? `${m.name} — tap for details, drag to reorder` : m.name}>
               <CardBody m={m} i={i} color={color} />
               {onRemove && <button className="tmRm" title="Remove from team" onClick={() => onRemove(m.id)}>✕</button>}

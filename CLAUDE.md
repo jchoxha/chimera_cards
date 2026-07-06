@@ -93,6 +93,14 @@ fixes the lastOver oscillation lock, vanguard slot freely takeable); the combat 
 the visible cards while one is lifted (fan computed over non-dragged cards). (5) Bugfix:
 `targetHpPctBelow` authored as percent (50) in kits vs fraction (0.5) in engine — normalized in
 `effectRegistry` + cardText ("5000% HP" / always-on Execute bonus fixed).
+**DRAG ROBUSTNESS + BADGE CONTAINMENT (v3.99.1):** BOTH drags now track on the WINDOW (not
+pointer-capture on the card node): TeamManager + CombatScreen hand bind `pointermove`/`pointerup`
+to `window` while a drag is armed (keyed on the dragged id), so the ghost follows the cursor
+ANYWHERE and the drag survives the live-reorder re-render (capture was being lost → the team ghost
+froze once you left a small area). TeamManager only reorders while the cursor is within ~90px of
+the row band; releasing in empty space snaps back. All card corner badges moved from negative
+offsets INSIDE the frame: `.elem` (attunement) top/right 8px, `.submatrix` 8px, `.cost` 6px,
+`.size` 7px, `.selPick` top-center (combat sideTag hidden in the roster grid).
 
 **🧬 PRIOR FRAMING (2026-06-27) — BIOLOGY SELECTS THE KIT SYSTEM.**
 The **archetype/Class system (Warrior/Rogue/Mage/…) applies ONLY to Humanoids**; every other

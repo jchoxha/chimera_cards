@@ -531,6 +531,46 @@ export default function CombatScreen({ onMenu, onRestart, embedded, onCodex } = 
     return () => clearTimeout(t);
   }, [phase]);
 
+  // ── window-level card drag ────────────────────────────────────────────────────
+  // A card drag is tracked on the WINDOW (not via pointer capture on the card
+  // element), so the card follows the cursor ANYWHERE on the page and the drag
+  // can never be lost to a re-render. Bound only while a drag is armed.
+  const dragActiveId = drag?.card?.id ?? null;
+  useEffect(() => {
+    if (!dragActiveId) return undefined;
+    const onMove = (e) => {
+      const d = dragRef.current;
+      if (!d) return;
+      d.x = e.clientX; d.y = e.clientY;
+      if (!d.moved && Math.hypot(e.clientX - d.startX, e.clientY - d.startY) > DRAG_THRESHOLD) d.moved = true;
+      if (d.moved) {
+        const el = document.elementFromPoint(e.clientX, e.clientY);
+        const dz = el && el.closest ? el.closest('[data-drop-id]') : null;
+        d.overId = dz ? dz.getAttribute('data-drop-id') : null;
+      }
+      setDrag({ ...d });
+    };
+    const onUp = () => {
+      const d = dragRef.current;
+      dragRef.current = null;
+      setDrag(null);
+      if (!d) return;
+      if (!d.moved) { setInfo({ kind: 'card', card: d.card }); return; }   // tap → card info
+      if (d.unplayable) return;                                            // can't play it
+      if (d.overId && d.validIds.has(d.overId)) play(d.card.id, { targetId: d.overId });
+      else if (d.overId) setNotice(`${d.card.name} ${scopeHint(d.card)}.`);
+      // released over empty space → just snaps back to the hand (no-op)
+    };
+    window.addEventListener('pointermove', onMove);
+    window.addEventListener('pointerup', onUp);
+    window.addEventListener('pointercancel', onUp);
+    return () => {
+      window.removeEventListener('pointermove', onMove);
+      window.removeEventListener('pointerup', onUp);
+      window.removeEventListener('pointercancel', onUp);
+    };
+  }, [dragActiveId]);
+
   if (!snap) return <div className="cmbt">Loading…</div>;
 
   const { player, enemy, enemyPlan, peekCharges } = snap;
@@ -595,38 +635,16 @@ export default function CombatScreen({ onMenu, onRestart, embedded, onCodex } = 
   }
 
   // ── drag-to-target (tap = info, drag = play; the card follows the cursor) ─────
+  // Only ARMS the drag; movement/release are handled by the window-level effect
+  // above, so the card can be dragged anywhere on the page and released to snap back.
   function onCardPointerDown(e, card, unplayable) {
     if (over) return;
     e.preventDefault();
-    try { e.currentTarget.setPointerCapture(e.pointerId); } catch { /* noop */ }
-    const d = {
+    dragRef.current = {
       card, unplayable, side: cardTargetSide(card), validIds: validTargetIds(card),
       x: e.clientX, y: e.clientY, startX: e.clientX, startY: e.clientY, overId: null, moved: false,
     };
-    dragRef.current = d;
-    setDrag({ ...d });
-  }
-  function onCardPointerMove(e) {
-    const d = dragRef.current;
-    if (!d) return;
-    d.x = e.clientX; d.y = e.clientY;
-    if (!d.moved && Math.hypot(e.clientX - d.startX, e.clientY - d.startY) > DRAG_THRESHOLD) d.moved = true;
-    if (d.moved) {
-      const el = document.elementFromPoint(e.clientX, e.clientY);
-      const dz = el && el.closest ? el.closest('[data-drop-id]') : null;
-      d.overId = dz ? dz.getAttribute('data-drop-id') : null;
-    }
-    setDrag({ ...d });
-  }
-  function onCardPointerUp() {
-    const d = dragRef.current;
-    dragRef.current = null;
-    setDrag(null);
-    if (!d) return;
-    if (!d.moved) { openCard(d.card); return; }          // tap → card info
-    if (d.unplayable) return;                              // can't play it
-    if (d.overId && d.validIds.has(d.overId)) play(d.card.id, { targetId: d.overId });
-    else if (d.overId) setNotice(`${d.card.name} ${scopeHint(d.card)}.`);
+    setDrag({ ...dragRef.current });
   }
 
   const validIds = drag?.validIds ?? null;
@@ -723,9 +741,7 @@ export default function CombatScreen({ onMenu, onRestart, embedded, onCodex } = 
                     className={`frame move dealIn ${f.finish}${unplayable ? ' unplayable' : ''}${isDragging ? ' dragging' : ''}${isPressed ? ' pressed' : ''}${!unplayable ? ' playable' : ''}`}
                     style={{ background: f.background, '--fanT': `translateY(${lift}px) rotate(${rot}deg)`, transform: 'var(--fanT)', animationDelay: `${i * 70}ms` }}
                     draggable={false}
-                    onPointerDown={(e) => onCardPointerDown(e, c, unplayable)}
-                    onPointerMove={onCardPointerMove}
-                    onPointerUp={onCardPointerUp}>
+                    onPointerDown={(e) => onCardPointerDown(e, c, unplayable)}>
                     {f.holo && <div className="holo" />}
                     <div className={`cost${taxed ? ' taxed' : ''}`} title={taxed ? `${c.cost} + ${shockTax} Shock tax` : undefined}>{c.cost === -1 ? 'X' : c.cost === -2 ? '—' : effCost}</div>
                     <div className="inner">

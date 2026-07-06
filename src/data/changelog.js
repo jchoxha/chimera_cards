@@ -6,6 +6,11 @@
 
 /** @type {{version:string, date:string, notes:string[]}[]} newest first */
 export const CHANGELOG = [
+  { version: 'v3.99.1', date: '2026-07-06', notes: [
+    'Dragging is now tracked across the WHOLE page — both move cards and team creatures follow your cursor anywhere, even far into empty space, and simply snap back to where they belong when you release. (The team ghost previously froze once you left a small area.)',
+    'Move-card drag: the rest of your hand smoothly closes the gap and re-fans around a card you lift out.',
+    'Every card badge now sits INSIDE the card — the attunement icon, kit/archetype corner, cost gem and pick-order badge no longer poke outside the card’s rectangle.',
+  ] },
   { version: 'v3.99.0', date: '2026-07-06', notes: [
     'Team assembly now shows REAL creature cards — the roster grid uses the same TCG card you fight with (portrait, size, biology, kit icons), not a custom tile.',
     'The creature modal is a full two-pane browser: the card + lore + stats on the left, and a tabbed, rarity-grouped card browser (Starting Deck / Full Card Pool) on the right.',
