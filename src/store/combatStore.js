@@ -268,6 +268,15 @@ export const useCombat = create((set, get) => ({
     set((st) => ({ snap: snapshot(vm), version: st.version + 1, log: [..._events] }));
   },
 
+  /** Reorder the player Vanguard's hand (drag-to-reposition; cosmetic). */
+  reorderHand(cardId, toIndex) {
+    const { vm, _events } = get();
+    if (!vm) return;
+    if (vm.reorderHand(cardId, toIndex)) {
+      set((st) => ({ snap: snapshot(vm), version: st.version + 1, log: [..._events] }));
+    }
+  },
+
   /** Swap player Vanguard with a benched fighter by its index in fighters[]. */
   swap(benchIndex) {
     const { vm, _events } = get();

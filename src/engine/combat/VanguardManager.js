@@ -629,6 +629,27 @@ export class VanguardManager {
   // ── Public Player Actions ──────────────────────────────────────────────────
 
   /**
+   * Reorder the player Vanguard's hand: move `cardId` to `toIndex`. Purely
+   * cosmetic (hand order has no gameplay effect) but lets the UI leave a
+   * dragged card wherever the player drops it in the hand.
+   * @param {string} cardId
+   * @param {number} toIndex
+   * @returns {boolean} whether the order changed
+   */
+  reorderHand(cardId, toIndex) {
+    const pVanguard = vanguard(this.state.player);
+    if (!pVanguard) return false;
+    const hand = pVanguard.hand;
+    const from = hand.findIndex((c) => c.id === cardId);
+    if (from < 0) return false;
+    const to = Math.max(0, Math.min(toIndex, hand.length - 1));
+    if (to === from) return false;
+    const [card] = hand.splice(from, 1);
+    hand.splice(to, 0, card);
+    return true;
+  }
+
+  /**
    * Play a card from the player Vanguard's hand.
    * @param {string} cardId
    * @param {{ targetId?: string }} [opts]

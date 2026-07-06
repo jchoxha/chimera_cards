@@ -101,6 +101,14 @@ froze once you left a small area). TeamManager only reorders while the cursor is
 the row band; releasing in empty space snaps back. All card corner badges moved from negative
 offsets INSIDE the frame: `.elem` (attunement) top/right 8px, `.submatrix` 8px, `.cost` 6px,
 `.size` 7px, `.selPick` top-center (combat sideTag hidden in the roster grid).
+**PHYSICAL HAND (v3.99.2):** dragging a hand card over the hand opens an INSERTION GAP that bumps
+neighbours aside; releasing inside the hand commits the new order. `VanguardManager.reorderHand`
+(cosmetic hand-order splice) + `combatStore.reorderHand`; CombatScreen tracks `drag.overHand`
+(cursor within the `.hand` band ±74px) + `drag.insertIdx` (count of non-dragged card centres left
+of the cursor, 130ms cooldown). `handList` inserts the dragged card as a full-width `.ghosted`
+placeholder (opacity 0, keeps footprint) at insertIdx when overHand, else collapses it (`.dragging`
+width 0 = close-ranks); FLIP keyed on `${dragId}|H${insertIdx}` animates the bump. Release: valid
+target→play, else overHand→`reorderHand(insertIdx)`, else snap back.
 
 **🧬 PRIOR FRAMING (2026-06-27) — BIOLOGY SELECTS THE KIT SYSTEM.**
 The **archetype/Class system (Warrior/Rogue/Mage/…) applies ONLY to Humanoids**; every other

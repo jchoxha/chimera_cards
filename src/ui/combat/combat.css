@@ -293,6 +293,9 @@ html:has(.cmbt),body:has(.cmbt){height:100%;margin:0;overflow:hidden}
 /* lifted out of the hand: collapse its footprint so the others close the gap
    (siblings slide via the FLIP animator); the drag ghost represents the card. */
 .move.dragging{width:0!important;min-width:0;margin:0!important;padding:0!important;border-width:0!important;opacity:0;pointer-events:none;overflow:hidden}
+/* held OVER the hand: keep the card's full footprint as an open gap (the floating
+   ghost is the visible card), so neighbours are bumped aside to reveal the slot */
+.move.ghosted{opacity:0;pointer-events:none}
 
 /* ---------- drag-to-target ---------- */
 .droppable{outline:2px dashed #ffd34daa;outline-offset:3px;border-radius:14px;

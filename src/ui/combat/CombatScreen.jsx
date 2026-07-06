@@ -440,7 +440,7 @@ const CODEX_TAB = {
 };
 
 export default function CombatScreen({ onMenu, onRestart, embedded, onCodex } = {}) {
-  const { snap, log, startCombat, play, swap, peekAll, endTurn, endTurnAnimated, enemyActing, reward, rollReward, startedAt } = useCombat();
+  const { snap, log, startCombat, play, swap, peekAll, endTurn, endTurnAnimated, enemyActing, reorderHand, reward, rollReward, startedAt } = useCombat();
   const [nowTick, setNowTick] = useState(() => Date.now());
   // Unified info modal is a STACK: opening a modal (or clicking a link inside one)
   // PUSHES on top; closing (X / click-out) POPS one level back to the modal beneath.
@@ -451,8 +451,13 @@ export default function CombatScreen({ onMenu, onRestart, embedded, onCodex } = 
   const [drag, setDrag] = useState(null);   // { card, side, validIds, x, y, overId, moved }
   const dragRef = useRef(null);
   const handEls = useRef(new Map());        // hand card id → element (for FLIP gap-close)
-  // FLIP the hand so siblings slide to close the gap when a card is lifted out.
-  useFlip(drag && drag.moved ? drag.card.id : 'none', handEls);
+  const handRef = useRef(null);             // the .hand container (for the drag band + insertion)
+  // FLIP the hand so siblings slide when the insertion gap moves (bump) or the
+  // lifted card leaves the hand (close). Re-runs whenever the visual order changes.
+  const flipKey = drag && drag.moved
+    ? `${drag.card.id}|${drag.overHand ? `H${drag.insertIdx ?? ''}` : 'D'}`
+    : 'none';
+  useFlip(flipKey, handEls);
   const [floaters, setFloaters] = useState([]);  // transient floating damage/heal/block numbers
   const seenRef = useRef(0);                      // # of log events already turned into floaters
   const [turnBanner, setTurnBanner] = useState(null);  // transient "YOUR TURN" / "ENEMY TURN" sweep
@@ -547,6 +552,29 @@ export default function CombatScreen({ onMenu, onRestart, embedded, onCodex } = 
         const el = document.elementFromPoint(e.clientX, e.clientY);
         const dz = el && el.closest ? el.closest('[data-drop-id]') : null;
         d.overId = dz ? dz.getAttribute('data-drop-id') : null;
+        // Is the cursor over the hand band? If so, compute where the card would
+        // slot in — the fan opens a gap there (bumping neighbors aside), and a
+        // release inside the hand leaves the card at that position.
+        const hr = handRef.current?.getBoundingClientRect();
+        const pad = 74;
+        const inBand = !!hr && e.clientX > hr.left - pad && e.clientX < hr.right + pad
+          && e.clientY > hr.top - pad && e.clientY < hr.bottom + pad;
+        d.overHand = inBand;
+        if (inBand) {
+          let idx = 0;
+          for (const [id, cel] of handEls.current) {
+            if (id === d.card.id || !cel || !cel.isConnected) continue;
+            const r = cel.getBoundingClientRect();
+            if (r.width && r.left + r.width / 2 < e.clientX) idx += 1;
+          }
+          // small cooldown so the gap doesn't thrash while the FLIP slide settles
+          const now = performance.now();
+          if (idx !== d.insertIdx && (!d.lastInsertAt || now - d.lastInsertAt > 130)) {
+            d.insertIdx = idx; d.lastInsertAt = now;
+          } else if (d.insertIdx == null) {
+            d.insertIdx = idx;
+          }
+        }
       }
       setDrag({ ...d });
     };
@@ -556,10 +584,12 @@ export default function CombatScreen({ onMenu, onRestart, embedded, onCodex } = 
       setDrag(null);
       if (!d) return;
       if (!d.moved) { setInfo({ kind: 'card', card: d.card }); return; }   // tap → card info
-      if (d.unplayable) return;                                            // can't play it
-      if (d.overId && d.validIds.has(d.overId)) play(d.card.id, { targetId: d.overId });
-      else if (d.overId) setNotice(`${d.card.name} ${scopeHint(d.card)}.`);
-      // released over empty space → just snaps back to the hand (no-op)
+      // 1) dropped on a valid target → play it
+      if (!d.unplayable && d.overId && d.validIds.has(d.overId)) { play(d.card.id, { targetId: d.overId }); return; }
+      // 2) released inside the hand → leave it at the slot the gap was holding
+      if (d.overHand && d.insertIdx != null) { reorderHand(d.card.id, d.insertIdx); return; }
+      // 3) dropped on an invalid target → explain; empty space → snap back (no-op)
+      if (d.overId && !d.unplayable) setNotice(`${d.card.name} ${scopeHint(d.card)}.`);
     };
     window.addEventListener('pointermove', onMove);
     window.addEventListener('pointerup', onUp);
@@ -643,6 +673,7 @@ export default function CombatScreen({ onMenu, onRestart, embedded, onCodex } = 
     dragRef.current = {
       card, unplayable, side: cardTargetSide(card), validIds: validTargetIds(card),
       x: e.clientX, y: e.clientY, startX: e.clientX, startY: e.clientY, overId: null, moved: false,
+      overHand: true, insertIdx: null, lastInsertAt: 0,
     };
     setDrag({ ...dragRef.current });
   }
@@ -651,6 +682,29 @@ export default function CombatScreen({ onMenu, onRestart, embedded, onCodex } = 
   const dragging = !!drag && drag.moved;
   const isDroppable = (id) => dragging && !drag.unplayable && !!validIds && validIds.has(id);
   const isHover = (id) => dragging && drag.overId === id;
+
+  // ── hand layout (physical drag) ───────────────────────────────────────────────
+  // While a card is dragged OVER the hand, it holds a full-width placeholder slot
+  // at the insertion index → the fan opens a gap and neighbors slide aside (bump).
+  // Dragged UP out of the hand, its slot collapses so the rest close ranks.
+  const overHand = dragging && drag.overHand;
+  const dragId = dragging ? drag.card.id : null;
+  let handList = hand;                       // DOM/fan order
+  let fanCount = hand.length || 1;
+  let fanIndexOf = new Map(hand.map((c, i) => [c.id, i]));
+  if (dragging) {
+    const without = hand.filter((c) => c.id !== dragId);
+    if (overHand) {
+      const idx = Math.max(0, Math.min(drag.insertIdx ?? without.length, without.length));
+      handList = [...without.slice(0, idx), drag.card, ...without.slice(idx)];
+      fanCount = handList.length || 1;
+      fanIndexOf = new Map(handList.map((c, i) => [c.id, i]));
+    } else {
+      // closed hand: the lifted card collapses; the rest re-fan as one fewer
+      fanCount = without.length || 1;
+      fanIndexOf = new Map(without.map((c, i) => [c.id, i]));
+    }
+  }
 
   return (
     <div className="cmbt land">
@@ -715,30 +769,28 @@ export default function CombatScreen({ onMenu, onRestart, embedded, onCodex } = 
           </div>
 
           <div className="handWrap">
-            <div className="hand">
-              {(() => {
-                // While a card is lifted out, the FAN recomputes over the VISIBLE
-                // cards so the rest re-center + re-angle dynamically (the .18s
-                // transform transition animates the re-fan; FLIP slides the x-shift).
-                const visible = dragging ? hand.filter((c) => c.id !== drag.card.id) : hand;
-                const fanIdx = new Map(visible.map((c, vi) => [c.id, vi]));
-                return hand.map((c, i) => {
+            <div className="hand" ref={handRef}>
+              {handList.map((c, i) => {
                 // Effective cost includes the Shock tax (+1 energy per Shocked ally).
                 const shockTax = player.shockTax || 0;
                 const effCost = (c.cost === -1 || c.cost === -2) ? c.cost : c.cost + shockTax;
                 const taxed = shockTax > 0 && c.cost >= 0;
                 const unplayable = !isPlayerTurn || c.cost === -2 || (c.cost !== -1 && effCost > player.energy);
-                const n = visible.length || 1;
-                const vi = fanIdx.has(c.id) ? fanIdx.get(c.id) : i;
-                const rot = (vi - (n - 1) / 2) * 6;
-                const lift = Math.abs(vi - (n - 1) / 2) * 4;
+                const isDrag = dragging && c.id === dragId;
+                // fan index: its slot in the current layout; the collapsed lifted
+                // card (closed-hand mode) has no slot, so it borrows its neighbours'.
+                const vi = fanIndexOf.has(c.id) ? fanIndexOf.get(c.id) : i;
+                const rot = (vi - (fanCount - 1) / 2) * 6;
+                const lift = Math.abs(vi - (fanCount - 1) / 2) * 4;
                 const f = frameStyle({ element: c.element, rarity: c.rarity });
-                const isDragging = dragging && drag?.card?.id === c.id;
+                // In the hand → hold a placeholder gap (.ghosted, keeps width);
+                // lifted out → collapse (.dragging, width 0). The floating ghost is the card.
+                const dragCls = isDrag ? (overHand ? ' ghosted' : ' dragging') : '';
                 const isPressed = !dragging && drag?.card?.id === c.id;
                 return (
                   <div key={`${dealKey}-${c.id}`}
                     ref={(el) => { if (el) handEls.current.set(c.id, el); else handEls.current.delete(c.id); }}
-                    className={`frame move dealIn ${f.finish}${unplayable ? ' unplayable' : ''}${isDragging ? ' dragging' : ''}${isPressed ? ' pressed' : ''}${!unplayable ? ' playable' : ''}`}
+                    className={`frame move dealIn ${f.finish}${unplayable ? ' unplayable' : ''}${dragCls}${isPressed ? ' pressed' : ''}${!unplayable ? ' playable' : ''}`}
                     style={{ background: f.background, '--fanT': `translateY(${lift}px) rotate(${rot}deg)`, transform: 'var(--fanT)', animationDelay: `${i * 70}ms` }}
                     draggable={false}
                     onPointerDown={(e) => onCardPointerDown(e, c, unplayable)}>
@@ -751,13 +803,12 @@ export default function CombatScreen({ onMenu, onRestart, embedded, onCodex } = 
                     </div>
                   </div>
                 );
-                });
-              })()}
+              })}
             </div>
           </div>
           <div className="playHint">
             {isPlayerTurn
-              ? <><Icon icon="game-icons:click" /> DRAG A CARD ONTO ITS TARGET · TAP A CARD FOR INFO</>
+              ? <><Icon icon="game-icons:click" /> DRAG ONTO A TARGET TO PLAY · DRAG WITHIN THE HAND TO REORDER · TAP FOR INFO</>
               : 'ENEMY TURN…'}
           </div>
         </div>
@@ -823,12 +874,16 @@ export default function CombatScreen({ onMenu, onRestart, embedded, onCodex } = 
               <div className="mt">{describe(drag.card)}</div>
             </div>
           </div>
-          <div className={`dragHint${drag.overId && !validIds?.has(drag.overId) ? ' bad' : ''}`}>
-            {drag.unplayable ? 'Not enough energy'
-              : drag.overId
-                ? (validIds?.has(drag.overId) ? 'Release to play' : 'Invalid target')
-                : `Drag onto a ${drag.side === 'enemy' ? 'foe' : 'ally'}`}
-          </div>
+          {(() => {
+            const onTarget = !drag.unplayable && drag.overId && validIds?.has(drag.overId);
+            const badTarget = drag.overId && !validIds?.has(drag.overId) && !drag.overHand;
+            const label = onTarget ? 'Release to play'
+              : drag.overHand ? 'Release to reorder'
+                : drag.unplayable ? 'Not enough energy'
+                  : badTarget ? 'Invalid target'
+                    : `Drag onto a ${drag.side === 'enemy' ? 'foe' : 'ally'}`;
+            return <div className={`dragHint${badTarget ? ' bad' : ''}`}>{label}</div>;
+          })()}
           {(() => {
             // Reaction forecast: if this damaging card's element would react with a
             // status the hovered target carries, show what fires (verb + magnitude).

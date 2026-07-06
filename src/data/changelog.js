@@ -6,6 +6,9 @@
 
 /** @type {{version:string, date:string, notes:string[]}[]} newest first */
 export const CHANGELOG = [
+  { version: 'v3.99.2', date: '2026-07-06', notes: [
+    'The hand is now physical: as you drag a card across it, the other cards bump aside to open a gap where it will land — and releasing it inside the hand leaves it in that new position. Dragging a card up onto a target still plays it.',
+  ] },
   { version: 'v3.99.1', date: '2026-07-06', notes: [
     'Dragging is now tracked across the WHOLE page — both move cards and team creatures follow your cursor anywhere, even far into empty space, and simply snap back to where they belong when you release. (The team ghost previously froze once you left a small area.)',
     'Move-card drag: the rest of your hand smoothly closes the gap and re-fans around a card you lift out.',
