@@ -130,6 +130,14 @@ flat-row v3.99.3 dropped. `collisionDetection` is now **pointerWithin-only** (un
 hand card under the pointer → reorder, else none) — replacing the `closestCenter` card fallback
 that reshuffled the hand while a card was dragged UP through it toward a target. `.move` base CSS
 (width/margin/cursor) moved to `.moveSlot`; `.move.display`/`.move.tiny` keep their own widths.
+**HAND GAP CLOSE/OPEN (v3.99.5):** the dragged card's `.moveSlot` now **collapses to width 0**
+(animated, `transition: width/margin .19s`) whenever it's dragged AWAY from the hand — `collapsed =
+c.id===activeId && dragAway`, `dragAway = activeId && !(overId is a hand card)`. So the ranks close
+(no blank slot) when away and re-open the moving gap when the pointer returns over a hand card
+(dnd-kit's single-placeholder handles that half). On away-release the collapsed slot sits at the
+card's logical index, so the DragOverlay flies it back to the RIGHT spot (not the drag origin).
+`useSortable` given `transition:{duration:240, easing:'cubic-bezier(.2,0,0,1)'}` so siblings glide
+past instead of snapping.
 
 **🧬 PRIOR FRAMING (2026-06-27) — BIOLOGY SELECTS THE KIT SYSTEM.**
 The **archetype/Class system (Warrior/Rogue/Mage/…) applies ONLY to Humanoids**; every other

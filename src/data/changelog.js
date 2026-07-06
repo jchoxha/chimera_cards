@@ -6,6 +6,10 @@
 
 /** @type {{version:string, date:string, notes:string[]}[]} newest first */
 export const CHANGELOG = [
+  { version: 'v3.99.5', date: '2026-07-06', notes: [
+    'Hand drag polish: dragging a card clear of the hand now closes the gap it left (no more blank slot), and bringing it back re-opens a space where it will land.',
+    'Releasing a card away from the hand now returns it to its correct spot in the fan, and the cards glide as you brush a card through them instead of snapping.',
+  ] },
   { version: 'v3.99.4', date: '2026-07-06', notes: [
     'Brought back the good animations on top of the new drag engine: cards fly in from the deck each turn (staggered) and sit in a proper fanned hand again, with the hover pop restored.',
     'Fixed the hand getting shuffled when you drag a card up to target a creature — reordering now only happens while the card is actually over the hand, so lifting one out to play it leaves the rest untouched.',

@@ -320,18 +320,25 @@ const unitIdOf = (dropId) => (typeof dropId === 'string' && dropId.startsWith('m
  *  library's transform. Dragging reorders the hand (siblings shift) or, dropped on
  *  a unit, plays it — the parent decides on drop. A tap (distance activation) opens
  *  the card's info. `i`/`n` place it in the fan; `dealKey` re-triggers the fly-in. */
-function SortableHandCard({ c, i, n, unplayable, effCost, taxed, shockTax, onTap, dealKey }) {
-  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: c.id, data: { kind: 'card' } });
+function SortableHandCard({ c, i, n, unplayable, effCost, taxed, shockTax, onTap, dealKey, collapsed }) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
+    id: c.id, data: { kind: 'card' },
+    transition: { duration: 240, easing: 'cubic-bezier(.2,0,0,1)' },   // smooth brush-past, not a snap
+  });
   const f = frameStyle({ element: c.element, rarity: c.rarity });
   const mid = (n - 1) / 2;
   const rot = (i - mid) * 5;                 // fan angle
   const lift = Math.abs(i - mid) * 5;        // arc: outer cards ride lower
   const slotStyle = {
     transform: CSS.Transform.toString(transform),   // @dnd-kit reorder shift (outer only)
-    transition,
+    // animate both the reorder transform AND the collapse (width/margin) so the
+    // hand closes smoothly when the card is dragged away and re-opens on return.
+    transition: [transition, 'width .19s ease', 'margin .19s ease'].filter(Boolean).join(', '),
     opacity: isDragging ? 0 : 1,                     // the DragOverlay shows the lifted card
     zIndex: isDragging ? 30 : undefined,
     touchAction: 'none',
+    // dragged clear of the hand → collapse this slot to nothing so the ranks close
+    ...(collapsed ? { width: 0, minWidth: 0, margin: 0, overflow: 'hidden' } : null),
   };
   return (
     <div ref={setNodeRef} className="moveSlot" style={slotStyle}
@@ -770,27 +777,34 @@ export default function CombatScreen({ onMenu, onRestart, embedded, onCodex } = 
           <div className="handWrap">
             <SortableContext items={hand.map((c) => c.id)} strategy={horizontalListSortingStrategy}>
               <div className="hand">
-                {hand.map((c, i) => {
-                  // Effective cost includes the Shock tax (+1 energy per Shocked ally).
-                  const shockTax = player.shockTax || 0;
-                  const effCost = (c.cost === -1 || c.cost === -2) ? c.cost : c.cost + shockTax;
-                  const taxed = shockTax > 0 && c.cost >= 0;
-                  const unplayable = cardUnplayable(c);
-                  return (
-                    <SortableHandCard
-                      key={c.id}
-                      c={c}
-                      i={i}
-                      n={hand.length}
-                      dealKey={dealKey}
-                      unplayable={unplayable}
-                      effCost={effCost}
-                      taxed={taxed}
-                      shockTax={shockTax}
-                      onTap={openCard}
-                    />
-                  );
-                })}
+                {(() => {
+                  // "Away" = a card is being dragged but the pointer is NOT over a
+                  // hand card (it's over a unit or empty space) → collapse its slot.
+                  const overIsCard = overId != null && hand.some((c) => c.id === overId);
+                  const dragAway = !!activeId && !overIsCard;
+                  return hand.map((c, i) => {
+                    // Effective cost includes the Shock tax (+1 energy per Shocked ally).
+                    const shockTax = player.shockTax || 0;
+                    const effCost = (c.cost === -1 || c.cost === -2) ? c.cost : c.cost + shockTax;
+                    const taxed = shockTax > 0 && c.cost >= 0;
+                    const unplayable = cardUnplayable(c);
+                    return (
+                      <SortableHandCard
+                        key={c.id}
+                        c={c}
+                        i={i}
+                        n={hand.length}
+                        dealKey={dealKey}
+                        collapsed={c.id === activeId && dragAway}
+                        unplayable={unplayable}
+                        effCost={effCost}
+                        taxed={taxed}
+                        shockTax={shockTax}
+                        onTap={openCard}
+                      />
+                    );
+                  });
+                })()}
               </div>
             </SortableContext>
           </div>
