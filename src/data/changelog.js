@@ -6,6 +6,10 @@
 
 /** @type {{version:string, date:string, notes:string[]}[]} newest first */
 export const CHANGELOG = [
+  { version: 'v3.100.0', date: '2026-07-06', notes: [
+    'Moves now have real punch, on the same spring-physics engine as the hand: playing a card fires a glowing bolt (tinted to the attack’s element) that flies from the attacker to the target and bursts on impact.',
+    'The struck creature recoils and flashes, the attacker lunges into the blow, an impact ring rings out, and damage/heal/block numbers POP in and drift up (spring), instead of the old flat float. Blocks and heals give a soft glow pulse.',
+  ] },
   { version: 'v3.99.6', date: '2026-07-06', notes: [
     'Rebuilt the combat hand on a physics engine (react-spring + use-gesture — the stack behind the well-known draggable card-fan demos). Cards now move with real spring physics: pick one up and it follows your finger, the rest glide to make room, close the gap when it leaves the hand and re-open a slot when it returns, and everything settles smoothly instead of snapping.',
     'Drop it on a creature to play, drop it in the hand to reorder, tap it for info — and it always springs back to its correct spot if you let go somewhere else.',

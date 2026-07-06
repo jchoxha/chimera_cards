@@ -29,7 +29,26 @@ import MonsterPage from '../MonsterPage.jsx';
 import { CardFace, MiniStatus, ELEMENT_ICON, powerLabel, powerIcon, sizeWord } from './creatureVisuals.jsx';
 import DeckDropdown from './DeckDropdown.jsx';
 import HandFan from './HandFan.jsx';
+import CombatFx from './CombatFx.jsx';
 import './combat.css';
+
+// ── imperative card reactions (WAAPI on the units' [data-drop-id] nodes) ──────────
+// A hit KICKS the target back + flashes it; the attacker LUNGES; block/heal PULSE.
+const anim = (el, frames, opts) => { try { el.animate(frames, opts); } catch { /* WAAPI unsupported */ } };
+function kickEl(el, dir) {
+  anim(el, [{ transform: 'translateX(0) rotate(0)' }, { transform: `translateX(${dir * 14}px) rotate(${dir * 2.5}deg)`, offset: 0.3 }, { transform: 'translateX(0) rotate(0)' }],
+    { duration: 380, easing: 'cubic-bezier(.36,.07,.19,.97)' });
+}
+function lungeEl(el, dir) {
+  anim(el, [{ transform: 'translate(0,0) scale(1)' }, { transform: `translate(${dir * 18}px,-10px) scale(1.06)`, offset: 0.4 }, { transform: 'translate(0,0) scale(1)' }],
+    { duration: 300, easing: 'ease-out' });
+}
+function flashEl(el) {
+  anim(el, [{ filter: 'brightness(1)' }, { filter: 'brightness(2.2) contrast(1.15)', offset: 0.12 }, { filter: 'brightness(1)' }], { duration: 300, easing: 'ease-out' });
+}
+function pulseEl(el, color) {
+  anim(el, [{ boxShadow: `0 0 0 ${color}00` }, { boxShadow: `0 0 22px ${color}`, offset: 0.3 }, { boxShadow: `0 0 0 ${color}00` }], { duration: 500, easing: 'ease-out' });
+}
 
 const INTENT_ICON = {
   attack: 'game-icons:crossed-swords',
@@ -439,8 +458,8 @@ export default function CombatScreen({ onMenu, onRestart, embedded, onCodex } = 
   // to HIGHLIGHT which unit the lifted card is hovering. The physics/reorder/play
   // all live inside HandFan; CombatScreen just reacts to the reported drag.
   const [handDrag, setHandDrag] = useState(null);   // { dragId, overUnitId, valid } | null
-  const [floaters, setFloaters] = useState([]);  // transient floating damage/heal/block numbers
-  const seenRef = useRef(0);                      // # of log events already turned into floaters
+  const [fx, setFx] = useState([]);               // spring FX items (projectiles / bursts / numbers)
+  const seenRef = useRef(0);                      // # of log events already turned into FX
   const [turnBanner, setTurnBanner] = useState(null);  // transient "YOUR TURN" / "ENEMY TURN" sweep
   const prevPhaseRef = useRef(null);
   const [dealKey, setDealKey] = useState(0);           // bumped when a fresh hand is dealt → replays the deal-in animation
@@ -456,8 +475,10 @@ export default function CombatScreen({ onMenu, onRestart, embedded, onCodex } = 
     return () => clearInterval(t);
   }, [startedAt, combatOver]);
 
-  // Spawn floating numbers + a hit-shake from NEW combat events (anchored to the
-  // target's on-screen card via its data-drop-id). Prefers the big featured card.
+  // Turn NEW combat-log events into spring FX: a cast PROJECTILE flies attacker→
+  // target, the target RECOILS + flashes, the attacker LUNGES, an impact BURST
+  // rings out, and the damage/heal/block number POPS. Anchored to each unit's
+  // on-screen card via its data-drop-id (the big featured card is preferred).
   useEffect(() => {
     const evs = log ?? [];
     if (seenRef.current > evs.length) seenRef.current = 0;   // combat restarted → log reset
@@ -466,32 +487,51 @@ export default function CombatScreen({ onMenu, onRestart, embedded, onCodex } = 
     if (!fresh.length) return undefined;
     const timers = [];
     const raf = requestAnimationFrame(() => {
-      const spawned = [];
+      const items = [];
+      let lastActor = null;
+      let n = 0;
+      const key = () => `fx-${Date.now()}-${n++}`;
+      const nodeOf = (id) => document.querySelector(`.combat[data-drop-id="${id}"]`) || document.querySelector(`[data-drop-id="${id}"]`);
+      const centerOf = (el) => { const r = el.getBoundingClientRect(); return { x: r.left + r.width / 2, y: r.top + r.height * 0.4 }; };
+      const colorFor = (elname) => ATTUNEMENT_COLOR[elname] || ELEMENT_COLOR[elname] || '#ffd34d';
       for (const ev of fresh) {
         const p = ev.payload ?? {};
-        let text = null; let kind = null;
-        if (ev.type === 'damage' && p.hpLoss > 0) { text = `-${p.hpLoss}`; kind = 'dmg'; }
-        else if (ev.type === 'heal' && p.amount > 0) { text = `+${p.amount}`; kind = 'heal'; }
-        else if (ev.type === 'block' && p.amount > 0) { text = `+${p.amount}`; kind = 'block'; }
-        else if (ev.type === 'reaction') { text = `${p.verb}!`; kind = 'react'; }
-        else if (ev.type === 'decay') {
+        if (ev.type === 'play' && p.actorId) { lastActor = p.actorId; continue; }
+        const tEl = p.targetId ? nodeOf(p.targetId) : null;
+        if (!tEl) continue;
+        const tc = centerOf(tEl);
+
+        if (ev.type === 'damage' && p.hpLoss > 0) {
+          const color = colorFor(p.element);
+          const enemyTarget = !playerIds.has(p.targetId);
+          const aEl = (!p.dot && lastActor) ? nodeOf(lastActor) : null;
+          const impactDelay = aEl ? 190 : 0;                 // DoT ticks land instantly (no cast)
+          if (aEl) {
+            const ac = centerOf(aEl);
+            items.push({ key: key(), type: 'proj', x0: ac.x - 13, y0: ac.y - 13, x1: tc.x - 13, y1: tc.y - 13, color });
+            lungeEl(aEl, playerIds.has(lastActor) ? -1 : 1);   // attacker lunges toward the target
+          }
+          items.push({ key: key(), type: 'burst', x: tc.x, y: tc.y, color, delay: impactDelay });
+          items.push({ key: key(), type: 'num', x: tc.x, y: tc.y, text: `-${p.hpLoss}`, kind: 'dmg', delay: impactDelay });
+          timers.push(setTimeout(() => { kickEl(tEl, enemyTarget ? -1 : 1); flashEl(tEl); }, impactDelay));
+        } else if (ev.type === 'heal' && p.amount > 0) {
+          items.push({ key: key(), type: 'num', x: tc.x, y: tc.y, text: `+${p.amount}`, kind: 'heal' });
+          pulseEl(tEl, '#8ef0a8');
+        } else if (ev.type === 'block' && p.amount > 0) {
+          items.push({ key: key(), type: 'num', x: tc.x, y: tc.y, text: `+${p.amount}`, kind: 'block' });
+          pulseEl(tEl, '#bfe0ff');
+        } else if (ev.type === 'reaction') {
+          items.push({ key: key(), type: 'burst', x: tc.x, y: tc.y, color: colorFor(p.element) });
+          items.push({ key: key(), type: 'num', x: tc.x, y: tc.y - 24, text: `${p.verb}!`, kind: 'react' });
+        } else if (ev.type === 'decay') {
           const nm = EFFECT_INFO[p.buff]?.name || p.buff;
-          text = !p.buff ? 'Decay fizzles' : p.wiped ? `${nm} wiped!` : `−${p.removed} ${nm}`;
-          kind = 'decay';
+          const text = !p.buff ? 'Decay fizzles' : p.wiped ? `${nm} wiped!` : `−${p.removed} ${nm}`;
+          items.push({ key: key(), type: 'num', x: tc.x, y: tc.y, text, kind: 'decay' });
         }
-        else continue;
-        const id = p.targetId;
-        if (!id) continue;
-        const el = document.querySelector(`.combat[data-drop-id="${id}"]`) || document.querySelector(`[data-drop-id="${id}"]`);
-        if (!el) continue;
-        const r = el.getBoundingClientRect();
-        const key = `${Date.now()}-${spawned.length}-${Math.random().toString(36).slice(2, 6)}`;
-        spawned.push({ key, x: r.left + r.width / 2, y: r.top + r.height * 0.34, text, kind });
-        if (kind === 'dmg') { el.classList.add('hitShake'); timers.push(setTimeout(() => el.classList.remove('hitShake'), 420)); }
       }
-      if (spawned.length) {
-        setFloaters((cur) => [...cur, ...spawned]);
-        timers.push(setTimeout(() => setFloaters((cur) => cur.filter((f) => !spawned.some((s) => s.key === f.key))), 1000));
+      if (items.length) {
+        setFx((cur) => [...cur, ...items]);
+        timers.push(setTimeout(() => setFx((cur) => cur.filter((f) => !items.some((s) => s.key === f.key))), 1500));
       }
     });
     return () => { cancelAnimationFrame(raf); timers.forEach(clearTimeout); };
@@ -754,14 +794,8 @@ export default function CombatScreen({ onMenu, onRestart, embedded, onCodex } = 
         </div>
       )}
 
-      {/* transient floating numbers (damage / heal / block) anchored to targets */}
-      {floaters.length > 0 && (
-        <div className="floaters">
-          {floaters.map((fl) => (
-            <span key={fl.key} className={`floatNum ${fl.kind}`} style={{ left: fl.x, top: fl.y }}>{fl.text}</span>
-          ))}
-        </div>
-      )}
+      {/* spring combat FX: cast projectiles, impact bursts, popping numbers */}
+      <CombatFx items={fx} />
 
       {/* unified info popup — a STACK; each level renders OVER the one beneath it,
           and X / click-out pops just the top level back to the modal below. */}

@@ -154,6 +154,15 @@ unit under it) → valid unit=play, over hand=reorder, else spring back. Deal-in
 (highlights from the reported `handDrag` state). `.handFan`/`.handCard` are absolute-positioned (no
 flex layout to fight). Removed: `@dnd-kit/*` deps, `.moveSlot`/`.dragOverlayCard`/dealIn-keyframe CSS.
 TeamManager still uses its own DIY window-drag (untouched).
+**💥 MOVE FX — spring "juice" layer (v3.100.0):** `src/ui/combat/CombatFx.jsx` (react-spring overlay)
++ WAAPI card reactions. CombatScreen's log effect turns fresh events into FX descriptors anchored to
+each unit's `[data-drop-id]` rect: a **projectile** flies `actorId`→`targetId` (from the preceding
+`play` event's actor; element-tinted via `ATTUNEMENT_COLOR`/`ELEMENT_COLOR`), then a **burst** ring +
+a **num** (spring pop→rise) land at the target with a ~190ms delay so they sync with the bolt's
+arrival (DoT ticks have no projectile → 0 delay). The target `kickEl`+`flashEl`, the attacker
+`lungeEl`, block/heal `pulseEl` — all WAAPI on the card DOM (direction from `playerIds`: enemy card
+is left, ally right). Replaces the old CSS `floatUp`/`hitShake`. `CombatFx` items are pruned from
+state after 1.5s. Reactions/decay render as burst+num too.
 
 **🧬 PRIOR FRAMING (2026-06-27) — BIOLOGY SELECTS THE KIT SYSTEM.**
 The **archetype/Class system (Warrior/Rogue/Mage/…) applies ONLY to Humanoids**; every other

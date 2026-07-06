@@ -316,25 +316,25 @@ html:has(.cmbt),body:has(.cmbt){height:100%;margin:0;overflow:hidden}
 .dragReact .rx b{font-family:'Cinzel',serif;letter-spacing:.4px}
 .dragReact .rx span{opacity:.85}
 
-/* ---------- transient floating numbers + hit-shake ---------- */
-.floaters{position:fixed;inset:0;z-index:118;pointer-events:none;overflow:hidden}
-.floatNum{position:fixed;transform:translate(-50%,-50%);font-family:'Cinzel',serif;font-weight:900;
-  font-size:clamp(20px,3.4vw,30px);text-shadow:0 2px 4px #000,0 0 9px #000;will-change:transform,opacity;
-  animation:floatUp .95s ease-out forwards}
+/* ---------- spring combat FX (CombatFx.jsx): projectiles, bursts, numbers ---------- */
+.combatFx{position:fixed;inset:0;z-index:118;pointer-events:none;overflow:hidden}
+/* a glowing cast bolt that flies attacker→target (react-spring drives x/y/scale) */
+.fxProj{position:absolute;left:0;top:0;width:26px;height:26px;border-radius:50%;will-change:transform,opacity;
+  mix-blend-mode:screen;filter:blur(.3px)}
+/* an expanding impact ring at the target */
+.fxBurst{position:absolute;width:64px;height:64px;margin:-32px 0 0 -32px;border-radius:50%;
+  border:3px solid #ffd34d;will-change:transform,opacity;box-shadow:0 0 16px currentColor;mix-blend-mode:screen}
+/* damage/heal/block numbers — motion (pop + rise) is react-spring; this is just the look */
+.floatNum{position:absolute;transform-origin:center;margin:-14px 0 0 0;translate:-50% 0;
+  font-family:'Cinzel',serif;font-weight:900;font-size:clamp(20px,3.4vw,30px);
+  text-shadow:0 2px 4px #000,0 0 9px #000;will-change:transform,opacity;white-space:nowrap}
 .floatNum.dmg{color:#ff6f5c}
 .floatNum.heal{color:#8ef0a8}
 .floatNum.block{color:#bfe0ff}
-.floatNum.react{color:#ffd34d;font-family:'Cinzel',serif;font-size:clamp(15px,2.6vw,22px);letter-spacing:1px;
+.floatNum.react{color:#ffd34d;font-size:clamp(15px,2.6vw,22px);letter-spacing:1px;
   text-shadow:0 2px 4px #000,0 0 12px #ffae3a}
-.floatNum.decay{color:#c89bff;font-size:clamp(13px,2.3vw,19px);letter-spacing:.5px;white-space:nowrap;
+.floatNum.decay{color:#c89bff;font-size:clamp(13px,2.3vw,19px);letter-spacing:.5px;
   text-shadow:0 2px 4px #000,0 0 12px #7a3fb0}
-@keyframes floatUp{
-  0%{opacity:0;transform:translate(-50%,-28%) scale(.7)}
-  18%{opacity:1;transform:translate(-50%,-62%) scale(1.12)}
-  100%{opacity:0;transform:translate(-50%,-150%) scale(1)}}
-.hitShake{animation:hitShake .4s ease}
-@keyframes hitShake{0%,100%{transform:translateX(0)}20%{transform:translateX(-4px)}
-  40%{transform:translateX(4px)}60%{transform:translateX(-3px)}80%{transform:translateX(3px)}}
 
 /* ---------- turn handover banner ---------- */
 .turnBanner{position:fixed;top:38%;left:50%;transform:translate(-50%,-50%);z-index:119;pointer-events:none;
