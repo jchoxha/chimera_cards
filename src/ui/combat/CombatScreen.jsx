@@ -460,6 +460,7 @@ export default function CombatScreen({ onMenu, onRestart, embedded, onCodex } = 
   const [handDrag, setHandDrag] = useState(null);   // { dragId, overUnitId, valid } | null
   const [fx, setFx] = useState([]);               // spring FX items (projectiles / bursts / numbers)
   const seenRef = useRef(0);                      // # of log events already turned into FX
+  const lastActorRef = useRef(null);              // most recent 'play' actor — persists across log batches (staged enemy turn)
   const [turnBanner, setTurnBanner] = useState(null);  // transient "YOUR TURN" / "ENEMY TURN" sweep
   const prevPhaseRef = useRef(null);
   const [dealKey, setDealKey] = useState(0);           // bumped when a fresh hand is dealt → replays the deal-in animation
@@ -481,14 +482,13 @@ export default function CombatScreen({ onMenu, onRestart, embedded, onCodex } = 
   // on-screen card via its data-drop-id (the big featured card is preferred).
   useEffect(() => {
     const evs = log ?? [];
-    if (seenRef.current > evs.length) seenRef.current = 0;   // combat restarted → log reset
+    if (seenRef.current > evs.length) { seenRef.current = 0; lastActorRef.current = null; }   // combat restarted → log reset
     const fresh = evs.slice(seenRef.current);
     seenRef.current = evs.length;
     if (!fresh.length) return undefined;
     const timers = [];
     const raf = requestAnimationFrame(() => {
       const items = [];
-      let lastActor = null;
       let n = 0;
       const key = () => `fx-${Date.now()}-${n++}`;
       const nodeOf = (id) => document.querySelector(`.combat[data-drop-id="${id}"]`) || document.querySelector(`[data-drop-id="${id}"]`);
@@ -496,7 +496,7 @@ export default function CombatScreen({ onMenu, onRestart, embedded, onCodex } = 
       const colorFor = (elname) => ATTUNEMENT_COLOR[elname] || ELEMENT_COLOR[elname] || '#ffd34d';
       for (const ev of fresh) {
         const p = ev.payload ?? {};
-        if (ev.type === 'play' && p.actorId) { lastActor = p.actorId; continue; }
+        if (ev.type === 'play' && p.actorId) { lastActorRef.current = p.actorId; continue; }
         const tEl = p.targetId ? nodeOf(p.targetId) : null;
         if (!tEl) continue;
         const tc = centerOf(tEl);
@@ -504,12 +504,13 @@ export default function CombatScreen({ onMenu, onRestart, embedded, onCodex } = 
         if (ev.type === 'damage' && p.hpLoss > 0) {
           const color = colorFor(p.element);
           const enemyTarget = !playerIds.has(p.targetId);
-          const aEl = (!p.dot && lastActor) ? nodeOf(lastActor) : null;
+          const actorId = lastActorRef.current;
+          const aEl = (!p.dot && actorId && actorId !== p.targetId) ? nodeOf(actorId) : null;
           const impactDelay = aEl ? 190 : 0;                 // DoT ticks land instantly (no cast)
           if (aEl) {
             const ac = centerOf(aEl);
             items.push({ key: key(), type: 'proj', x0: ac.x - 13, y0: ac.y - 13, x1: tc.x - 13, y1: tc.y - 13, color });
-            lungeEl(aEl, playerIds.has(lastActor) ? -1 : 1);   // attacker lunges toward the target
+            lungeEl(aEl, playerIds.has(actorId) ? -1 : 1);   // attacker lunges toward the target
           }
           items.push({ key: key(), type: 'burst', x: tc.x, y: tc.y, color, delay: impactDelay });
           items.push({ key: key(), type: 'num', x: tc.x, y: tc.y, text: `-${p.hpLoss}`, kind: 'dmg', delay: impactDelay });

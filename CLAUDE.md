@@ -162,7 +162,11 @@ a **num** (spring pop→rise) land at the target with a ~190ms delay so they syn
 arrival (DoT ticks have no projectile → 0 delay). The target `kickEl`+`flashEl`, the attacker
 `lungeEl`, block/heal `pulseEl` — all WAAPI on the card DOM (direction from `playerIds`: enemy card
 is left, ally right). Replaces the old CSS `floatUp`/`hitShake`. `CombatFx` items are pruned from
-state after 1.5s. Reactions/decay render as burst+num too.
+state after 1.5s. Reactions/decay render as burst+num too. **v3.100.1 fix:** the `play` actor is now
+tracked in a component-level `lastActorRef` (not a per-effect-run local), so ENEMY attacks — whose
+`play` and `damage` events arrive in separate `log` batches during the staged enemy turn — still
+resolve the attacker node and fire the projectile + `lungeEl` (was: enemy moves showed only burst+num).
+Also skips the projectile when `actorId === targetId` (self-target).
 
 **🧬 PRIOR FRAMING (2026-06-27) — BIOLOGY SELECTS THE KIT SYSTEM.**
 The **archetype/Class system (Warrior/Rogue/Mage/…) applies ONLY to Humanoids**; every other
