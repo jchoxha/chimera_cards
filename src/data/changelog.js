@@ -6,6 +6,11 @@
 
 /** @type {{version:string, date:string, notes:string[]}[]} newest first */
 export const CHANGELOG = [
+  { version: 'v3.105.0', date: '2026-07-08', notes: [
+    'You can now OWN multiple of the same creature and give each a custom NICKNAME. Your collection tracks individual creatures (species + size + name), so “Behemoth” the Boss Voltfang sits beside a regular one on your team.',
+    'Smart filters on both the team-assembly screen and the editor’s Creatures tab — search by name and filter by element, body type, subtype, archetype, family, and size.',
+    'The editor’s creature panel has a proper Size Variations section: click a size to view that variant (its card, stats and art update), toggle whether it’s discovered, and capture/nickname/release individual copies.',
+  ] },
   { version: 'v3.104.0', date: '2026-07-07', notes: [
     'Finished the app-wide visual unification: every screen — menu, team assembly, creature creator, editor, codex, run/rewards, deck builder, and combat — now shares one gilded-wood theme drawn from the same design tokens. No more mismatched colours between screens.',
     'The changelog and creature panels use the shared modal, and a stray colour-variable clash that could have washed out combat cards was fixed.',

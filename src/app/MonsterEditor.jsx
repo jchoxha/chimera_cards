@@ -22,21 +22,14 @@ import Modal from '../ui/Modal.jsx';
 import {
   emptyCollection, seedFullCollection, addDiscovered, addCaptured,
   removeDiscovered, discoveredForms, capturedForms,
+  ownedForSpecies, ownedCountOf, addOwned, removeOwned, renameOwned,
 } from './collection.js';
+import { CreatureFilterBar, matchesFilter, emptyFilter } from './CreatureFilter.jsx';
 import '../ui/combat/combat.css';
 import './creator.css';
 import './admin.css';
 
 const Icon = ({ icon, ...rest }) => <iconify-icon icon={icon} {...rest}></iconify-icon>;
-
-/** Collection cell cycle: none → discovered → captured → none. */
-function cycleCell(col, id, form) {
-  const disc = discoveredForms(col, id).includes(form);
-  const capt = capturedForms(col, id).includes(form);
-  if (!disc) return addDiscovered(col, id, form);
-  if (!capt) return addCaptured(col, id, form);
-  return removeDiscovered(col, id, form);   // also un-captures
-}
 
 function emptyDef(classes, biologies) {
   return { id: null, name: '', lore: '', description: '', class: [classes[0] || 'Warrior'],
@@ -45,10 +38,12 @@ function emptyDef(classes, biologies) {
 }
 
 export default function MonsterEditor({ defs = [], classes = [], biologies = [], attunements = [], subtypeOptions = [], legalFor, buildPool, families = [], onSave, onDelete, onMenu, tabs,
-  rosterCreatures = [], customCreatures = [], collection, onCollectionChange, onCollectionReset }) {
+  rosterCreatures = [], customCreatures = [], collection, onCollectionChange, onCollectionReset, sizeVariant }) {
   const [editing, setEditing] = useState(null); // a def being edited, or null = list
   const [building, setBuilding] = useState(false);
   const [openId, setOpenId] = useState(null);   // creature whose collection modal is open
+  const [openForm, setOpenForm] = useState(null); // the size variation being viewed in the modal
+  const [filter, setFilter] = useState(emptyFilter);
 
   if (editing) {
     const isBeast = (editing.biology || []).includes('Beast');
@@ -241,8 +236,15 @@ export default function MonsterEditor({ defs = [], classes = [], biologies = [],
 
   // Every creature as a card: built-in roster + your custom monsters.
   const allCreatures = [...rosterCreatures, ...customCreatures];
+  const shownCreatures = allCreatures.filter((c) => matchesFilter(c, filter));
   const open = openId ? allCreatures.find((c) => c.id === openId) : null;
   const openDef = open?.custom ? defs.find((d) => d.id === open.id) : null;
+  const nativeForm = open ? (open.meta?.form ?? open.size ?? 'regular') : 'regular';
+  const viewForm = openForm || nativeForm;
+  // The creature rebuilt at the size being viewed (roster only; customs are single-size).
+  const viewCreature = (!open || open.custom || viewForm === nativeForm || !sizeVariant)
+    ? open : (sizeVariant(open.baseId || open.id, viewForm) || open);
+  const openCreature = (id) => { setOpenId(id); setOpenForm(null); };
 
   // Status pill for a tile: captured/discovered counts (customs are always yours).
   const statusOf = (c) => {
@@ -262,7 +264,8 @@ export default function MonsterEditor({ defs = [], classes = [], biologies = [],
         <h1>🛠 Editor — Creatures</h1>
       </header>
       <div className="adBody">
-        <p className="uiHint ceIntro">Every creature in the game, as its card — click one to view it (and edit your custom creatures). Discovery/capture per size lives inside each card, plus the dev bulk actions below.</p>
+        <p className="uiHint ceIntro">Every creature in the game, as its card — click one to view it, switch between its sizes, manage which you own, and edit your custom creatures.</p>
+        <CreatureFilterBar creatures={allCreatures} filter={filter} onChange={setFilter} placeholder="Search creatures…" />
         <details className="ceBulk">
           <summary>⚙ Collection bulk actions <span className="uiHint">(dev)</span></summary>
           <div className="ceBulkRow">
@@ -279,30 +282,31 @@ export default function MonsterEditor({ defs = [], classes = [], biologies = [],
             <div className="ceCreateName">New Custom Creature</div>
             <div className="ceCreateSub">Author its typings, size &amp; (optionally) a hand-built deck.</div>
           </button>
-          {allCreatures.map((c) => {
+          {shownCreatures.map((c) => {
             const st = statusOf(c);
             return (
               <div key={c.id} role="button" tabIndex={0}
                 className={`uiCardTile${st.cls === 'none' ? ' locked' : ''}`}
                 style={{ '--gl': creatureColor(c) }}
-                onClick={() => setOpenId(c.id)}
-                onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') setOpenId(c.id); }}>
+                onClick={() => openCreature(c.id)}
+                onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') openCreature(c.id); }}>
                 <CardFace f={creatureToFace(c)} side="ally" />
                 <span className={`ceStatus uiPill ${st.tone}`}>{st.txt}</span>
               </div>
             );
           })}
+          {shownCreatures.length === 0 && <p className="uiHint" style={{ gridColumn: '1 / -1', padding: '20px' }}>No creatures match your filters.</p>}
         </div>
       </div>
 
-      {/* Per-creature modal — CREATURE-FIRST: the card + its page, custom edit/delete,
-          and a COMPACT dev strip for its collection (discovered/captured × size). */}
+      {/* Per-creature modal — CREATURE-FIRST: the card + its page (at the viewed
+          SIZE), custom edit/delete, and the SIZES section (switch + manage). */}
       {open && (
         <Modal onClose={() => setOpenId(null)} size="lg" className="ceModal">
           <div className="ceModalCols">
-            <div className="ceModalCard"><CardFace f={creatureToFace(open)} side="ally" /></div>
+            <div className="ceModalCard"><CardFace f={creatureToFace(viewCreature)} side="ally" /></div>
             <div className="ceModalInfo">
-              <MonsterPage creature={open} />
+              <MonsterPage creature={viewCreature} />
               {open.custom && (
                 <div className="ceActRow">
                   <button className="uiBtn go" onClick={() => { const d = openDef; setOpenId(null); if (d) setEditing({ ...emptyDef(classes, biologies), ...d, lore: d.lore || '', description: d.description || '', size: d.size || 'regular' }); }}>✎ Edit creature</button>
@@ -311,28 +315,56 @@ export default function MonsterEditor({ defs = [], classes = [], biologies = [],
               )}
             </div>
           </div>
-          {!open.custom && (
-            <details className="ceCollStrip">
-              <summary>⚙ Collection <span className="uiHint">(dev) — which sizes are discovered / captured</span></summary>
-              <div className="ceCollCells">
-                {FORM_ORDER.map((f) => {
-                  const disc = discoveredForms(col, open.id).includes(f);
-                  const capt = capturedForms(col, open.id).includes(f);
-                  const cls = capt ? 'capt' : disc ? 'disc' : 'none';
-                  const state = capt ? 'captured' : disc ? 'discovered' : 'not discovered';
-                  return (
-                    <button key={f} className={`ceCollCell ${cls}`} title={`${FORMS[f].label} — ${state}. Tap to cycle none → discovered → captured.`}
-                      onClick={() => setCol(cycleCell(col, open.id, f))}>
-                      <span className="ceCollBadge">{FORMS[f].badge || FORMS[f].label[0]}</span>
-                      <span className="ceCollLbl">{FORMS[f].label}</span>
-                      {capt ? <Icon icon="game-icons:catch" /> : disc ? <Icon icon="game-icons:semi-closed-eye" /> : <Icon icon="game-icons:padlock" />}
-                    </button>
-                  );
-                })}
-                <button className="uiBtn sm" onClick={() => { let c = col; for (const f of FORM_ORDER) c = addCaptured(c, open.id, f); setCol(c); }}>✔ all</button>
+
+          {/* SIZES — switch the variation being viewed + manage the collection at it. */}
+          {!open.custom && (() => {
+            const discHere = discoveredForms(col, open.id).includes(viewForm);
+            const owned = ownedForSpecies(col, open.id).filter((o) => o.form === viewForm);
+            return (
+              <div className="ceSizes">
+                <div className="ceSizesHead"><Icon icon="game-icons:resize" /> Size variations</div>
+                <div className="ceSizeChips">
+                  {FORM_ORDER.map((f) => {
+                    const disc = discoveredForms(col, open.id).includes(f);
+                    const owns = ownedCountOf(col, open.id, f);
+                    return (
+                      <button key={f} className={`ceSizeChip${viewForm === f ? ' on' : ''}${owns ? ' owns' : disc ? ' disc' : ''}`}
+                        onClick={() => setOpenForm(f)}
+                        title={`${FORMS[f].label}${owns ? ` — own ${owns}` : disc ? ' — discovered' : ' — not discovered'}`}>
+                        {FORMS[f].badge ? `${FORMS[f].badge} ` : ''}{FORMS[f].label}
+                        {owns > 0 && <span className="ceSizeN">{owns}</span>}
+                      </button>
+                    );
+                  })}
+                </div>
+                <div className="ceSizeManage uiPanel">
+                  <div className="ceSizeRow">
+                    <b>{FORMS[viewForm].label}</b>
+                    <label className="ceSizeToggle">
+                      <input type="checkbox" checked={discHere}
+                        onChange={() => setCol(discHere ? removeDiscovered(col, open.id, viewForm) : addDiscovered(col, open.id, viewForm))} />
+                      Discovered (Codex)
+                    </label>
+                    <button className="uiBtn sm go" onClick={() => setCol(addOwned(col, open.id, viewForm))}>＋ Capture one</button>
+                  </div>
+                  {owned.length === 0
+                    ? <p className="uiHint">You own none of this size. “Capture one” adds an instance you can nickname.</p>
+                    : (
+                      <div className="ceOwnedList">
+                        {owned.map((o, i) => (
+                          <div className="ceOwnedRow" key={o.iid}>
+                            <span className="ceOwnedN">#{i + 1}</span>
+                            <input className="ceNick" value={o.nickname} placeholder={open.speciesName || open.name} maxLength={24}
+                              onChange={(e) => setCol(renameOwned(col, o.iid, e.target.value))} />
+                            <button className="uiBtn sm danger" title="Release this one" onClick={() => setCol(removeOwned(col, o.iid))}>🗑</button>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                </div>
               </div>
-            </details>
-          )}
+            );
+          })()}
         </Modal>
       )}
     </div>

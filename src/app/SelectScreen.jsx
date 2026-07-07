@@ -17,6 +17,7 @@ import { REACTIONS } from '../engine/cards/reactions.js';
 import { factorInfo } from '../data/factorInfo.js';
 import { RARITY_POINTS } from '../engine/types.js';
 import { potentialPool } from './pools.js';
+import { CreatureFilterBar, matchesFilter, emptyFilter } from './CreatureFilter.jsx';
 import '../ui/combat/combat.css';
 import './select.css';
 
@@ -70,11 +71,13 @@ function CardBrowser({ deck = [], pool = [] }) {
 }
 
 export default function SelectScreen({
-  roster = [], initial = [], onConfirm, onCancel, onCreateCustom, onDeleteCustom,
+  roster = [], initial = [], onConfirm, onCancel, onCreateCustom, onDeleteCustom, onRename,
   title = 'Assemble Your Team',
   intro = 'Choose up to 3 creatures — they fight as an Active Vanguard + a bench you swap between. This team is used for your runs and playtest fights.',
   confirmLabel = 'Save Team ✓', teamLabel = 'Your Team',
 } = {}) {
+  const [filter, setFilter] = useState(emptyFilter);
+  const shown = roster.filter((c) => matchesFilter(c, filter));
   // Ordered list of ids; index 0 = vanguard. Seed from the saved team.
   const [picked, setPicked] = useState(() => initial.filter((id) => roster.some((c) => c.id === id)).slice(0, MAX));
   const [teamOpen, setTeamOpen] = useState(true);
@@ -133,6 +136,8 @@ export default function SelectScreen({
         </div>
       </header>
 
+      {roster.length > 4 && <div className="selFilter"><CreatureFilterBar creatures={roster} filter={filter} onChange={setFilter} placeholder="Search your creatures…" /></div>}
+
       <div className="selGrid">
         {onCreateCustom && (
           <button className="selCard selCreate" onClick={onCreateCustom}>
@@ -141,7 +146,8 @@ export default function SelectScreen({
             <div className="selBlurb">Pick its archetype, biology &amp; element, then auto-generate or hand-build its deck.</div>
           </button>
         )}
-        {roster.map((c) => {
+        {shown.length === 0 && <div className="selNoMatch uiHint">No creatures match your filters.</div>}
+        {shown.map((c) => {
           const order = picked.indexOf(c.id);
           const chosen = order >= 0;
           const color = creatureColor(c);
@@ -179,6 +185,14 @@ export default function SelectScreen({
                       }}
                       onName={() => setBestiaryId(c.id)} />
                   </div>
+                  {onRename && c.iid && (
+                    <label className="selNick">
+                      <span>Nickname</span>
+                      <input value={c.nickname || ''} placeholder={c.speciesName || c.name}
+                        maxLength={24}
+                        onChange={(e) => onRename(c.iid, e.target.value)} />
+                    </label>
+                  )}
                   {c.blurb && <p className="selLore">{c.blurb}</p>}
                   <div className="selStats center">
                     <span className="selHp" title="Max HP">❤ {c.maxHp}</span>

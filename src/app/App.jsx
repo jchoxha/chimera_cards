@@ -22,9 +22,8 @@ import { POOLS, ARCHETYPES, basePoolFor, rosterPool, potentialPool } from './poo
 import { buildRoster, buildRosterCreature, buildDummyCreature, ROSTER as ROSTER_ENTRIES } from '../data/roster.js';
 import {
   loadCollection, saveCollection, emptyCollection, seedFullCollection,
-  addCaptured, capturedForms, STARTER_IDS,
+  addOwned, ownedInstances, renameOwned, STARTER_IDS,
 } from './collection.js';
-import { FORM_ORDER } from '../data/forms.js';
 import { APP_VERSION } from '../version.js';
 import { CHANGELOG } from '../data/changelog.js';
 import './app.css';
@@ -64,20 +63,52 @@ function buildCustomCreature(def) {
   return c;
 }
 
+/** Build a run-ready creature from an OWNED instance: the species rebuilt at the
+ *  instance's size, with its id = the instance id (iid) and its display name = the
+ *  nickname (falling back to the species name). `baseId`/`species` point home. */
+function creatureFromInstance(inst) {
+  const entry = ROSTER_ENTRIES.find((r) => r.id === inst.species);
+  if (!entry) return null;
+  const c = buildRosterCreature(entry, rosterPool(entry), inst.form);
+  c.iid = inst.iid; c.id = inst.iid; c.baseId = inst.species; c.species = inst.species;
+  c.speciesName = entry.name; c.nickname = inst.nickname || '';
+  if (inst.nickname) c.name = inst.nickname;
+  return c;
+}
+
+/** Convert a saved team of old species/`species#form` ids into instance ids (iid),
+ *  matching each to an owned instance (species+form, else species). Idempotent for
+ *  entries that are already iids or custom-creature ids. */
+function migrateTeamIds(teamIds, col) {
+  const owned = ownedInstances(col);
+  const used = new Set(); const out = [];
+  for (const t of teamIds) {
+    if (owned.some((o) => o.iid === t) || String(t).startsWith('custom_')) { out.push(t); used.add(t); continue; }
+    const species = String(t).split('#')[0];
+    const form = t.includes('#') ? t.split('#')[1] : (ROSTER_ENTRIES.find((r) => r.id === species)?.size || 'regular');
+    const inst = owned.find((o) => o.species === species && o.form === form && !used.has(o.iid))
+      || owned.find((o) => o.species === species && !used.has(o.iid));
+    if (inst) { out.push(inst.iid); used.add(inst.iid); }
+  }
+  return out;
+}
+
 export default function App() {
-  // The COLLECTION (discovered/captured creatures × sizes). null in storage means a
-  // FRESH app → the starter pick. A legacy save (team but no collection) is seeded
-  // with the full roster at native sizes so existing players lose nothing.
-  const [collection, setCollection] = useState(() => {
-    const stored = loadCollection();
-    if (stored) return stored;
-    if (loadTeamIds().length) { const seeded = seedFullCollection(ROSTER_ENTRIES); saveCollection(seeded); return seeded; }
-    return null;   // fresh → starter pick
-  });
+  // Boot once: resolve the COLLECTION (owned instances + discovered) and migrate the
+  // saved team ids to instance ids. null collection = FRESH app → starter pick. A
+  // legacy save (team but no collection) seeds the roster at native sizes.
+  const boot = useMemo(() => {
+    let col = loadCollection();
+    if (!col && loadTeamIds().length) { col = seedFullCollection(ROSTER_ENTRIES); saveCollection(col); }
+    const team = col ? migrateTeamIds(loadTeamIds(), col) : [];
+    if (col && JSON.stringify(team) !== JSON.stringify(loadTeamIds())) { try { localStorage.setItem(TEAM_KEY, JSON.stringify(team)); } catch { /* ignore */ } }
+    return { col, team };
+  }, []);
+  const [collection, setCollection] = useState(boot.col);
   const updateCollection = (next) => { setCollection(next); saveCollection(next); };
 
-  const [view, setView] = useState(() => (collection ? 'menu' : 'starter'));
-  const [teamIds, setTeamIds] = useState(loadTeamIds);
+  const [view, setView] = useState(() => (boot.col ? 'menu' : 'starter'));
+  const [teamIds, setTeamIds] = useState(boot.team);
   const [practiceOppIds, setPracticeOppIds] = useState(() => loadIds(PRACTICE_KEY, ['dummy']));
   const [practiceActive, setPracticeActive] = useState(() => !!localStorage.getItem(PRACTICE_ACTIVE_KEY));
   const [customDefs, setCustomDefs] = useState(() => loadIds(CUSTOM_KEY, []));
@@ -90,19 +121,15 @@ export default function App() {
 
   // Custom creatures (rebuilt from their saved definitions) + the full pickable sets.
   const customCreatures = useMemo(() => customDefs.map(buildCustomCreature), [customDefs]);
-  // The PLAYER roster = what's CAPTURED: one creature per captured (id, size) pair
-  // (a non-native size is a distinct `<id>#<form>` variant with re-derived HP/Might).
-  // Custom creations are yours by definition. Opponents draw from the FULL roster.
+  // The PLAYER roster = one creature per OWNED INSTANCE (you can own several of the
+  // same species/size, each with its own nickname). Its id is the instance id (iid)
+  // so duplicates never collide on a team. Customs are yours by definition.
+  // Opponents draw from the FULL species roster.
   const playerRoster = useMemo(() => {
-    const out = []; const seen = new Set();
-    for (const r of ROSTER_ENTRIES) {
-      const forms = capturedForms(collection, r.id);
-      const ordered = FORM_ORDER.filter((f) => forms.includes(f));
-      for (const f of ordered) {
-        const c = buildRosterCreature(r, rosterPool(r), f);
-        // the Giant gate can coerce two captured sizes into one creature — dedupe
-        if (!seen.has(c.id)) { seen.add(c.id); out.push(c); }
-      }
+    const out = [];
+    for (const inst of ownedInstances(collection)) {
+      const c = creatureFromInstance(inst);
+      if (c) out.push(c);
     }
     return [...out, ...customCreatures];
   }, [collection, customCreatures]);
@@ -149,11 +176,15 @@ export default function App() {
     .map((id) => ROSTER_ENTRIES.find((r) => r.id === id)).filter(Boolean)
     .map((r) => buildRosterCreature(r, rosterPool(r))), []);
   function pickStarter(c) {
-    updateCollection(addCaptured(emptyCollection(), c.baseId || c.id, c.meta?.form || 'regular'));
-    setTeamIds([c.id]);
-    try { localStorage.setItem(TEAM_KEY, JSON.stringify([c.id])); } catch { /* ignore */ }
+    const col = addOwned(emptyCollection(), c.baseId || c.id, c.meta?.form || 'regular');
+    const iid = ownedInstances(col)[0].iid;
+    updateCollection(col);
+    setTeamIds([iid]);
+    try { localStorage.setItem(TEAM_KEY, JSON.stringify([iid])); } catch { /* ignore */ }
     setView('menu');
   }
+  // Rename an owned instance (custom nickname on a captured creature).
+  function renameCreature(iid, nickname) { updateCollection(renameOwned(collection || emptyCollection(), iid, nickname)); }
   // Admin reset → back to the fresh starter-pick state.
   function resetCollection() {
     setCollection(null);
@@ -211,14 +242,15 @@ export default function App() {
         defs: customDefs, classes: ARCHETYPES, biologies: BODY_TYPES, subtypeOptions: SUBTYPES, attunements: ATTUNEMENT_BASES,
         legalFor: (k) => legalAttunements([k]), buildPool: potentialPool, families: BEAST_FAMILIES,
         onSave: saveCustomDef, onDelete: deleteCustomCreature,
-        // the CREATURES tab also owns the collection (discovered/captured × size)
+        // the CREATURES tab also owns the collection (discovered/owned × size)
         rosterCreatures: ROSTER, customCreatures, collection: collection || emptyCollection(),
         onCollectionChange: updateCollection, onCollectionReset: resetCollection,
+        sizeVariant: (species, form) => { const e = ROSTER_ENTRIES.find((r) => r.id === species); return e ? buildRosterCreature(e, rosterPool(e), form) : null; },
       }} />
   );
   if (view === 'combat') return <CombatScreen onMenu={leaveCombat} onRestart={restartCombat} onCodex={(tab) => openCodex(tab, 'combat')} />;
   if (view === 'run') return <RunScreen onMenu={() => { if (useRun.getState().view === 'combat') useRun.getState()._recordPlayTime?.(); setView('menu'); }} onNewRun={() => setView('select')} onCodex={(tab) => openCodex(tab, 'run')} />;
-  if (view === 'select') return <SelectScreen roster={playerRoster} initial={teamIds} onConfirm={saveTeam} onCancel={() => setView('menu')} onCreateCustom={() => setView('createCreature')} onDeleteCustom={deleteCustomCreature} />;
+  if (view === 'select') return <SelectScreen roster={playerRoster} initial={teamIds} onConfirm={saveTeam} onCancel={() => setView('menu')} onCreateCustom={() => setView('createCreature')} onDeleteCustom={deleteCustomCreature} onRename={renameCreature} />;
   if (view === 'practice') return (
     <SelectScreen roster={oppRoster} initial={practiceOppIds} onConfirm={confirmPracticeOpponents} onCancel={() => setView('menu')}
       title="Choose Practice Opponents"

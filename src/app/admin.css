@@ -55,3 +55,28 @@
   .ceModalCols { flex-direction: column; align-items: center; }
   .ceModalCard { flex: 0 0 auto; width: min(210px, 62vw); }
 }
+
+/* ── SIZES section (switch + manage the collection at a size) ── */
+.ceSizes { margin-top: 18px; border-top: 1px solid var(--line); padding-top: 12px; }
+.ceSizesHead { font-family: var(--font-display); color: var(--gold); font-size: 13px; letter-spacing: .06em;
+  text-transform: uppercase; display: flex; align-items: center; gap: 7px; margin-bottom: 8px; }
+.ceSizeChips { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 10px; }
+.ceSizeChip { position: relative; display: inline-flex; align-items: center; gap: 5px;
+  background: var(--surface-2); color: var(--ink-dim); border: 1px solid var(--line);
+  border-radius: var(--r-pill); padding: 5px 12px; cursor: pointer; font-family: var(--font-display); font-size: 12px; }
+.ceSizeChip:hover { border-color: var(--gold); }
+.ceSizeChip.disc { color: var(--info); border-color: var(--info-line); }
+.ceSizeChip.owns { color: var(--good); border-color: var(--good-line); }
+.ceSizeChip.on { background: #c9a23a22; color: var(--gold-bright); border-color: var(--gold); box-shadow: 0 0 10px #c9a23a33; }
+.ceSizeN { background: var(--good); color: #10261a; border-radius: var(--r-pill); font-size: 10px; font-weight: 700; padding: 0 6px; }
+.ceSizeManage { padding: var(--s-3) var(--s-4); }
+.ceSizeRow { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; }
+.ceSizeRow > b { font-family: var(--font-display); color: var(--gold-bright); }
+.ceSizeToggle { display: flex; align-items: center; gap: 6px; font-size: 12.5px; color: var(--ink-dim); cursor: pointer; }
+.ceSizeToggle input { accent-color: var(--gold-deep); }
+.ceOwnedList { display: flex; flex-direction: column; gap: 6px; margin-top: 10px; }
+.ceOwnedRow { display: flex; align-items: center; gap: 8px; }
+.ceOwnedN { font-family: var(--font-display); color: var(--ink-faint); font-size: 12px; width: 26px; flex: none; }
+.ceNick { flex: 1; font-family: var(--font-body); font-size: 14px; color: var(--gold-bright);
+  background: var(--surface-2); border: 1px solid var(--line); border-radius: var(--r-sm); padding: 6px 10px; }
+.ceNick:focus { outline: 1px solid var(--gold); }

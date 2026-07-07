@@ -176,6 +176,22 @@ gets a monotonic `fxKeyRef` id (was `Date.now()`-based, which could collide acro
 react-spring nodes); the item springs use `useSpring(()=>…)` (function form) so a sibling being added
 never restarts an in-flight animation.
 
+**🧬 OWNED-INSTANCE COLLECTION + NICKNAMES + FILTERS + SIZE-VARIANT EDITOR (v3.105.0, 2026-07-08,
+Jeton).** The collection went from a SET to OWNED INSTANCES: `app/collection.js` is now
+`{discovered:{species:[forms]}, owned:[{iid,species,form,nickname}], seq}` — you can own several of the
+SAME species+size, each **nicknamed**; migrates old `{captured:{id:[forms]}}` saves on load. **Team
+references instance ids (iid)** — `App.creatureFromInstance` builds a creature per owned instance
+(id=iid, name=nickname||species, baseId/species set); `migrateTeamIds` converts old species/`#form` team
+ids to iids at boot; starter pick → `addOwned`. **Custom names** editable in the SelectScreen creature
+modal (`onRename`→`renameOwned`) and in the editor per instance. **Smart filters**: `app/CreatureFilter.jsx`
+(`creatureFacets`/`matchesFilter`/`CreatureFilterBar`, facets Element/Body/Subtype/Archetype/Family/Size,
+only shows facets with ≥2 values) on BOTH the assembly grid (`roster.length>4`) and the editor Creatures
+tab. **Editor "Size variations" section** (`MonsterEditor`): size chips SWITCH the viewed form (card +
+MonsterPage rebuild via a `sizeVariant(species,form)` prop) with owned-count badges; per-size discovered
+toggle + Capture-one + per-instance nickname/release. **Design docs for the deferred asks:**
+`docs/varieties-and-evolution.md` (variant axis + branching evolution trees) and `docs/hybrid-design.md`
+(body-type + subtype hybrid content + the Aberration **families→"Manifestation"** rename plan — LABEL-first).
+
 **🎨 DESIGN SYSTEM — STARTED (v3.103.0, 2026-07-07, Jeton: "sick of the inconsistencies across
 modals, menus, card formats — create conventions").** The app had drifted into TWO palettes (a
 gold/wood gilded-TCG skin on combat/menu/run/codex/editor vs a stray PURPLE skin on team-assembly +
