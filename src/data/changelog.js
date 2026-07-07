@@ -6,6 +6,9 @@
 
 /** @type {{version:string, date:string, notes:string[]}[]} newest first */
 export const CHANGELOG = [
+  { version: 'v3.102.3', date: '2026-07-07', notes: [
+    'The Editor’s Creatures tab is now a card grid — every creature shows as its actual creature card (like the Cards tab). Click a card to open its collection panel and set which sizes are discovered/captured; custom creatures show Edit/Delete there. Undiscovered creatures read as dimmed “Locked” cards.',
+  ] },
   { version: 'v3.102.2', date: '2026-07-07', notes: [
     'The Editor’s Monsters tab is now “Creatures” and lists EVERY creature in the game (built-in roster + your customs) in one place. The separate Collection tab is gone — its discovered/captured × size controls live on each creature’s row, with a portrait, and custom creatures keep their Edit/Delete + the New Custom Creature button.',
   ] },

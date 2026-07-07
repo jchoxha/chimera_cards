@@ -16,11 +16,13 @@ import { anatomyForFamily } from '../engine/cards/beastPool.js';
 import { weaponsForArchetype } from '../engine/cards/humanoidPool.js';
 import { ABERRATION_FAMILIES, anatomyForAberrationFamily } from '../engine/cards/aberrationPool.js';
 import { ARCHETYPE_ICON, BIOLOGY_ICON, ATTUNEMENT_ICON, ATTUNEMENT_COLOR, creatureIcon, creatureColor } from '../data/axisIcons.js';
-import { sizedPortrait } from '../data/sizeArt.js';
+import { CardFace, creatureToFace } from '../ui/combat/creatureVisuals.jsx';
 import {
   emptyCollection, seedFullCollection, addDiscovered, addCaptured,
   removeDiscovered, discoveredForms, capturedForms,
 } from './collection.js';
+import '../ui/combat/combat.css';
+import './select.css';
 import './creator.css';
 import './admin.css';
 
@@ -42,9 +44,10 @@ function emptyDef(classes, biologies) {
 }
 
 export default function MonsterEditor({ defs = [], classes = [], biologies = [], attunements = [], subtypeOptions = [], legalFor, buildPool, families = [], onSave, onDelete, onMenu, tabs,
-  rosterCreatures = [], collection, onCollectionChange, onCollectionReset }) {
+  rosterCreatures = [], customCreatures = [], collection, onCollectionChange, onCollectionReset }) {
   const [editing, setEditing] = useState(null); // a def being edited, or null = list
   const [building, setBuilding] = useState(false);
+  const [openId, setOpenId] = useState(null);   // creature whose collection modal is open
 
   if (editing) {
     const isBeast = (editing.biology || []).includes('Beast');
@@ -228,34 +231,26 @@ export default function MonsterEditor({ defs = [], classes = [], biologies = [],
     );
   }
 
-  // ── Unified CREATURES list: every roster creature + your custom monsters,
-  //    each with its collection (discovered/captured × size) controls. ──
+  // ── Unified CREATURES grid: every creature is its own card (like the Cards
+  //    tab). Clicking a card opens its collection modal (discovered/captured ×
+  //    size) — plus Edit/Delete for customs. ──
   const col = collection || emptyCollection();
   const setCol = (next) => onCollectionChange?.(next);
   const bulk = (fn) => { let c = col; for (const r of rosterCreatures) for (const f of FORM_ORDER) c = fn(c, r.id, f); setCol(c); };
 
-  const CollectionCells = ({ id }) => (
-    <>
-      {FORM_ORDER.map((f) => {
-        const disc = discoveredForms(col, id).includes(f);
-        const capt = capturedForms(col, id).includes(f);
-        const cls = capt ? 'capt' : disc ? 'disc' : 'none';
-        const label = capt ? 'captured' : disc ? 'discovered' : 'not discovered';
-        return (
-          <td key={f} className="adCellTd">
-            <button className={`adCell ${cls}`} title={`${FORMS[f].label} — ${label}. Tap to cycle none → discovered → captured.`}
-              onClick={() => setCol(cycleCell(col, id, f))}>
-              {capt ? <Icon icon="game-icons:catch" /> : disc ? <Icon icon="game-icons:semi-closed-eye" /> : '·'}
-            </button>
-          </td>
-        );
-      })}
-    </>
-  );
+  // Every creature as a card: built-in roster + your custom monsters.
+  const allCreatures = [...rosterCreatures, ...customCreatures];
+  const open = openId ? allCreatures.find((c) => c.id === openId) : null;
+  const openDef = open?.custom ? defs.find((d) => d.id === open.id) : null;
 
-  const rosterThumb = (c) => {
-    const p = sizedPortrait(c.meta?.portrait || c.portrait, c.meta?.form ?? c.size);
-    return p ? <img src={p} alt="" /> : <Icon icon={creatureIcon(c)} style={{ color: creatureColor(c) }} />;
+  // Status pill for a tile: captured/discovered counts (customs are always yours).
+  const statusOf = (c) => {
+    if (c.custom) return { cls: 'capt', txt: 'Custom' };
+    const capt = capturedForms(col, c.id).length;
+    const disc = discoveredForms(col, c.id).length;
+    if (capt) return { cls: 'capt', txt: `✔ ${capt}` };
+    if (disc) return { cls: 'disc', txt: `👁 ${disc}` };
+    return { cls: 'none', txt: 'Locked' };
   };
 
   return (
@@ -267,12 +262,7 @@ export default function MonsterEditor({ defs = [], classes = [], biologies = [],
       </header>
       <div className="adBody">
         <div className="meListHead">
-          <p className="adIntro">
-            Every creature in the game. Set which <b>sizes</b> each is <b>discovered</b> (Codex-visible)
-            and <b>captured</b> (team-pickable) — tap a cell to cycle
-            <span className="adLegend"><i className="adCell none">·</i> none → <i className="adCell disc"><Icon icon="game-icons:semi-closed-eye" /></i> discovered → <i className="adCell capt"><Icon icon="game-icons:catch" /></i> captured</span>
-          </p>
-          <button className="selBtn go" onClick={() => setEditing(emptyDef(classes, biologies))}>＋ New Custom Creature</button>
+          <p className="adIntro">Every creature in the game, as its card. Click one to set which <b>sizes</b> are <b>discovered</b> (Codex-visible) and <b>captured</b> (team-pickable).</p>
         </div>
         <div className="adBulk">
           <button className="adBtn" onClick={() => bulk(addDiscovered)}>👁 Discover everything</button>
@@ -280,47 +270,76 @@ export default function MonsterEditor({ defs = [], classes = [], biologies = [],
           <button className="adBtn" onClick={() => bulk(addCaptured)}>✔✔ Capture ALL sizes</button>
           <button className="adBtn danger" onClick={() => { if (confirm('Reset the collection to a FRESH state? You will pick a starter again.')) onCollectionReset?.(); }}>♻ Reset to fresh (starter pick)</button>
         </div>
-        <div className="adTableWrap">
-          <table className="adTable">
-            <thead>
-              <tr>
-                <th className="adNameCol">Creature</th>
-                {FORM_ORDER.map((f) => <th key={f} title={FORMS[f].label}>{FORMS[f].badge || '—'}<span className="adFormLbl">{FORMS[f].label}</span></th>)}
-                <th className="adActCol"></th>
-              </tr>
-            </thead>
-            <tbody>
-              {rosterCreatures.map((c) => (
-                <tr key={c.id}>
-                  <td className="adName">
-                    <span className="adThumb">{rosterThumb(c)}</span>
-                    <span className="adNameTxt">{c.name}<span className="adNative">native: {FORMS[c.meta?.form ?? c.size ?? 'regular'].label}</span></span>
-                  </td>
-                  <CollectionCells id={c.id} />
-                  <td className="adActCol" />
-                </tr>
-              ))}
-              {defs.map((d) => {
-                const preview = { class: d.class, biology: d.biology, attunement: d.attunement };
-                const color = creatureColor(preview);
-                return (
-                  <tr key={d.id} className="adCustomRow">
-                    <td className="adName">
-                      <span className="adThumb">{d.portraitSvg ? <img src={d.portraitSvg} alt="" /> : <Icon icon={creatureIcon(preview)} style={{ color }} />}</span>
-                      <span className="adNameTxt">{d.name}<span className="adNative">custom · {formLabel(d.size) || 'Regular'}{d.customDeck ? ` · ${d.customDeck.length}-card deck` : ''}</span></span>
-                    </td>
-                    <td className="adCustomNote" colSpan={FORM_ORDER.length}>Custom — always in your roster</td>
-                    <td className="adActCol">
-                      <button className="adBtn sm" onClick={() => setEditing({ ...emptyDef(classes, biologies), ...d, lore: d.lore || '', description: d.description || '', size: d.size || 'regular' })}>✎</button>
-                      <button className="adBtn sm danger" onClick={() => { if (confirm(`Delete "${d.name}"?`)) onDelete(d.id); }}>🗑</button>
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
+
+        <div className="selGrid ceGrid">
+          <button className="selCard selCreate" onClick={() => setEditing(emptyDef(classes, biologies))}>
+            <div className="selCreatePlus">＋</div>
+            <div className="selName">New Custom Creature</div>
+            <div className="selBlurb">Author its typings, size &amp; (optionally) a hand-built deck.</div>
+          </button>
+          {allCreatures.map((c) => {
+            const st = statusOf(c);
+            return (
+              <div key={c.id} role="button" tabIndex={0}
+                className={`selCardWrap modalCardWrap ceCardWrap${st.cls === 'none' ? ' ceLocked' : ''}`}
+                style={{ '--gl': creatureColor(c) }}
+                onClick={() => setOpenId(c.id)}
+                onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') setOpenId(c.id); }}>
+                <CardFace f={creatureToFace(c)} side="ally" />
+                <span className={`ceStatus ${st.cls}`}>{st.txt}</span>
+              </div>
+            );
+          })}
         </div>
       </div>
+
+      {/* Per-creature modal: the card + its collection controls (+ custom edit/delete). */}
+      {open && (
+        <div className="selModalWrap" onClick={() => setOpenId(null)}>
+          <div className="selModal ceModal" onClick={(e) => e.stopPropagation()}>
+            <button className="selModalClose" onClick={() => setOpenId(null)}>✕</button>
+            <div className="ceModalCols">
+              <div className="ceModalCard"><CardFace f={creatureToFace(open)} side="ally" /></div>
+              <div className="ceModalCtl">
+                <h2>{open.name}</h2>
+                {open.custom ? (
+                  <>
+                    <p className="ceDim">Custom creature — always in your roster.</p>
+                    <div className="ceActRow">
+                      <button className="selBtn" onClick={() => { const d = openDef; setOpenId(null); if (d) setEditing({ ...emptyDef(classes, biologies), ...d, lore: d.lore || '', description: d.description || '', size: d.size || 'regular' }); }}>✎ Edit</button>
+                      <button className="selBtn rm" onClick={() => { if (confirm(`Delete "${open.name}"?`)) { onDelete(open.id); setOpenId(null); } }}>🗑 Delete</button>
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    <p className="ceDim">Tap a size to cycle <b>none → discovered → captured</b>. Native size: {FORMS[open.meta?.form ?? open.size ?? 'regular'].label}.</p>
+                    <div className="ceSizeList">
+                      {FORM_ORDER.map((f) => {
+                        const disc = discoveredForms(col, open.id).includes(f);
+                        const capt = capturedForms(col, open.id).includes(f);
+                        const cls = capt ? 'capt' : disc ? 'disc' : 'none';
+                        const state = capt ? 'Captured' : disc ? 'Discovered' : 'Not discovered';
+                        return (
+                          <button key={f} className={`ceSizeRow ${cls}`} onClick={() => setCol(cycleCell(col, open.id, f))}>
+                            <span className="ceSizeName">{FORMS[f].badge ? `${FORMS[f].badge} ` : ''}{FORMS[f].label}</span>
+                            <span className="ceSizeState">
+                              {capt ? <Icon icon="game-icons:catch" /> : disc ? <Icon icon="game-icons:semi-closed-eye" /> : <Icon icon="game-icons:padlock" />} {state}
+                            </span>
+                          </button>
+                        );
+                      })}
+                    </div>
+                    <div className="ceActRow">
+                      <button className="adBtn sm" onClick={() => { let c = col; for (const f of FORM_ORDER) c = addDiscovered(c, open.id, f); setCol(c); }}>👁 Discover all</button>
+                      <button className="adBtn sm" onClick={() => { let c = col; for (const f of FORM_ORDER) c = addCaptured(c, open.id, f); setCol(c); }}>✔ Capture all</button>
+                    </div>
+                  </>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

@@ -188,9 +188,11 @@ legacy `bestiary` aliased): discovered creatures render as their ACTUAL CardFace
 page has **size chips** (locked "?" until that size is discovered) that rebuild the creature at that form
 (HP/art/size-word follow). **Collection editing is folded into the Editor's "🐉 Creatures" tab**
 (`MonsterEditor.jsx`; the Editor is now just **Cards · Creatures** — the separate Collection/Monsters
-split from v3.102.0–.1 is gone, v3.102.2): ONE table of EVERY creature (roster `rosterCreatures` = built
-ROSTER + custom `defs`), each row a portrait + per-size cells cycling none→discovered→captured; custom
-rows show "always in your roster" + Edit/Delete; bulk discover/capture-all + New Custom Creature + reset.
+split from v3.102.0–.1 is gone). The tab is a **CardFace GRID** (v3.102.3 — like the Cards tab): EVERY
+creature (built `rosterCreatures` + built `customCreatures`) is its own creature card with a status pill
+(captured/discovered count, "Locked" dimmed when undiscovered); **clicking a card opens a modal** (card +
+per-size rows cycling none→discovered→captured + Discover-all/Capture-all; customs show Edit/Delete). A
+"New Custom Creature" tile + bulk discover/capture-all + reset sit above the grid.
 Gameplay discovery events NOT wired yet (only this editor + starter write the collection). **Model-rework
 design stub:**
 `docs/creature-model-rework.md` (typing-axes flesh-out + size-as-identity + size-neutral subject texts).

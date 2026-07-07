@@ -211,7 +211,7 @@ export default function App() {
         legalFor: (k) => legalAttunements([k]), buildPool: potentialPool, families: BEAST_FAMILIES,
         onSave: saveCustomDef, onDelete: deleteCustomCreature,
         // the CREATURES tab also owns the collection (discovered/captured × size)
-        rosterCreatures: ROSTER, collection: collection || emptyCollection(),
+        rosterCreatures: ROSTER, customCreatures, collection: collection || emptyCollection(),
         onCollectionChange: updateCollection, onCollectionReset: resetCollection,
       }} />
   );
