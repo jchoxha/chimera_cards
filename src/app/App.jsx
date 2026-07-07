@@ -14,6 +14,7 @@ import Codex from '../ui/Codex.jsx';
 import SelectScreen from './SelectScreen.jsx';
 import CreatureCreator from './CreatureCreator.jsx';
 import StarterPick from './StarterPick.jsx';
+import Modal from '../ui/Modal.jsx';
 import { ATTUNEMENT_BASES, BODY_TYPES, SUBTYPES, legalAttunements } from '../data/synthesis.js';
 import { BEAST_FAMILIES } from '../engine/cards/beastPool.js';
 import { makeCreature } from '../engine/content/generate.js';
@@ -283,20 +284,16 @@ export default function App() {
       </div>
 
       {showChangelog && (
-        <div className="clWrap" onClick={() => setShowChangelog(false)}>
-          <div className="clCard" onClick={(e) => e.stopPropagation()}>
-            <button className="clClose" onClick={() => setShowChangelog(false)}>✕</button>
-            <h2>Changelog <span className="clCardVer">{APP_VERSION}</span></h2>
-            <div className="clList">
-              {CHANGELOG.map((rel) => (
-                <div className="clRel" key={rel.version}>
-                  <div className="clRelHead"><b>{rel.version}</b><span>{rel.date}</span></div>
-                  <ul>{rel.notes.map((n, i) => <li key={i}>{n}</li>)}</ul>
-                </div>
-              ))}
-            </div>
+        <Modal onClose={() => setShowChangelog(false)} title={<>Changelog <span className="clCardVer">{APP_VERSION}</span></>} icon="game-icons:scroll-quill">
+          <div className="clList">
+            {CHANGELOG.map((rel) => (
+              <div className="clRel" key={rel.version}>
+                <div className="clRelHead"><b>{rel.version}</b><span>{rel.date}</span></div>
+                <ul>{rel.notes.map((n, i) => <li key={i}>{n}</li>)}</ul>
+              </div>
+            ))}
           </div>
-        </div>
+        </Modal>
       )}
     </div>
   );

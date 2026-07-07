@@ -1,38 +1,37 @@
 /* MonsterPage — self-contained so it styles correctly both in the Codex and
-   inside the combat modal (which doesn't load codex.css). Neutral palette that
-   reads on either the gilded codex or the dark combat overlay. */
-.mp { color: #e8dcc8; font: 14px/1.55 'Spectral', Georgia, serif; text-align: left; }
-.mp h2 { margin: 0; font-family: 'Cinzel', serif; font-size: 22px; color: #ffe6a8; letter-spacing: .5px; }
+   inside the combat modal (which doesn't load codex.css). Gilded-wood tokens. */
+.mp { color: var(--ink); font: 14px/1.55 var(--font-body); text-align: left; }
+.mp h2 { margin: 0; font-family: var(--font-display); font-size: 22px; color: var(--gold-bright); letter-spacing: .5px; }
 .mp p { margin: 0 0 8px; }
 
 .mp .mpHero { display: flex; gap: 14px; align-items: center; margin-bottom: 12px; }
 .mp .mpPortrait { flex: 0 0 auto; width: 92px; height: 92px; border-radius: 12px; overflow: hidden;
-  display: grid; place-items: center; background: radial-gradient(circle at 40% 30%, #2a1f3e, #140e26);
-  border: 2px solid var(--gl, #c9a23a); box-shadow: 0 0 16px color-mix(in srgb, var(--gl, #c9a23a) 45%, transparent); }
+  display: grid; place-items: center; background: radial-gradient(circle at 40% 30%, #2a1f16, #140e08);
+  border: 2px solid var(--gl, var(--gold)); box-shadow: 0 0 16px color-mix(in srgb, var(--gl, var(--gold)) 45%, transparent); }
 .mp .mpPortrait img { width: 100%; height: 100%; object-fit: cover; }
 .mp .mpIcon { font-size: 52px; }
 .mp .mpHead { min-width: 0; }
-.mp .mpTitle { font-family: 'Cinzel', serif; font-size: 12px; letter-spacing: 1.5px; text-transform: uppercase; color: #c9a23a; margin-top: 2px; }
-.mp .mpRole { margin: 6px 0 0; color: #d8c79a; font-style: italic; }
+.mp .mpTitle { font-family: var(--font-display); font-size: 12px; letter-spacing: 1.5px; text-transform: uppercase; color: var(--gold); margin-top: 2px; }
+.mp .mpRole { margin: 6px 0 0; color: var(--ink-dim); font-style: italic; }
 
 .mp .mpAxes { display: flex; flex-wrap: wrap; gap: 8px; margin: 10px 0; }
 .mp .mpAxis { display: flex; align-items: center; gap: 5px; font-size: 12.5px; padding: 4px 10px;
-  background: #00000033; border: 1px solid #4a3a22; border-radius: 999px; }
+  background: #00000033; border: 1px solid var(--line); border-radius: 999px; }
 .mp .mpAxis iconify-icon { font-size: 15px; }
-.mp .mpAxLbl { color: #9c8a64; }
-.mp .mpAxis b { color: #fff3d6; }
-.mp .mpAxExtra { color: #9be29b; }
+.mp .mpAxLbl { color: var(--ink-faint); }
+.mp .mpAxis b { color: var(--gold-bright); }
+.mp .mpAxExtra { color: var(--good); }
 
 .mp .mpStats { display: flex; flex-wrap: wrap; gap: 6px; margin: 8px 0 14px; }
-.mp .mpStat { font-family: 'Cinzel', serif; font-size: 11px; letter-spacing: .5px; padding: 3px 9px; border-radius: 6px;
-  background: #1c1530; border: 1px solid #4a3f63; color: #e8dcff; }
-.mp .mpStat.hp { border-color: #5ad6a3; color: #bfffe0; }
+.mp .mpStat { font-family: var(--font-display); font-size: 11px; letter-spacing: .5px; padding: 3px 9px; border-radius: 6px;
+  background: var(--surface-2); border: 1px solid var(--line); color: var(--ink); }
+.mp .mpStat.hp { border-color: var(--good-line); color: var(--good); }
 
 .mp .mpSection { margin: 12px 0; }
-.mp .mpSecHead { display: flex; align-items: center; gap: 7px; font-family: 'Cinzel', serif; font-size: 13px;
-  letter-spacing: 1px; text-transform: uppercase; color: #c9a23a; margin-bottom: 6px;
-  border-bottom: 1px solid #4a3a2255; padding-bottom: 3px; }
-.mp .mpSecHead iconify-icon { color: #c9a23a; }
+.mp .mpSecHead { display: flex; align-items: center; gap: 7px; font-family: var(--font-display); font-size: 13px;
+  letter-spacing: 1px; text-transform: uppercase; color: var(--gold); margin-bottom: 6px;
+  border-bottom: 1px solid var(--line); padding-bottom: 3px; }
+.mp .mpSecHead iconify-icon { color: var(--gold); }
 .mp .mpTips { margin: 0; padding-left: 18px; }
 .mp .mpTips li { margin-bottom: 4px; }
-.mp .mpDim { color: #8a7a5e; font-size: 12px; }
+.mp .mpDim { color: var(--ink-faint); font-size: 12px; }

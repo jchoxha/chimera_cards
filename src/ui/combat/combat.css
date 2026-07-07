@@ -12,7 +12,9 @@
 
 :root {
   --gold1:#f7e7a6; --gold2:#caa033; --gold3:#8a6a18; --gold4:#e9cf6b; --goldB:#d8b24a;
-  --ink:#140e26; --ink2:#241a3a; --cream:#f6e7b0;
+  --cream:#f6e7b0;
+  /* NOTE: --ink/--ink2 intentionally NOT defined here — those names are owned by
+     ui/theme.css (--ink = cream TEXT). Combat's dark card interiors use literals. */
 }
 
 .cmbt,.cmbt *{box-sizing:border-box;margin:0;padding:0}
@@ -89,9 +91,9 @@ html:has(.cmbt),body:has(.cmbt){height:100%;margin:0;overflow:hidden}
 .miniList{flex:0 1 auto;display:flex;flex-direction:column;gap:5px;overflow-y:auto;overflow-x:hidden;
   min-height:0;padding:7px 8px 2px}
 .mf{position:relative;border-radius:9px;padding:5px 7px;cursor:pointer;
-  background:#1a1020cc;border:1.5px solid #5a4a2a;transition:border-color .15s,transform .12s}
-.mf.foe{border-color:#5a2a2a;background:#1f1216cc}
-.mf.ally{border-color:#2a4a3a;background:#121f18cc}
+  background:#1a1208cc;border:1.5px solid #5a4a2a;transition:border-color .15s,transform .12s}
+.mf.foe{border-color:#5a2a2a;background:#241416cc}
+.mf.ally{border-color:#2a4a3a;background:#121f10cc}
 .mf.sel{border-color:#ffd34d;box-shadow:0 0 9px #ffd34d66;transform:translateY(-1px)}
 .mf.vanguard{box-shadow:inset 0 0 0 1px var(--gold2)}
 .mf.foe.vanguard{box-shadow:inset 0 0 0 1px #ff8a6b}
@@ -104,7 +106,7 @@ html:has(.cmbt),body:has(.cmbt){height:100%;margin:0;overflow:hidden}
 .mf.foe .mfName{color:#ffd9d9}
 .mfName .vgIcon{color:var(--gold1);font-size:11px;flex:0 0 auto}
 .mfEl{font-size:15px;flex:0 0 auto}
-.mfHp{position:relative;height:13px;border-radius:7px;overflow:hidden;background:#120b18;
+.mfHp{position:relative;height:13px;border-radius:7px;overflow:hidden;background:#120b08;
   box-shadow:inset 0 0 0 1px #00000088}
 .mfHp i{position:absolute;inset:0;background:linear-gradient(#8ef0a8,#2ea85c);transition:width .25s}
 .mf.foe .mfHp i{background:linear-gradient(#ff8a7a,#d23b2c)}
@@ -114,7 +116,7 @@ html:has(.cmbt),body:has(.cmbt){height:100%;margin:0;overflow:hidden}
 .mfStats{display:flex;flex-wrap:wrap;gap:3px;margin-top:4px;min-height:0}
 .mfStats.empty{display:none}
 .pip{display:flex;align-items:center;gap:2px;font-size:9px;font-weight:700;padding:1px 5px;border-radius:10px;
-  background:#1c1530;border:1px solid #4a3f63;color:#e8dcff;line-height:1.3}
+  background:#241a10;border:1px solid #5a4a2a;color:#e8dcc8;line-height:1.3}
 .pip iconify-icon{font-size:11px}
 .pip.blk{border-color:#6aa3d6;color:#bfe0ff}
 .pip.str{border-color:#e0a85a;color:#ffdca0}
@@ -123,7 +125,7 @@ html:has(.cmbt),body:has(.cmbt){height:100%;margin:0;overflow:hidden}
 .pip.rgn{border-color:#5ad6a3;color:#bfffe0}
 .pip.weak,.pip.vuln,.pip.frail{border-color:#b06bd6;color:#e8c0ff}
 .mfSwap{position:absolute;top:-6px;right:-6px;display:flex;align-items:center;gap:1px;
-  background:var(--gold2);color:#140e26;font-family:'Cinzel',serif;font-weight:800;font-size:9px;
+  background:var(--gold2);color:#170f0a;font-family:'Cinzel',serif;font-weight:800;font-size:9px;
   border-radius:8px;padding:1px 5px;box-shadow:0 1px 4px #000a}
 .mfSwap iconify-icon{font-size:10px}
 
@@ -136,7 +138,7 @@ html:has(.cmbt),body:has(.cmbt){height:100%;margin:0;overflow:hidden}
 .planEmpty{color:#9a8a6a;font-size:12px}
 .planArrow{flex:0 0 auto;color:var(--gold3);font-weight:900;font-size:14px;opacity:.85}
 .planSlot{position:relative;display:flex;align-items:center;gap:3px;min-width:0;padding:3px 8px;border-radius:8px;
-  border:1px solid #4a3f63;background:#1a1230;color:#c9b88a;font-size:11px;font-weight:700;cursor:help}
+  border:1px solid #5a4a2a;background:#1a1230;color:#c9b88a;font-size:11px;font-weight:700;cursor:help}
 .planSlot iconify-icon{font-size:15px}
 .planSlot.revealed{border-color:var(--gold1);background:#2a1a0a;color:var(--cream)}
 .planSlot.revealed iconify-icon{color:var(--gold1)}
@@ -144,7 +146,7 @@ html:has(.cmbt),body:has(.cmbt){height:100%;margin:0;overflow:hidden}
    TYPE, aspects, and TARGET (revealed or not) */
 .ptip{display:none;position:absolute;top:calc(100% + 8px);left:50%;transform:translateX(-50%);
   z-index:60;width:max-content;max-width:220px;flex-direction:column;gap:3px;
-  background:#140e26f2;border:1px solid var(--gold2);border-radius:8px;padding:7px 9px;
+  background:#170f0af2;border:1px solid var(--gold2);border-radius:8px;padding:7px 9px;
   font-family:'Spectral',serif;font-weight:400;font-size:11px;color:#f3ecd8;text-align:left;
   box-shadow:0 8px 20px #000b;pointer-events:none}
 .planSlot:hover .ptip,.intent:hover .ptip{display:flex}
@@ -159,7 +161,7 @@ html:has(.cmbt),body:has(.cmbt){height:100%;margin:0;overflow:hidden}
   padding:5px 12px;border:none;border-radius:9px;cursor:pointer;
   background:linear-gradient(#ffe89a,#d6a72a);box-shadow:0 3px 0 #8a6a18}
 .peekBtn:disabled{opacity:.45;cursor:default;box-shadow:0 2px 0 #8a6a18}
-.peekBtn .peekCount{background:#140e26;color:var(--gold1);font-size:9px;border-radius:8px;
+.peekBtn .peekCount{background:#170f0a;color:var(--gold1);font-size:9px;border-radius:8px;
   padding:0 5px;line-height:15px;min-width:15px;text-align:center}
 
 /* ---------- center: the two featured cards ---------- */
@@ -185,7 +187,7 @@ html:has(.cmbt),body:has(.cmbt){height:100%;margin:0;overflow:hidden}
 .frame{position:relative;border-radius:14px;padding:7px;
   background:#3a2c12;
   box-shadow:0 10px 26px #000a, inset 0 0 0 1px #00000055, inset 0 0 16px #0006;}
-.frame .inner{position:relative;border-radius:8px;overflow:hidden;background:var(--ink);
+.frame .inner{position:relative;border-radius:8px;overflow:hidden;background:#170f0a;
   box-shadow:inset 0 0 0 2px #2a200f, inset 0 0 22px #000a;}
 .frame.sel{outline:3px solid #ffd34d;outline-offset:2px}
 .holo{position:absolute;inset:0;border-radius:14px;pointer-events:none;mix-blend-mode:screen;opacity:.5;
@@ -204,7 +206,7 @@ html:has(.cmbt),body:has(.cmbt){height:100%;margin:0;overflow:hidden}
 /* size badge (top-left) — sits INSIDE the card rectangle */
 .size{position:absolute;top:7px;left:7px;z-index:5;min-width:28px;height:28px;padding:0 7px;
   display:flex;align-items:center;justify-content:center;gap:3px;border-radius:14px;
-  background:linear-gradient(160deg,#241a3a,#140e26);border:1.5px solid var(--goldB);
+  background:linear-gradient(160deg,#241a10,#170f0a);border:1.5px solid var(--goldB);
   color:var(--cream);font-family:'Cinzel',serif;font-weight:700;font-size:8.5px;letter-spacing:.5px;
   text-transform:uppercase;box-shadow:0 2px 6px #000a}
 .size .bdg{font-size:12px}
@@ -223,13 +225,13 @@ html:has(.cmbt),body:has(.cmbt){height:100%;margin:0;overflow:hidden}
 
 /* name banner */
 .nameBan{position:relative;margin:6px 14px 0;padding:4px 8px 5px;text-align:center;border-radius:5px;
-  background:linear-gradient(var(--ink2),var(--ink));border:1.5px solid #c9a23a;
+  background:linear-gradient(#241a10,#170f0a);border:1.5px solid #c9a23a;
   font-family:'Cinzel Decorative',serif;font-weight:900;font-size:12.5px;color:var(--cream);
   text-shadow:0 1px 0 #000,0 0 8px #ffcf6b55;letter-spacing:.5px;line-height:1.05}
 
 /* art scene — height scales with viewport so the whole card fits */
 .art{position:relative;height:clamp(78px,13vh,140px);display:flex;align-items:center;justify-content:center;
-  filter:drop-shadow(0 6px 10px #000a);overflow:hidden;background:#140e26}
+  filter:drop-shadow(0 6px 10px #000a);overflow:hidden;background:#170f0a}
 .art .creature{font-size:clamp(48px,8vh,74px);line-height:1;transition:transform .2s ease}
 /* on the big combat card the art is the hero: it flexes to fill all slack so the
    portrait reads as a tall illustration, and every card stays the same height. */
@@ -239,12 +241,12 @@ html:has(.cmbt),body:has(.cmbt){height:100%;margin:0;overflow:hidden}
 .cmbt .combat .art img.creature.artImg{width:auto;height:90%;max-width:100%}
 .art .moon{position:absolute;top:12px;right:22px;width:32px;height:32px;border-radius:50%;
   background:radial-gradient(circle at 40% 40%,#fffbe9,#ffe9a8);box-shadow:0 0 26px #ffe9a8aa;opacity:.85}
-.art .mtn{position:absolute;bottom:0;left:0;right:0;height:42px;background-color:#2a1c3e;opacity:.55;
+.art .mtn{position:absolute;bottom:0;left:0;right:0;height:42px;background-color:#2a1c16;opacity:.55;
   clip-path:polygon(0 100%,14% 46%,28% 78%,46% 30%,62% 70%,78% 38%,100% 72%,100% 100%)}
 
 /* hp bar */
 .hpWrap{margin:6px 10px 4px;position:relative;height:16px;border-radius:8px;overflow:hidden;
-  background:#160f22;box-shadow:inset 0 0 0 1.5px #c9a23a, inset 0 2px 4px #000}
+  background:#160f0a;box-shadow:inset 0 0 0 1.5px #c9a23a, inset 0 2px 4px #000}
 .hpFill{position:absolute;inset:0;border-radius:8px;background:linear-gradient(#8ef0a8,#2ea85c);
   box-shadow:inset 0 6px 6px #ffffff44, inset 0 -6px 8px #00000055;transition:width .25s ease}
 .hpFill.low{background:linear-gradient(#ff8a7a,#d23b2c)}
@@ -259,7 +261,7 @@ html:has(.cmbt),body:has(.cmbt){height:100%;margin:0;overflow:hidden}
 /* status chips (big cards) */
 .stats{display:flex;flex-wrap:wrap;gap:4px;justify-content:center;padding:4px 8px 6px;min-height:20px}
 .chip{font-size:9.5px;font-weight:600;padding:2px 7px;border-radius:20px;display:flex;align-items:center;gap:3px;
-  background:#1c1530;border:1px solid #4a3f63;color:#e8dcff}
+  background:#241a10;border:1px solid #5a4a2a;color:#e8dcc8}
 .chip iconify-icon{font-size:12px}
 .chip.blk{border-color:#6aa3d6;color:#bfe0ff}.chip.str{border-color:#e0a85a;color:#ffdca0}
 .chip.burn{border-color:#e2693a;color:#ffc09a}.chip.pois{border-color:#7bc24a;color:#d6f0a8}
@@ -267,7 +269,7 @@ html:has(.cmbt),body:has(.cmbt){height:100%;margin:0;overflow:hidden}
 .chip.weak,.chip.vuln,.chip.frail{border-color:#b06bd6;color:#e8c0ff}
 
 /* intent + block badges on big cards */
-.intent{position:absolute;top:42px;right:7px;z-index:6;background:#1a1020;border:1.5px solid #ffd34d;
+.intent{position:absolute;top:42px;right:7px;z-index:6;background:#1a1208;border:1.5px solid #ffd34d;
   color:#ffd34d;font-family:'Cinzel',serif;font-weight:700;font-size:11px;padding:2px 7px;border-radius:8px;
   display:flex;align-items:center;gap:4px;box-shadow:0 0 10px #ffd34d55;cursor:pointer}
 .intent:hover{background:#2a1810}
@@ -450,11 +452,11 @@ html:has(.cmbt),body:has(.cmbt){height:100%;margin:0;overflow:hidden}
 /* ---------- bench buttons (enemy intent / combat log open their modals) ---------- */
 .benchBtn{flex:0 0 auto;display:flex;align-items:center;gap:6px;justify-content:center;cursor:pointer;
   font-family:'Cinzel',serif;font-weight:700;font-size:11px;letter-spacing:.5px;color:#e8dcc8;
-  padding:7px 9px;border-radius:9px;border:1.5px solid #5a4a2a;background:#1a1020cc;
+  padding:7px 9px;border-radius:9px;border:1.5px solid #5a4a2a;background:#1a1208cc;
   transition:border-color .12s,background .12s}
-.benchBtn:hover{border-color:var(--goldB);background:#241634}
+.benchBtn:hover{border-color:var(--goldB);background:#241a10}
 .benchBtn iconify-icon{font-size:15px;color:var(--gold4)}
-.benchBtn .benchCount{margin-left:auto;background:#140e26;color:var(--gold1);font-size:10px;border-radius:8px;
+.benchBtn .benchCount{margin-left:auto;background:#170f0a;color:var(--gold1);font-size:10px;border-radius:8px;
   padding:0 6px;line-height:16px;min-width:16px;text-align:center}
 .benchBtn.intentBtn{border-color:#5a2a2a;color:#ffd9d9}
 .benchBtn.intentBtn iconify-icon{color:#ff9c9c}
@@ -466,19 +468,19 @@ html:has(.cmbt),body:has(.cmbt){height:100%;margin:0;overflow:hidden}
 .intentArrow{display:flex;justify-content:center;align-items:center;color:var(--gold2);
   font-size:18px;font-weight:900;line-height:1;margin:-1px 0}
 .intentRow .iStep{flex:0 0 auto;width:18px;height:18px;border-radius:50%;display:grid;place-items:center;
-  background:#140e26;border:1px solid var(--goldB);color:var(--gold1);font-family:'Cinzel',serif;font-weight:700;font-size:10px}
+  background:#170f0a;border:1px solid var(--goldB);color:var(--gold1);font-family:'Cinzel',serif;font-weight:700;font-size:10px}
 
 /* intent modal — one row per forecast action */
 .intentList{display:flex;flex-direction:column;gap:6px;margin-top:8px}
 .intentRow{display:flex;align-items:center;flex-wrap:wrap;gap:6px 8px;width:100%;text-align:left;cursor:pointer;font:inherit;
-  padding:7px 9px;border-radius:8px;border:1px solid #4a3f63;background:#1a1230;color:#c9b88a}
+  padding:7px 9px;border-radius:8px;border:1px solid #5a4a2a;background:#1a1230;color:#c9b88a}
 .intentRow.revealed{border-color:var(--gold1);background:#2a1a0a;color:var(--cream)}
 .intentRow .iIcon{font-size:18px;color:#ffd34d;flex:0 0 auto}
 .intentRow .iName{font-family:'Cinzel',serif;font-weight:700;color:var(--cream)}
 .intentRow .iAct{color:#cdbff0}
 .intentRow .iTgt{margin-left:auto;display:flex;align-items:center;gap:3px;font-size:11px;color:#ffd9b0;white-space:nowrap}
 /* revealed numbers get their own full-width line so they’re readable without a click */
-.intentRow .iNums{flex:0 0 100%;font-size:11.5px;color:#9af0bf;border-top:1px dashed #4a3f6388;padding-top:4px}
+.intentRow .iNums{flex:0 0 100%;font-size:11.5px;color:#9af0bf;border-top:1px dashed #5a4a2a88;padding-top:4px}
 
 /* log modal — scrollable history */
 .logModalBody{max-height:46vh;overflow-y:auto;margin-top:8px;padding:6px 9px;border-radius:8px;
@@ -499,7 +501,7 @@ html:has(.cmbt),body:has(.cmbt){height:100%;margin:0;overflow:hidden}
 .orb.shocked{border-color:#ffd34d;box-shadow:0 4px 12px #000a, inset 0 0 12px #0006, 0 0 12px #ffd34daa}
 .orbShock{position:absolute;bottom:-8px;left:50%;transform:translateX(-50%);white-space:nowrap;
   display:flex;align-items:center;gap:2px;font-family:'Cinzel',serif;font-weight:700;font-size:9px;
-  color:#1a1020;background:linear-gradient(#ffe27a,#e0a82f);border:1px solid #ffd34d;border-radius:8px;
+  color:#1a1208;background:linear-gradient(#ffe27a,#e0a82f);border:1px solid #ffd34d;border-radius:8px;
   padding:1px 6px;cursor:pointer;box-shadow:0 2px 5px #0008}
 .orbShock iconify-icon{font-size:11px}
 .endBtn{flex:1 1 auto;font-family:'Cinzel',serif;font-weight:700;letter-spacing:1px;font-size:13px;color:#3a2606;
@@ -508,7 +510,7 @@ html:has(.cmbt),body:has(.cmbt){height:100%;margin:0;overflow:hidden}
 .endBtn:disabled{opacity:.5;cursor:default;box-shadow:0 3px 0 #8a6a18}
 
 /* ---------- overlay (victory / defeat) ---------- */
-.overlay{position:fixed;inset:0;background:#140e26ee;display:grid;place-items:center;z-index:50;padding:18px}
+.overlay{position:fixed;inset:0;background:#170f0aee;display:grid;place-items:center;z-index:50;padding:18px}
 .overlay .panel{text-align:center;max-width:460px;width:100%}
 .overlay h1{font-family:'Cinzel Decorative',serif;font-size:38px;margin-bottom:14px;
   color:var(--cream);text-shadow:0 0 18px #ff8a3a,0 2px 0 #000}
@@ -518,8 +520,8 @@ html:has(.cmbt),body:has(.cmbt){height:100%;margin:0;overflow:hidden}
 .rewardRow .move .mt{min-height:48px}
 
 /* ---------- mini-modal (entity info · swap confirm) ---------- */
-.miniModalWrap{position:fixed;inset:0;background:#140e26cc;display:grid;place-items:center;z-index:80;padding:18px}
-.miniModal{position:relative;background:linear-gradient(#241a3a,#140e26);border:2px solid var(--gold2);
+.miniModalWrap{position:fixed;inset:0;background:#170f0acc;display:grid;place-items:center;z-index:80;padding:18px}
+.miniModal{position:relative;background:linear-gradient(#241a10,#170f0a);border:2px solid var(--gold2);
   border-radius:12px;padding:16px 18px;max-width:320px;width:100%;color:#f3ecd8;
   box-shadow:0 16px 40px #000c, inset 0 0 24px #0006;font-family:'Spectral',serif}
 .miniModal p{font-size:13px;line-height:1.5;margin:8px 0}
@@ -564,12 +566,12 @@ html:has(.cmbt),body:has(.cmbt){height:100%;margin:0;overflow:hidden}
 .cardDetail .cdMeta{ color:#c9b58e; font-size:12px; margin:4px 0 10px; text-transform:capitalize; }
 .cardDetail .cdArt{ height:clamp(120px,22vh,180px); border-radius:10px; overflow:hidden; margin-bottom:12px;
   display:flex; align-items:center; justify-content:center; border:1.5px solid #8a6a18;
-  background:radial-gradient(circle at 50% 35%,#2a1f3e,#140e26); box-shadow:inset 0 0 18px #0008; }
+  background:radial-gradient(circle at 50% 35%,#2a1f16,#170f0a); box-shadow:inset 0 0 18px #0008; }
 .cardDetail .cdArt img.artImg{ height:100%; width:100%; object-fit:cover; image-rendering:pixelated; }
 .cardDetail .cdArt iconify-icon{ font-size:clamp(56px,12vh,96px); color:#fff; }
 .cardDetail .cdArt.atk{ background:radial-gradient(circle at 50% 60%,#5a2a1e,#1a0e0e); }
 .cardDetail .cdArt.def{ background:radial-gradient(circle at 50% 60%,#1e3a5a,#0e131a); }
-.cardDetail .cdArt.util{ background:radial-gradient(circle at 50% 60%,#3a1e5a,#140e26); }
+.cardDetail .cdArt.util{ background:radial-gradient(circle at 50% 60%,#3a1e5a,#170f0a); }
 .cardDetail .linkedText{ font-size:16px; line-height:1.65; }
 .cardDetail .cdHint{ color:#8a7a5e; font-size:11px; margin-top:10px; }
 .kw{ background:rgba(240,200,74,.16); border:1px solid #b88a3e; color:#f0c84a; border-radius:5px;
@@ -595,7 +597,7 @@ html:has(.cmbt),body:has(.cmbt){height:100%;margin:0;overflow:hidden}
 .cmbt .axesLine .bioTok:hover{ color:#ffe6a0; }
 .cmbt .axesLine .factorRow{ display:flex; align-items:center; gap:4px; }
 .cmbt .axesLine .factorIcon{ display:inline-flex; align-items:center; justify-content:center; width:22px; height:22px;
-  color:#e7d6a8; background:linear-gradient(160deg,#241a3a,#140e26); border:1px solid #8a6a18aa; border-radius:6px;
+  color:#e7d6a8; background:linear-gradient(160deg,#241a10,#170f0a); border:1px solid #8a6a18aa; border-radius:6px;
   padding:0; font:inherit; transition:transform .12s, box-shadow .12s, color .12s; }
 .cmbt .axesLine .factorIcon iconify-icon{ width:15px; height:15px; font-size:15px; }
 .cmbt .axesLine .factorIcon.clickable{ cursor:pointer; }
@@ -603,7 +605,7 @@ html:has(.cmbt),body:has(.cmbt){height:100%;margin:0;overflow:hidden}
 /* Top-left "major submatrix" badge — one kit icon per biology base (hybrids show 2). */
 .cmbt .submatrix{ position:absolute; top:8px; left:8px; z-index:5; min-width:30px; height:30px; border-radius:15px;
   display:flex; align-items:center; justify-content:center; gap:1px; padding:0 3px; font-size:16px; color:var(--cream);
-  background:linear-gradient(160deg,#241a3a,#140e26); border:1.5px solid var(--goldB); box-shadow:0 2px 6px #000a; }
+  background:linear-gradient(160deg,#241a10,#170f0a); border:1.5px solid var(--goldB); box-shadow:0 2px 6px #000a; }
 .cmbt .submatrix .smIcon{ display:inline-flex; width:18px; height:18px; align-items:center; justify-content:center; }
 .cmbt .submatrix .smIcon iconify-icon{ width:18px; height:18px; }
 .cmbt .submatrix.multi .smIcon{ width:16px; height:16px; }
@@ -695,14 +697,14 @@ html:has(.cmbt),body:has(.cmbt){height:100%;margin:0;overflow:hidden}
 .modalCardWrap .axesLine .bioTok:hover{ color:#ffe6a0; }
 .modalCardWrap .axesLine .factorRow{ display:flex; align-items:center; gap:4px; }
 .modalCardWrap .axesLine .factorIcon{ display:inline-flex; align-items:center; justify-content:center; width:22px; height:22px;
-  color:#e7d6a8; background:linear-gradient(160deg,#241a3a,#140e26); border:1px solid #8a6a18aa; border-radius:6px;
+  color:#e7d6a8; background:linear-gradient(160deg,#241a10,#170f0a); border:1px solid #8a6a18aa; border-radius:6px;
   padding:0; font:inherit; transition:transform .12s, box-shadow .12s, color .12s; }
 .modalCardWrap .axesLine .factorIcon iconify-icon{ width:15px; height:15px; font-size:15px; }
 .modalCardWrap .axesLine .factorIcon.clickable{ cursor:pointer; }
 .modalCardWrap .axesLine .factorIcon.clickable:hover{ color:#ffe6a0; transform:translateY(-2px) scale(1.15); box-shadow:0 3px 8px #000a,0 0 8px #ffd34d55; }
 .modalCardWrap .submatrix{ position:absolute; top:8px; left:8px; z-index:5; min-width:30px; height:30px; border-radius:15px;
   display:flex; align-items:center; justify-content:center; gap:1px; padding:0 3px; font-size:16px; color:var(--cream);
-  background:linear-gradient(160deg,#241a3a,#140e26); border:1.5px solid var(--goldB); box-shadow:0 2px 6px #000a; }
+  background:linear-gradient(160deg,#241a10,#170f0a); border:1.5px solid var(--goldB); box-shadow:0 2px 6px #000a; }
 .modalCardWrap .submatrix .smIcon{ display:inline-flex; width:18px; height:18px; align-items:center; justify-content:center; }
 .modalCardWrap .submatrix .smIcon iconify-icon{ width:18px; height:18px; }
 .modalCardWrap .submatrix.multi .smIcon, .modalCardWrap .submatrix.multi .smIcon iconify-icon{ width:16px; height:16px; }

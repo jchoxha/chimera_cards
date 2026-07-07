@@ -1,7 +1,7 @@
 /* Codex — central reference reader. Uses the app-global gilded vars (combat.css). */
 .codex { position: fixed; inset: 0; display: flex; flex-direction: column;
-  background: radial-gradient(120% 90% at 50% 0%, #241a3a 0%, #140e26 60%, #0d0918 100%);
-  color: #e8dcc8; font-family: 'Spectral', serif; padding: 14px clamp(10px, 4vw, 40px); gap: 12px; overflow: hidden; }
+  background: radial-gradient(120% 90% at 50% 0%, #241a10 0%, #170f0a 60%, #0c0905 100%);
+  color: var(--ink); font-family: var(--font-body); padding: 14px clamp(10px, 4vw, 40px); gap: 12px; overflow: hidden; }
 .cxBar { display: flex; align-items: center; gap: 14px; flex: 0 0 auto; }
 .cxBar h1 { font-family: 'Cinzel', serif; font-size: clamp(20px, 3vw, 30px); color: var(--gold4, #e8c878);
   display: flex; align-items: center; gap: 10px; margin: 0; }

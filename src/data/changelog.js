@@ -6,6 +6,10 @@
 
 /** @type {{version:string, date:string, notes:string[]}[]} newest first */
 export const CHANGELOG = [
+  { version: 'v3.104.0', date: '2026-07-07', notes: [
+    'Finished the app-wide visual unification: every screen — menu, team assembly, creature creator, editor, codex, run/rewards, deck builder, and combat — now shares one gilded-wood theme drawn from the same design tokens. No more mismatched colours between screens.',
+    'The changelog and creature panels use the shared modal, and a stray colour-variable clash that could have washed out combat cards was fixed.',
+  ] },
   { version: 'v3.103.0', date: '2026-07-07', notes: [
     'Started a real design system (docs/ui-conventions.md + a shared theme): one gilded-wood look everywhere. The team-assembly and creature-creator screens, which had drifted purple, are back in the gold theme so the whole app matches.',
     'Shared UI building blocks (tokens, a standard Modal, buttons, tabs, pills, card grids) so modals/menus/cards stop diverging as we build.',

@@ -186,12 +186,18 @@ shadows, z-layers, `--font-display` Cinzel/`--font-body` Spectral) + shared PRIM
 `block`), `.uiTabs`/`.uiTab`, `.uiPill`(+`good`/`info`/`muted`), `.uiCardGrid`/`.uiCardTile`(+`locked`),
 `.uiPanel`/`.uiHint`. Imported FIRST in every `main.jsx` (global). **`src/ui/Modal.jsx`** = the React
 modal primitive. **`docs/ui-conventions.md`** documents tokens + patterns + the migration checklist.
-**Applied so far:** select.css + creator.css + editorHub.css rethemed off purple onto tokens (team
-assembly / creation / editor now match); the creature editor modal is the reference `<Modal>` impl.
+**CONVERSION COMPLETE (v3.104.0):** ALL screens now draw from the tokens — `select`/`creator`/
+`editorHub`/`app`/`codex`/`deck`/`teamManager`/`MonsterPage`/`run`/`editor`/`combat` .css all rethemed
+onto the gilded-wood palette (purple skin gone; combat's navy surfaces warmed to wood). Changelog +
+creature-editor modals use the `<Modal>` primitive (reference impls). **⚠️ `--ink` OWNED BY theme.css**
+(= cream TEXT): combat.css USED to redefine `--ink`/`--ink2` on `:root` (dark surfaces) which clashed
+GLOBALLY and would wash combat card interiors to cream — combat now uses literals for those and its
+`:root` keeps only `--gold1..4`/`--goldB`/`--cream`. **NEVER redefine `--ink` per-screen.**
 **⚠️ CSS GOTCHA (learned):** box-drawing chars (╔═║) in a CSS `/* */` comment break the dev parser and
-silently DROP the following rule — theme.css uses a PLAIN comment. Use plain comments in `.css` (JS banner
-comments are fine). **Migration is ongoing** (§checklist): legacy modals (combat/run/changelog/editor),
-one-off buttons, and per-screen `:root`s still to fold onto the tokens as files are touched.
+silently DROP the following rule — theme.css uses a PLAIN comment (JS banner comments are fine).
+**Opportunistic polish left:** route the last hand-rolled overlays (`.miniModalWrap`/`.runOverlay`/
+`.editModal`) through `<Modal>` + collapse gilded one-off buttons (`.runBtn`/`.dbBtn`/`.selBtn`) onto
+`.uiBtn` when their files are next touched (§ui-conventions checklist).
 
 **🗃️ COLLECTION + CODEX "CREATURES" OVERHAUL (v3.102.0, 2026-07-07, Jeton):** the player now has a real
 COLLECTION — `src/app/collection.js` (localStorage `chimera.collection`): per-(id, SIZE) **discovered**

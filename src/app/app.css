@@ -1,91 +1,86 @@
-/* Main-menu shell connecting the Forge (editor) and the Pit (combat). */
+/* Main-menu shell connecting the Forge (editor) and the Pit (combat).
+   Gilded-wood theme via ui/theme.css tokens. */
 .menu {
   min-height: 100vh; display: grid; place-items: center; padding: 24px;
   background: radial-gradient(120% 90% at 50% 0%, #2a1d0c 0%, #16110a 60%, #0c0905 100%);
-  font: 16px/1.5 'Spectral', Georgia, serif; color: #e8dcc8;
+  font: 16px/1.5 var(--font-body); color: var(--ink);
 }
 .menuCard {
-  width: min(440px, 94vw); background: #1d1509; border: 1px solid #4a3a22;
-  border-radius: 16px; padding: 28px 24px; text-align: center;
-  box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+  width: min(440px, 94vw); background: var(--surface-1); border: 1px solid var(--line);
+  border-radius: var(--r-lg); padding: 28px 24px; text-align: center;
+  box-shadow: var(--shadow-modal);
 }
 .menuTitle {
   font-family: 'Cinzel Decorative', 'Cinzel', serif; font-weight: 900; letter-spacing: 4px;
-  font-size: 44px; margin: 0; color: #f0c84a; text-shadow: 0 2px 0 #000, 0 0 24px rgba(240,200,74,0.25);
+  font-size: 44px; margin: 0; color: var(--gold); text-shadow: 0 2px 0 #000, 0 0 24px rgba(240,200,74,0.25);
 }
-.menuSub { margin: 2px 0 22px; color: #c9b58e; font-style: italic; }
-.menuVersion { font: inherit; font-style: normal; font-weight: 700; color: #ffd34d; letter-spacing: .5px;
-  background: #00000044; border: 1px solid #c9a23a55; border-radius: 20px; padding: 1px 9px; margin-left: 6px; font-size: 12px; cursor: pointer; }
-.menuVersion:hover { border-color: #d8b24a; background: #00000077; }
+.menuSub { margin: 2px 0 22px; color: var(--ink-dim); font-style: italic; }
+.menuVersion { font: inherit; font-style: normal; font-weight: 700; color: var(--warn); letter-spacing: .5px;
+  background: #00000044; border: 1px solid var(--line); border-radius: 20px; padding: 1px 9px; margin-left: 6px; font-size: 12px; cursor: pointer; }
+.menuVersion:hover { border-color: var(--gold); background: #00000077; }
 
-/* changelog modal (menu) */
-.clWrap { position: fixed; inset: 0; z-index: 200; display: grid; place-items: center; padding: 18px;
-  background: #0a0710cc; }
-.clCard { position: relative; width: min(520px, 94vw); max-height: 84vh; overflow: hidden; display: flex; flex-direction: column;
-  background: linear-gradient(#241a3a, #140e26); border: 2px solid #caa033; border-radius: 14px; padding: 18px 20px;
-  box-shadow: 0 20px 60px #000a; }
-.clCard h2 { font-family: 'Cinzel', serif; color: #e9cf6b; display: flex; align-items: baseline; gap: 8px; margin: 0 0 12px; }
-.clCardVer { margin-left: auto; font-size: 13px; color: #ffd34d; }
-.clClose { position: absolute; top: 8px; right: 10px; background: none; border: none; color: #c9a66b; font-size: 18px; cursor: pointer; }
-.clClose:hover { color: #ffd34d; }
+/* changelog modal body (chrome comes from the shared <Modal>) */
+.clCardVer { margin-left: auto; font-size: 13px; color: var(--warn); }
 .clList { overflow-y: auto; display: flex; flex-direction: column; gap: 12px; }
 .clRelHead { display: flex; align-items: baseline; gap: 8px; }
-.clRelHead b { font-family: 'Cinzel', serif; color: #e9cf6b; font-size: 14px; }
-.clRelHead span { color: #8a7a5e; font-size: 11px; }
+.clRelHead b { font-family: var(--font-display); color: var(--gold-bright); font-size: 14px; }
+.clRelHead span { color: var(--ink-faint); font-size: 11px; }
 .clList ul { margin: 5px 0 0; padding-left: 18px; }
-.clList li { font-size: 12.5px; line-height: 1.5; margin: 2px 0; color: #e8dcc8; }
+.clList li { font-size: 12.5px; line-height: 1.5; margin: 2px 0; color: var(--ink); }
+
+/* menu buttons — mirror the shared .uiBtn look */
 .menuBtn {
   display: block; width: 100%; padding: 12px 16px; margin: 8px 0; cursor: pointer;
-  font: 600 16px 'Cinzel', serif; color: #e8dcc8; background: #2e2213;
-  border: 1px solid #6a4d1b; border-radius: 10px;
+  font: 600 16px var(--font-display); color: var(--ink); background: var(--surface-2);
+  border: 1px solid var(--line); border-radius: var(--r-sm);
 }
-.menuBtn:hover { background: #3a2c18; border-color: #b88a3e; }
+.menuBtn:hover { background: var(--surface-3); border-color: var(--gold); }
 .menuBtn:disabled { opacity: 0.4; cursor: default; }
-.menuBtn.big { font-size: 18px; padding: 16px; background: #5a3f16; border-color: #b88a3e; }
-.menuBtn.big:hover { background: #6f4f1d; }
+.menuBtn.big { font-size: 18px; padding: 16px; background: var(--gold-fill); border-color: var(--gold-deep); color: var(--gold-bright); }
+.menuBtn.big:hover { background: #6f4f1d; border-color: var(--gold); }
 /* advanced playtest disclosure */
 .menuToggle {
   display: flex; width: 100%; align-items: center; justify-content: space-between; margin: 14px 0 0;
-  padding: 9px 14px; cursor: pointer; font: 600 13px 'Cinzel', serif; letter-spacing: .5px; color: #c9b58e;
-  background: transparent; border: 1px dashed #4a3a22; border-radius: 10px;
+  padding: 9px 14px; cursor: pointer; font: 600 13px var(--font-display); letter-spacing: .5px; color: var(--ink-dim);
+  background: transparent; border: 1px dashed var(--line); border-radius: var(--r-sm);
 }
-.menuToggle:hover { color: #e8dcc8; border-color: #6a4d1b; }
-.menuChevron { color: #8a7a5e; }
+.menuToggle:hover { color: var(--ink); border-color: var(--gold-deep); }
+.menuChevron { color: var(--ink-faint); }
 .menuSetup {
-  margin: 8px 0 6px; padding: 16px; border: 1px solid #3a2c18; border-radius: 12px; background: #16110a;
+  margin: 8px 0 6px; padding: 16px; border: 1px solid var(--line); border-radius: var(--r-md); background: #16110a;
 }
-.menuSetup h3 { margin: 0 0 12px; font-family: 'Cinzel', serif; color: #e2c98a; }
-.menuSetup label { display: flex; justify-content: space-between; align-items: center; gap: 10px; margin: 8px 0; font-size: 14px; color: #c9b58e; }
+.menuSetup h3 { margin: 0 0 12px; font-family: var(--font-display); color: var(--gold-bright); }
+.menuSetup label { display: flex; justify-content: space-between; align-items: center; gap: 10px; margin: 8px 0; font-size: 14px; color: var(--ink-dim); }
 .menuSetup select, .menuSetup input {
-  font: inherit; font-size: 14px; color: #e8dcc8; background: #241a10; border: 1px solid #4a3a22;
+  font: inherit; font-size: 14px; color: var(--ink); background: var(--surface-2); border: 1px solid var(--line);
   border-radius: 6px; padding: 6px 8px; min-width: 140px;
 }
 /* team summary chips on the menu */
 .teamSummary { display: flex; flex-wrap: wrap; gap: 6px; justify-content: center; margin: 6px 0 8px; min-height: 24px; }
-.teamNone { color: #8a7a5e; font-size: 13px; font-style: italic; }
-.tsTag { font-family: 'Cinzel', serif; font-size: 12px; padding: 3px 10px; border-radius: 999px;
-  background: #2e2213; border: 1px solid #6a4d1b; color: #f3ead0; }
-.tsTag.bench { background: #1c1810; color: #c9b58e; }
+.teamNone { color: var(--ink-faint); font-size: 13px; font-style: italic; }
+.tsTag { font-family: var(--font-display); font-size: 12px; padding: 3px 10px; border-radius: 999px;
+  background: var(--surface-2); border: 1px solid var(--line); color: var(--gold-bright); }
+.tsTag.bench { background: var(--surface-1); color: var(--ink-dim); }
 .menuRow { display: flex; gap: 8px; margin-top: 4px; }
 .menuRow .menuBtn { margin: 4px 0; }
 .menuRow .menuBtn.big { flex: 1; }
-.menuHint { margin: 16px 0 0; font-size: 12px; color: #8a7a5e; line-height: 1.4; }
-.cmbt .menuPill { cursor: pointer; border: 1px solid #6a4d1b; }
-.cmbt .menuPill:hover { background: #3a2c18; }
+.menuHint { margin: 16px 0 0; font-size: 12px; color: var(--ink-faint); line-height: 1.4; }
+.cmbt .menuPill { cursor: pointer; border: 1px solid var(--line); }
+.cmbt .menuPill:hover { background: var(--surface-3); }
 
 /* ---------- force-landscape gate (touch devices held in portrait) ---------- */
 .rotGate {
   position: fixed; inset: 0; z-index: 100000; display: grid; place-items: center;
-  padding: 24px; text-align: center; color: #e8dcc8; font-family: 'Spectral', Georgia, serif;
+  padding: 24px; text-align: center; color: var(--ink); font-family: var(--font-body);
   background: radial-gradient(120% 90% at 50% 0%, #2a1d0c 0%, #16110a 55%, #0c0905 100%);
 }
 .rotInner { max-width: 320px; }
-.rotIcon { font-size: 92px; color: #f0c84a; filter: drop-shadow(0 4px 10px #000a);
+.rotIcon { font-size: 92px; color: var(--gold); filter: drop-shadow(0 4px 10px #000a);
   animation: rotNudge 2.6s ease-in-out infinite; }
 @keyframes rotNudge { 0%, 45% { transform: rotate(0); } 65%, 100% { transform: rotate(-90deg); } }
-.rotGate h2 { font-family: 'Cinzel', serif; color: #f0c84a; margin: 18px 0 6px; font-size: 24px; letter-spacing: 1px; }
-.rotGate p { color: #c9b58e; margin: 0 0 20px; line-height: 1.5; font-size: 15px; }
-.rotBtn { font: 600 15px 'Cinzel', serif; color: #3a2606; cursor: pointer; border: none; border-radius: 10px;
+.rotGate h2 { font-family: var(--font-display); color: var(--gold); margin: 18px 0 6px; font-size: 24px; letter-spacing: 1px; }
+.rotGate p { color: var(--ink-dim); margin: 0 0 20px; line-height: 1.5; font-size: 15px; }
+.rotBtn { font: 600 15px var(--font-display); color: #3a2606; cursor: pointer; border: none; border-radius: var(--r-sm);
   padding: 12px 22px; background: linear-gradient(#ffe89a, #d6a72a); box-shadow: 0 3px 0 #8a6a18; }
 .rotBtn:active { transform: translateY(2px); box-shadow: 0 1px 0 #8a6a18; }
 
@@ -100,7 +95,3 @@
   .menuSetup { margin: 12px 0 6px; padding: 12px; }
   .menuHint { font-size: 11px; }
 }
-
-/* Quiet utility button (e.g. the Admin console) — present but not shouting. */
-.menuBtn.subtle { opacity: 0.55; font-size: 13px; padding: 8px; }
-.menuBtn.subtle:hover { opacity: 1; }

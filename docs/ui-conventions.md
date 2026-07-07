@@ -62,18 +62,25 @@ Creatures render through ONE component: `CardFace` (`ui/combat/creatureVisuals.j
 via `creatureToFace(creature)`. Do NOT build alternate creature tiles — reuse
 `CardFace` in a `.uiCardTile` everywhere (team assembly, codex, editor, starter).
 
-## Migration status (this is a START — convert opportunistically)
+## Migration status — COMPLETE colour/token conversion (2026-07-07)
+
+Every screen now draws from the tokens (one gilded-wood palette; the purple skin is
+gone). Verified: menu, team-assembly, creature-creator, editor (cards + creatures),
+codex, run, deck-builder, team-manager, monster-page, combat.
 
 - ✅ `theme.css` tokens + primitives; global import; `Modal.jsx`.
-- ✅ Creature editor modal → `Modal` primitive (reference implementation).
-- ✅ Team-assembly (`select.css`) + creature-creator (`creator.css`) rethemed off
-  purple onto tokens.
-- ⬜ Migrate remaining bespoke modals (`.miniModalWrap` combat, `.runOverlay` run,
-  `.clWrap` changelog, `.editModal` editor, `.galleryWrap`) onto `Modal`.
-- ⬜ Replace one-off button classes (`.menuBtn` `.runBtn` `.dbBtn` `.mpBtn` `.cxTab`
-  `.ehTab` `.cbTab` `.selBtn` …) with `.uiBtn` / `.uiTab` as each file is touched.
-- ⬜ Fold per-screen palettes (combat.css `:root`, run.css, codex.css) onto the
-  shared tokens.
+- ✅ Changelog modal + creature-editor modal → `Modal` primitive (reference impls).
+- ✅ Rethemed to tokens: `select.css`, `creator.css`, `editorHub.css`, `app.css`,
+  `codex.css`, `deck.css`, `teamManager.css`, `MonsterPage.css`, `run.css`,
+  `editor.css`, `combat.css`.
+- ✅ **`--ink` naming fixed**: combat.css used to redefine `--ink`/`--ink2` on `:root`
+  (dark) — clashing with theme's `--ink` (cream TEXT) *globally*. Combat's dark card
+  interiors now use literals; its `:root` keeps only `--gold1..4`/`--goldB`/`--cream`.
+  **Never redefine `--ink` per-screen.**
 
-When you touch a file, convert its colours to tokens and its buttons/modals to the
-primitives — leave it more consistent than you found it.
+Remaining polish (opportunistic, non-blocking): route the last hand-rolled overlays
+(`.miniModalWrap` combat, `.runOverlay` run, `.editModal` editor) through `<Modal>`
+(their CSS already matches), and collapse the gilded one-off buttons (`.runBtn`,
+`.dbBtn`, `.cbTab`, `.selBtn` …) onto `.uiBtn`/`.uiTab` when a file is touched anyway.
+
+When you touch a file, use tokens + primitives — never raw hex, never a new palette.

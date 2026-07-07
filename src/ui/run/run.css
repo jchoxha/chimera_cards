@@ -46,7 +46,7 @@
 .pStat.dead { opacity: 0.4; filter: grayscale(1); }
 .pCrest {
   position: relative; flex: 0 0 auto; width: 38px; height: 38px; border-radius: 9px; overflow: hidden;
-  display: grid; place-items: center; background: radial-gradient(circle at 40% 30%, #2a1f3e, #140e26);
+  display: grid; place-items: center; background: radial-gradient(circle at 40% 30%, #2a1f16, #140e08);
   border: 1.5px solid var(--goldB); box-shadow: 0 0 8px var(--gl, #c9a23a55), inset 0 0 10px #0008;
 }
 .pCrest img { width: 100%; height: 100%; object-fit: cover; }
@@ -55,7 +55,7 @@
 .pInfo > b { font-family: 'Cinzel', serif; font-weight: 700; font-size: 12.5px; color: var(--cream);
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .pHp { position: relative; width: 108px; height: 13px; border-radius: 7px; overflow: hidden;
-  background: #160f22; box-shadow: inset 0 0 0 1.5px #c9a23a88; }
+  background: #160f0a; box-shadow: inset 0 0 0 1.5px #c9a23a88; }
 .pHp i { position: absolute; inset: 0; border-radius: 7px; background: linear-gradient(#8ef0a8, #2ea85c); transition: width .25s; }
 .pHp em { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center;
   font-family: 'Cinzel', serif; font-weight: 700; font-size: 8.5px; color: #fff; text-shadow: 0 1px 1px #000; }
@@ -72,11 +72,11 @@
   background: linear-gradient(#c9a23a55, #c9a23a11); border-radius: 2px; }
 .mapNode {
   position: relative; display: flex; align-items: center; gap: 12px; padding: 11px 15px; border-radius: 12px;
-  background: linear-gradient(#241a3a, #140e26); border: 1.5px solid #3a2c18; opacity: .5;
+  background: linear-gradient(#241a10, #140e08); border: 1.5px solid #3a2c18; opacity: .5;
   transition: transform .12s, border-color .12s, box-shadow .12s;
 }
 .mapNode .nIcon { flex: 0 0 auto; width: 30px; height: 30px; display: grid; place-items: center; border-radius: 50%;
-  background: #0e0a18; border: 1.5px solid var(--goldB); font-size: 18px; color: var(--gold4); z-index: 1; }
+  background: #140e08; border: 1.5px solid var(--goldB); font-size: 18px; color: var(--gold4); z-index: 1; }
 .mapNode .nType { font-family: 'Cinzel', serif; font-weight: 700; text-transform: capitalize; letter-spacing: 1px; color: var(--cream); }
 .mapNode .nGo { margin-left: auto; color: #9be29b; font-size: 18px; display: inline-flex; }
 .mapNode .nState { margin-left: auto; }
@@ -96,7 +96,7 @@
 .upgradeList { display: flex; flex-direction: column; gap: 7px; }
 .upgradeList p { color: #c9b58e; }
 .cardChip, .shopItem {
-  text-align: left; background: linear-gradient(#241a3a, #160f26); border: 1.5px solid #4a3a22; border-radius: 10px;
+  text-align: left; background: linear-gradient(#241a10, #160f08); border: 1.5px solid #4a3a22; border-radius: 10px;
   padding: 9px 11px; color: #e8dcc8; cursor: pointer; font: inherit; transition: transform .1s, border-color .1s;
 }
 .cardChip:hover:not(:disabled), .shopItem:hover:not(:disabled) { border-color: var(--goldB); transform: translateY(-2px); }
@@ -132,14 +132,14 @@
 .rwCard .rwCost { position: absolute; top: -8px; left: -8px; width: 28px; height: 28px; border-radius: 50%;
   background: radial-gradient(circle at 38% 30%, #fff3cf, #b8862a); color: #2a1c08; font-family: 'Cinzel', serif;
   font-weight: 800; display: grid; place-items: center; box-shadow: 0 2px 5px #0008; }
-.rwCard .rwArt { width: 100%; height: 78px; border-radius: 8px; background: #140e26aa; display: grid; place-items: center;
+.rwCard .rwArt { width: 100%; height: 78px; border-radius: 8px; background: #140e08aa; display: grid; place-items: center;
   overflow: hidden; }
 .rwCard .rwArt img { width: 100%; height: 100%; object-fit: cover; image-rendering: pixelated; }
 .rwCard .rwArt iconify-icon { font-size: 44px; color: #ffe6b0; }
 .rwCard .rwName { font-family: 'Cinzel', serif; font-weight: 700; font-size: 13px; line-height: 1.1;
   text-shadow: 0 1px 2px #000; }
 .rwCard .rwText { font-size: 11px; line-height: 1.25; color: #efe3c8; flex: 1 1 auto;
-  background: #0e0a18aa; border-radius: 6px; padding: 4px 5px; }
+  background: #140e08aa; border-radius: 6px; padding: 4px 5px; }
 .rwCard .rwRarity { font-size: 9.5px; letter-spacing: .4px; text-transform: capitalize; opacity: .85; }
 
 .lootBanner { display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 10px;
@@ -156,7 +156,7 @@
 .rgHead { display: flex; align-items: center; gap: 8px; font-family: 'Cinzel', serif; font-size: 14px;
   color: var(--gold4); padding: 4px 2px; border-bottom: 1px solid #c9a23a33; }
 .rgHead .pCrest { width: 26px; height: 26px; }
-.relicCard { background: linear-gradient(#241a3a, #160f26); border: 1.5px solid var(--goldB); border-radius: 12px;
+.relicCard { background: linear-gradient(#241a10, #160f08); border: 1.5px solid var(--goldB); border-radius: 12px;
   padding: 14px; max-width: 380px; margin: 0 auto; box-shadow: 0 6px 16px #0008; }
 .relicCard b { font-family: 'Cinzel', serif; color: var(--gold4); display: flex; align-items: center; gap: 7px; }
 .relicCard p { margin-top: 6px; color: #c9b58e; }
@@ -212,6 +212,6 @@
 /* Manage-Team modal on the run map */
 .runOverlay { position: fixed; inset: 0; z-index: 50; background: #0a0710e0; display: grid; place-items: center; padding: 18px; }
 .runTeamMgr { position: relative; width: min(440px, 94vw); max-height: 86vh; overflow-y: auto;
-  background: linear-gradient(#241a3a, #140e26); border: 2px solid #c9a23a; border-radius: 16px; box-shadow: 0 24px 70px #000d; padding: 18px; }
+  background: linear-gradient(#241a10, #140e08); border: 2px solid #c9a23a; border-radius: 16px; box-shadow: 0 24px 70px #000d; padding: 18px; }
 .runModalClose { position: absolute; top: 10px; right: 10px; z-index: 3; width: 30px; height: 30px; border-radius: 50%;
   background: #2e2213; border: 1px solid #6a4d1b; color: #e8dcc8; font-size: 14px; cursor: pointer; }
