@@ -47,6 +47,12 @@ function SpringCard({ card, target, dealFrom, dealDelay, dragged, bind, shockTax
   useEffect(() => { first.current = false; }, []);
   const [hovered, setHovered] = useState(false);
   const lifted = hovered && hoverable && !dragged;   // raise the card the mouse is over
+  // Keep the elevated z-index until the drop-back animation SETTLES (not the instant
+  // hover ends) — otherwise the right neighbour clips over it as it descends.
+  const [elevated, setElevated] = useState(false);
+  const liftedRef = useRef(lifted);
+  liftedRef.current = lifted;
+  useEffect(() => { if (lifted) setElevated(true); }, [lifted]);
   const style = useSpring({
     ...(first.current ? { from: { x: dealFrom.x, y: dealFrom.y, rot: -20, sc: 0.55 }, delay: dealDelay } : null),
     x: target.x,
@@ -55,6 +61,7 @@ function SpringCard({ card, target, dealFrom, dealDelay, dragged, bind, shockTax
     sc: target.sc * (lifted ? 1.12 : 1),
     immediate: (key) => dragged && (key === 'x' || key === 'y'),
     config: dragged ? { tension: 1100, friction: 45 } : lifted ? { tension: 340, friction: 24 } : springConfig.gentle,
+    onRest: () => { if (!liftedRef.current) setElevated(false); },
   });
 
   const f = frameStyle({ element: card.element, rarity: card.rarity });
@@ -70,7 +77,7 @@ function SpringCard({ card, target, dealFrom, dealDelay, dragged, bind, shockTax
         background: f.background,
         x: style.x, y: style.y, scale: style.sc,
         rotateZ: style.rot.to((r) => `${r}deg`),
-        zIndex: dragged ? 100 : lifted ? 90 : (10 + target.i),
+        zIndex: dragged ? 100 : (lifted || elevated) ? 90 : (10 + target.i),
         touchAction: 'none',
         pointerEvents: dragged ? 'none' : 'auto',
       }}

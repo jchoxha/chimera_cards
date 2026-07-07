@@ -6,6 +6,9 @@
 
 /** @type {{version:string, date:string, notes:string[]}[]} newest first */
 export const CHANGELOG = [
+  { version: 'v3.100.4', date: '2026-07-06', notes: [
+    'A hovered card now stays above its right-hand neighbour as it settles back down, instead of clipping behind it the moment the mouse leaves.',
+  ] },
   { version: 'v3.100.3', date: '2026-07-06', notes: [
     'Hovering the mouse over a card in your hand now raises it — it lifts, straightens and pops above its neighbours so you can read it clearly before deciding to play.',
   ] },
