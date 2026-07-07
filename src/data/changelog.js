@@ -6,6 +6,13 @@
 
 /** @type {{version:string, date:string, notes:string[]}[]} newest first */
 export const CHANGELOG = [
+  { version: 'v3.108.0', date: '2026-07-08', notes: [
+    'Drag creatures from your collection straight onto your team (the button still works too), and drag cards around to reorder your collection.',
+    'The search bar is always visible now; “Filters” and a new “Sort” button (name, element, body type, size, HP, or your custom order) sit next to it.',
+    'Your team auto-saves as you change it — no more “Save Team” button.',
+    'Giving a creature a nickname now hides its size word (so “Small Emberwisp” renamed to “Rusty” just shows “Rusty”).',
+    'Removed the “Create Custom Creature” tile from the collection — custom creatures live in the Editor.',
+  ] },
   { version: 'v3.107.0', date: '2026-07-08', notes: [
     'The “Assemble Your Team” screen is now the COLLECTION page — your team lives in a slim, fully-hideable left sidebar (drag its cards to reorder / set your Vanguard), and the collection grid gets the rest of the space.',
     'Filters are tucked away behind a “Filters” button so they don’t crowd the view — open them only when you need them.',

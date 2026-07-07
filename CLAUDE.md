@@ -176,6 +176,23 @@ gets a monotonic `fxKeyRef` id (was `Date.now()`-based, which could collide acro
 react-spring nodes); the item springs use `useSpring(()=>…)` (function form) so a sibling being added
 never restarts an in-flight animation.
 
+**🎴 COLLECTION DRAG-TO-TEAM + REORDER + SEARCH/FILTER/SORT + AUTOSAVE (v3.108.0, 2026-07-08, Jeton).**
+`SelectScreen` gained a window-pointer DRAG on the collection cards (`onCardPointerDown` → window
+`pointermove`/`pointerup`; ghost = a floating `CardFace` via `.selDragGhost`): drop on the **team sidebar**
+(`.teamSide`, hit-tested by `elementFromPoint().closest('.teamSide')`) = **add to team**; drop on another
+card (`[data-cid]`) while sorted "Collection order" = **reorder the collection** (persisted by App as
+`chimera.collectionOrder`, applied via `orderedRoster`; the tap-vs-drag threshold opens the modal on a
+tap). ⚠ store the hovered target on `drag.current.over` (not just render state) so `pointerup` sees it.
+**Toolbar reworked:** the **search box is always visible**; **Filters** (facet chips, `CreatureFilterBar`
+gained `hideSearch`) and a new **Sort** dropdown (`SORT_OPTIONS`/`sortCreatures` in `CreatureFilter.js`:
+Collection order · Name · Element · Body · Size · HP) are separate buttons. **Team AUTOSAVES** — the
+`onConfirm`/"Save Team" button is gone for the collection (App passes `onTeamChange` → `reorderTeam` live;
+a `useEffect` on `picked` skips the seed then persists); the button now reads **Done**. Practice still
+passes `onConfirm` (its confirm launches the fight). **Renaming hides the size word** — `creatureToFace`
+sets `hideSizeWord:!!c.nickname` and `CardFace` drops the `sizeWord` prefix (so "Small Emberwisp" →
+"Rusty"). The **"Create Custom Creature" tile was removed** from the collection (customs live in the
+Editor).
+
 **🗂️ COLLECTION PAGE REWORK + MENU TEAM CARDS + WHITE-BLOCKS FIX (v3.107.0, 2026-07-08, Jeton).**
 The "Assemble Your Team" screen (`SelectScreen`) is now the **Collection** page: the team moved into a
 **slim, fully-hideable vertical LEFT sidebar** (`.teamSide`/`.teamSideOpen`; `TeamManager` gained a

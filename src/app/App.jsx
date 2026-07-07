@@ -37,6 +37,7 @@ const DUMMY = buildDummyCreature();
 if (import.meta.env.DEV && typeof window !== 'undefined') { window.__useRun = useRun; window.__useCombat = useCombat; }
 
 const TEAM_KEY = 'chimera.team';
+const COLLECTION_ORDER_KEY = 'chimera.collectionOrder';
 const PRACTICE_KEY = 'chimera.practiceOpp';
 const PRACTICE_ACTIVE_KEY = 'chimera.practiceActive';
 const PRACTICE_MS_KEY = 'chimera.practiceMs';
@@ -136,15 +137,23 @@ export default function App() {
   }, [collection, customCreatures]);
   const oppRoster = useMemo(() => [...ROSTER, ...customCreatures, DUMMY], [customCreatures]);
 
+  // A player-defined COLLECTION ORDER (drag-to-reorder on the Collection page).
+  // Ids not in the order (newly captured) fall to the end, in native order.
+  const [collectionOrder, setCollectionOrder] = useState(() => loadIds(COLLECTION_ORDER_KEY, []));
+  const orderedRoster = useMemo(() => {
+    if (!collectionOrder.length) return playerRoster;
+    const pos = new Map(collectionOrder.map((id, i) => [id, i]));
+    const fb = collectionOrder.length;
+    return [...playerRoster].sort((a, b) => (pos.has(a.id) ? pos.get(a.id) : fb) - (pos.has(b.id) ? pos.get(b.id) : fb));
+  }, [playerRoster, collectionOrder]);
+  function reorderCollection(ids) {
+    setCollectionOrder(ids);
+    try { localStorage.setItem(COLLECTION_ORDER_KEY, JSON.stringify(ids)); } catch { /* ignore */ }
+  }
+
   // The chosen team (ordered; index 0 = vanguard), resolved to creatures.
   const team = teamIds.map((id) => playerRoster.find((c) => c.id === id)).filter(Boolean);
-  function saveTeam(creatures) {
-    const ids = creatures.map((c) => c.id);
-    setTeamIds(ids);
-    try { localStorage.setItem(TEAM_KEY, JSON.stringify(ids)); } catch { /* ignore */ }
-    setView('menu');
-  }
-  // Persist a reordered team (menu drag-to-reorder → index 0 = vanguard).
+  // Persist the team live (menu + Collection drag-to-reorder / add; index 0 = vanguard).
   function reorderTeam(ids) {
     setTeamIds(ids);
     try { localStorage.setItem(TEAM_KEY, JSON.stringify(ids)); } catch { /* ignore */ }
@@ -257,7 +266,10 @@ export default function App() {
   );
   if (view === 'combat') return <CombatScreen onMenu={leaveCombat} onRestart={restartCombat} onCodex={(tab) => openCodex(tab, 'combat')} />;
   if (view === 'run') return <RunScreen onMenu={() => { if (useRun.getState().view === 'combat') useRun.getState()._recordPlayTime?.(); setView('menu'); }} onNewRun={() => setView('select')} onCodex={(tab) => openCodex(tab, 'run')} />;
-  if (view === 'select') return <SelectScreen roster={playerRoster} initial={teamIds} onConfirm={saveTeam} onCancel={() => setView('menu')} onCreateCustom={() => setView('createCreature')} onDeleteCustom={deleteCustomCreature} onRename={renameCreature} />;
+  if (view === 'select') return <SelectScreen roster={orderedRoster} initial={teamIds}
+    onTeamChange={(creatures) => reorderTeam(creatures.map((c) => c.id))}
+    onReorderRoster={reorderCollection}
+    onCancel={() => setView('menu')} onDeleteCustom={deleteCustomCreature} onRename={renameCreature} />;
   if (view === 'practice') return (
     <SelectScreen roster={oppRoster} initial={practiceOppIds} onConfirm={confirmPracticeOpponents} onCancel={() => setView('menu')}
       title="Choose Practice Opponents"

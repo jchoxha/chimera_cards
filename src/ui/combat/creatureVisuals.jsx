@@ -104,6 +104,8 @@ export function creatureToFace(c) {
     types: (c.attunement || []).map((a) => ({ type: a, weight: 1 })),
     stats: c.stats, portrait: c.meta?.portrait ?? c.portrait ?? null,
     form: c.meta?.form ?? c.size ?? 'regular', rarity: 'common',
+    // A custom nickname REPLACES the auto "Small Emberwisp" name — drop the size word.
+    hideSizeWord: !!c.nickname,
   };
 }
 
@@ -246,7 +248,7 @@ export function CardFace({ f, side, matchup, onEffect, onInfo, onName, extraClas
         </div>
         <div className={`nameBan${nameClick ? ' clickable' : ''}`} onClick={nameClick}
           title={onName ? `${f.name} — open bestiary page` : (seeCreature ? `${f.name} — tap for details` : undefined)}>
-          {sizeWord(f.form) ? <span className="sizeWord">{sizeWord(f.form)} </span> : null}{f.name}{f.hp <= 0 ? ' 💀' : ''}</div>
+          {sizeWord(f.form) && !f.hideSizeWord ? <span className="sizeWord">{sizeWord(f.form)} </span> : null}{f.name}{f.hp <= 0 ? ' 💀' : ''}</div>
         {f.axes && (f.axes.biology || (() => { const sf = specialFactors(f.axes); return sf.length; })()) && (() => {
           const factors = specialFactors(f.axes);
           const bios = Array.isArray(f.axes.biology) ? f.axes.biology : (f.axes.biology ? [f.axes.biology] : []);

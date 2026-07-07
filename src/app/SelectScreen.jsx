@@ -6,7 +6,7 @@
 // ║ the vanguard; any bench member can be promoted. Returns the ORDERED      ║
 // ║ creatures (index 0 = vanguard).                                          ║
 // ╚══════════════════════════════════════════════════════════════════╝
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { creatureColor } from '../data/axisIcons.js';
 import { CardFace, creatureToFace as toFace } from '../ui/combat/creatureVisuals.jsx';
 import MoveCard from '../ui/combat/MoveCard.jsx';
@@ -17,7 +17,7 @@ import { REACTIONS } from '../engine/cards/reactions.js';
 import { factorInfo } from '../data/factorInfo.js';
 import { RARITY_POINTS } from '../engine/types.js';
 import { potentialPool } from './pools.js';
-import { CreatureFilterBar, matchesFilter, emptyFilter } from './CreatureFilter.jsx';
+import { CreatureFilterBar, matchesFilter, emptyFilter, SORT_OPTIONS, sortCreatures } from './CreatureFilter.jsx';
 import '../ui/combat/combat.css';
 import './select.css';
 
@@ -71,18 +71,30 @@ function CardBrowser({ deck = [], pool = [] }) {
 }
 
 export default function SelectScreen({
-  roster = [], initial = [], onConfirm, onCancel, onCreateCustom, onDeleteCustom, onRename,
+  roster = [], initial = [], onConfirm, onTeamChange, onReorderRoster, onCancel, onDeleteCustom, onRename,
   title = 'Collection',
-  intro = 'Your captured creatures. Pick up to 6 for your team — they fight as an Active Vanguard + a bench you swap between.',
+  intro = 'Your captured creatures. Drag a creature onto your team (or tap to open it). Team = up to 6, fighting as an Active Vanguard + a bench you swap between.',
   confirmLabel = 'Save Team ✓', teamLabel = 'Your Team',
 } = {}) {
   const [filter, setFilter] = useState(emptyFilter);
   const [filtersOpen, setFiltersOpen] = useState(false);
-  const shown = roster.filter((c) => matchesFilter(c, filter));
-  const activeFilterCount = Object.values(filter.sets || {}).reduce((n, s) => n + (s?.size || 0), 0) + (filter.q ? 1 : 0);
+  const [sortOpen, setSortOpen] = useState(false);
+  const [sort, setSort] = useState('custom');
+  const facetFiltered = roster.filter((c) => matchesFilter(c, filter));
+  const shown = sortCreatures(facetFiltered, sort);
+  const activeFilterCount = Object.values(filter.sets || {}).reduce((n, s) => n + (s?.size || 0), 0);
   // Ordered list of ids; index 0 = vanguard. Seed from the saved team.
   const [picked, setPicked] = useState(() => initial.filter((id) => roster.some((c) => c.id === id)).slice(0, MAX));
   const [teamOpen, setTeamOpen] = useState(true);
+
+  // ── Auto-save: whenever the team changes, persist it live (no Save button). ──
+  const teamChangeRef = useRef(onTeamChange);
+  teamChangeRef.current = onTeamChange;
+  const firstSync = useRef(true);
+  useEffect(() => {
+    if (firstSync.current) { firstSync.current = false; return; }  // skip the seed
+    teamChangeRef.current?.(picked.map((id) => roster.find((c) => c.id === id)).filter(Boolean));
+  }, [picked]);
   const [modalId, setModalId] = useState(null);   // creature whose modal is open
   const [bestiaryId, setBestiaryId] = useState(null); // creature whose codex page is open
   const [selInfo, setSelInfo] = useState(null);   // nested axis/status info popup
@@ -95,13 +107,70 @@ export default function SelectScreen({
     setTimeout(() => URL.revokeObjectURL(a.href), 1000);
   };
   const toggle = (id) => setPicked((p) => p.includes(id) ? p.filter((x) => x !== id) : (p.length < MAX ? [...p, id] : p));
+  const addToTeam = (id) => setPicked((p) => (p.includes(id) ? p : (p.length < MAX ? [...p, id] : p)));
   const remove = (id) => setPicked((p) => p.filter((x) => x !== id));
   const promote = (id) => setPicked((p) => [id, ...p.filter((x) => x !== id)]);
 
+  // ── Drag a collection card → onto the team sidebar (add) or another card
+  //    (reorder the collection, when sorted by "Collection order"). ──
+  const drag = useRef(null);                    // { id, x, y, startX, startY, moved }
+  const [dragState, setDragState] = useState(null);
+  const DRAG_THRESHOLD = 6;
+  const reorderCollection = (movingId, targetId) => {
+    if (!onReorderRoster || movingId === targetId) return;
+    const ids = roster.map((c) => c.id);
+    const from = ids.indexOf(movingId); const to = ids.indexOf(targetId);
+    if (from < 0 || to < 0) return;
+    ids.splice(from, 1);
+    ids.splice(ids.indexOf(targetId) + (to > from ? 1 : 0), 0, movingId);
+    onReorderRoster(ids);
+  };
+  useEffect(() => {
+    if (!dragState) return undefined;
+    const onMove = (e) => {
+      const g = drag.current; if (!g) return;
+      g.x = e.clientX; g.y = e.clientY;
+      if (!g.moved && Math.hypot(e.clientX - g.startX, e.clientY - g.startY) > DRAG_THRESHOLD) g.moved = true;
+      let over = null;
+      if (g.moved) {
+        const el = document.elementFromPoint(e.clientX, e.clientY);
+        if (el?.closest('.teamSide')) over = 'team';
+        else { const card = el?.closest('[data-cid]'); if (card && card.dataset.cid !== g.id) over = card.dataset.cid; }
+      }
+      g.over = over;                                  // persist on the ref so onUp sees it
+      setDragState({ ...g, over });
+    };
+    const onUp = () => {
+      const g = drag.current; drag.current = null;
+      const over = g?.over;
+      setDragState(null);
+      if (!g) return;
+      if (!g.moved) { setModalId(g.id); return; }         // a tap → open the creature
+      if (over === 'team') addToTeam(g.id);
+      else if (over && sort === 'custom') reorderCollection(g.id, over);
+    };
+    window.addEventListener('pointermove', onMove);
+    window.addEventListener('pointerup', onUp);
+    window.addEventListener('pointercancel', onUp);
+    return () => {
+      window.removeEventListener('pointermove', onMove);
+      window.removeEventListener('pointerup', onUp);
+      window.removeEventListener('pointercancel', onUp);
+    };
+  }, [dragState?.id, sort]);
+  const onCardPointerDown = (e, id) => {
+    if (e.button != null && e.button !== 0) return;
+    drag.current = { id, x: e.clientX, y: e.clientY, startX: e.clientX, startY: e.clientY, moved: false, over: null };
+    setDragState({ ...drag.current });
+  };
+
   const teamCreatures = picked.map(byId).filter(Boolean);
+  const draggedCreature = dragState?.moved ? byId(dragState.id) : null;
+
+  const dragging = !!draggedCreature;
 
   return (
-    <div className="selScreen">
+    <div className={`selScreen${dragging ? ' dragging' : ''}`}>
       <header className="selHead compact">
         <div className="selHeadRow">
           <div className="selTitleWrap">
@@ -110,18 +179,20 @@ export default function SelectScreen({
           </div>
           <div className="selActions">
             <span className="selCount">{picked.length} / {MAX}</span>
-            {onCancel && <button className="selBtn ghost" onClick={onCancel}>Back</button>}
-            <button className="selBtn go" disabled={picked.length === 0}
-              onClick={() => onConfirm?.(teamCreatures)}>
-              {confirmLabel}
-            </button>
+            {onCancel && <button className="selBtn ghost" onClick={onCancel}>{onConfirm ? 'Back' : 'Done'}</button>}
+            {onConfirm && (
+              <button className="selBtn go" disabled={picked.length === 0}
+                onClick={() => onConfirm(teamCreatures)}>
+                {confirmLabel}
+              </button>
+            )}
           </div>
         </div>
       </header>
 
       <div className="selMain">
-        {/* ── LEFT TEAM SIDEBAR — vertical, completely hideable ── */}
-        <aside className={`teamSide${teamOpen ? '' : ' collapsed'}`}>
+        {/* ── LEFT TEAM SIDEBAR — vertical, completely hideable (also a drop target) ── */}
+        <aside className={`teamSide${teamOpen ? '' : ' collapsed'}${dragging ? ' dropTarget' : ''}${dragState?.over === 'team' ? ' dropHot' : ''}`}>
           {teamOpen ? (
             <>
               <div className="teamSideHead">
@@ -132,7 +203,7 @@ export default function SelectScreen({
               </div>
               <div className="teamSideBody">
                 {teamCreatures.length === 0
-                  ? <div className="teamEmpty">No team yet. Tap creatures on the right to add them here, then drag to set your Vanguard.</div>
+                  ? <div className="teamEmpty">{dragging ? 'Drop here to add to your team' : 'No team yet. Drag creatures here (or tap one to add), then drag to set your Vanguard.'}</div>
                   : <TeamManager members={teamCreatures} title="" vertical onReorder={setPicked}
                       onRemove={(id) => remove(id)} onSelect={(m) => setModalId(m.id)} />}
               </div>
@@ -149,40 +220,56 @@ export default function SelectScreen({
         {/* ── COLLECTION GRID — gets the bulk of the space ── */}
         <section className="selBody">
           <div className="selToolbar">
+            <div className="selSearchWrap">
+              <Icon icon="game-icons:magnifying-glass" className="selSearchIcon" />
+              <input className="selSearch" placeholder="Search your collection…" value={filter.q || ''}
+                onChange={(e) => setFilter((f) => ({ ...f, q: e.target.value }))} />
+              {filter.q && <button className="selSearchX" title="Clear" onClick={() => setFilter((f) => ({ ...f, q: '' }))}>✕</button>}
+            </div>
             {roster.length > 4 && (
-              <button className={`selBtn ghost selFilterBtn${filtersOpen ? ' on' : ''}${activeFilterCount ? ' active' : ''}`}
-                onClick={() => setFiltersOpen((v) => !v)}>
-                <Icon icon="game-icons:magnifying-glass" /> Filters
-                {activeFilterCount > 0 && <span className="selFilterN">{activeFilterCount}</span>}
+              <button className={`selBtn ghost selToolBtn${filtersOpen ? ' on' : ''}`}
+                onClick={() => { setFiltersOpen((v) => !v); setSortOpen(false); }}>
+                <Icon icon="game-icons:filter" /> Filters
+                {activeFilterCount > 0 && <span className="selToolN">{activeFilterCount}</span>}
               </button>
             )}
+            <div className="selSortWrap">
+              <button className={`selBtn ghost selToolBtn${sortOpen ? ' on' : ''}${sort !== 'custom' ? ' active' : ''}`}
+                onClick={() => { setSortOpen((v) => !v); setFiltersOpen(false); }}>
+                <Icon icon="game-icons:list-squares" /> Sort
+              </button>
+              {sortOpen && (
+                <div className="selSortMenu uiPanel">
+                  {SORT_OPTIONS.map((o) => (
+                    <button key={o.key} className={`selSortItem${sort === o.key ? ' on' : ''}`}
+                      onClick={() => { setSort(o.key); setSortOpen(false); }}>
+                      {sort === o.key ? '● ' : ''}{o.label}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
             <span className="selShown">{shown.length} creature{shown.length === 1 ? '' : 's'}</span>
           </div>
 
           {filtersOpen && roster.length > 4 && (
-            <div className="selFilter"><CreatureFilterBar creatures={roster} filter={filter} onChange={setFilter} placeholder="Search your creatures…" /></div>
+            <div className="selFilter"><CreatureFilterBar creatures={roster} filter={filter} onChange={setFilter} hideSearch /></div>
           )}
 
           <div className="selGrid">
-            {onCreateCustom && (
-              <button className="selCard selCreate" onClick={onCreateCustom}>
-                <div className="selCreatePlus">＋</div>
-                <div className="selName">Create Custom Creature</div>
-                <div className="selBlurb">Pick its archetype, biology &amp; element, then auto-generate or hand-build its deck.</div>
-              </button>
-            )}
-            {shown.length === 0 && <div className="selNoMatch uiHint">No creatures match your filters.</div>}
+            {shown.length === 0 && <div className="selNoMatch uiHint">No creatures match your search.</div>}
             {shown.map((c) => {
               const order = picked.indexOf(c.id);
               const chosen = order >= 0;
               const color = creatureColor(c);
-              // THE creature card — the same CardFace used in combat (no custom tile).
+              // THE creature card — the same CardFace used in combat. Drag it onto the
+              // team (add) or another card (reorder); tap opens its modal.
               return (
-                <div key={c.id} role="button" tabIndex={0}
-                  className={`selCardWrap modalCardWrap${chosen ? ' chosen' : ''}`}
-                  style={{ '--gl': color }}
-                  onClick={() => setModalId(c.id)}
-                  onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') setModalId(c.id); }}>
+                <div key={c.id} data-cid={c.id} role="button" tabIndex={0}
+                  className={`selCardWrap modalCardWrap${chosen ? ' chosen' : ''}${dragState?.id === c.id && dragging ? ' dragSrc' : ''}${dragState?.over === c.id ? ' dropOver' : ''}`}
+                  style={{ '--gl': color, touchAction: 'none' }}
+                  onPointerDown={(e) => onCardPointerDown(e, c.id)}
+                  onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setModalId(c.id); } }}>
                   <CardFace f={toFace(c)} side="ally" />
                   {chosen && <span className="selPick">{order === 0 ? '★' : order + 1}</span>}
                 </div>
@@ -191,6 +278,13 @@ export default function SelectScreen({
           </div>
         </section>
       </div>
+
+      {/* the floating drag ghost — a faithful card copy tracking the cursor */}
+      {dragging && draggedCreature && (
+        <div className="selDragGhost" style={{ left: dragState.x, top: dragState.y, '--gl': creatureColor(draggedCreature) }}>
+          <div className="selCardWrap modalCardWrap"><CardFace f={toFace(draggedCreature)} side="ally" /></div>
+        </div>
+      )}
 
       {/* Creature modal — the same CardFace as combat, plus add/remove + a deck dropdown. */}
       {modalId && (() => {

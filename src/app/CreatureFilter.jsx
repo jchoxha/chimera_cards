@@ -67,8 +67,33 @@ const sortFacetValues = (key, vals) => (key === 'size'
   : [...vals].sort());
 const facetLabel = (key, v) => (key === 'size' ? (FORMS[v]?.label || v) : v);
 
+// ── Sorting the collection grid ──
+export const SORT_OPTIONS = [
+  { key: 'custom', label: 'Collection order' },
+  { key: 'name', label: 'Name (A → Z)' },
+  { key: 'element', label: 'Element' },
+  { key: 'body', label: 'Body type' },
+  { key: 'size', label: 'Size (small → large)' },
+  { key: 'hp', label: 'Max HP (high → low)' },
+];
+const nameOf = (c) => String(c.nickname || c.speciesName || c.name || '').toLowerCase();
+const firstFacet = (c, key) => creatureFacets(c)[key][0] || '';
+const cmpName = (x, y) => nameOf(x).localeCompare(nameOf(y));
+/** Return a NEW array sorted by `key`. 'custom' (or unknown) preserves input order. */
+export function sortCreatures(list, key) {
+  const a = [...list];
+  switch (key) {
+    case 'name': return a.sort(cmpName);
+    case 'element': return a.sort((x, y) => firstFacet(x, 'attunement').localeCompare(firstFacet(y, 'attunement')) || cmpName(x, y));
+    case 'body': return a.sort((x, y) => firstFacet(x, 'body').localeCompare(firstFacet(y, 'body')) || cmpName(x, y));
+    case 'size': return a.sort((x, y) => FORM_ORDER.indexOf(firstFacet(x, 'size')) - FORM_ORDER.indexOf(firstFacet(y, 'size')) || cmpName(x, y));
+    case 'hp': return a.sort((x, y) => (y.maxHp || 0) - (x.maxHp || 0) || cmpName(x, y));
+    default: return a;
+  }
+}
+
 /** The filter bar: a search box + a chip row per facet that has ≥2 values. */
-export function CreatureFilterBar({ creatures = [], filter, onChange, placeholder = 'Search…' }) {
+export function CreatureFilterBar({ creatures = [], filter, onChange, placeholder = 'Search…', hideSearch = false }) {
   const idx = facetIndex(creatures);
   const set = (patch) => onChange({ ...filter, ...patch });
   const toggle = (key, v) => {
@@ -77,12 +102,15 @@ export function CreatureFilterBar({ creatures = [], filter, onChange, placeholde
     onChange({ ...filter, sets: { ...filter.sets, [key]: cur } });
   };
   const activeCount = Object.values(filter.sets || {}).reduce((n, s) => n + (s?.size || 0), 0) + (filter.q ? 1 : 0);
+  const facetCount = Object.values(filter.sets || {}).reduce((n, s) => n + (s?.size || 0), 0);
   return (
     <div className="cfBar uiPanel">
-      <div className="cfTop">
-        <input className="cfSearch" placeholder={placeholder} value={filter.q || ''} onChange={(e) => set({ q: e.target.value })} />
-        {activeCount > 0 && <button className="uiBtn sm ghost" onClick={() => onChange(emptyFilter())}>Clear ({activeCount})</button>}
-      </div>
+      {!hideSearch && (
+        <div className="cfTop">
+          <input className="cfSearch" placeholder={placeholder} value={filter.q || ''} onChange={(e) => set({ q: e.target.value })} />
+          {activeCount > 0 && <button className="uiBtn sm ghost" onClick={() => onChange(emptyFilter())}>Clear ({activeCount})</button>}
+        </div>
+      )}
       <div className="cfFacets">
         {FACET_DEFS.map((f) => {
           const vals = sortFacetValues(f.key, idx[f.key]);
@@ -102,6 +130,9 @@ export function CreatureFilterBar({ creatures = [], filter, onChange, placeholde
           );
         })}
       </div>
+      {hideSearch && facetCount > 0 && (
+        <button className="uiBtn sm ghost cfClear" onClick={() => onChange({ ...filter, sets: {} })}>Clear filters ({facetCount})</button>
+      )}
     </div>
   );
 }

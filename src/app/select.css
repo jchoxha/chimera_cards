@@ -44,13 +44,40 @@
   border: 1px solid var(--gold-deep); color: var(--gold-bright); display: grid; place-items: center; font: 700 12px var(--font-display); }
 
 .selBody { flex: 1; display: flex; flex-direction: column; min-width: 0; min-height: 0; }
-.selToolbar { display: flex; align-items: center; gap: 12px; padding: 8px 20px 0; flex: 0 0 auto; }
-.selFilterBtn { display: inline-flex; align-items: center; gap: 6px; }
-.selFilterBtn.on { border-color: var(--gold); color: var(--gold-bright); }
-.selFilterBtn.active { border-color: var(--gold-deep); }
-.selFilterN { min-width: 18px; height: 18px; border-radius: 9px; background: var(--gold-fill); border: 1px solid var(--gold-deep);
+.selToolbar { display: flex; align-items: center; gap: 10px; padding: 8px 20px 0; flex: 0 0 auto; }
+/* always-visible search box */
+.selSearchWrap { position: relative; display: flex; align-items: center; flex: 0 1 320px; min-width: 160px; }
+.selSearchWrap .selSearchIcon { position: absolute; left: 10px; color: var(--ink-faint); font-size: 14px; pointer-events: none; }
+.selSearch { width: 100%; font: inherit; font-size: 13px; color: var(--ink); background: var(--surface-2);
+  border: 1px solid var(--line); border-radius: var(--r-pill); padding: 7px 28px 7px 30px; }
+.selSearch:focus { outline: none; border-color: var(--gold); }
+.selSearchX { position: absolute; right: 8px; width: 18px; height: 18px; border-radius: 50%; border: none;
+  background: var(--surface-3); color: var(--ink-dim); font-size: 10px; cursor: pointer; display: grid; place-items: center; }
+.selSearchX:hover { color: var(--gold-bright); }
+.selToolBtn { display: inline-flex; align-items: center; gap: 6px; }
+.selToolBtn.on { border-color: var(--gold); color: var(--gold-bright); }
+.selToolBtn.active { border-color: var(--gold-deep); color: var(--gold-bright); }
+.selToolN { min-width: 18px; height: 18px; border-radius: 9px; background: var(--gold-fill); border: 1px solid var(--gold-deep);
   color: var(--gold-bright); display: inline-grid; place-items: center; font-size: 11px; font-weight: 700; padding: 0 4px; }
-.selShown { font-size: 12px; color: var(--ink-faint); margin-left: auto; }
+.selSortWrap { position: relative; }
+.selSortMenu { position: absolute; top: calc(100% + 6px); left: 0; z-index: 20; min-width: 190px; padding: 6px;
+  display: flex; flex-direction: column; gap: 2px; box-shadow: var(--shadow-modal); }
+.selSortItem { text-align: left; font: inherit; font-size: 13px; color: var(--ink); background: none; border: none;
+  border-radius: var(--r-sm); padding: 7px 10px; cursor: pointer; }
+.selSortItem:hover { background: var(--surface-2); }
+.selSortItem.on { color: var(--gold-bright); }
+.selShown { font-size: 12px; color: var(--ink-faint); margin-left: auto; white-space: nowrap; }
+
+/* ── Collection drag: ghost + drop targets ── */
+.selScreen.dragging, .selScreen.dragging * { cursor: grabbing !important; }
+.selCardWrap.dragSrc { opacity: .35; }
+.selCardWrap.dropOver { outline: 2px dashed var(--gold); outline-offset: 3px; border-radius: 12px; }
+.teamSide.dropTarget { box-shadow: inset 0 0 0 2px var(--gold-deep); }
+.teamSide.dropHot { box-shadow: inset 0 0 0 2px var(--good), 0 0 18px color-mix(in srgb, var(--good) 40%, transparent); background: #16210f; }
+.selDragGhost { position: fixed; z-index: 999; width: 150px; transform: translate(-50%, -50%) rotate(-3deg);
+  pointer-events: none; filter: drop-shadow(0 14px 24px #000c); }
+.selDragGhost .combat { width: 100%; height: auto; max-height: none; }
+.selDragGhost .sideTag { display: none; }
 /* .selBtn mirrors the shared .uiBtn look (kept as its own name for now). */
 .selBtn { border: 1px solid var(--line); background: var(--surface-2); color: var(--ink); border-radius: var(--r-sm); padding: 8px 14px; cursor: pointer; font-family: var(--font-display); font-size: 14px; }
 .selBtn:hover:not(:disabled) { border-color: var(--gold); background: var(--surface-3); }
