@@ -176,11 +176,28 @@ gets a monotonic `fxKeyRef` id (was `Date.now()`-based, which could collide acro
 react-spring nodes); the item springs use `useSpring(()=>…)` (function form) so a sibling being added
 never restarts an in-flight animation.
 
-**▶️ NEXT SESSION — BAKE THE REST OF THE PER-SIZE PORTRAITS (loop PROVEN in-session).** The v3.101.0
-framework + the full generate→save→wire→verify loop are DONE and PROVEN: **`ironhide-boss.png` is baked
-+ live** (v3.101.1) as the sanity sample (`sizedPortrait('…ironhide.png','boss')` → `ironhide-boss.png`,
-served 200; unbaked forms fall back to base). Just REPEAT the loop for the chosen scope (sanity vs full
-sweep 60). **Image generation runs IN-SESSION** — the **AGY Image Gen/Editing** MCP connector drives the
+**🗃️ COLLECTION + CODEX "CREATURES" OVERHAUL (v3.102.0, 2026-07-07, Jeton):** the player now has a real
+COLLECTION — `src/app/collection.js` (localStorage `chimera.collection`): per-(id, SIZE) **discovered**
+(Codex-visible) and **captured** (team-assembly-pickable; capture ⊃ discover). **Fresh app → pick a
+STARTER** (`StarterPick.jsx`, trio `STARTER_IDS` emberwisp/voltfang/thornroot); legacy saves (team but
+no collection) auto-seed the full roster at native sizes. **Team assembly lists one card per captured
+(id,size)** — non-native sizes are `<id>#<form>` variants via `roster.js buildRosterCreature(entry, pool,
+form)` (re-derived HP/Might; Giant-gate dedupe). **Codex tab renamed "Creatures"** (id `creatures`,
+legacy `bestiary` aliased): discovered creatures render as their ACTUAL CardFace cards (shared
+`creatureToFace` now lives in `creatureVisuals.jsx`), undiscovered as face-down "?" tiles; a creature's
+page has **size chips** (locked "?" until that size is discovered) that rebuild the creature at that form
+(HP/art/size-word follow). **⚙ Admin console** (`AdminPanel.jsx`, menu button): cycle each creature×size
+none→discovered→captured, bulk discover/capture-all, reset-to-fresh. Gameplay discovery events NOT wired
+yet (only admin + starter write the collection). **Model-rework design stub:**
+`docs/creature-model-rework.md` (typing-axes flesh-out + size-as-identity + size-neutral subject texts).
+
+**▶️ ART REGEN QUEUE — the first per-size sample FAILED review (Jeton):** `ironhide-boss.png` read as a
+BASE-sized variant with a WHITE BORDER, and the ORIGINAL `ironhide.png` has an extra arm. **Prompts are
+FIXED** (gen_roster.py `STYLE` full-bleed clause; `SIZE_DESC`/`FORM_ART_DESC` sizes now via COMPOSITION —
+camera angle/frame fill/scale cues — and explicitly OVERRIDE subject size-words). `creatureArtSizes.json`
+was emptied (boss falls back to base; flawed file kept on disk for comparison). Regen queue in
+docs/art-pipeline.md §TODO: ironhide base + ironhide-boss + tidecaller + frostmind. The v3.101.0
+framework + the generate→save→wire→verify loop remain PROVEN in-session (AGY MCP): **Image generation runs IN-SESSION** — the **AGY Image Gen/Editing** MCP connector drives the
 `agy` pipeline from a cloud session (VERIFIED 2026-07-07; produced a clean Variant-B boss). Loop used:
 `generate_image({prompt})` → poll `get_result` → `get_image_base64` → `python3` + Pillow decode/resize to
 384² PNG → `public/art/gen/<id>-<form>.png` → add form to `creatureArtSizes.json`. Prereq: the connector must be **enabled in the chat**

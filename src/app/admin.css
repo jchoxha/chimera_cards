@@ -1,0 +1,45 @@
+/* MODULE: app/admin — the Admin collection console (gilded to match the app skin). */
+.adminScreen {
+  min-height: 100vh; padding: 14px clamp(10px, 3vw, 32px) 40px;
+  background: var(--wood, #241610); color: var(--ink, #f3e7cf);
+  font-family: Spectral, Georgia, serif;
+}
+.adBar { display: flex; align-items: center; gap: 14px; margin-bottom: 6px; }
+.adBar h1 {
+  font-family: Cinzel, Georgia, serif; font-size: 1.35rem; letter-spacing: .06em;
+  color: var(--gold, #e8c576); margin: 0; display: flex; align-items: center; gap: 8px;
+}
+.adBack {
+  background: #00000055; color: var(--gold, #e8c576); border: 1px solid #e8c57644;
+  border-radius: 8px; padding: 6px 12px; cursor: pointer; font-family: Cinzel, Georgia, serif;
+  display: inline-flex; align-items: center; gap: 6px;
+}
+.adBack:hover { border-color: #e8c576aa; }
+.adIntro { max-width: 780px; opacity: .85; line-height: 1.45; margin: 4px 0 10px; }
+.adLegend { display: inline-flex; align-items: center; gap: 6px; margin-left: 10px; white-space: nowrap; }
+.adLegend .adCell { pointer-events: none; width: 26px; height: 26px; font-size: .8rem; }
+.adBulk { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 14px; }
+.adBtn {
+  background: #00000055; color: var(--ink, #f3e7cf); border: 1px solid #e8c57644;
+  border-radius: 8px; padding: 7px 12px; cursor: pointer; font-family: Cinzel, Georgia, serif; font-size: .82rem;
+}
+.adBtn:hover { border-color: #e8c576aa; }
+.adBtn.danger { color: #ff9d8a; border-color: #ff9d8a55; }
+.adTableWrap { overflow-x: auto; border: 1px solid #e8c57633; border-radius: 12px; background: #00000033; }
+.adTable { border-collapse: collapse; width: 100%; min-width: 640px; }
+.adTable th, .adTable td { padding: 6px 8px; text-align: center; border-bottom: 1px solid #e8c57622; }
+.adTable thead th {
+  font-family: Cinzel, Georgia, serif; color: var(--gold, #e8c576); font-size: .78rem;
+  position: sticky; top: 0; background: #241610;
+}
+.adFormLbl { display: block; font-size: .62rem; opacity: .75; font-weight: 400; }
+.adName { text-align: left !important; font-family: Cinzel, Georgia, serif; white-space: nowrap; }
+.adNative { display: block; font-family: Spectral, Georgia, serif; font-size: .68rem; opacity: .6; }
+.adCell {
+  width: 34px; height: 34px; border-radius: 8px; border: 1px solid #e8c57633;
+  background: #00000044; color: #f3e7cf66; cursor: pointer; font-size: 1rem;
+  display: inline-flex; align-items: center; justify-content: center;
+}
+.adCell:hover { border-color: #e8c576aa; }
+.adCell.disc { color: #9ecbff; border-color: #9ecbff66; background: #9ecbff14; }
+.adCell.capt { color: #8ef0a8; border-color: #8ef0a877; background: #8ef0a814; }

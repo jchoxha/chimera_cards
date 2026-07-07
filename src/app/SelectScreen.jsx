@@ -8,7 +8,7 @@
 // ╚══════════════════════════════════════════════════════════════════╝
 import React, { useState } from 'react';
 import { creatureColor } from '../data/axisIcons.js';
-import { CardFace } from '../ui/combat/creatureVisuals.jsx';
+import { CardFace, creatureToFace as toFace } from '../ui/combat/creatureVisuals.jsx';
 import MoveCard from '../ui/combat/MoveCard.jsx';
 import MonsterPage from '../ui/MonsterPage.jsx';
 import TeamManager from '../ui/TeamManager.jsx';
@@ -21,18 +21,6 @@ import '../ui/combat/combat.css';
 import './select.css';
 
 const Icon = ({ icon, ...rest }) => <iconify-icon icon={icon} {...rest}></iconify-icon>;
-
-/** Map a roster creature to the shape CardFace expects (a static, full-HP "fighter"). */
-function toFace(c) {
-  return {
-    id: c.id, name: c.name, hp: c.maxHp, maxHp: c.maxHp, block: 0, statuses: [], powers: [],
-    axes: { class: c.class, biology: c.biology, attunement: c.attunement, family: c.family ?? null, anatomy: c.anatomy ?? null, weapons: c.weapons ?? null, subtypes: c.subtypes ?? null },
-    element: c.attunement?.[0] || null,
-    types: (c.attunement || []).map((a) => ({ type: a, weight: 1 })),
-    stats: c.stats, portrait: c.meta?.portrait ?? c.portrait ?? null,
-    form: c.meta?.form ?? c.size ?? 'regular', rarity: 'common',
-  };
-}
 
 /** A creature's FULL potential card pool (kit + subtypes + attunement + variants),
  *  sorted up the rarity ladder so the browse reads basic → godly. */

@@ -149,3 +149,13 @@
   .selModalRight { border-left: none; padding-left: 0; border-top: 1px solid #2c2444; padding-top: 12px; }
   .cbBody { overflow: visible; }
 }
+
+/* ── Starter pick (fresh-app onboarding) ── */
+.starterScreen { display: flex; flex-direction: column; min-height: 100vh; }
+.starterScreen .selHead { text-align: center; }
+.starterRow { display: flex; flex-wrap: wrap; justify-content: center; gap: 22px; padding: 10px 18px 4px; }
+.starterCard { width: clamp(180px, 26vw, 230px); display: flex; flex-direction: column; gap: 8px; }
+.starterCard.chosen { filter: drop-shadow(0 0 14px var(--gl, #6ad29a)); transform: translateY(-6px); }
+.starterBlurb { margin: 0; font-size: 12px; font-style: italic; color: #b6abd6; text-align: center; line-height: 1.4; }
+.starterActions { display: flex; justify-content: center; padding: 18px 0 34px; }
+.starterActions .selBtn.big { font-size: 17px; padding: 13px 30px; }

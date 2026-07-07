@@ -17,18 +17,34 @@ STYLE = ("Flat 2D hand-drawn cartoon illustration in the spirit of Adventure Tim
          "genuinely charming and characterful. BUT with the dramatic seriousness of Yu-Gi-Oh trading-card "
          "monster art: a dynamic heroic pose, moody dramatic lighting, an epic elemental backdrop. "
          "Absolutely NOT Disney, NOT Pixar, NOT 3D, NOT glossy, NOT soft, NOT overly cute. Single creature, "
-         "centered, filling the frame. No text, no card frame, no border, no UI, no humans unless described "
-         "— only the creature illustration. Square 1:1 composition.")
+         "centered, filling the frame. No text, no card frame, no UI, no humans unless described "
+         "— only the creature illustration. Square 1:1 composition. FULL-BLEED: the painted artwork must "
+         "extend to ALL FOUR EDGES of the image — absolutely NO border, NO frame, NO margin, NO white edge "
+         "of any kind.")
 
 # Per-form phrasing — MUST stay in sync with src/data/sizeArt.js FORM_ART_DESC so
 # the picture matches the size word/badge the game shows. 'regular' → base <id>.png.
+# Each size instruction OVERRIDES any size adjectives in the subject text (several
+# base subjects say "colossal"/"small" — the form wins, else a Boss render of an
+# already-"colossal" subject just looks like the base). The size must read from the
+# COMPOSITION (camera angle + how much of the frame the body fills + environment
+# scale cues), not adjectives alone.
 SIZE_DESC = {
-    "baby": "Depict this creature as a tiny, adorable JUVENILE: soft rounded proportions, an oversized head and eyes, small and unthreatening — a baby version.",
-    "small": "Depict this creature as a SMALL, young specimen: lean and compact, not yet grown into its full size.",
-    "regular": "Depict this creature at its typical ADULT size: balanced, characteristic proportions.",
-    "large": "Depict this creature as an unusually LARGE, powerful adult: heavier build, thicker limbs, an imposing presence.",
-    "elite": "Depict this creature as a battle-hardened ELITE: scarred and ornamented, bristling with menacing extra detail.",
-    "boss": "Depict this creature as a COLOSSAL, towering BOSS: monstrous in scale, elaborate and terrifying, dominating the frame.",
+    "baby": ("SIZE (overrides any size words in the subject): a TINY, adorable HATCHLING/JUVENILE version. Soft rounded body, "
+             "oversized head and eyes, stubby limbs, small and unthreatening. Camera looks slightly DOWN at it; it occupies only "
+             "the MIDDLE THIRD of the frame, dwarfed by oversized environment details (grass, pebbles, its parent's footprint)."),
+    "small": ("SIZE (overrides any size words in the subject): a SMALL, young, half-grown specimen. Lean, compact, slightly gangly "
+              "— not yet grown into its features. Eye-level camera; it fills about HALF the frame height."),
+    "regular": "SIZE: its typical ADULT form — balanced, characteristic proportions, filling most of the frame.",
+    "large": ("SIZE (overrides any size words in the subject): an unusually LARGE, powerful adult — visibly bigger and heavier than "
+              "a typical member of its kind. Slightly LOW camera angle; its body fills the frame edge to edge, environment details "
+              "read small beside it."),
+    "elite": ("SIZE (overrides any size words in the subject): a huge, battle-hardened ELITE veteran — larger than any normal adult, "
+              "covered in scars, trophies and ornamented armor/growths. LOW camera angle looking up; it looms past the frame edges "
+              "with parts of its silhouette cropped by sheer size."),
+    "boss": ("SIZE (overrides any size words in the subject): a COLOSSAL, cataclysmic BOSS — building-sized, DWARFING the landscape. "
+             "Extreme LOW camera angle looking far up at it; tiny environment details (trees, rubble, distant birds) establish its "
+             "enormous scale; its silhouette overflows the frame, elaborate and terrifying, wreathed in its element."),
 }
 ALL_FORMS = ["baby", "small", "regular", "large", "elite", "boss"]
 

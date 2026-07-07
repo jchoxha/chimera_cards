@@ -6,6 +6,13 @@
 
 /** @type {{version:string, date:string, notes:string[]}[]} newest first */
 export const CHANGELOG = [
+  { version: 'v3.102.0', date: '2026-07-07', notes: [
+    'The Codex bestiary is now “Creatures” — every discovered creature shows as its actual card, undiscovered ones as face-down mystery cards, and a creature’s page lets you toggle between every SIZE you’ve discovered (stats and art follow).',
+    'Your collection is now real: creatures (and each of their sizes) must be DISCOVERED to appear in the Codex and CAPTURED to be pickable in team assembly. A captured non-native size is its own team choice with re-derived HP and Might (“Boss Voltfang”).',
+    'New players now pick a STARTER creature (Emberwisp, Voltfang or Thornroot) — the collection grows from there. Existing saves keep their full roster.',
+    'New ⚙ Admin console on the menu: toggle any creature/size between undiscovered, discovered, and captured for testing; bulk unlock; reset to a fresh start.',
+    'Art generation prompts fixed after the first per-size sample: sizes are now drawn via composition (camera angle, frame fill, scale cues) that overrides size words in the description, and images must be full-bleed (no white border). The flawed Boss Ironhide image was unpublished pending regeneration.',
+  ] },
   { version: 'v3.101.1', date: '2026-07-07', notes: [
     'First size-specific portrait is live: a Boss-scale Ironhide gets its own dedicated artwork (drawn colossal), proving the per-size art pipeline end to end. More sizes/creatures to follow.',
   ] },

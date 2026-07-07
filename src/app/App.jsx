@@ -13,11 +13,18 @@ import RunScreen from '../ui/run/RunScreen.jsx';
 import Codex from '../ui/Codex.jsx';
 import SelectScreen from './SelectScreen.jsx';
 import CreatureCreator from './CreatureCreator.jsx';
+import StarterPick from './StarterPick.jsx';
+import AdminPanel from './AdminPanel.jsx';
 import { ATTUNEMENT_BASES, BODY_TYPES, SUBTYPES, legalAttunements } from '../data/synthesis.js';
 import { BEAST_FAMILIES } from '../engine/cards/beastPool.js';
 import { makeCreature } from '../engine/content/generate.js';
 import { POOLS, ARCHETYPES, basePoolFor, rosterPool, potentialPool } from './pools.js';
-import { buildRoster, buildDummyCreature } from '../data/roster.js';
+import { buildRoster, buildRosterCreature, buildDummyCreature, ROSTER as ROSTER_ENTRIES } from '../data/roster.js';
+import {
+  loadCollection, saveCollection, emptyCollection, seedFullCollection,
+  addCaptured, capturedForms, STARTER_IDS,
+} from './collection.js';
+import { FORM_ORDER } from '../data/forms.js';
 import { APP_VERSION } from '../version.js';
 import { CHANGELOG } from '../data/changelog.js';
 import './app.css';
@@ -58,22 +65,48 @@ function buildCustomCreature(def) {
 }
 
 export default function App() {
-  const [view, setView] = useState('menu');
+  // The COLLECTION (discovered/captured creatures × sizes). null in storage means a
+  // FRESH app → the starter pick. A legacy save (team but no collection) is seeded
+  // with the full roster at native sizes so existing players lose nothing.
+  const [collection, setCollection] = useState(() => {
+    const stored = loadCollection();
+    if (stored) return stored;
+    if (loadTeamIds().length) { const seeded = seedFullCollection(ROSTER_ENTRIES); saveCollection(seeded); return seeded; }
+    return null;   // fresh → starter pick
+  });
+  const updateCollection = (next) => { setCollection(next); saveCollection(next); };
+
+  const [view, setView] = useState(() => (collection ? 'menu' : 'starter'));
   const [teamIds, setTeamIds] = useState(loadTeamIds);
   const [practiceOppIds, setPracticeOppIds] = useState(() => loadIds(PRACTICE_KEY, ['dummy']));
   const [practiceActive, setPracticeActive] = useState(() => !!localStorage.getItem(PRACTICE_ACTIVE_KEY));
   const [customDefs, setCustomDefs] = useState(() => loadIds(CUSTOM_KEY, []));
   const [showChangelog, setShowChangelog] = useState(false);
-  const [codexTab, setCodexTab] = useState('bestiary');
+  const [codexTab, setCodexTab] = useState('creatures');
   const [codexReturn, setCodexReturn] = useState('menu');
   // Open the Codex at a tab; `from` is the view to return to (combat/run state is
   // preserved in its store, so we land right back where we were).
-  const openCodex = (tab, from = 'menu') => { setCodexTab(tab || 'bestiary'); setCodexReturn(from); setView('codex'); };
+  const openCodex = (tab, from = 'menu') => { setCodexTab(tab || 'creatures'); setCodexReturn(from); setView('codex'); };
 
   // Custom creatures (rebuilt from their saved definitions) + the full pickable sets.
   const customCreatures = useMemo(() => customDefs.map(buildCustomCreature), [customDefs]);
-  const playerRoster = useMemo(() => [...ROSTER, ...customCreatures], [customCreatures]);
-  const oppRoster = useMemo(() => [...playerRoster, DUMMY], [playerRoster]);
+  // The PLAYER roster = what's CAPTURED: one creature per captured (id, size) pair
+  // (a non-native size is a distinct `<id>#<form>` variant with re-derived HP/Might).
+  // Custom creations are yours by definition. Opponents draw from the FULL roster.
+  const playerRoster = useMemo(() => {
+    const out = []; const seen = new Set();
+    for (const r of ROSTER_ENTRIES) {
+      const forms = capturedForms(collection, r.id);
+      const ordered = FORM_ORDER.filter((f) => forms.includes(f));
+      for (const f of ordered) {
+        const c = buildRosterCreature(r, rosterPool(r), f);
+        // the Giant gate can coerce two captured sizes into one creature — dedupe
+        if (!seen.has(c.id)) { seen.add(c.id); out.push(c); }
+      }
+    }
+    return [...out, ...customCreatures];
+  }, [collection, customCreatures]);
+  const oppRoster = useMemo(() => [...ROSTER, ...customCreatures, DUMMY], [customCreatures]);
 
   // The chosen team (ordered; index 0 = vanguard), resolved to creatures.
   const team = teamIds.map((id) => playerRoster.find((c) => c.id === id)).filter(Boolean);
@@ -109,6 +142,24 @@ export default function App() {
       return next;
     });
     return id;
+  }
+
+  // Starter pick (fresh app): capturing the starter begins the collection + team.
+  const starters = useMemo(() => STARTER_IDS
+    .map((id) => ROSTER_ENTRIES.find((r) => r.id === id)).filter(Boolean)
+    .map((r) => buildRosterCreature(r, rosterPool(r))), []);
+  function pickStarter(c) {
+    updateCollection(addCaptured(emptyCollection(), c.baseId || c.id, c.meta?.form || 'regular'));
+    setTeamIds([c.id]);
+    try { localStorage.setItem(TEAM_KEY, JSON.stringify([c.id])); } catch { /* ignore */ }
+    setView('menu');
+  }
+  // Admin reset → back to the fresh starter-pick state.
+  function resetCollection() {
+    setCollection(null);
+    setTeamIds([]);
+    try { localStorage.removeItem('chimera.collection'); localStorage.removeItem(TEAM_KEY); } catch { /* ignore */ }
+    setView('starter');
   }
 
   // Practice fight: your team vs a chosen OPPONENT team (Target Dummy by default).
@@ -152,7 +203,12 @@ export default function App() {
   }
   function continueRun() { if (useRun.getState().loadSaved()) setView('run'); }
 
-  if (view === 'codex') return <Codex initialTab={codexTab} backLabel={codexReturn === 'menu' ? 'Menu' : 'Back'} onMenu={() => setView(codexReturn)} />;
+  if (view === 'starter') return <StarterPick starters={starters} onPick={pickStarter} />;
+  if (view === 'admin') return (
+    <AdminPanel rosterEntries={ROSTER_ENTRIES} collection={collection || emptyCollection()}
+      onChange={updateCollection} onReset={resetCollection} onMenu={() => setView('menu')} />
+  );
+  if (view === 'codex') return <Codex initialTab={codexTab} backLabel={codexReturn === 'menu' ? 'Menu' : 'Back'} onMenu={() => setView(codexReturn)} collection={collection} />;
   if (view === 'editor') return (
     <EditorHub onMenu={() => setView('menu')} monsterProps={{
       defs: customDefs, classes: ARCHETYPES, biologies: BODY_TYPES, subtypeOptions: SUBTYPES, attunements: ATTUNEMENT_BASES,
@@ -222,8 +278,11 @@ export default function App() {
         <button className="menuBtn" onClick={() => setView('editor')}>
           🛠 Open the Editor
         </button>
-        <button className="menuBtn" onClick={() => openCodex('bestiary', 'menu')}>
+        <button className="menuBtn" onClick={() => openCodex('creatures', 'menu')}>
           📖 Read the Codex
+        </button>
+        <button className="menuBtn subtle" onClick={() => setView('admin')} title="Testing console: set which creatures/sizes are discovered and captured">
+          ⚙ Admin
         </button>
       </div>
 

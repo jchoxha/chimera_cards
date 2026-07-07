@@ -11,12 +11,13 @@ import React, { useState } from 'react';
 import { EFFECT_INFO, AXIS_INFO, ATTUNEMENT_SIGNATURE, SYSTEM_INFO } from '../data/codex.js';
 import { REACTIONS, REACTION_INFO } from '../engine/cards/reactions.js';
 import { KEYWORD_GLOSSARY } from '../engine/cards/cardText.js';
-import { ARCHETYPE_ICON, BIOLOGY_ICON, ATTUNEMENT_ICON, ATTUNEMENT_COLOR, SUBTYPE_ICON, creatureIcon, creatureColor } from '../data/axisIcons.js';
-import { sizedPortrait } from '../data/sizeArt.js';
+import { ARCHETYPE_ICON, BIOLOGY_ICON, ATTUNEMENT_ICON, ATTUNEMENT_COLOR, SUBTYPE_ICON, creatureColor } from '../data/axisIcons.js';
 import { CLASS_BASES, BODY_TYPES, SUBTYPES, ATTUNEMENT_BASES } from '../data/synthesis.js';
-import { buildRoster } from '../data/roster.js';
+import { buildRoster, buildRosterCreature, ROSTER as ROSTER_ENTRIES } from '../data/roster.js';
 import { POOLS, rosterPool } from '../app/pools.js';
-import { bestiaryEntry } from '../data/bestiary.js';
+import { discoveredForms } from '../app/collection.js';
+import { FORM_ORDER, FORMS } from '../data/forms.js';
+import { CardFace, creatureToFace } from './combat/creatureVisuals.jsx';
 import { describeCard } from '../engine/cards/cardText.js';
 import { attunementCards } from '../engine/cards/attunementPool.js';
 import MonsterPage from './MonsterPage.jsx';
@@ -149,41 +150,80 @@ function KeywordsTab() {
   );
 }
 
-function BestiaryTab() {
+function CreaturesTab({ collection }) {
   const [sel, setSel] = useState(null);
+  const [selForm, setSelForm] = useState(null);
+  // No collection passed (legacy/standalone) → everything counts as discovered at
+  // its native size, so the tab still works outside the app shell.
+  const formsOf = (c) => {
+    if (!collection) return [c.meta?.form ?? 'regular'];
+    return FORM_ORDER.filter((f) => discoveredForms(collection, c.id).includes(f));
+  };
+
   if (sel) {
-    const c = ROSTER.find((r) => r.id === sel);
+    const base = ROSTER.find((r) => r.id === sel);
+    const entry = ROSTER_ENTRIES.find((r) => r.id === sel);
+    if (!base) { setSel(null); return null; }
+    const forms = formsOf(base);
+    const nativeForm = base.meta?.form ?? 'regular';
+    const form = selForm && forms.includes(selForm) ? selForm : (forms.includes(nativeForm) ? nativeForm : forms[0]);
+    // Rebuild the creature AT the viewed size so HP/Might + the size word + the
+    // per-size portrait (sizeArt) all reflect that form.
+    const creature = (form === nativeForm || !entry) ? base : buildRosterCreature(entry, rosterPool(entry), form);
     return (
       <div className="cxBeast">
-        <button className="cxBack cxBeastBack" onClick={() => setSel(null)}><Icon icon="game-icons:previous-button" /> All creatures</button>
-        <MonsterPage creature={c} />
+        <button className="cxBack cxBeastBack" onClick={() => { setSel(null); setSelForm(null); }}><Icon icon="game-icons:previous-button" /> All creatures</button>
+        <div className="cxSizeBar">
+          <span className="cxSizeLbl">Size</span>
+          {FORM_ORDER.map((f) => {
+            const known = forms.includes(f);
+            return (
+              <button key={f} disabled={!known}
+                className={`cxSizeChip${form === f ? ' on' : ''}${known ? '' : ' locked'}`}
+                title={known ? `View the ${FORMS[f].label} form` : 'Not yet discovered at this size'}
+                onClick={() => known && setSelForm(f)}>
+                {known ? `${FORMS[f].badge ? `${FORMS[f].badge} ` : ''}${FORMS[f].label}` : '?'}
+              </button>
+            );
+          })}
+        </div>
+        <MonsterPage creature={creature} />
       </div>
     );
   }
+  const discovered = ROSTER.filter((c) => formsOf(c).length > 0);
+  const unknown = ROSTER.filter((c) => formsOf(c).length === 0);
   return (
     <>
-      <p className="cxIntro">Every creature in the roster — its lore, its role, and how to play it. Tap one to read its page.</p>
-      <div className="cxBeastGrid">
-        {ROSTER.map((c) => {
-          const att = c.attunement?.[0];
-          const color = creatureColor(c);
-          const e = bestiaryEntry(c.id, c.name);
+      <p className="cxIntro">
+        Every creature you’ve discovered, as its actual card. Tap one for its page — and toggle between the sizes you’ve encountered.
+        {unknown.length > 0 && <> <b>{unknown.length}</b> remain undiscovered…</>}
+      </p>
+      <div className="cxCreatureGrid">
+        {discovered.map((c) => {
+          const forms = formsOf(c);
+          const nativeForm = c.meta?.form ?? 'regular';
+          const showForm = forms.includes(nativeForm) ? nativeForm : forms[0];
+          const entry = ROSTER_ENTRIES.find((r) => r.id === c.id);
+          const shown = (showForm === nativeForm || !entry) ? c : buildRosterCreature(entry, rosterPool(entry), showForm);
           return (
-            <button key={c.id} className="cxBeastCard" onClick={() => setSel(c.id)} style={{ '--gl': color }}>
-              <span className="cxBeastArt">
-                {c.meta?.portrait ? <img src={sizedPortrait(c.meta.portrait, c.meta?.form ?? c.size)} alt="" />
-                  : <Icon icon={creatureIcon(c)} style={{ color }} />}
-              </span>
-              <span className="cxBeastName">{c.name}</span>
-              {e?.title && <span className="cxBeastTitle">{e.title}</span>}
-              <span className="cxBeastAxes">
-                <Icon icon={ARCHETYPE_ICON[c.class?.[0]] || 'game-icons:gladius'} />
-                <Icon icon={BIOLOGY_ICON[c.biology?.[0]] || 'game-icons:dna2'} />
-                <Icon icon={ATTUNEMENT_ICON[att] || 'game-icons:embrace-energy'} style={{ color: ATTUNEMENT_COLOR[att] }} />
-              </span>
-            </button>
+            <div key={c.id} role="button" tabIndex={0} className="cxCreatureWrap" style={{ '--gl': creatureColor(c) }}
+              onClick={() => setSel(c.id)}
+              onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') setSel(c.id); }}>
+              <CardFace f={creatureToFace(shown)} side="ally" />
+              {forms.length > 1 && <span className="cxSizeCount" title={`Discovered at ${forms.length} sizes`}>{forms.length} sizes</span>}
+            </div>
           );
         })}
+        {unknown.map((c) => (
+          <div key={c.id} className="cxCreatureWrap cxUnknown" title="Not yet discovered">
+            <div className="cxUnknownCard">
+              <Icon icon="game-icons:perspective-dice-six-faces-random" />
+              <span>?</span>
+              <em>Undiscovered</em>
+            </div>
+          </div>
+        ))}
       </div>
     </>
   );
@@ -258,7 +298,7 @@ function CardsTab() {
 }
 
 const TABS = [
-  { id: 'bestiary', label: 'Bestiary', icon: 'game-icons:bestial-fangs', render: BestiaryTab },
+  { id: 'creatures', label: 'Creatures', icon: 'game-icons:card-exchange', render: CreaturesTab },
   { id: 'cards', label: 'Cards', icon: 'game-icons:card-pickup', render: CardsTab },
   { id: 'systems', label: 'Combat', icon: 'game-icons:crossed-swords', render: SystemsTab },
   { id: 'statuses', label: 'Statuses', icon: 'game-icons:hazard-sign', render: StatusesTab },
@@ -267,8 +307,9 @@ const TABS = [
   { id: 'keywords', label: 'Keywords', icon: 'game-icons:book-cover', render: KeywordsTab },
 ];
 
-export default function Codex({ onMenu, initialTab, backLabel = 'Menu' }) {
-  const [tab, setTab] = useState(initialTab && TABS.some((t) => t.id === initialTab) ? initialTab : 'bestiary');
+export default function Codex({ onMenu, initialTab, backLabel = 'Menu', collection = null }) {
+  const wanted = initialTab === 'bestiary' ? 'creatures' : initialTab;   // legacy tab id
+  const [tab, setTab] = useState(wanted && TABS.some((t) => t.id === wanted) ? wanted : 'creatures');
   const Active = (TABS.find((t) => t.id === tab) || TABS[0]).render;
   return (
     <div className="codex">
@@ -283,7 +324,7 @@ export default function Codex({ onMenu, initialTab, backLabel = 'Menu' }) {
           </button>
         ))}
       </div>
-      <div className="cxBody"><Active /></div>
+      <div className="cxBody"><Active collection={collection} /></div>
     </div>
   );
 }

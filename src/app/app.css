@@ -100,3 +100,7 @@
   .menuSetup { margin: 12px 0 6px; padding: 12px; }
   .menuHint { font-size: 11px; }
 }
+
+/* Quiet utility button (e.g. the Admin console) — present but not shouting. */
+.menuBtn.subtle { opacity: 0.55; font-size: 13px; padding: 8px; }
+.menuBtn.subtle:hover { opacity: 1; }

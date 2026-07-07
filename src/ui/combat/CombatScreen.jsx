@@ -441,7 +441,7 @@ function observedMoves(log, fighterId) {
 // Which Codex tab an info-modal kind corresponds to (for the "Open in Codex" link).
 const CODEX_TAB = {
   effect: 'statuses', axis: 'axes', reaction: 'reactions', card: 'cards',
-  creature: 'bestiary', bestiary: 'bestiary', power: 'keywords',
+  creature: 'creatures', bestiary: 'creatures', power: 'keywords',
   matchup: 'systems', matchupNote: 'systems',
 };
 

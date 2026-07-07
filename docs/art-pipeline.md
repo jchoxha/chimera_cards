@@ -166,15 +166,24 @@ The JS framework (resolver + manifest + size-aware prompts) is already shipped i
 v3.101.0, so once the PNGs + the manifest entries land, the game uses them with
 zero further code.
 
-## TODO — roster portraits to regenerate (flagged 2026-06-23, Jeton)
+## TODO — roster portraits to regenerate (updated 2026-07-07)
 
-Two roster creatures have bad/missing portraits (regen needs the `agy` env —
-`scripts/gen_roster.py` — which only runs on the Windows machine, not the web
-session):
+Regen runs via the AGY MCP in-session (above) or `scripts/gen_roster.py` on the
+Windows box. Use the FIXED prompts (full-bleed clause + composition-based size,
+in `gen_roster.py` since 2026-07-07). Queue:
 
+- **ironhide** (base) — GLITCHED generation: an extra arm (flagged 2026-07-07).
+- **ironhide-boss** — first per-size sample came out looking like a BASE variant
+  with a white border (both prompt problems now fixed). Pulled from
+  `creatureArtSizes.json` (falls back to base); the flawed
+  `public/art/gen/ironhide-boss.png` is kept on disk for comparison — replace it
+  and re-add `"ironhide": ["boss"]` to the manifest.
 - **tidecaller** — NO portrait at all (absent from `src/data/creatureArt.json`);
   currently falls back to the attunement icon. Generate `public/art/gen/tidecaller.png`
   and add `"tidecaller"` to `creatureArt.json`.
 - **frostmind** ("the thought" one) — portrait reads off; regenerate
   `public/art/gen/frostmind.png`. *(Confirm this is the one meant — flagged as
   "the thought".)*
+
+Broader generation-model issues (size-neutral subject texts, per-size identity,
+evolution↔art) are collected in **`docs/creature-model-rework.md`**.

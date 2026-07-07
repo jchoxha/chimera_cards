@@ -13,13 +13,17 @@ import SIZE_MANIFEST from './creatureArtSizes.json';
 
 // Per-form phrase woven into art-generation prompts so each size is DRAWN
 // distinctly (rather than one image rescaled). 'regular' is the neutral baseline.
+// The phrasing must OVERRIDE size adjectives already in the subject text and put
+// the size in the COMPOSITION (camera angle + frame fill + environment scale cues)
+// — adjectives alone don't move the model. Mirrored in scripts/gen_roster.py
+// SIZE_DESC (the fuller pipeline wording).
 export const FORM_ART_DESC = {
-  baby: 'as a tiny, adorable juvenile — soft rounded proportions, oversized head and eyes, small and unthreatening',
-  small: 'as a small, young specimen — lean and compact, not yet grown into its full size',
+  baby: 'as a tiny, adorable hatchling (this overrides any size words above) — oversized head and eyes, stubby limbs, occupying only the middle of the frame, dwarfed by oversized environment details',
+  small: 'as a small, half-grown young specimen (this overrides any size words above) — lean, compact and slightly gangly, filling about half the frame',
   regular: 'at its typical adult size — balanced, characteristic proportions',
-  large: 'as an unusually large, powerful adult — heavier build, thicker limbs, an imposing presence',
-  elite: 'as a battle-hardened elite — scarred and ornamented, bristling with menacing detail',
-  boss: 'as a colossal, towering boss — monstrous in scale, elaborate and terrifying, dominating the frame',
+  large: 'as an unusually large, powerful adult, visibly bigger than a typical member of its kind (this overrides any size words above) — low camera angle, its body filling the frame edge to edge',
+  elite: 'as a huge battle-hardened elite veteran (this overrides any size words above) — scarred, trophied and ornamented, low camera angle, looming past the frame edges',
+  boss: 'as a colossal building-sized boss DWARFING the landscape (this overrides any size words above) — extreme low camera angle looking far up, tiny environment details establishing enormous scale, silhouette overflowing the frame',
 };
 export function formArtDesc(form) { return FORM_ART_DESC[form] || FORM_ART_DESC.regular; }
 

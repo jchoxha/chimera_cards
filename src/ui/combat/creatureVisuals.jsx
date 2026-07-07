@@ -93,6 +93,20 @@ export function SizeBadge({ form }) {
 /** The size word prefixed onto a creature's name ("Large Ironhide"); '' for Regular. */
 export function sizeWord(form) { return FORMS[form]?.label || ''; }
 
+/** Map a roster/collection creature to the shape CardFace expects (a static,
+ *  full-HP "fighter"). THE way to show a creature as its actual card outside
+ *  combat — used by team assembly, the Codex creature grid, and the starter pick. */
+export function creatureToFace(c) {
+  return {
+    id: c.id, name: c.name, hp: c.maxHp, maxHp: c.maxHp, block: 0, statuses: [], powers: [],
+    axes: { class: c.class, biology: c.biology, attunement: c.attunement, family: c.family ?? null, anatomy: c.anatomy ?? null, weapons: c.weapons ?? null, subtypes: c.subtypes ?? null },
+    element: c.attunement?.[0] || null,
+    types: (c.attunement || []).map((a) => ({ type: a, weight: 1 })),
+    stats: c.stats, portrait: c.meta?.portrait ?? c.portrait ?? null,
+    form: c.meta?.form ?? c.size ?? 'regular', rarity: 'common',
+  };
+}
+
 /** Top-left "major submatrix" badge: ONE kit icon per biology base (Archetype for
  *  Humanoid, Family for Beast), so a hybrid shows both. `axes` = the card's axes
  *  object; `onClick` opens its info. */

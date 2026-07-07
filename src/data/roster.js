@@ -52,13 +52,36 @@ export const ROSTER = Object.freeze([
 export function buildRoster(poolsByClass = {}, fallbackPool = [], poolResolver = null) {
   return ROSTER.map((r) => {
     const pool = poolResolver ? poolResolver(r) : (poolsByClass[r.class] || fallbackPool);
-    const c = makeCreature({ ...r, pool });   // makeCreature applies r.size (form) to HP/Might + meta.form
-    c.blurb = r.blurb;
-    // AI portrait (only if baked — else the UI falls back to the biology icon).
-    c.portrait = HAS_ART.has(r.id) ? `${BASE}art/gen/${r.id}.png` : null;
-    c.meta = { ...c.meta, portrait: c.portrait };   // keep the form set by makeCreature
-    return c;
+    return buildRosterCreature(r, pool);
   });
+}
+
+/**
+ * Build ONE roster creature, optionally at a specific SIZE (form) — the basis for
+ * per-size collection variants ("a captured Boss Voltfang"). A non-native form gets
+ * a distinct id (`<id>#<form>`) so team selection can hold both; `baseId` always
+ * points back at the roster entry. The generator re-derives HP/Might for the form
+ * (the Giant subtype gate still applies — a Giant never comes out below Large).
+ * @param {Object} r      a ROSTER entry
+ * @param {Object[]} pool the creature's base card pool
+ * @param {string} [form] size override (default: the entry's native size)
+ */
+export function buildRosterCreature(r, pool, form = null) {
+  const size = form || r.size || 'regular';
+  const c = makeCreature({ ...r, size, pool });
+  c.blurb = r.blurb;
+  // AI portrait (only if baked — else the UI falls back to the biology icon).
+  c.portrait = HAS_ART.has(r.id) ? `${BASE}art/gen/${r.id}.png` : null;
+  c.meta = { ...c.meta, portrait: c.portrait };   // keep the form set by makeCreature
+  c.baseId = r.id;
+  if (c.meta.form !== (r.size || 'regular')) c.id = `${r.id}#${c.meta.form}`;
+  return c;
+}
+
+/** Find the raw ROSTER entry for an id (accepts variant ids like `ironhide#boss`). */
+export function rosterEntryOf(id) {
+  const base = String(id || '').split('#')[0];
+  return ROSTER.find((r) => r.id === base) || null;
 }
 
 /**
