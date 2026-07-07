@@ -176,6 +176,23 @@ gets a monotonic `fxKeyRef` id (was `Date.now()`-based, which could collide acro
 react-spring nodes); the item springs use `useSpring(()=>…)` (function form) so a sibling being added
 never restarts an in-flight animation.
 
+**🎨 DESIGN SYSTEM — STARTED (v3.103.0, 2026-07-07, Jeton: "sick of the inconsistencies across
+modals, menus, card formats — create conventions").** The app had drifted into TWO palettes (a
+gold/wood gilded-TCG skin on combat/menu/run/codex/editor vs a stray PURPLE skin on team-assembly +
+creature-creator), ~7 bespoke modals, ~30 one-off button classes. **`src/ui/theme.css`** is now the
+single source of truth: `:root` design tokens (surfaces/ink/gold/semantic/lines, radius, spacing `--s-1..6`,
+shadows, z-layers, `--font-display` Cinzel/`--font-body` Spectral) + shared PRIMITIVES — `.uiOverlay`/
+`.uiModal`(+`.sm`/`.lg`)/`.uiModalClose`/`.uiModalHead`, `.uiBtn`(+`go`/`ghost`/`danger`/`sm`/`big`/
+`block`), `.uiTabs`/`.uiTab`, `.uiPill`(+`good`/`info`/`muted`), `.uiCardGrid`/`.uiCardTile`(+`locked`),
+`.uiPanel`/`.uiHint`. Imported FIRST in every `main.jsx` (global). **`src/ui/Modal.jsx`** = the React
+modal primitive. **`docs/ui-conventions.md`** documents tokens + patterns + the migration checklist.
+**Applied so far:** select.css + creator.css + editorHub.css rethemed off purple onto tokens (team
+assembly / creation / editor now match); the creature editor modal is the reference `<Modal>` impl.
+**⚠️ CSS GOTCHA (learned):** box-drawing chars (╔═║) in a CSS `/* */` comment break the dev parser and
+silently DROP the following rule — theme.css uses a PLAIN comment. Use plain comments in `.css` (JS banner
+comments are fine). **Migration is ongoing** (§checklist): legacy modals (combat/run/changelog/editor),
+one-off buttons, and per-screen `:root`s still to fold onto the tokens as files are touched.
+
 **🗃️ COLLECTION + CODEX "CREATURES" OVERHAUL (v3.102.0, 2026-07-07, Jeton):** the player now has a real
 COLLECTION — `src/app/collection.js` (localStorage `chimera.collection`): per-(id, SIZE) **discovered**
 (Codex-visible) and **captured** (team-assembly-pickable; capture ⊃ discover). **Fresh app → pick a

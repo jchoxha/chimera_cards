@@ -3,6 +3,7 @@
 // can be played & deployed without disturbing the React prototype.
 import React from 'react';
 import { createRoot } from 'react-dom/client';
+import '../ui/theme.css';        // design tokens + shared UI primitives — load FIRST
 import CombatScreen from '../ui/combat/CombatScreen.jsx';
 
 createRoot(document.getElementById('root')).render(

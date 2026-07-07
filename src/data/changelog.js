@@ -6,6 +6,11 @@
 
 /** @type {{version:string, date:string, notes:string[]}[]} newest first */
 export const CHANGELOG = [
+  { version: 'v3.103.0', date: '2026-07-07', notes: [
+    'Started a real design system (docs/ui-conventions.md + a shared theme): one gilded-wood look everywhere. The team-assembly and creature-creator screens, which had drifted purple, are back in the gold theme so the whole app matches.',
+    'Shared UI building blocks (tokens, a standard Modal, buttons, tabs, pills, card grids) so modals/menus/cards stop diverging as we build.',
+    'Creature editor is creature-FIRST again: clicking a creature card shows the creature (its card + full page, and Edit/Delete for your customs). The discover/capture size controls are now a small collapsed “dev” strip, not the focus.',
+  ] },
   { version: 'v3.102.3', date: '2026-07-07', notes: [
     'The Editor’s Creatures tab is now a card grid — every creature shows as its actual creature card (like the Cards tab). Click a card to open its collection panel and set which sizes are discovered/captured; custom creatures show Edit/Delete there. Undiscovered creatures read as dimmed “Locked” cards.',
   ] },

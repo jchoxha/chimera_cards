@@ -5,6 +5,7 @@ import React from 'react';
 import { createRoot } from 'react-dom/client';
 import App from './App.jsx';
 import OrientationGate from './OrientationGate.jsx';
+import '../ui/theme.css';        // design tokens + shared UI primitives — load FIRST
 import '../editor/editor.css';
 import './app.css';
 
