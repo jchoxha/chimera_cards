@@ -1,5 +1,17 @@
 # Hybrids + the Aberration "Manifestation" rename — design (opened 2026-07-08, Jeton)
 
+**STATUS (v3.106.0): first implementation landed.** Signature hybrid cards are
+BUILT — `src/data/hybridKit.json` + `src/engine/cards/hybridPool.js` (`hybridCards`),
+stacked via `app/pools.js` (`hybridBaseCards` into `basePoolFor` for body/subtype
+pairs; `hybridAttunementCards` into `potentialPool` for attunement pairs, kept
+dual-element). 21 pairs / 22 cards: 3 body pairs, 6 subtype pairs, 12 attunement
+pairs (`test:hybrid`, 115 checks). The Giant SIZE GATE was removed (a Giant may be
+any size). The Aberration axis is LABELLED "Manifestation" in the editor picker
+(data keys unchanged). **Still open (below):** naming-coverage audit, more content
+per combo, subtype-combo TRAITS (not just cards), balance pass, and the deeper
+`family`→`manifestation` key rename.
+
+
 Jeton: *"flesh out our biological hybrids as well as biological subtype hybrids
 (archetypes/families); the aberration subtype should be renamed from families to
 'Manifestation'."* This doc plans that content work. It sits on top of the locked

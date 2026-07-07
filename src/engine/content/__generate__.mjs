@@ -26,11 +26,11 @@ console.log('Body-type + subtype/family composition (§9 model):');
 { const drac = biologyStats(['Beast'], [], 'Draconic');
   ok(drac.hpMult === 1.31 && drac.stats.guard > 1 && drac.stats.speed === 0,
     `Draconic beast carries the dragon bulk (hp×${drac.hpMult}, spd ${drac.stats.speed})`); }
-{ // the Giant subtype gates size to Large+ in the generator
+{ // Giant is a stat/kit subtype, NOT a size gate — it keeps the requested size
   const c = makeCreature({ name: 'Titan', class: 'Warrior', biology: ['Humanoid'], attunement: ['Physical'], subtypes: ['Giant'], pool: [], baseHp: 60 });
-  ok(c.size === 'large' && c.meta.form === 'large', `Giant gates size → ${c.size}`);
-  const c2 = makeCreature({ name: 'Boss Titan', class: 'Warrior', biology: ['Humanoid'], attunement: ['Physical'], subtypes: ['Giant'], size: 'boss', pool: [], baseHp: 60 });
-  ok(c2.size === 'boss', 'Giant does not shrink an already-bigger size'); }
+  ok(c.size === 'regular' && c.meta.form === 'regular', `Giant keeps default size → ${c.size}`);
+  const baby = makeCreature({ name: 'Baby Titan', class: 'Warrior', biology: ['Humanoid'], attunement: ['Physical'], subtypes: ['Giant'], size: 'baby', pool: [], baseHp: 60 });
+  ok(baby.size === 'baby', 'Giant may be Baby (no size gate)'); }
 
 console.log('Generator (triple + pool → creature):');
 const pool = [

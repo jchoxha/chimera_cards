@@ -38,8 +38,8 @@ export function makeCreature({ id, name, class: klass, biology, attunement, fami
 
   const subs = Array.isArray(subtypes) ? subtypes.filter(Boolean) : subtypes ? [subtypes] : [];
   const { hpMult, stats } = biologyStats(bio, subs, family);
-  // The Giant subtype GATES size: a Giant creature is at least Large.
-  if (subs.includes('Giant') && (formOf(size).order ?? 2) < formOf('large').order) size = 'large';
+  // Giant is a STAT/kit subtype (extra HP+Might via biologyStats), NOT a size gate —
+  // a Giant creature can still be Baby/Small/Regular (a baby giant is a fine thing).
   // SIZE (form) scales HP and adds a flat Might bonus on top of biology.
   const form = formOf(size);
   const maxHp = Math.max(1, Math.round(baseHp * hpMult * form.hpMult));

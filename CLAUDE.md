@@ -176,6 +176,20 @@ gets a monotonic `fxKeyRef` id (was `Date.now()`-based, which could collide acro
 react-spring nodes); the item springs use `useSpring(()=>…)` (function form) so a sibling being added
 never restarts an in-flight animation.
 
+**🧬 HYBRID SIGNATURE CARDS + GIANT SIZE UNGATED + MANIFESTATION LABEL (v3.106.0, 2026-07-08, Jeton).**
+(1) **Giant no longer gates size** — `generate.js` dropped the "Giant → Large+" coercion; Giant stays a
+STAT/kit subtype (still +HP/Might via `biologyStats`) so a Baby/Small/Regular Giant is legal (also
+removes the capture-all-sizes dupe quirk). `test:generate` updated. (2) **Hybrid signature cards** —
+`src/data/hybridKit.json` (`bodyPairs`/`subtypePairs`/`attunementPairs`, keys = the two values
+sorted+`+`) + loader `src/engine/cards/hybridPool.js` (`hybridCards({biology,subtypes,attunement})`,
+order-independent, fires ONLY for genuine 2-value axes). Wired in `app/pools.js`: `hybridBaseCards` →
+`basePoolFor` (body+subtype pairs, reskin+startable); `hybridAttunementCards` → `potentialPool` (attunement
+pairs, kept dual-element/raw). 21 pairs · 22 cards (3 body / 6 subtype / 12 attunement incl. Fire+Frost
+"Thermal Shock", Physical+Void "Voidrend", Giant+Mechanical "Siege Bulwark"…). `test:hybrid` (115).
+⚠ card NAMES must not collide with kit cards (renamed Sunder→Voidrend). (3) **Aberration axis-2 labelled
+"Manifestation"** in the editor picker (data keys `family`/`ABERRATION_FAMILIES` unchanged — label-first).
+Design + open items in `docs/hybrid-design.md`.
+
 **🧬 OWNED-INSTANCE COLLECTION + NICKNAMES + FILTERS + SIZE-VARIANT EDITOR (v3.105.0, 2026-07-08,
 Jeton).** The collection went from a SET to OWNED INSTANCES: `app/collection.js` is now
 `{discovered:{species:[forms]}, owned:[{iid,species,form,nickname}], seq}` — you can own several of the

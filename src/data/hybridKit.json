@@ -1,0 +1,76 @@
+{
+  "_note": "HYBRID signature cards — cards that only appear when a creature spans TWO values on an axis (docs/hybrid-design.md). bodyPairs = two body types (union kit), subtypePairs = two descriptive subtypes, attunementPairs = two elements. Keys are the two values sorted + joined by '+', so order doesn't matter. Body/subtype pair cards join the BASE pool (via basePoolFor, so they reskin + can start); attunement pair cards join the POTENTIAL pool raw (they keep their dual-element identity). Numbers provisional — hybrids are stronger and must be watched.",
+
+  "bodyPairs": {
+    "Beast+Humanoid": [
+      { "id": "hyb_bh_onslaught", "name": "Chimeric Onslaught", "attunement": "Physical", "type": "attack", "cost": 2, "rarity": "rare", "imbue": 1, "effects": [ { "op": "damage", "value": 9 }, { "op": "block", "value": 5 } ] },
+      { "id": "hyb_bh_discipline", "name": "Feral Discipline", "attunement": "Physical", "type": "skill", "cost": 1, "rarity": "uncommon", "effects": [ { "op": "buff", "status": "strength", "value": 2 }, { "op": "draw", "value": 1 } ] }
+    ],
+    "Aberration+Humanoid": [
+      { "id": "hyb_ah_warpstrike", "name": "Warped Strike", "attunement": "Physical", "type": "attack", "cost": 2, "rarity": "uncommon", "imbue": 1, "effects": [ { "op": "damage", "value": 7 }, { "op": "debuff", "status": "confuse", "value": 1 } ] }
+    ],
+    "Aberration+Beast": [
+      { "id": "hyb_ab_primalhorror", "name": "Primal Horror", "attunement": "Physical", "type": "attack", "cost": 2, "rarity": "rare", "imbue": 1, "effects": [ { "op": "damage", "value": 8 }, { "op": "debuff", "status": "poison", "value": 3 } ] }
+    ]
+  },
+
+  "subtypePairs": {
+    "Elemental+Mechanical": [
+      { "id": "hyb_st_overcore", "name": "Overcharged Core", "attunement": "Physical", "type": "skill", "cost": 1, "rarity": "uncommon", "effects": [ { "op": "energy", "value": 2 }, { "op": "damage", "value": 6 } ] }
+    ],
+    "Demonic+Giant": [
+      { "id": "hyb_st_felstomp", "name": "Felfire Stomp", "attunement": "Physical", "type": "attack", "cost": 3, "rarity": "rare", "imbue": 1, "effects": [ { "op": "damage", "value": 14 }, { "op": "debuff", "status": "weak", "value": 1 } ] }
+    ],
+    "Giant+Mechanical": [
+      { "id": "hyb_st_siege", "name": "Siege Bulwark", "attunement": "Physical", "type": "skill", "cost": 2, "rarity": "uncommon", "effects": [ { "op": "block", "value": 16, "brace": true } ] }
+    ],
+    "Demonic+Elemental": [
+      { "id": "hyb_st_hellfire", "name": "Hellfire Surge", "attunement": "Fire", "type": "attack", "cost": 2, "rarity": "rare", "effects": [ { "op": "damage", "value": 8 }, { "op": "debuff", "status": "burn", "value": 3 } ] }
+    ],
+    "Elemental+Giant": [
+      { "id": "hyb_st_colossus", "name": "Elemental Colossus", "attunement": "Physical", "type": "attack", "cost": 2, "rarity": "rare", "imbue": 1, "effects": [ { "op": "damage", "value": 10 }, { "op": "block", "value": 8 } ] }
+    ],
+    "Demonic+Mechanical": [
+      { "id": "hyb_st_cursed", "name": "Cursed Engine", "attunement": "Physical", "type": "attack", "cost": 1, "rarity": "rare", "effects": [ { "op": "pay", "hp": 3 }, { "op": "damage", "value": 12 }, { "op": "draw", "value": 1 } ] }
+    ]
+  },
+
+  "attunementPairs": {
+    "Fire+Frost": [
+      { "id": "hyb_at_thermalshock", "name": "Thermal Shock", "attunement": "Fire", "type": "attack", "cost": 2, "rarity": "rare", "effects": [ { "op": "damage", "value": 9 }, { "op": "debuff", "status": "burn", "value": 2 }, { "op": "debuff", "status": "weak", "value": 1 } ] }
+    ],
+    "Fire+Nature": [
+      { "id": "hyb_at_wildfire", "name": "Wildfire", "attunement": "Fire", "type": "attack", "cost": 2, "rarity": "rare", "effects": [ { "op": "damage", "value": 6, "scope": "wholeEnemySide" }, { "op": "debuff", "status": "burn", "value": 2 }, { "op": "debuff", "status": "poison", "value": 2 } ] }
+    ],
+    "Energy+Water": [
+      { "id": "hyb_at_conduct", "name": "Conduction", "attunement": "Water", "type": "attack", "cost": 2, "rarity": "uncommon", "effects": [ { "op": "damage", "value": 7 }, { "op": "debuff", "status": "soak", "value": 2 }, { "op": "debuff", "status": "shock", "value": 2 } ] }
+    ],
+    "Physical+Void": [
+      { "id": "hyb_at_voidrend", "name": "Voidrend", "attunement": "Physical", "type": "attack", "cost": 2, "rarity": "rare", "effects": [ { "op": "damage", "value": 10 }, { "op": "debuff", "status": "decay", "value": 2 } ] }
+    ],
+    "Holy+Shadow": [
+      { "id": "hyb_at_eclipse", "name": "Eclipse", "attunement": "Shadow", "type": "attack", "cost": 2, "rarity": "rare", "effects": [ { "op": "damage", "value": 8 }, { "op": "debuff", "status": "vulnerable", "value": 2 }, { "op": "heal", "value": 4 } ] }
+    ],
+    "Air+Fire": [
+      { "id": "hyb_at_firestorm", "name": "Firestorm", "attunement": "Fire", "type": "attack", "cost": 2, "rarity": "rare", "effects": [ { "op": "damage", "value": 5, "scope": "wholeEnemySide" }, { "op": "debuff", "status": "burn", "value": 2 }, { "op": "debuff", "status": "expose", "value": 2 } ] }
+    ],
+    "Frost+Water": [
+      { "id": "hyb_at_deepfreeze", "name": "Deep Freeze", "attunement": "Frost", "type": "attack", "cost": 2, "rarity": "uncommon", "effects": [ { "op": "damage", "value": 6 }, { "op": "debuff", "status": "weak", "value": 2 }, { "op": "debuff", "status": "soak", "value": 2 } ] }
+    ],
+    "Nature+Water": [
+      { "id": "hyb_at_verdanttide", "name": "Verdant Tide", "attunement": "Nature", "type": "skill", "cost": 2, "rarity": "uncommon", "effects": [ { "op": "heal", "value": 6 }, { "op": "buff", "status": "regen", "value": 2 }, { "op": "debuff", "status": "poison", "value": 2 } ] }
+    ],
+    "Energy+Mind": [
+      { "id": "hyb_at_overload", "name": "Neural Overload", "attunement": "Energy", "type": "attack", "cost": 2, "rarity": "rare", "effects": [ { "op": "damage", "value": 7 }, { "op": "debuff", "status": "shock", "value": 2 }, { "op": "debuff", "status": "confuse", "value": 1 } ] }
+    ],
+    "Physical+Stone": [
+      { "id": "hyb_at_avalanche", "name": "Avalanche", "attunement": "Stone", "type": "attack", "cost": 3, "rarity": "rare", "effects": [ { "op": "damage", "value": 12 }, { "op": "block", "value": 8, "brace": true } ] }
+    ],
+    "Arcane+Void": [
+      { "id": "hyb_at_unmaking", "name": "Unmaking", "attunement": "Arcane", "type": "attack", "cost": 2, "rarity": "rare", "effects": [ { "op": "damage", "value": 9 }, { "op": "buff", "status": "amplify", "value": 1 }, { "op": "debuff", "status": "decay", "value": 2 } ] }
+    ],
+    "Fire+Holy": [
+      { "id": "hyb_at_purifyingflame", "name": "Purifying Flame", "attunement": "Holy", "type": "attack", "cost": 2, "rarity": "rare", "effects": [ { "op": "damage", "value": 8 }, { "op": "debuff", "status": "burn", "value": 2 }, { "op": "heal", "value": 3 } ] }
+    ]
+  }
+}

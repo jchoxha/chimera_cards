@@ -12,6 +12,7 @@ import { beastPool, BEAST_FAMILIES, defaultAnatomy } from '../engine/cards/beast
 import { humanoidWeaponPool, weaponsForArchetype, defaultWeapons } from '../engine/cards/humanoidPool.js';
 import { aberrationPool, ABERRATION_FAMILIES, defaultAberrationAnatomy } from '../engine/cards/aberrationPool.js';
 import { subtypeCards } from '../engine/cards/subtypePool.js';
+import { hybridBaseCards, hybridAttunementCards } from '../engine/cards/hybridPool.js';
 import { reskinDeck, attunementVariants } from '../engine/cards/reskin.js';
 import { resolvePools } from '../data/collections.js';
 
@@ -48,6 +49,7 @@ export function basePoolFor({ klass, biology, family, anatomy, weapons, subtypes
   }
   if (!out.length) out.push(...(POOLS[klass] || []));   // body types w/o a built kit: archetype stand-in
   out.push(...subtypeCards(subtypes));                  // descriptive subtypes add their packages
+  out.push(...hybridBaseCards(bios, subtypes));         // body-pair + subtype-pair hybrid signatures
   return out;
 }
 
@@ -60,5 +62,6 @@ export const rosterPool = (r) => basePoolFor({ klass: r.class, biology: r.biolog
 export function potentialPool(def = {}) {
   const atts = arr(def.attunement?.length ? def.attunement : ['Physical']);
   const base = basePoolFor({ klass: def.class?.[0] ?? def.klass, biology: def.biology, family: def.family, anatomy: def.anatomy, weapons: def.weapons, subtypes: def.subtypes, signatureCards: def.signatureCards });
-  return [...reskinDeck(base, atts), ...attunementCards(atts), ...attunementVariants(base, atts)];
+  // Attunement-PAIR hybrid signatures join raw (kept dual-element, not reskinned).
+  return [...reskinDeck(base, atts), ...attunementCards(atts), ...attunementVariants(base, atts), ...hybridAttunementCards(atts)];
 }

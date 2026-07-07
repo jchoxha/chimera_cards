@@ -6,6 +6,11 @@
 
 /** @type {{version:string, date:string, notes:string[]}[]} newest first */
 export const CHANGELOG = [
+  { version: 'v3.106.0', date: '2026-07-08', notes: [
+    'Giant creatures are no longer forced to be Large or bigger — a Giant can now be Baby/Small/Regular too (it still gets its bulk bonus, just at its actual size).',
+    'HYBRIDS now have signature cards: a creature that spans two body types (e.g. Beast + Humanoid), two subtypes (e.g. Giant + Mechanical), OR two elements (e.g. Fire + Frost) unlocks bespoke cards that reward the pairing — 21 combos so far, including 12 attunement pairs.',
+    'The editor labels an Aberration’s kit axis “Manifestation” (an aberration manifests a form; it has no biological family).',
+  ] },
   { version: 'v3.105.0', date: '2026-07-08', notes: [
     'You can now OWN multiple of the same creature and give each a custom NICKNAME. Your collection tracks individual creatures (species + size + name), so “Behemoth” the Boss Voltfang sits beside a regular one on your team.',
     'Smart filters on both the team-assembly screen and the editor’s Creatures tab — search by name and filter by element, body type, subtype, archetype, family, and size.',

@@ -148,7 +148,7 @@ export default function MonsterEditor({ defs = [], classes = [], biologies = [],
             {(isBeast || isAberration) && (
               <div className="crAxes">
                 <div className="crDeckHead">{isBeast ? 'Beast Kit' : 'Aberration Kit'}</div>
-                <label className="crFld"><span>Family</span>
+                <label className="crFld"><span>{isAberration ? 'Manifestation' : 'Family'}</span>
                   <select value={family || ''} onChange={(e) => set({ family: e.target.value, anatomy: [], customDeck: null })}>
                     {familyOpts.map((f) => <option key={f} value={f}>{f}</option>)}
                   </select>
