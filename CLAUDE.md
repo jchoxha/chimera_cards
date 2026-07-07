@@ -176,10 +176,14 @@ gets a monotonic `fxKeyRef` id (was `Date.now()`-based, which could collide acro
 react-spring nodes); the item springs use `useSpring(()=>…)` (function form) so a sibling being added
 never restarts an in-flight animation.
 
-**▶️ NEXT SESSION — BAKE THE PER-SIZE PORTRAITS (art gen now works IN-SESSION).** The v3.101.0
-framework below is done; what remains is generating the actual images. **Image generation no longer
-needs the Windows box** — the **AGY Image Gen/Editing** MCP connector drives the `agy` pipeline from a
-cloud session (VERIFIED 2026-07-07). Prereq: the connector must be **enabled in the chat**
+**▶️ NEXT SESSION — BAKE THE REST OF THE PER-SIZE PORTRAITS (loop PROVEN in-session).** The v3.101.0
+framework + the full generate→save→wire→verify loop are DONE and PROVEN: **`ironhide-boss.png` is baked
++ live** (v3.101.1) as the sanity sample (`sizedPortrait('…ironhide.png','boss')` → `ironhide-boss.png`,
+served 200; unbaked forms fall back to base). Just REPEAT the loop for the chosen scope (sanity vs full
+sweep 60). **Image generation runs IN-SESSION** — the **AGY Image Gen/Editing** MCP connector drives the
+`agy` pipeline from a cloud session (VERIFIED 2026-07-07; produced a clean Variant-B boss). Loop used:
+`generate_image({prompt})` → poll `get_result` → `get_image_base64` → `python3` + Pillow decode/resize to
+384² PNG → `public/art/gen/<id>-<form>.png` → add form to `creatureArtSizes.json`. Prereq: the connector must be **enabled in the chat**
 (`ListConnectors` → if `enabledInChat:false`, toggle it on in the chat's connector settings, else the
 tools silently disappear). Load via `ToolSearch("AGY_Image_Gen_Editing")`. Async flow:
 `generate_image({prompt})` → `job_id`; poll `get_result({job_id})` ~15–20s until done;

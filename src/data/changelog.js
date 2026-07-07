@@ -6,6 +6,9 @@
 
 /** @type {{version:string, date:string, notes:string[]}[]} newest first */
 export const CHANGELOG = [
+  { version: 'v3.101.1', date: '2026-07-07', notes: [
+    'First size-specific portrait is live: a Boss-scale Ironhide gets its own dedicated artwork (drawn colossal), proving the per-size art pipeline end to end. More sizes/creatures to follow.',
+  ] },
   { version: 'v3.101.0', date: '2026-07-07', notes: [
     'Monster size no longer stretches or shrinks a single portrait (which just blurred it). The image now renders at its native size; a creature’s size still reads from the size word and badge on the card.',
     'Groundwork for size-specific art: each size (Baby → Boss) can now have its own generated portrait, and the game automatically uses it when available (falling back to the base image until then). The art pipeline and AI Forge now describe each size distinctly so a Baby is drawn small and a Boss colossal.',
