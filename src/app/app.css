@@ -55,12 +55,12 @@
   font: inherit; font-size: 14px; color: var(--ink); background: var(--surface-2); border: 1px solid var(--line);
   border-radius: 6px; padding: 6px 8px; min-width: 140px;
 }
-/* team summary chips on the menu */
-.teamSummary { display: flex; flex-wrap: wrap; gap: 6px; justify-content: center; margin: 6px 0 8px; min-height: 24px; }
+/* team on the menu — the actual creature cards, drag-to-reorder (up to 6) */
+.teamSummary { display: flex; justify-content: center; margin: 8px 0 12px; min-height: 24px; }
+.teamSummary .teamMgr { width: 100%; }
+.teamSummary .tmCards { justify-content: center; }
+.teamSummary .tmCard { width: 96px; }
 .teamNone { color: var(--ink-faint); font-size: 13px; font-style: italic; }
-.tsTag { font-family: var(--font-display); font-size: 12px; padding: 3px 10px; border-radius: 999px;
-  background: var(--surface-2); border: 1px solid var(--line); color: var(--gold-bright); }
-.tsTag.bench { background: var(--surface-1); color: var(--ink-dim); }
 .menuRow { display: flex; gap: 8px; margin-top: 4px; }
 .menuRow .menuBtn { margin: 4px 0; }
 .menuRow .menuBtn.big { flex: 1; }

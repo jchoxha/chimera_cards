@@ -176,6 +176,22 @@ gets a monotonic `fxKeyRef` id (was `Date.now()`-based, which could collide acro
 react-spring nodes); the item springs use `useSpring(()=>…)` (function form) so a sibling being added
 never restarts an in-flight animation.
 
+**🗂️ COLLECTION PAGE REWORK + MENU TEAM CARDS + WHITE-BLOCKS FIX (v3.107.0, 2026-07-08, Jeton).**
+The "Assemble Your Team" screen (`SelectScreen`) is now the **Collection** page: the team moved into a
+**slim, fully-hideable vertical LEFT sidebar** (`.teamSide`/`.teamSideOpen`; `TeamManager` gained a
+`vertical` prop → `.tmCards.vertical` column + a `hint` prop) and **filters are gated behind a "Filters"
+button** (`filtersOpen` state; `CreatureFilterBar` only mounts when open), so the collection grid gets the
+space. Header is a single compact row (`.selHead.compact`/`.selHeadRow`). **Team MAX 3 → 6** (combat energy
+`max(3,benched)` already scales; the `ids.length<3` custom-add gate + practice intro updated). The **main
+menu** now renders the team as their **actual CardFace cards via `TeamManager`** (drag-to-reorder from the
+menu → `reorderTeam`/`removeFromTeam`; up to 6), replacing the old `.tsTag` text chips. **WHITE-BLOCKS BUG
+FIXED:** the CardFace badge chrome (`.submatrix`/`.factorIcon`/`.bioTok`/`.axesLine`) was scoped to
+`.cmbt`/`.modalCardWrap` ancestors, so in the editor's `.uiCardTile` grid (neither ancestor) the
+`.bioTok`/`.factorIcon` **`<button>`s fell back to default browser button chrome = blank white blocks**.
+Rescoped those rules to **`.combat`** (the frame class on every CardFace) so they apply anywhere a card
+renders — combat, the Collection/editor grids, the Codex. *(app.html loads Iconify from a CDN; if the CDN
+is blocked the glyphs are empty but the chrome is now correct.)*
+
 **🧬 HYBRID SIGNATURE CARDS + GIANT SIZE UNGATED + MANIFESTATION LABEL (v3.106.0, 2026-07-08, Jeton).**
 (1) **Giant no longer gates size** — `generate.js` dropped the "Giant → Large+" coercion; Giant stays a
 STAT/kit subtype (still +HP/Might via `biologyStats`) so a Baby/Small/Regular Giant is legal (also

@@ -35,7 +35,7 @@ function CardBody({ m, i, color }) {
   );
 }
 
-export default function TeamManager({ members = [], onReorder, onRemove, onSelect, title = 'Your Team' }) {
+export default function TeamManager({ members = [], onReorder, onRemove, onSelect, title = 'Your Team', vertical = false, hint = true }) {
   const ids = members.map((m) => m.id);
   const listRef = useRef(null);
   const drag = useRef(null);                 // { id, x, y, startX, startY, moved, lastReorderAt }
@@ -133,7 +133,7 @@ export default function TeamManager({ members = [], onReorder, onRemove, onSelec
   return (
     <div className="teamMgr">
       {title && <div className="tmTitle">{title}</div>}
-      <div className="tmCards" ref={listRef}>
+      <div className={`tmCards${vertical ? ' vertical' : ''}`} ref={listRef}>
         {members.map((m, i) => {
           const color = creatureColor(m);
           const dead = m.hp != null && m.hp <= 0;
@@ -150,7 +150,7 @@ export default function TeamManager({ members = [], onReorder, onRemove, onSelec
           );
         })}
       </div>
-      <p className="tmHint"><Icon icon="game-icons:move" /> Drag a card to reorder — the ★ slot is your Active Vanguard. Tap for details.</p>
+      {hint && <p className="tmHint"><Icon icon="game-icons:move" /> Drag a card to reorder — the ★ slot is your Active Vanguard. Tap for details.</p>}
 
       {/* the floating ghost — a faithful card copy that follows the cursor */}
       {dragging && dragMember && (

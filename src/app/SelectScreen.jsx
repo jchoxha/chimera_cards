@@ -32,7 +32,7 @@ function fullPool(c) {
   return uniq.sort((a, b) => (RARITY_POINTS[a.rarity] ?? 1) - (RARITY_POINTS[b.rarity] ?? 1) || String(a.name).localeCompare(String(b.name)));
 }
 
-const MAX = 3;
+const MAX = 6;
 const STAT_LABEL = { might: 'MGT', guard: 'GRD', focus: 'FOC', resolve: 'RSV', speed: 'SPD' };
 
 /** Tabbed card browser (Starting Deck / Full Card Pool), grouped up the rarity ladder. */
@@ -72,12 +72,14 @@ function CardBrowser({ deck = [], pool = [] }) {
 
 export default function SelectScreen({
   roster = [], initial = [], onConfirm, onCancel, onCreateCustom, onDeleteCustom, onRename,
-  title = 'Assemble Your Team',
-  intro = 'Choose up to 3 creatures — they fight as an Active Vanguard + a bench you swap between. This team is used for your runs and playtest fights.',
+  title = 'Collection',
+  intro = 'Your captured creatures. Pick up to 6 for your team — they fight as an Active Vanguard + a bench you swap between.',
   confirmLabel = 'Save Team ✓', teamLabel = 'Your Team',
 } = {}) {
   const [filter, setFilter] = useState(emptyFilter);
+  const [filtersOpen, setFiltersOpen] = useState(false);
   const shown = roster.filter((c) => matchesFilter(c, filter));
+  const activeFilterCount = Object.values(filter.sets || {}).reduce((n, s) => n + (s?.size || 0), 0) + (filter.q ? 1 : 0);
   // Ordered list of ids; index 0 = vanguard. Seed from the saved team.
   const [picked, setPicked] = useState(() => initial.filter((id) => roster.some((c) => c.id === id)).slice(0, MAX));
   const [teamOpen, setTeamOpen] = useState(true);
@@ -97,72 +99,97 @@ export default function SelectScreen({
   const promote = (id) => setPicked((p) => [id, ...p.filter((x) => x !== id)]);
 
   const teamCreatures = picked.map(byId).filter(Boolean);
-  const vanguard = teamCreatures[0] || null;
-  const bench = teamCreatures.slice(1);
 
   return (
     <div className="selScreen">
-      <header className="selHead">
-        <h1>{title}</h1>
-        <p>{intro}</p>
-
-        {/* Current team, split vanguard vs bench — collapsible to free up grid room */}
-        <button className="teamToggle" onClick={() => setTeamOpen((v) => !v)} aria-expanded={teamOpen}>
-          <span className="teamToggleLbl">{teamLabel}</span>
-          {!teamOpen && (
-            <span className="teamMini">
-              {vanguard ? <span className="tmTag van">★ {vanguard.name}</span> : <span className="tmTag none">empty</span>}
-              {bench.map((c) => <span key={c.id} className="tmTag">{c.name}</span>)}
-            </span>
-          )}
-          <span className="teamChevron">{teamOpen ? '▾' : '▸'}</span>
-        </button>
-        {teamOpen && (
-          <div className="teamBar">
-            {teamCreatures.length === 0
-              ? <div className="teamEmpty">Pick a creature below →</div>
-              : <TeamManager members={teamCreatures} title="" onReorder={setPicked}
-                  onRemove={(id) => remove(id)} onSelect={(m) => setModalId(m.id)} />}
+      <header className="selHead compact">
+        <div className="selHeadRow">
+          <div className="selTitleWrap">
+            <h1>{title}</h1>
+            <p className="selIntro">{intro}</p>
           </div>
-        )}
-
-        <div className="selActions">
-          <span className="selCount">{picked.length} / {MAX} chosen</span>
-          {onCancel && <button className="selBtn ghost" onClick={onCancel}>Back</button>}
-          <button className="selBtn go" disabled={picked.length === 0}
-            onClick={() => onConfirm?.(teamCreatures)}>
-            {confirmLabel}
-          </button>
+          <div className="selActions">
+            <span className="selCount">{picked.length} / {MAX}</span>
+            {onCancel && <button className="selBtn ghost" onClick={onCancel}>Back</button>}
+            <button className="selBtn go" disabled={picked.length === 0}
+              onClick={() => onConfirm?.(teamCreatures)}>
+              {confirmLabel}
+            </button>
+          </div>
         </div>
       </header>
 
-      {roster.length > 4 && <div className="selFilter"><CreatureFilterBar creatures={roster} filter={filter} onChange={setFilter} placeholder="Search your creatures…" /></div>}
+      <div className="selMain">
+        {/* ── LEFT TEAM SIDEBAR — vertical, completely hideable ── */}
+        <aside className={`teamSide${teamOpen ? '' : ' collapsed'}`}>
+          {teamOpen ? (
+            <>
+              <div className="teamSideHead">
+                <span className="teamSideLbl">{teamLabel} <em>{picked.length}/{MAX}</em></span>
+                <button className="teamSideBtn" title="Hide team" onClick={() => setTeamOpen(false)}>
+                  <Icon icon="game-icons:contract-left-arrow" />
+                </button>
+              </div>
+              <div className="teamSideBody">
+                {teamCreatures.length === 0
+                  ? <div className="teamEmpty">No team yet. Tap creatures on the right to add them here, then drag to set your Vanguard.</div>
+                  : <TeamManager members={teamCreatures} title="" vertical onReorder={setPicked}
+                      onRemove={(id) => remove(id)} onSelect={(m) => setModalId(m.id)} />}
+              </div>
+            </>
+          ) : (
+            <button className="teamSideOpen" title="Show your team" onClick={() => setTeamOpen(true)}>
+              <Icon icon="game-icons:expand-right-arrow" />
+              <span className="tsoLbl">{teamLabel}</span>
+              <span className="tsoCount">{picked.length}</span>
+            </button>
+          )}
+        </aside>
 
-      <div className="selGrid">
-        {onCreateCustom && (
-          <button className="selCard selCreate" onClick={onCreateCustom}>
-            <div className="selCreatePlus">＋</div>
-            <div className="selName">Create Custom Creature</div>
-            <div className="selBlurb">Pick its archetype, biology &amp; element, then auto-generate or hand-build its deck.</div>
-          </button>
-        )}
-        {shown.length === 0 && <div className="selNoMatch uiHint">No creatures match your filters.</div>}
-        {shown.map((c) => {
-          const order = picked.indexOf(c.id);
-          const chosen = order >= 0;
-          const color = creatureColor(c);
-          // THE creature card — the same CardFace used in combat (no custom tile).
-          return (
-            <div key={c.id} role="button" tabIndex={0}
-              className={`selCardWrap modalCardWrap${chosen ? ' chosen' : ''}`}
-              style={{ '--gl': color }}
-              onClick={() => setModalId(c.id)}
-              onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') setModalId(c.id); }}>
-              <CardFace f={toFace(c)} side="ally" />
-              {chosen && <span className="selPick">{order === 0 ? '★' : order + 1}</span>}
-            </div>
-          );
-        })}
+        {/* ── COLLECTION GRID — gets the bulk of the space ── */}
+        <section className="selBody">
+          <div className="selToolbar">
+            {roster.length > 4 && (
+              <button className={`selBtn ghost selFilterBtn${filtersOpen ? ' on' : ''}${activeFilterCount ? ' active' : ''}`}
+                onClick={() => setFiltersOpen((v) => !v)}>
+                <Icon icon="game-icons:magnifying-glass" /> Filters
+                {activeFilterCount > 0 && <span className="selFilterN">{activeFilterCount}</span>}
+              </button>
+            )}
+            <span className="selShown">{shown.length} creature{shown.length === 1 ? '' : 's'}</span>
+          </div>
+
+          {filtersOpen && roster.length > 4 && (
+            <div className="selFilter"><CreatureFilterBar creatures={roster} filter={filter} onChange={setFilter} placeholder="Search your creatures…" /></div>
+          )}
+
+          <div className="selGrid">
+            {onCreateCustom && (
+              <button className="selCard selCreate" onClick={onCreateCustom}>
+                <div className="selCreatePlus">＋</div>
+                <div className="selName">Create Custom Creature</div>
+                <div className="selBlurb">Pick its archetype, biology &amp; element, then auto-generate or hand-build its deck.</div>
+              </button>
+            )}
+            {shown.length === 0 && <div className="selNoMatch uiHint">No creatures match your filters.</div>}
+            {shown.map((c) => {
+              const order = picked.indexOf(c.id);
+              const chosen = order >= 0;
+              const color = creatureColor(c);
+              // THE creature card — the same CardFace used in combat (no custom tile).
+              return (
+                <div key={c.id} role="button" tabIndex={0}
+                  className={`selCardWrap modalCardWrap${chosen ? ' chosen' : ''}`}
+                  style={{ '--gl': color }}
+                  onClick={() => setModalId(c.id)}
+                  onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') setModalId(c.id); }}>
+                  <CardFace f={toFace(c)} side="ally" />
+                  {chosen && <span className="selPick">{order === 0 ? '★' : order + 1}</span>}
+                </div>
+              );
+            })}
+          </div>
+        </section>
       </div>
 
       {/* Creature modal — the same CardFace as combat, plus add/remove + a deck dropdown. */}
@@ -208,7 +235,7 @@ export default function SelectScreen({
                         </>
                       : <button className="selBtn go" disabled={picked.length >= MAX}
                           onClick={() => { toggle(c.id); setModalId(null); }}>
-                          {picked.length >= MAX ? 'Team full (max 3)' : 'Add to Team'}
+                          {picked.length >= MAX ? `Team full (max ${MAX})` : 'Add to Team'}
                         </button>}
                   </div>
                   <div className="selModalSub">

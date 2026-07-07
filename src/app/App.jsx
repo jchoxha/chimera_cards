@@ -14,6 +14,7 @@ import Codex from '../ui/Codex.jsx';
 import SelectScreen from './SelectScreen.jsx';
 import CreatureCreator from './CreatureCreator.jsx';
 import StarterPick from './StarterPick.jsx';
+import TeamManager from '../ui/TeamManager.jsx';
 import Modal from '../ui/Modal.jsx';
 import { ATTUNEMENT_BASES, BODY_TYPES, SUBTYPES, legalAttunements } from '../data/synthesis.js';
 import { BEAST_FAMILIES } from '../engine/cards/beastPool.js';
@@ -143,6 +144,12 @@ export default function App() {
     try { localStorage.setItem(TEAM_KEY, JSON.stringify(ids)); } catch { /* ignore */ }
     setView('menu');
   }
+  // Persist a reordered team (menu drag-to-reorder → index 0 = vanguard).
+  function reorderTeam(ids) {
+    setTeamIds(ids);
+    try { localStorage.setItem(TEAM_KEY, JSON.stringify(ids)); } catch { /* ignore */ }
+  }
+  const removeFromTeam = (id) => reorderTeam(teamIds.filter((x) => x !== id));
 
   // Create a custom creature → save its definition, add it to the team, return to select.
   function createCustomCreature(def) {
@@ -150,7 +157,7 @@ export default function App() {
     const next = [...customDefs, full];
     setCustomDefs(next);
     try { localStorage.setItem(CUSTOM_KEY, JSON.stringify(next)); } catch { /* ignore */ }
-    setTeamIds((ids) => (ids.length < 3 ? [...ids, full.id] : ids));
+    setTeamIds((ids) => (ids.length < 6 ? [...ids, full.id] : ids));
     setView('select');
   }
   function deleteCustomCreature(id) {
@@ -254,7 +261,7 @@ export default function App() {
   if (view === 'practice') return (
     <SelectScreen roster={oppRoster} initial={practiceOppIds} onConfirm={confirmPracticeOpponents} onCancel={() => setView('menu')}
       title="Choose Practice Opponents"
-      intro="Pick up to 3 creatures to spar against — the Target Dummy (last in the list) is a passive punching bag. Your own team fights them."
+      intro="Pick up to 6 creatures to spar against — the Target Dummy (last in the list) is a passive punching bag. Your own team fights them."
       teamLabel="Opponents" confirmLabel="Start Practice ⚔" />
   );
   if (view === 'createCreature') return (
@@ -274,17 +281,16 @@ export default function App() {
           <button className="menuVersion" onClick={() => setShowChangelog(true)} title="View changelog">{APP_VERSION}</button>
         </p>
 
-        {/* Your team — used for runs AND playtest fights */}
+        {/* Your team — used for runs AND playtest fights. The actual creature
+            cards, drag-to-reorder (index 0 = Vanguard); room for up to 6. */}
         <div className="teamSummary">
           {team.length === 0
-            ? <span className="teamNone">No team assembled yet.</span>
-            : <>
-                <span className="tsTag">★ {team[0].name}</span>
-                {team.slice(1).map((c) => <span key={c.id} className="tsTag bench">{c.name}</span>)}
-              </>}
+            ? <span className="teamNone">No team assembled yet — open your Collection to pick creatures.</span>
+            : <TeamManager members={team} title="" hint={false}
+                onReorder={reorderTeam} onRemove={removeFromTeam} onSelect={() => setView('select')} />}
         </div>
         <button className="menuBtn big" onClick={() => setView('select')}>
-          ⚔ Assemble Your Team
+          ⚔ Collection
         </button>
         <div className="menuRow">
           <button className="menuBtn big" onClick={beginRun} disabled={!team.length}

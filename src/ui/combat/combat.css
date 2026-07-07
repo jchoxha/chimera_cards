@@ -584,35 +584,39 @@ html:has(.cmbt),body:has(.cmbt){height:100%;margin:0;overflow:hidden}
 .chip.stance,.pip.stance{ color:#f0c84a; border-color:#b88a3e; background:rgba(240,200,74,.12); }
 .chip.power,.pip.power{ color:#d0b0ff; border-color:#6a4d8a; background:rgba(160,120,220,.12); }
 
-/* creature axes line (archetype · biology · attunement) under the name */
-.cmbt .axesLine{ display:flex; align-items:center; justify-content:space-between; gap:6px;
+/* creature axes line (archetype · biology · attunement) under the name.
+   Scoped to .combat (the CardFace frame) so it applies EVERYWHERE a card renders —
+   combat, the assembler/editor grids (.uiCardTile), the Codex — not just under
+   .cmbt. Without this, the .bioTok/.factorIcon <button>s fall back to the browser
+   default button chrome and read as blank white blocks. */
+.combat .axesLine{ display:flex; align-items:center; justify-content:space-between; gap:6px;
   font-size:10px; letter-spacing:.3px; color:#c9b58e; opacity:.9; margin:-1px 12px 2px; min-height:16px; }
-.cmbt .axesLine .axTok{ font:inherit; color:#d8c79a; background:none; border:none; padding:0 1px; cursor:pointer;
+.combat .axesLine .axTok{ font:inherit; color:#d8c79a; background:none; border:none; padding:0 1px; cursor:pointer;
   text-decoration:underline; text-underline-offset:2px; text-decoration-style:dotted; }
-.cmbt .axesLine .axTok:hover{ color:#ffe6a0; }
-.cmbt .axesLine .axDot{ color:#8a7a5e; }
+.combat .axesLine .axTok:hover{ color:#ffe6a0; }
+.combat .axesLine .axDot{ color:#8a7a5e; }
 /* Biology label (left) + the per-special-factor icon row (right). */
-.cmbt .axesLine .bioTok{ font:inherit; font-size:10px; color:#d8c79a; background:none; border:none; padding:0; cursor:pointer;
+.combat .axesLine .bioTok{ font:inherit; font-size:10px; color:#d8c79a; background:none; border:none; padding:0; cursor:pointer;
   text-transform:uppercase; letter-spacing:.6px; text-decoration:underline; text-underline-offset:2px; text-decoration-style:dotted; }
-.cmbt .axesLine .bioTok:hover{ color:#ffe6a0; }
-.cmbt .axesLine .factorRow{ display:flex; align-items:center; gap:4px; }
-.cmbt .axesLine .factorIcon{ display:inline-flex; align-items:center; justify-content:center; width:22px; height:22px;
+.combat .axesLine .bioTok:hover{ color:#ffe6a0; }
+.combat .axesLine .factorRow{ display:flex; align-items:center; gap:4px; }
+.combat .axesLine .factorIcon{ display:inline-flex; align-items:center; justify-content:center; width:22px; height:22px;
   color:#e7d6a8; background:linear-gradient(160deg,#241a10,#170f0a); border:1px solid #8a6a18aa; border-radius:6px;
   padding:0; font:inherit; transition:transform .12s, box-shadow .12s, color .12s; }
-.cmbt .axesLine .factorIcon iconify-icon{ width:15px; height:15px; font-size:15px; }
-.cmbt .axesLine .factorIcon.clickable{ cursor:pointer; }
-.cmbt .axesLine .factorIcon.clickable:hover{ color:#ffe6a0; transform:translateY(-2px) scale(1.15); box-shadow:0 3px 8px #000a,0 0 8px #ffd34d55; }
+.combat .axesLine .factorIcon iconify-icon{ width:15px; height:15px; font-size:15px; }
+.combat .axesLine .factorIcon.clickable{ cursor:pointer; }
+.combat .axesLine .factorIcon.clickable:hover{ color:#ffe6a0; transform:translateY(-2px) scale(1.15); box-shadow:0 3px 8px #000a,0 0 8px #ffd34d55; }
 /* Top-left "major submatrix" badge — one kit icon per biology base (hybrids show 2). */
-.cmbt .submatrix{ position:absolute; top:8px; left:8px; z-index:5; min-width:30px; height:30px; border-radius:15px;
+.combat .submatrix{ position:absolute; top:8px; left:8px; z-index:5; min-width:30px; height:30px; border-radius:15px;
   display:flex; align-items:center; justify-content:center; gap:1px; padding:0 3px; font-size:16px; color:var(--cream);
   background:linear-gradient(160deg,#241a10,#170f0a); border:1.5px solid var(--goldB); box-shadow:0 2px 6px #000a; }
-.cmbt .submatrix .smIcon{ display:inline-flex; width:18px; height:18px; align-items:center; justify-content:center; }
-.cmbt .submatrix .smIcon iconify-icon{ width:18px; height:18px; }
-.cmbt .submatrix.multi .smIcon{ width:16px; height:16px; }
-.cmbt .submatrix.multi .smIcon iconify-icon{ width:16px; height:16px; }
-.cmbt .submatrix.clickable{ cursor:pointer; }
-.cmbt .submatrix.clickable:hover{ filter:brightness(1.18); }
-.cmbt .nameBan .sizeWord{ color:var(--goldB); font-weight:700; }
+.combat .submatrix .smIcon{ display:inline-flex; width:18px; height:18px; align-items:center; justify-content:center; }
+.combat .submatrix .smIcon iconify-icon{ width:18px; height:18px; }
+.combat .submatrix.multi .smIcon{ width:16px; height:16px; }
+.combat .submatrix.multi .smIcon iconify-icon{ width:16px; height:16px; }
+.combat .submatrix.clickable{ cursor:pointer; }
+.combat .submatrix.clickable:hover{ filter:brightness(1.18); }
+.combat .nameBan .sizeWord{ color:var(--goldB); font-weight:700; }
 /* every readable item on the card hints it is tappable for an info modal */
 .combat .nameBan.clickable,.combat .hpClick,.combat .match.clickable,
 .combat .elem.clickable,.combat .blockBadge.clickable,.combat .art{ cursor:pointer; }
