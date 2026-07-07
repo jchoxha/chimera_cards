@@ -933,7 +933,9 @@ first APP_VERSION bump.
 - **Art generation** — via `agy` (Antigravity CLI) headless: `scripts/agy_call.py`;
   see memory `agy-headless-image-gen`.
 
-**Deep-dive docs:** `docs/combat-engine-spec.md` (**LOCKED Vanguard/Peek combat
+**Deep-dive docs:** **`docs/game-overview.md` (THE conceptual portrait — vision, fantasy,
+all pillars + live design tensions; read this first to work on the game conceptually)**,
+`docs/combat-engine-spec.md` (**LOCKED Vanguard/Peek combat
 spec — the active rebuild**), **`docs/mechanics.md` (MASTER MECHANICS REGISTRY — statuses,
 the reaction framework + status×attunement matrix, keywords, AI/readout master plans)**,
 `src/engine/README.md` (engine map + spec mapping; Phase 1, partly superseded by the Vanguard
