@@ -58,8 +58,8 @@ Both prompt fixes are live in `scripts/gen_roster.py` (`STYLE`/`SIZE_DESC`) and
 ## Regen queue (needs the image pipeline: AGY MCP in-session, or agy on Windows)
 
 - `ironhide.png` (base) — extra-arm glitch.
-- `ironhide-boss.png` — looked like a base variant + white border. PULLED from
-  `creatureArtSizes.json` (falls back to base) until regenerated with the fixed
-  prompts; the flawed file is kept on disk for comparison.
+- `ironhide-boss.png` — looked like a base variant + white border. Currently
+  PUBLISHED in `creatureArtSizes.json` as the visible proof the per-size swap
+  works; replace with a clean regen (fixed prompts) when the image tool is on.
 - `tidecaller.png` — still missing entirely (icon fallback).
 - `frostmind.png` — flagged off-model (2026-06-23).

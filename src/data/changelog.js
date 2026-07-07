@@ -6,6 +6,10 @@
 
 /** @type {{version:string, date:string, notes:string[]}[]} newest first */
 export const CHANGELOG = [
+  { version: 'v3.102.1', date: '2026-07-07', notes: [
+    'The collection editor moved into the Editor as a third “🗃 Collection” tab (alongside Cards and Monsters) — the separate Admin menu button is gone.',
+    'Size-specific art is visible again: the per-size image manifest had been emptied, so every size fell back to the base picture. Boss Ironhide now shows its own dedicated artwork. (More per-size images still to be generated.)',
+  ] },
   { version: 'v3.102.0', date: '2026-07-07', notes: [
     'The Codex bestiary is now “Creatures” — every discovered creature shows as its actual card, undiscovered ones as face-down mystery cards, and a creature’s page lets you toggle between every SIZE you’ve discovered (stats and art follow).',
     'Your collection is now real: creatures (and each of their sizes) must be DISCOVERED to appear in the Codex and CAPTURED to be pickable in team assembly. A captured non-native size is its own team choice with re-derived HP and Might (“Boss Voltfang”).',

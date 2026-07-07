@@ -14,7 +14,6 @@ import Codex from '../ui/Codex.jsx';
 import SelectScreen from './SelectScreen.jsx';
 import CreatureCreator from './CreatureCreator.jsx';
 import StarterPick from './StarterPick.jsx';
-import AdminPanel from './AdminPanel.jsx';
 import { ATTUNEMENT_BASES, BODY_TYPES, SUBTYPES, legalAttunements } from '../data/synthesis.js';
 import { BEAST_FAMILIES } from '../engine/cards/beastPool.js';
 import { makeCreature } from '../engine/content/generate.js';
@@ -204,17 +203,18 @@ export default function App() {
   function continueRun() { if (useRun.getState().loadSaved()) setView('run'); }
 
   if (view === 'starter') return <StarterPick starters={starters} onPick={pickStarter} />;
-  if (view === 'admin') return (
-    <AdminPanel rosterEntries={ROSTER_ENTRIES} collection={collection || emptyCollection()}
-      onChange={updateCollection} onReset={resetCollection} onMenu={() => setView('menu')} />
-  );
   if (view === 'codex') return <Codex initialTab={codexTab} backLabel={codexReturn === 'menu' ? 'Menu' : 'Back'} onMenu={() => setView(codexReturn)} collection={collection} />;
   if (view === 'editor') return (
-    <EditorHub onMenu={() => setView('menu')} monsterProps={{
-      defs: customDefs, classes: ARCHETYPES, biologies: BODY_TYPES, subtypeOptions: SUBTYPES, attunements: ATTUNEMENT_BASES,
-      legalFor: (k) => legalAttunements([k]), buildPool: potentialPool, families: BEAST_FAMILIES,
-      onSave: saveCustomDef, onDelete: deleteCustomCreature,
-    }} />
+    <EditorHub onMenu={() => setView('menu')}
+      monsterProps={{
+        defs: customDefs, classes: ARCHETYPES, biologies: BODY_TYPES, subtypeOptions: SUBTYPES, attunements: ATTUNEMENT_BASES,
+        legalFor: (k) => legalAttunements([k]), buildPool: potentialPool, families: BEAST_FAMILIES,
+        onSave: saveCustomDef, onDelete: deleteCustomCreature,
+      }}
+      collectionProps={{
+        rosterEntries: ROSTER_ENTRIES, collection: collection || emptyCollection(),
+        onChange: updateCollection, onReset: resetCollection,
+      }} />
   );
   if (view === 'combat') return <CombatScreen onMenu={leaveCombat} onRestart={restartCombat} onCodex={(tab) => openCodex(tab, 'combat')} />;
   if (view === 'run') return <RunScreen onMenu={() => { if (useRun.getState().view === 'combat') useRun.getState()._recordPlayTime?.(); setView('menu'); }} onNewRun={() => setView('select')} onCodex={(tab) => openCodex(tab, 'run')} />;
@@ -280,9 +280,6 @@ export default function App() {
         </button>
         <button className="menuBtn" onClick={() => openCodex('creatures', 'menu')}>
           📖 Read the Codex
-        </button>
-        <button className="menuBtn subtle" onClick={() => setView('admin')} title="Testing console: set which creatures/sizes are discovered and captured">
-          ⚙ Admin
         </button>
       </div>
 

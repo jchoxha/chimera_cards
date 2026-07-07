@@ -186,9 +186,11 @@ form)` (re-derived HP/Might; Giant-gate dedupe). **Codex tab renamed "Creatures"
 legacy `bestiary` aliased): discovered creatures render as their ACTUAL CardFace cards (shared
 `creatureToFace` now lives in `creatureVisuals.jsx`), undiscovered as face-down "?" tiles; a creature's
 page has **size chips** (locked "?" until that size is discovered) that rebuild the creature at that form
-(HP/art/size-word follow). **⚙ Admin console** (`AdminPanel.jsx`, menu button): cycle each creature×size
-none→discovered→captured, bulk discover/capture-all, reset-to-fresh. Gameplay discovery events NOT wired
-yet (only admin + starter write the collection). **Model-rework design stub:**
+(HP/art/size-word follow). **Collection editor** (`CollectionEditor.jsx` — the Editor's 3rd tab
+**🗃 Collection** alongside Cards/Monsters via `EditorHub`; was a standalone menu button in v3.102.0,
+moved in v3.102.1): cycle each creature×size none→discovered→captured, bulk discover/capture-all,
+reset-to-fresh. Gameplay discovery events NOT wired yet (only the collection editor + starter write the
+collection). **Model-rework design stub:**
 `docs/creature-model-rework.md` (typing-axes flesh-out + size-as-identity + size-neutral subject texts).
 
 **▶️ ART REGEN QUEUE — the first per-size sample FAILED review (Jeton):** `ironhide-boss.png` read as a

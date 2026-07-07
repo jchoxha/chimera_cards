@@ -174,10 +174,10 @@ in `gen_roster.py` since 2026-07-07). Queue:
 
 - **ironhide** (base) — GLITCHED generation: an extra arm (flagged 2026-07-07).
 - **ironhide-boss** — first per-size sample came out looking like a BASE variant
-  with a white border (both prompt problems now fixed). Pulled from
-  `creatureArtSizes.json` (falls back to base); the flawed
-  `public/art/gen/ironhide-boss.png` is kept on disk for comparison — replace it
-  and re-add `"ironhide": ["boss"]` to the manifest.
+  with a white border (both prompt problems now fixed). It is currently PUBLISHED
+  in `creatureArtSizes.json` (`"ironhide": ["boss"]`) as the visible proof the
+  per-size swap works — REPLACE it with a clean regen (composition-based Boss +
+  full-bleed) when the image tool is available.
 - **tidecaller** — NO portrait at all (absent from `src/data/creatureArt.json`);
   currently falls back to the attunement icon. Generate `public/art/gen/tidecaller.png`
   and add `"tidecaller"` to `creatureArt.json`.

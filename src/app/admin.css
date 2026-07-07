@@ -1,20 +1,5 @@
-/* MODULE: app/admin — the Admin collection console (gilded to match the app skin). */
-.adminScreen {
-  min-height: 100vh; padding: 14px clamp(10px, 3vw, 32px) 40px;
-  background: var(--wood, #241610); color: var(--ink, #f3e7cf);
-  font-family: Spectral, Georgia, serif;
-}
-.adBar { display: flex; align-items: center; gap: 14px; margin-bottom: 6px; }
-.adBar h1 {
-  font-family: Cinzel, Georgia, serif; font-size: 1.35rem; letter-spacing: .06em;
-  color: var(--gold, #e8c576); margin: 0; display: flex; align-items: center; gap: 8px;
-}
-.adBack {
-  background: #00000055; color: var(--gold, #e8c576); border: 1px solid #e8c57644;
-  border-radius: 8px; padding: 6px 12px; cursor: pointer; font-family: Cinzel, Georgia, serif;
-  display: inline-flex; align-items: center; gap: 6px;
-}
-.adBack:hover { border-color: #e8c576aa; }
+/* MODULE: app/admin — the Editor's Collection page (gilded to match the app skin). */
+.adBody { padding: 14px clamp(10px, 3vw, 32px) 40px; color: var(--ink, #f3e7cf); font-family: Spectral, Georgia, serif; overflow-y: auto; }
 .adIntro { max-width: 780px; opacity: .85; line-height: 1.45; margin: 4px 0 10px; }
 .adLegend { display: inline-flex; align-items: center; gap: 6px; margin-left: 10px; white-space: nowrap; }
 .adLegend .adCell { pointer-events: none; width: 26px; height: 26px; font-size: .8rem; }
