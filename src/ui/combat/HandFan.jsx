@@ -47,8 +47,9 @@ function SpringCard({ card, target, dealFrom, dealDelay, dragged, bind, shockTax
   useEffect(() => { first.current = false; }, []);
   const [hovered, setHovered] = useState(false);
   const lifted = hovered && hoverable && !dragged;   // raise the card the mouse is over
-  // Once a card has been raised it KEEPS the elevated z-index — it never needs to drop
-  // back under its right neighbour, and this avoids any clip as it settles.
+  // Once a card has been raised it KEEPS an elevated z-index — and elevated cards are
+  // ranked left-over-right (90 - index) so a card always stays above the one to its
+  // right, even after you sweep the mouse across and its neighbours latch too.
   const [elevated, setElevated] = useState(false);
   useEffect(() => { if (lifted) setElevated(true); }, [lifted]);
   const style = useSpring({
@@ -74,7 +75,7 @@ function SpringCard({ card, target, dealFrom, dealDelay, dragged, bind, shockTax
         background: f.background,
         x: style.x, y: style.y, scale: style.sc,
         rotateZ: style.rot.to((r) => `${r}deg`),
-        zIndex: dragged ? 100 : lifted ? 95 : elevated ? 90 : (10 + target.i),
+        zIndex: dragged ? 100 : lifted ? 95 : elevated ? (90 - target.i) : (10 + target.i),
         touchAction: 'none',
         pointerEvents: dragged ? 'none' : 'auto',
       }}

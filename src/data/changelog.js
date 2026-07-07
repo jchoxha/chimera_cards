@@ -6,6 +6,9 @@
 
 /** @type {{version:string, date:string, notes:string[]}[]} newest first */
 export const CHANGELOG = [
+  { version: 'v3.100.6', date: '2026-07-06', notes: [
+    'Fixed hover layering when sweeping the mouse across the hand: previously the last card you passed jumped on top, tucking earlier ones back behind their neighbours. Raised cards now hold a left-over-right stacking order so each stays above the card to its right.',
+  ] },
   { version: 'v3.100.5', date: '2026-07-06', notes: [
     'Once hovered, a hand card simply stays layered above its neighbour — no z-index reset after it settles, so there’s never a clip.',
   ] },
