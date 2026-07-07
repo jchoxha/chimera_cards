@@ -210,10 +210,9 @@ export default function App() {
         defs: customDefs, classes: ARCHETYPES, biologies: BODY_TYPES, subtypeOptions: SUBTYPES, attunements: ATTUNEMENT_BASES,
         legalFor: (k) => legalAttunements([k]), buildPool: potentialPool, families: BEAST_FAMILIES,
         onSave: saveCustomDef, onDelete: deleteCustomCreature,
-      }}
-      collectionProps={{
-        rosterEntries: ROSTER_ENTRIES, collection: collection || emptyCollection(),
-        onChange: updateCollection, onReset: resetCollection,
+        // the CREATURES tab also owns the collection (discovered/captured × size)
+        rosterCreatures: ROSTER, collection: collection || emptyCollection(),
+        onCollectionChange: updateCollection, onCollectionReset: resetCollection,
       }} />
   );
   if (view === 'combat') return <CombatScreen onMenu={leaveCombat} onRestart={restartCombat} onCodex={(tab) => openCodex(tab, 'combat')} />;

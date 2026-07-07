@@ -1,11 +1,11 @@
 /* MODULE: app/admin — the Editor's Collection page (gilded to match the app skin). */
-.adBody { padding: 14px clamp(10px, 3vw, 32px) 40px; color: var(--ink, #f3e7cf); font-family: Spectral, Georgia, serif; overflow-y: auto; }
-.adIntro { max-width: 780px; opacity: .85; line-height: 1.45; margin: 4px 0 10px; }
+.adBody { padding: 14px clamp(10px, 3vw, 32px) 40px; color: #f3e7cf; font-family: Spectral, Georgia, serif; overflow-y: auto; }
+.adIntro { max-width: 780px; color: #d8c9a6; line-height: 1.45; margin: 4px 0 10px; }
 .adLegend { display: inline-flex; align-items: center; gap: 6px; margin-left: 10px; white-space: nowrap; }
 .adLegend .adCell { pointer-events: none; width: 26px; height: 26px; font-size: .8rem; }
 .adBulk { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 14px; }
 .adBtn {
-  background: #00000055; color: var(--ink, #f3e7cf); border: 1px solid #e8c57644;
+  background: #00000055; color: #e8dcc0; border: 1px solid #e8c57666;
   border-radius: 8px; padding: 7px 12px; cursor: pointer; font-family: Cinzel, Georgia, serif; font-size: .82rem;
 }
 .adBtn:hover { border-color: #e8c576aa; }
@@ -18,8 +18,18 @@
   position: sticky; top: 0; background: #241610;
 }
 .adFormLbl { display: block; font-size: .62rem; opacity: .75; font-weight: 400; }
-.adName { text-align: left !important; font-family: Cinzel, Georgia, serif; white-space: nowrap; }
-.adNative { display: block; font-family: Spectral, Georgia, serif; font-size: .68rem; opacity: .6; }
+.adName { text-align: left !important; font-family: Cinzel, Georgia, serif; white-space: nowrap; color: #ffe6a8; }
+.adNative { display: block; font-family: Spectral, Georgia, serif; font-size: .68rem; color: #b6a884; }
+/* creature name cell: small portrait thumbnail + name/subline */
+.adName { display: flex; align-items: center; gap: 9px; }
+.adThumb { flex: none; width: 40px; height: 40px; border-radius: 8px; overflow: hidden; display: grid; place-items: center;
+  background: radial-gradient(circle at 40% 30%, #2a1f16, #140d08); border: 1px solid #e8c57633; }
+.adThumb img { width: 100%; height: 100%; object-fit: cover; }
+.adThumb iconify-icon { font-size: 22px; }
+.adNameTxt { display: flex; flex-direction: column; }
+.adActCol { white-space: nowrap; width: 1%; }
+.adBtn.sm { padding: 4px 8px; font-size: .9rem; margin-left: 4px; }
+.adCustomRow .adCustomNote { text-align: center; font-style: italic; opacity: .6; font-family: Spectral, Georgia, serif; font-size: .78rem; }
 .adCell {
   width: 34px; height: 34px; border-radius: 8px; border: 1px solid #e8c57633;
   background: #00000044; color: #f3e7cf66; cursor: pointer; font-size: 1rem;
