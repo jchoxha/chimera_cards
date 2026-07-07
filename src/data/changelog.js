@@ -6,6 +6,9 @@
 
 /** @type {{version:string, date:string, notes:string[]}[]} newest first */
 export const CHANGELOG = [
+  { version: 'v3.100.7', date: '2026-07-06', notes: [
+    'Hand card layering now works like a proper stack: by default the leftmost card is on the bottom and the rightmost on top; hovering any card raises it above its neighbours and it stays there. The stacking order is compacted each time so z-indices never creep upward.',
+  ] },
   { version: 'v3.100.6', date: '2026-07-06', notes: [
     'Fixed hover layering when sweeping the mouse across the hand: previously the last card you passed jumped on top, tucking earlier ones back behind their neighbours. Raised cards now hold a left-over-right stacking order so each stays above the card to its right.',
   ] },

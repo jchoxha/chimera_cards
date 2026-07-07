@@ -42,16 +42,11 @@ const ARC = 6;       // px each card rides lower toward the edges
  *  object form → reactive, no in-render side effects). The lifted card follows the
  *  finger (immediate x/y); the rest glide. Mount plays a staggered deal-in from the
  *  deck (mount-only `from`/`delay`). */
-function SpringCard({ card, target, dealFrom, dealDelay, dragged, bind, shockTax, unplayable, hint, forecast, badHint, hoverable }) {
+function SpringCard({ card, target, dealFrom, dealDelay, dragged, bind, shockTax, unplayable, hint, forecast, badHint, hoverable, stackZ, onRaise }) {
   const first = useRef(true);
   useEffect(() => { first.current = false; }, []);
   const [hovered, setHovered] = useState(false);
   const lifted = hovered && hoverable && !dragged;   // raise the card the mouse is over
-  // Once a card has been raised it KEEPS an elevated z-index — and elevated cards are
-  // ranked left-over-right (90 - index) so a card always stays above the one to its
-  // right, even after you sweep the mouse across and its neighbours latch too.
-  const [elevated, setElevated] = useState(false);
-  useEffect(() => { if (lifted) setElevated(true); }, [lifted]);
   const style = useSpring({
     ...(first.current ? { from: { x: dealFrom.x, y: dealFrom.y, rot: -20, sc: 0.55 }, delay: dealDelay } : null),
     x: target.x,
@@ -68,14 +63,14 @@ function SpringCard({ card, target, dealFrom, dealDelay, dragged, bind, shockTax
   return (
     <animated.div
       {...bind()}
-      onPointerEnter={(e) => { if (e.pointerType === 'mouse') setHovered(true); }}
+      onPointerEnter={(e) => { if (e.pointerType === 'mouse') { setHovered(true); if (hoverable) onRaise && onRaise(card.id); } }}
       onPointerLeave={() => setHovered(false)}
       className={`frame move handCard ${f.finish}${unplayable ? ' unplayable' : ''}${!unplayable ? ' playable' : ''}${dragged || lifted ? ' lifted' : ''}`}
       style={{
         background: f.background,
         x: style.x, y: style.y, scale: style.sc,
         rotateZ: style.rot.to((r) => `${r}deg`),
-        zIndex: dragged ? 100 : lifted ? 95 : elevated ? (90 - target.i) : (10 + target.i),
+        zIndex: dragged ? 100 : lifted ? 99 : stackZ,
         touchAction: 'none',
         pointerEvents: dragged ? 'none' : 'auto',
       }}
@@ -113,6 +108,24 @@ export default function HandFan({
   const ref = useRef(null);
   const [w, setW] = useState(720);
   const [drag, setDrag] = useState(null);   // { id, index, mx, my, overUnit, overHand, gapAt, valid, playable }
+
+  // Explicit bottom→top stacking order (list of card ids). Default = left→right
+  // (leftmost on the bottom, rightmost on top). Hovering a card moves it to the TOP
+  // of this list; z-index is just each card's POSITION in the list, so the numbers
+  // stay compact (0..N-1) and never grow unbounded, while a raised card sits above
+  // its neighbours and everyone else keeps their relative order.
+  const [order, setOrder] = useState([]);
+  const idsKey = cards.map((c) => c.id).join('|');
+  useEffect(() => {
+    setOrder((prev) => {
+      const ids = cards.map((c) => c.id);
+      const kept = prev.filter((id) => ids.includes(id));
+      const added = ids.filter((id) => !kept.includes(id));   // new cards enter in hand order
+      return [...kept, ...added];
+    });
+  }, [idsKey]);
+  const raise = (id) => setOrder((prev) => (prev[prev.length - 1] === id ? prev : [...prev.filter((x) => x !== id), id]));
+  const stackZof = (id) => { const p = order.indexOf(id); return 10 + (p < 0 ? cards.findIndex((c) => c.id === id) : p); };
 
   useLayoutEffect(() => {
     const measure = () => { if (ref.current) setW(ref.current.clientWidth); };
@@ -222,6 +235,8 @@ export default function HandFan({
             badHint={dragged && drag.overUnit && !drag.valid}
             forecast={forecast}
             hoverable={!drag && !disabled}
+            stackZ={stackZof(card.id)}
+            onRaise={raise}
           />
         );
       })}
