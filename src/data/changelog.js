@@ -6,6 +6,9 @@
 
 /** @type {{version:string, date:string, notes:string[]}[]} newest first */
 export const CHANGELOG = [
+  { version: 'v3.100.3', date: '2026-07-06', notes: [
+    'Hovering the mouse over a card in your hand now raises it — it lifts, straightens and pops above its neighbours so you can read it clearly before deciding to play.',
+  ] },
   { version: 'v3.100.2', date: '2026-07-06', notes: [
     'Fixed move effects flashing and never clearing: during the enemy’s turn each attack cancelled the previous effect’s cleanup, so numbers and impact rings piled up and kept flickering. Effects now expire on their own timer and always disappear cleanly.',
     'Enemy attacks now play the exact same effects as yours — flying bolt, lunge, recoil, impact ring and popping number.',

@@ -42,14 +42,19 @@ const ARC = 6;       // px each card rides lower toward the edges
  *  object form → reactive, no in-render side effects). The lifted card follows the
  *  finger (immediate x/y); the rest glide. Mount plays a staggered deal-in from the
  *  deck (mount-only `from`/`delay`). */
-function SpringCard({ card, target, dealFrom, dealDelay, dragged, bind, shockTax, unplayable, hint, forecast, badHint }) {
+function SpringCard({ card, target, dealFrom, dealDelay, dragged, bind, shockTax, unplayable, hint, forecast, badHint, hoverable }) {
   const first = useRef(true);
   useEffect(() => { first.current = false; }, []);
+  const [hovered, setHovered] = useState(false);
+  const lifted = hovered && hoverable && !dragged;   // raise the card the mouse is over
   const style = useSpring({
     ...(first.current ? { from: { x: dealFrom.x, y: dealFrom.y, rot: -20, sc: 0.55 }, delay: dealDelay } : null),
-    x: target.x, y: target.y, rot: target.rot, sc: target.sc,
+    x: target.x,
+    y: target.y - (lifted ? 30 : 0),                 // lift up on hover
+    rot: lifted ? target.rot * 0.35 : target.rot,     // straighten a touch when raised
+    sc: target.sc * (lifted ? 1.12 : 1),
     immediate: (key) => dragged && (key === 'x' || key === 'y'),
-    config: dragged ? { tension: 1100, friction: 45 } : springConfig.gentle,
+    config: dragged ? { tension: 1100, friction: 45 } : lifted ? { tension: 340, friction: 24 } : springConfig.gentle,
   });
 
   const f = frameStyle({ element: card.element, rarity: card.rarity });
@@ -58,12 +63,14 @@ function SpringCard({ card, target, dealFrom, dealDelay, dragged, bind, shockTax
   return (
     <animated.div
       {...bind()}
-      className={`frame move handCard ${f.finish}${unplayable ? ' unplayable' : ''}${!unplayable ? ' playable' : ''}${dragged ? ' lifted' : ''}`}
+      onPointerEnter={(e) => { if (e.pointerType === 'mouse') setHovered(true); }}
+      onPointerLeave={() => setHovered(false)}
+      className={`frame move handCard ${f.finish}${unplayable ? ' unplayable' : ''}${!unplayable ? ' playable' : ''}${dragged || lifted ? ' lifted' : ''}`}
       style={{
         background: f.background,
         x: style.x, y: style.y, scale: style.sc,
         rotateZ: style.rot.to((r) => `${r}deg`),
-        zIndex: dragged ? 100 : (10 + target.i),
+        zIndex: dragged ? 100 : lifted ? 90 : (10 + target.i),
         touchAction: 'none',
         pointerEvents: dragged ? 'none' : 'auto',
       }}
@@ -209,6 +216,7 @@ export default function HandFan({
             hint={hintFor(card)}
             badHint={dragged && drag.overUnit && !drag.valid}
             forecast={forecast}
+            hoverable={!drag && !disabled}
           />
         );
       })}
