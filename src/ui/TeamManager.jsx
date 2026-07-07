@@ -8,6 +8,7 @@
 // ╚══════════════════════════════════════════════════════════════════╝
 import React, { useEffect, useRef, useState } from 'react';
 import { creatureIcon, creatureColor } from '../data/axisIcons.js';
+import { sizedPortrait } from '../data/sizeArt.js';
 import { useFlip } from './useFlip.js';
 import './teamManager.css';
 
@@ -16,7 +17,7 @@ const DRAG_THRESHOLD = 6; // px before a tap becomes a drag
 
 /** The inner visual of a team card — reused by the real card AND the drag ghost. */
 function CardBody({ m, i, color }) {
-  const portrait = m.meta?.portrait || m.portrait;
+  const portrait = sizedPortrait(m.meta?.portrait || m.portrait, m.meta?.form ?? m.form ?? m.size);
   return (
     <>
       <span className="tmcPos">{i === 0 ? <Icon icon="game-icons:star-formation" /> : i + 1}</span>

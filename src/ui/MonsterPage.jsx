@@ -11,6 +11,7 @@ import { ARCHETYPE_ICON, BIOLOGY_ICON, ATTUNEMENT_ICON, ATTUNEMENT_COLOR, creatu
 import { biologyDisplayName } from '../data/biologyNaming.js';
 import { AXIS_INFO, ATTUNEMENT_SIGNATURE } from '../data/codex.js';
 import { bestiaryEntry } from '../data/bestiary.js';
+import { sizedPortrait } from '../data/sizeArt.js';
 import './MonsterPage.css';
 
 const Icon = ({ icon, ...rest }) => <iconify-icon icon={icon} {...rest}></iconify-icon>;
@@ -39,6 +40,7 @@ function normalize(c) {
     stats: c.stats || null,
     maxHp: c.maxHp ?? c.hp ?? null,
     portrait: c.portrait ?? c.meta?.portrait ?? null,
+    form: c.meta?.form ?? c.size ?? c.form ?? 'regular',
     blurb: c.blurb || null,
   };
 }
@@ -63,7 +65,7 @@ export default function MonsterPage({ creature, entry }) {
     <div className="mp">
       <div className="mpHero">
         <div className="mpPortrait" style={{ '--gl': color }}>
-          {m.portrait ? <img src={m.portrait} alt="" /> : <Icon className="mpIcon" icon={icon} style={{ color }} />}
+          {m.portrait ? <img src={sizedPortrait(m.portrait, m.form)} alt="" /> : <Icon className="mpIcon" icon={icon} style={{ color }} />}
         </div>
         <div className="mpHead">
           <h2>{m.name}</h2>

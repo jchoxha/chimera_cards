@@ -176,6 +176,20 @@ gets a monotonic `fxKeyRef` id (was `Date.now()`-based, which could collide acro
 react-spring nodes); the item springs use `useSpring(()=>…)` (function form) so a sibling being added
 never restarts an in-flight animation.
 
+**📐 PER-SIZE ART FRAMEWORK (v3.101.0, 2026-07-07):** size no longer rescales ONE portrait
+(`CardFace` dropped the `artScale(form)` CSS `transform: scale()` — it only stretched/blurred the
+image). The image renders at native size; size reads from the size word + badge. Instead each form
+can have its OWN generated portrait at `public/art/gen/<id>-<form>.png` (`regular` = base `<id>.png`),
+resolved by **`src/data/sizeArt.js`** `sizedPortrait(url, form)` and gated by the
+**`src/data/creatureArtSizes.json`** manifest (`{ id: ["large","boss",…] }`); until a variant is baked
+it falls back to the base file. Wired at every portrait render site (CardFace/SelectScreen via
+CardFace, TeamManager, RunScreen, Codex, MonsterPage). Generation is size-aware: `sizeArt.js`
+`FORM_ART_DESC` (mirrored in `scripts/gen_roster.py` `SIZE_DESC` — run `--sizes` / `--form=baby,boss`)
+draws a Baby small/cute vs a Boss colossal, and `forgeCreature.js` stamps a size-aware
+`artPromptBase`/`artPrompt`. **Images still need the `agy` Windows env to bake** (docs/art-pipeline.md
+§Per-size portraits); the JS framework + prompts are done so a `<id>-<form>.png` + a manifest entry
+just works.
+
 **🧬 PRIOR FRAMING (2026-06-27) — BIOLOGY SELECTS THE KIT SYSTEM.**
 The **archetype/Class system (Warrior/Rogue/Mage/…) applies ONLY to Humanoids**; every other
 biology gets its own native kit system, so **Biology is the primary card-pool selector**

@@ -18,6 +18,7 @@ import { BEAST_FAMILIES, anatomyForFamily, defaultAnatomy } from '../engine/card
 import { ABERRATION_FAMILIES, anatomyForAberrationFamily, defaultAberrationAnatomy } from '../engine/cards/aberrationPool.js';
 import { weaponsForArchetype, defaultWeapons } from '../engine/cards/humanoidPool.js';
 import { FORM_ORDER } from './forms.js';
+import { formArtDesc } from './sizeArt.js';
 
 const slug = (s) => String(s || '').toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_|_$/g, '');
 const clampN = (v, lo, hi) => Math.max(lo, Math.min(hi, Math.round(Number(v) || 0)));
@@ -115,7 +116,11 @@ export function sanitizeForgedDef(json, concept) {
   };
   def.signatureCards = (Array.isArray(json.signatureCards) ? json.signatureCards : [])
     .map((c, i) => sanitizeForgedCard(c, i, def)).filter(Boolean).slice(0, 3);
-  def.artPrompt = `"${name}" — ${def.description || 'a fantasy creature'} (${biologyDisplayName(biology, family ? [family] : [], subtypes)}, ${attunement.join('/')} attuned). ${ART_STYLE.split('\n')[1] || ''}`.trim();
+  // Size-aware base prompt: `${sizeToken}` is a placeholder the gen pipeline swaps
+  // per form (see data/sizeArt.js FORM_ART_DESC) so each size is DRAWN differently,
+  // not one image rescaled. Rendered here at the creature's own size for the forge.
+  def.artPromptBase = `"${name}" — ${def.description || 'a fantasy creature'} (${biologyDisplayName(biology, family ? [family] : [], subtypes)}, ${attunement.join('/')} attuned), \${sizeDesc}. ${ART_STYLE.split('\n')[1] || ''}`.trim();
+  def.artPrompt = def.artPromptBase.replace('${sizeDesc}', formArtDesc(def.size));
   return def;
 }
 

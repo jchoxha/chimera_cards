@@ -6,6 +6,10 @@
 
 /** @type {{version:string, date:string, notes:string[]}[]} newest first */
 export const CHANGELOG = [
+  { version: 'v3.101.0', date: '2026-07-07', notes: [
+    'Monster size no longer stretches or shrinks a single portrait (which just blurred it). The image now renders at its native size; a creature’s size still reads from the size word and badge on the card.',
+    'Groundwork for size-specific art: each size (Baby → Boss) can now have its own generated portrait, and the game automatically uses it when available (falling back to the base image until then). The art pipeline and AI Forge now describe each size distinctly so a Baby is drawn small and a Boss colossal.',
+  ] },
   { version: 'v3.100.7', date: '2026-07-06', notes: [
     'Hand card layering now works like a proper stack: by default the leftmost card is on the bottom and the rightmost on top; hovering any card raises it above its neighbours and it stays there. The stacking order is compacted each time so z-indices never creep upward.',
   ] },

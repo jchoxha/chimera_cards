@@ -10,6 +10,7 @@ import { frameStyle } from './frames.js';
 import { creatureIcon, creatureColor, ATTUNEMENT_ICON, ATTUNEMENT_COLOR, submatrixIcons, specialFactors } from '../../data/axisIcons.js';
 import { biologyDisplayName } from '../../data/biologyNaming.js';
 import { creatureArt } from '../../data/artPool.js';
+import { sizedPortrait } from '../../data/sizeArt.js';
 import { ELEMENT_COLOR, FORMS } from '../../systems/elements.jsx';
 
 export function Icon({ icon, ...rest }) {
@@ -89,8 +90,6 @@ export function SizeBadge({ form }) {
   if (!f || !f.label) return null;
   return <div className="size"><span className="bdg">{f.badge}</span>{f.label}</div>;
 }
-export function artScale(form) { return FORMS[form]?.art ?? 1; }
-
 /** The size word prefixed onto a creature's name ("Large Ironhide"); '' for Regular. */
 export function sizeWord(form) { return FORMS[form]?.label || ''; }
 
@@ -187,10 +186,10 @@ export function HpBar({ hp, maxHp }) {
 export function CardFace({ f, side, matchup, onEffect, onInfo, onName, extraClass = '', dataId, dataSide, rootRef }) {
   const isFoe = side === 'enemy';
   const fr = frameStyle({ types: f.types, element: f.element, rarity: f.rarity });
-  const scale = { transform: `scale(${artScale(f.form)})` };
-  // Portraits grow from the ground up so Large/Boss creatures visibly LOOM
-  // (the .art box clips the overflow) and Baby/Small ones read tiny.
-  const scaleImg = { transform: `scale(${artScale(f.form)})`, transformOrigin: '50% 100%' };
+  // Size does NOT rescale the image (that only stretched/blurred one picture).
+  // Instead we swap to a per-size portrait when one has been generated; the size
+  // otherwise reads from the size word + badge. See data/sizeArt.js.
+  const portrait = sizedPortrait(f.portrait, f.form);
   const seeCreature = onInfo ? (e) => { e.stopPropagation(); onInfo({ kind: 'creature', id: f.id }); } : undefined;
   const nameClick = onName ? (e) => { e.stopPropagation(); onName(); } : seeCreature;
   const axisInfo = (axis) => onInfo && onInfo({ kind: 'axis', axis, value: f.axes?.[axis] });
@@ -217,17 +216,17 @@ export function CardFace({ f, side, matchup, onEffect, onInfo, onName, extraClas
       <div className="inner">
         <div className="art" onClick={seeCreature} title={seeCreature ? `${f.name} — tap for details` : undefined}>
           {(() => {
-            if (f.portrait) return <img className="creature artImg gen" src={f.portrait} alt="" draggable={false} style={scaleImg} />;
+            if (portrait) return <img className="creature artImg gen" src={portrait} alt="" draggable={false} />;
             const bio = f.axes?.biology;
             const art = bio ? creatureArt({ id: f.id, biology: bio, family: f.axes?.family, subtypes: f.axes?.subtypes }) : null;
-            if (art) return <img className="creature artImg" src={art} alt="" draggable={false} style={scaleImg} />;
+            if (art) return <img className="creature artImg" src={art} alt="" draggable={false} />;
             return <>
               <div className="moon" /><div className="mtn" />
               {f.icon
-                ? <Icon className="creature" icon={f.icon} style={scale} />
+                ? <Icon className="creature" icon={f.icon} />
                 : (f.axes && (f.axes.biology || f.axes.attunement || f.axes.class))
-                  ? <Icon className="creature" icon={creatureIcon({ biology: f.axes.biology, attunement: f.axes.attunement, class: f.axes.class, types: f.types })} style={{ ...scale, color: creatureColor({ attunement: f.axes.attunement, types: f.types }) }} />
-                  : <span className="creature" style={scale}>{f.sprite || (isFoe ? '👾' : '✶')}</span>}
+                  ? <Icon className="creature" icon={creatureIcon({ biology: f.axes.biology, attunement: f.axes.attunement, class: f.axes.class, types: f.types })} style={{ color: creatureColor({ attunement: f.axes.attunement, types: f.types }) }} />
+                  : <span className="creature">{f.sprite || (isFoe ? '👾' : '✶')}</span>}
             </>;
           })()}
         </div>

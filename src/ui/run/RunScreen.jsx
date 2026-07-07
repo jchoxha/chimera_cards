@@ -15,6 +15,7 @@ import { makeRng } from '../../engine/run/rng.js';
 import { RELICS, POTIONS, EVENTS, CURSES } from '../../engine/run/content.js';
 import { draftRunReward } from '../../engine/run/rewards.js';
 import { creatureIcon, creatureColor } from '../../data/axisIcons.js';
+import { sizedPortrait } from '../../data/sizeArt.js';
 import { evolve, sizeLabel } from '../../engine/content/evolve.js';
 import { upgradedPreview } from '../../engine/cards/upgrade.js';
 import TeamManager from '../TeamManager.jsx';
@@ -39,7 +40,7 @@ function Crest({ m }) {
   return (
     <span className="pCrest" style={{ '--gl': color }}>
       {m.meta?.portrait
-        ? <img src={m.meta.portrait} alt="" />
+        ? <img src={sizedPortrait(m.meta.portrait, m.meta?.form ?? m.form ?? m.size)} alt="" />
         : <Icon className="pCrestIcon" icon={creatureIcon(m)} style={{ color }} />}
     </span>
   );

@@ -98,6 +98,24 @@ quality ~80. Target ~30–80 KB each. Write to `public/art/...`. Produce
 3. **Wire the UI** to read `manifest.json` (replaces emoji/silhouette/SVG art).
 4. **Runtime** Gemini + fallback for Forge/Fusion.
 
+## Per-size portraits (framework live 2026-07-07)
+
+Size no longer rescales one image (that stretched/blurred it). Each form can have
+its OWN portrait at `public/art/gen/<id>-<form>.png` (`regular` = the base
+`<id>.png`). The game resolves it via `src/data/sizeArt.js` `sizedPortrait(url,
+form)`, gated by `src/data/creatureArtSizes.json` (a `{ id: ["large","boss",…] }`
+manifest of which sized variants exist) — until a variant is baked it falls back
+to the base file, so nothing breaks.
+
+Generate sized art with `scripts/gen_roster.py`:
+- `python gen_roster.py --sizes` → every form for every creature (`<id>-<form>.png`);
+- `python gen_roster.py --form=baby,boss ironhide` → just those forms/ids.
+Each form uses distinct prompt phrasing (`SIZE_DESC`, mirroring `sizeArt.js`
+`FORM_ART_DESC`), so a Baby is drawn small/cute and a Boss colossal. After a run
+the script prints a JSON snippet to paste into `creatureArtSizes.json`. Still
+gated on the `agy` Windows env (below). The AI forge (`forgeCreature.js`) already
+stamps a size-aware `artPromptBase`/`artPrompt`.
+
 ## Blocked on
 
 `claude-image-gen` installed + `GEMINI_API_KEY` set + Claude Code restarted.

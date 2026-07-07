@@ -12,6 +12,7 @@ import { EFFECT_INFO, AXIS_INFO, ATTUNEMENT_SIGNATURE, SYSTEM_INFO } from '../da
 import { REACTIONS, REACTION_INFO } from '../engine/cards/reactions.js';
 import { KEYWORD_GLOSSARY } from '../engine/cards/cardText.js';
 import { ARCHETYPE_ICON, BIOLOGY_ICON, ATTUNEMENT_ICON, ATTUNEMENT_COLOR, SUBTYPE_ICON, creatureIcon, creatureColor } from '../data/axisIcons.js';
+import { sizedPortrait } from '../data/sizeArt.js';
 import { CLASS_BASES, BODY_TYPES, SUBTYPES, ATTUNEMENT_BASES } from '../data/synthesis.js';
 import { buildRoster } from '../data/roster.js';
 import { POOLS, rosterPool } from '../app/pools.js';
@@ -170,7 +171,7 @@ function BestiaryTab() {
           return (
             <button key={c.id} className="cxBeastCard" onClick={() => setSel(c.id)} style={{ '--gl': color }}>
               <span className="cxBeastArt">
-                {c.meta?.portrait ? <img src={c.meta.portrait} alt="" />
+                {c.meta?.portrait ? <img src={sizedPortrait(c.meta.portrait, c.meta?.form ?? c.size)} alt="" />
                   : <Icon icon={creatureIcon(c)} style={{ color }} />}
               </span>
               <span className="cxBeastName">{c.name}</span>
