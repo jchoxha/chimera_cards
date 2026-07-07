@@ -6,6 +6,9 @@
 
 /** @type {{version:string, date:string, notes:string[]}[]} newest first */
 export const CHANGELOG = [
+  { version: 'v3.100.5', date: '2026-07-06', notes: [
+    'Once hovered, a hand card simply stays layered above its neighbour — no z-index reset after it settles, so there’s never a clip.',
+  ] },
   { version: 'v3.100.4', date: '2026-07-06', notes: [
     'A hovered card now stays above its right-hand neighbour as it settles back down, instead of clipping behind it the moment the mouse leaves.',
   ] },
