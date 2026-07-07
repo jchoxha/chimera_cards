@@ -107,18 +107,64 @@ form)`, gated by `src/data/creatureArtSizes.json` (a `{ id: ["large","boss",…]
 manifest of which sized variants exist) — until a variant is baked it falls back
 to the base file, so nothing breaks.
 
-Generate sized art with `scripts/gen_roster.py`:
-- `python gen_roster.py --sizes` → every form for every creature (`<id>-<form>.png`);
-- `python gen_roster.py --form=baby,boss ironhide` → just those forms/ids.
-Each form uses distinct prompt phrasing (`SIZE_DESC`, mirroring `sizeArt.js`
-`FORM_ART_DESC`), so a Baby is drawn small/cute and a Boss colossal. After a run
-the script prints a JSON snippet to paste into `creatureArtSizes.json`. Still
-gated on the `agy` Windows env (below). The AI forge (`forgeCreature.js`) already
-stamps a size-aware `artPromptBase`/`artPrompt`.
+Two ways to bake the images:
+- **Windows `agy` CLI** — `python gen_roster.py --sizes` (every form for every
+  creature) or `python gen_roster.py --form=baby,boss ironhide` (just those
+  forms/ids). Prints a JSON snippet to paste into `creatureArtSizes.json`.
+- **AGY Image-Gen MCP, straight from a cloud Claude session** (see next section —
+  this now WORKS in-session; no Windows box needed).
 
-## Blocked on
+Each form uses distinct prompt phrasing (`SIZE_DESC` in `gen_roster.py`, mirroring
+`sizeArt.js` `FORM_ART_DESC`), so a Baby is drawn small/cute and a Boss colossal.
+The AI forge (`forgeCreature.js`) already stamps a size-aware
+`artPromptBase`/`artPrompt`.
 
-`claude-image-gen` installed + `GEMINI_API_KEY` set + Claude Code restarted.
+## ✅ Generating art from a CLOUD session (AGY Image-Gen MCP — verified 2026-07-07)
+
+Image generation NO LONGER needs the Windows box. The **AGY Image Gen/Editing**
+connector exposes MCP tools that drive the same `agy` pipeline from a web/cloud
+Claude Code session. **Prereq: the connector must be ENABLED for the chat**
+(`ListConnectors` → if `enabledInChat:false`, turn it on in the chat's connector
+settings; the tools silently vanish otherwise). Load them with
+`ToolSearch("AGY_Image_Gen_Editing")`. The flow is async (a single call can exceed
+the ~60s cloud timeout, so it runs as a background job):
+
+1. `mcp__AGY_Image_Gen_Editing__generate_image({ prompt })` → returns a `job_id`
+   immediately. (Optional `idle_seconds`, `hard_cap_seconds`.)
+2. Poll `mcp__AGY_Image_Gen_Editing__get_result({ job_id })` every ~15–20s until
+   `status: done` (it returns the image inline so you can eyeball it).
+3. `mcp__AGY_Image_Gen_Editing__get_image_base64({ job_id })` → raw base64 **JPEG**
+   bytes. Decode and write to `public/art/gen/<id>-<form>.png` (an `<img>` renders
+   JPEG bytes in a `.png`-named file fine; if you want true PNGs downscaled to
+   ~384², pipe through ImageMagick/`sharp` first, matching the existing portraits).
+4. `mcp__AGY_Image_Gen_Editing__edit_image({ instructions, image_path|image_base64 })`
+   to tweak an existing image (else edits the most recent generate).
+
+Prompt recipe (reuse verbatim from `scripts/gen_roster.py`): `Subject: <CREATURES
+subject for the id>. <SIZE_DESC[form]>\n\nStyle: <STYLE>`.
+
+### NEXT-SESSION PLAN — bake per-size portraits
+
+1. Confirm the connector is enabled in-chat; `ToolSearch("AGY_Image_Gen_Editing")`.
+2. Pick scope with the user:
+   - **Sanity set** (prove the loop): e.g. `ironhide-boss`, `emberwisp-baby`.
+   - **Full sweep**: 12 roster creatures × 5 non-`regular` forms = **60 images**.
+3. For each `(id, form)`: build the prompt from `gen_roster.py`
+   `CREATURES[id]` + `SIZE_DESC[form]` + `STYLE`; `generate_image`; keep the
+   `job_id`. (Fire several, then poll — they run concurrently.)
+4. Poll `get_result` until done; `get_image_base64`; write
+   `public/art/gen/<id>-<form>.png` (downscale to ~384² PNG for parity).
+5. Add the baked forms to `src/data/creatureArtSizes.json`, e.g.
+   `{ "ironhide": ["boss"], "emberwisp": ["baby"] }`.
+6. Verify in-browser (Playwright, `/app.html` → assemble → practice fight): a
+   creature at that form now shows `<id>-<form>.png` (its `<img src>` ends
+   `-<form>.png`); `regular` still uses the base file.
+7. Bump `APP_VERSION`, add a changelog entry, update this doc + CLAUDE.md's
+   project-state, commit per-milestone, push to `main` (deploy auto-builds).
+
+The JS framework (resolver + manifest + size-aware prompts) is already shipped in
+v3.101.0, so once the PNGs + the manifest entries land, the game uses them with
+zero further code.
 
 ## TODO — roster portraits to regenerate (flagged 2026-06-23, Jeton)
 

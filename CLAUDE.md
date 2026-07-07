@@ -176,6 +176,19 @@ gets a monotonic `fxKeyRef` id (was `Date.now()`-based, which could collide acro
 react-spring nodes); the item springs use `useSpring(()=>…)` (function form) so a sibling being added
 never restarts an in-flight animation.
 
+**▶️ NEXT SESSION — BAKE THE PER-SIZE PORTRAITS (art gen now works IN-SESSION).** The v3.101.0
+framework below is done; what remains is generating the actual images. **Image generation no longer
+needs the Windows box** — the **AGY Image Gen/Editing** MCP connector drives the `agy` pipeline from a
+cloud session (VERIFIED 2026-07-07). Prereq: the connector must be **enabled in the chat**
+(`ListConnectors` → if `enabledInChat:false`, toggle it on in the chat's connector settings, else the
+tools silently disappear). Load via `ToolSearch("AGY_Image_Gen_Editing")`. Async flow:
+`generate_image({prompt})` → `job_id`; poll `get_result({job_id})` ~15–20s until done;
+`get_image_base64({job_id})` → base64 JPEG → write `public/art/gen/<id>-<form>.png`. **Full step-by-step
+plan + prompt recipe + scope options (sanity 2 imgs vs full sweep 60) is in `docs/art-pipeline.md`
+§"Generating art from a CLOUD session" / §"NEXT-SESSION PLAN".** After baking: add the forms to
+`src/data/creatureArtSizes.json`, verify in-browser, bump version, commit. (Also still-open from
+2026-06-23: regen `tidecaller` (no portrait) + `frostmind` base portraits — same tool.)
+
 **📐 PER-SIZE ART FRAMEWORK (v3.101.0, 2026-07-07):** size no longer rescales ONE portrait
 (`CardFace` dropped the `artScale(form)` CSS `transform: scale()` — it only stretched/blurred the
 image). The image renders at native size; size reads from the size word + badge. Instead each form
