@@ -18,6 +18,7 @@ export default defineConfig({
         combat: "combat.html",
         editor: "editor.html",
         app: "app.html",
+        battle: "battle.html",
       },
     },
   },
