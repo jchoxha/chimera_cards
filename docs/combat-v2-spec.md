@@ -266,14 +266,18 @@ spec'd separately when Steps 1–3 stabilize.
 ## 12. Staging plan (each step independently shippable, v1 stays live)
 
 0. **Preserve v1** — commit `165e0a1` on `main` (local tag `v3.108.0`); v1 engine/UI left intact. ✅ done
-1. **Stat model** — rename Might→Attack; add Defense/Evasion/Accuracy; Guard/Block→buffs-as-temp-HP;
-   redefine Speed's *value*; lock the formulas (Defense divisor?, Accuracy floor?). Wire + node-test in
-   the current engine so it's verifiable in isolation. **Then update `docs/game-overview.md` §Stats.**
-2. **Squad-Round engine, headless** — `src/engine/battle/`: commit→reveal→resolve-by-speed, per-action
-   global order + priority + seeded RNG (binary hit/miss), end-of-round ticks, dead-target ruleset.
-   Start at 1 squad × 1 creature per side (parity check), then scale. Node smoke tests before any UI.
-3. **Squads** — 1–3 creatures, front/support, per-squad energy + shared deck, deck sizing + solo floor,
-   reposition-for-energy, back-row targeting; **reactions-v2 sub-spec**.
+1. **Stat model** — ✅ **DONE** — `src/engine/battle/stats.js` (7 stats, Pokémon ratio damage +
+   `displayedDamage`, Focus/Resolve status ratios, land% floor 0, Block/buffs as temp HP; `battleStats`
+   reuses v1's biology composition untouched). `test:battle` (25). `docs/game-overview.md` §Stats updated.
+2. **Squad-Round engine, headless** — ✅ **CORE DONE** — `src/engine/battle/round.js`:
+   commit→resolve in one global order (priority → owner Speed → seeded tiebreak), binary hit/miss,
+   ratio damage → Block(temp HP) → HP, end-of-round ticks. `test:battleround` (10).
+3. **Squads** — 🔨 **ENGINE DONE** — `src/engine/battle/state.js`: squad board (1–3 creatures,
+   front Vanguard + Support), squad-aware targeting (default squad-scoped redirect to live front,
+   `locked`/`adaptive`/`reachesBack`, auto-promote on death), auto-swap-forward, reposition. Backward-
+   compatible with flat state. `test:battlesquad` (8). **PENDING:** the plan/commit layer (per-squad
+   deck/hand draw + energy spend + blind commit), deck sizing + solo floor, and the **reactions-v2
+   sub-spec**.
 4. **Battle UI** — top/bottom semi-3D, full-card units, per-squad plan→Resolve, carousel, auto-focus
    resolution.
 5. **RNG polish + AI** — cannot-miss/blind status tools; prediction AI; balance pass.

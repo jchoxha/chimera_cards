@@ -16,7 +16,13 @@ is the caster). **Stats reworked to 7:** Attack · Defense (passive dmg-reductio
 energy) · **Speed** (= resolution order). **Guard/Block → buffs = temporary HP** (scaled by
 Focus/Resolve; Speed decides if Block lands before the hit). Intent/Peek is GONE. Full authoritative
 spec + the staging plan (Step 1 = stat model, then the headless squad-round engine, then squads, then a
-top/bottom semi-3D full-card UI) is **`docs/combat-v2-spec.md`**. **v1 is preserved** at commit
+top/bottom semi-3D full-card UI) is **`docs/combat-v2-spec.md`**. **BUILD PROGRESS:** Steps 1–2 + the
+Step-3 squad engine CORE are built + node-tested in `src/engine/battle/` — `stats.js` (7-stat model +
+formulas, `test:battle` 25), `round.js` (simultaneous round resolver: priority→speed→seeded-tie order,
+binary hit/miss, ratio damage, Block=temp-HP, end-of-round ticks, `test:battleround` 10), `state.js`
+(squad board + squad-aware targeting/redirect/reach/auto-swap/reposition, `test:battlesquad` 8). v1
+untouched + green. **NEXT:** the plan/commit layer (per-squad deck/hand + energy + blind commit),
+deck sizing, reactions-v2, then the store + UI. **v1 is preserved** at commit
 `165e0a1` on `main` (local tag `v3.108.0`; tag push blocked by egress policy) and the v1 engine/UI stay
 intact + runnable while v2 grows in a parallel namespace (`src/engine/battle/`, `src/store`, `src/ui/battle/`).
 

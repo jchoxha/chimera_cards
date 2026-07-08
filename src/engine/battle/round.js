@@ -4,19 +4,25 @@
 // ║ ACTION across the board resolves in ONE global order:                      ║
 // ║   priority tier (desc) → owner Speed (desc) → seeded coin-flip tiebreak.   ║
 // ║ Attacks roll a binary hit (Accuracy − Evasion, floor 0; lock-on skips),    ║
-// ║ deal Pokémon-ratio damage absorbed by Block (temporary HP) then HP; a      ║
-// ║ dead owner or a gone target fizzles (energy already spent). DoTs/Regen     ║
-// ║ tick once at END OF ROUND. Pure + seeded (pass an rng) → node-testable.    ║
-// ║ Step-2 scope: single-creature units; squad redirect/targeting = Step 3.    ║
-// ║ UPDATE WHEN: the round loop, ordering, or effect application changes.      ║
+// ║ deal Pokémon-ratio damage absorbed by Block (temporary HP) then HP.        ║
+// ║ TARGETING is squad-aware (state.js): default attacks are squad-scoped and  ║
+// ║ redirect to the target squad's live front (focus-fire denies at the squad  ║
+// ║ level); `locked` binds to the instance (fizzle if gone), `adaptive`        ║
+// ║ retargets anywhere, `reachesBack` can strike a Support. Playing a          ║
+// ║ swaps-forward card auto-promotes its owner to Vanguard (positions live at  ║
+// ║ fire time). DoTs/Regen tick once at END OF ROUND. Pure + seeded.           ║
+// ║ UPDATE WHEN: the round loop, ordering, targeting, or effects change.       ║
 // ╚══════════════════════════════════════════════════════════════════╝
 import { attackDamage, landChance, rollHit, buffMagnitude, debuffMagnitude } from './stats.js';
+import { unitSquad, liveFrontUnit, reachable, setFront, anyLiveEnemyFront, makeUnit } from './state.js';
 
-/** @typedef {{ id, name, priority?, lockOn?, effects:{op:string,value:number,status?:string,matchup?:number}[] }} BattleCard */
-/** @typedef {{ ownerId:string, targetId:string, card:BattleCard }} BattleAction */
+export { makeUnit };   // re-export so callers can build units from one entry point
+
+/** @typedef {{ id, name, priority?, lockOn?, locked?, adaptive?, reachesBack?, swapsForward?, effects:{op,value,status?,matchup?}[] }} BattleCard */
+/** @typedef {{ ownerId:string, targetId?:string, type?:'reposition', toId?:string, card?:BattleCard }} BattleAction */
 
 const OFFENSIVE_OPS = new Set(['damage', 'debuff']);
-const isOffensive = (card) => (card.effects || []).some((e) => OFFENSIVE_OPS.has(e.op));
+const isOffensive = (card) => (card?.effects || []).some((e) => OFFENSIVE_OPS.has(e.op));
 const live = (u) => !!u && u.hp > 0;
 
 /** Global resolution order: priority ↓, owner Speed ↓, then a per-action SEEDED
@@ -24,7 +30,7 @@ const live = (u) => !!u && u.hp > 0;
 export function resolveOrder(actions, unitsById, rng) {
   const keyed = actions.map((a) => ({ a, tie: rng() }));
   keyed.sort((x, y) => {
-    const px = x.a.card.priority || 0, py = y.a.card.priority || 0;
+    const px = x.a.card?.priority || 0, py = y.a.card?.priority || 0;
     if (px !== py) return py - px;
     const sx = unitsById[x.a.ownerId]?.stats.speed ?? 0;
     const sy = unitsById[y.a.ownerId]?.stats.speed ?? 0;
@@ -32,6 +38,27 @@ export function resolveOrder(actions, unitsById, rng) {
     return x.tie - y.tie;
   });
   return keyed.map((k) => k.a);
+}
+
+/** Squad-scoped offensive target resolution + redirect (spec §7 dead-target ruling). */
+function resolveOffensiveTarget(state, action) {
+  const card = action.card;
+  const tgt = state.unitsById[action.targetId];
+  if (card.locked) return live(tgt) ? tgt : null;                        // true snipe → fizzle if gone
+  if (card.adaptive) {
+    if (live(tgt) && reachable(state, tgt, card)) return tgt;
+    return anyLiveEnemyFront(state, state.unitsById[action.ownerId]?.side);
+  }
+  const squad = tgt ? unitSquad(state, tgt) : null;
+  if (!squad) return live(tgt) ? tgt : null;                             // legacy solo unit
+  if (card.reachesBack && live(tgt)) return tgt;                         // strike the specific Support
+  return liveFrontUnit(state, squad);                                    // else the squad's live front
+}
+
+/** Friendly ops (block/buff/heal): the direct target, no redirect. */
+function directTarget(state, action) {
+  const tgt = state.unitsById[action.targetId];
+  return live(tgt) ? tgt : null;
 }
 
 /** Absorb `amount` into Block (temp HP) first, then HP. Block persists (no decay). */
@@ -49,29 +76,40 @@ function addStatus(unit, id, amount) {
   if (s) s.amount += amount; else unit.statuses.push({ id, amount });
 }
 
-/** Resolve one committed action against the LIVE board. Fizzles (no effect) if the
- *  owner is dead, the target is gone (Step-3 adds squad redirect), or the attack misses. */
+/** Resolve one committed action against the LIVE board. */
 export function applyAction(state, action, rng, log) {
   const owner = state.unitsById[action.ownerId];
   if (!live(owner)) { log.push({ type: 'fizzle', reason: 'owner-dead', ownerId: action.ownerId }); return; }
-  const target = state.unitsById[action.targetId];
-  const offensive = isOffensive(action.card);
-  if (!live(target)) { log.push({ type: 'fizzle', reason: 'no-target', ownerId: owner.id, card: action.card.id }); return; }
 
-  if (offensive && !action.card.lockOn) {
-    const chance = landChance(owner.stats.accuracy, target.stats.evasion);
-    if (!rollHit(chance, rng)) { log.push({ type: 'miss', ownerId: owner.id, targetId: target.id, card: action.card.id, chance }); return; }
+  // Reposition (no card): move a squad member to the front (energy paid by the planner).
+  if (action.type === 'reposition') {
+    const to = state.unitsById[action.toId];
+    if (live(to) && to.squadId === owner.squadId && setFront(state, to)) log.push({ type: 'reposition', squadId: owner.squadId, frontId: to.id });
+    else log.push({ type: 'fizzle', reason: 'reposition', ownerId: owner.id });
+    return;
   }
-  log.push({ type: 'play', ownerId: owner.id, targetId: target.id, card: action.card.id });
 
-  for (const e of action.card.effects || []) {
+  const card = action.card;
+  // Auto-swap forward: a `swapsForward` card pulls its owner to the Vanguard slot.
+  if (card.swapsForward && setFront(state, owner)) log.push({ type: 'swap', squadId: owner.squadId, frontId: owner.id });
+
+  const offensive = isOffensive(card);
+  const target = offensive ? resolveOffensiveTarget(state, action) : directTarget(state, action);
+  if (!live(target)) { log.push({ type: 'fizzle', reason: 'no-target', ownerId: owner.id, card: card.id }); return; }
+
+  if (offensive && !card.lockOn) {
+    const chance = landChance(owner.stats.accuracy, target.stats.evasion);
+    if (!rollHit(chance, rng)) { log.push({ type: 'miss', ownerId: owner.id, targetId: target.id, card: card.id, chance }); return; }
+  }
+  log.push({ type: 'play', ownerId: owner.id, targetId: target.id, card: card.id });
+
+  for (const e of card.effects || []) {
     switch (e.op) {
       case 'damage': {
-        const dmg = attackDamage(e.value, owner.stats.attack, target.stats.defense, e.matchup ?? 1);
-        dealDamage(target, dmg, log);
+        dealDamage(target, attackDamage(e.value, owner.stats.attack, target.stats.defense, e.matchup ?? 1), log);
         break;
       }
-      case 'block': {   // Block is a buff → temporary HP (self-target here)
+      case 'block': {   // Block is a buff → temporary HP (self)
         const amt = buffMagnitude(e.value, owner.stats.resolve);
         owner.block = (owner.block || 0) + amt;
         log.push({ type: 'block', unitId: owner.id, amount: amt, total: owner.block });
@@ -121,13 +159,8 @@ export function endOfRound(state, log) {
 export function resolveRound(state, actions, rng) {
   const log = [];
   const ordered = resolveOrder(actions, state.unitsById, rng);
-  log.push({ type: 'order', ids: ordered.map((a) => `${a.ownerId}:${a.card.id}`) });
+  log.push({ type: 'order', ids: ordered.map((a) => `${a.ownerId}:${a.card?.id ?? a.type}`) });
   for (const action of ordered) applyAction(state, action, rng, log);
   endOfRound(state, log);
   return log;
-}
-
-/** Convenience: build a Step-2 battle unit (single creature). */
-export function makeUnit({ id, side, squadId = id, stats, hp, maxHp, block = 0, statuses = [] }) {
-  return { id, side, squadId, stats: { ...stats }, hp: hp ?? maxHp, maxHp: maxHp ?? hp, block, statuses: [...statuses] };
 }
