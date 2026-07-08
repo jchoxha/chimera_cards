@@ -6,6 +6,20 @@ a single-file Claude artifact now split into ES modules.
 
 ## ⚑ Project state — read this first (updated 2026-06-18)
 
+**⚔️ NEXT-GEN COMBAT DIRECTION LOCKED (2026-07-08, Jeton) — the Squad-Round rework.** Combat is being
+rebuilt from the Vanguard/Peek model into a **Pokémon-style simultaneous blind-commit** engine: both
+sides commit hidden, everything **resolves at once in per-creature Speed order**; the single
+active-vanguard+bench becomes up to **10 squads** of **1–3 creatures** (1 front Vanguard + 2 Support),
+each squad with **per-squad energy** + a **shared deck** (cards owned by/labeled per creature; the owner
+is the caster). **Stats reworked to 7:** Attack · Defense (passive dmg-reduction) · Focus · Resolve ·
+**Evasion · Accuracy** (base 100; `land% = Accuracy − Evasion`, binary hit/miss, a miss still costs
+energy) · **Speed** (= resolution order). **Guard/Block → buffs = temporary HP** (scaled by
+Focus/Resolve; Speed decides if Block lands before the hit). Intent/Peek is GONE. Full authoritative
+spec + the staging plan (Step 1 = stat model, then the headless squad-round engine, then squads, then a
+top/bottom semi-3D full-card UI) is **`docs/combat-v2-spec.md`**. **v1 is preserved** at commit
+`165e0a1` on `main` (local tag `v3.108.0`; tag push blocked by egress policy) and the v1 engine/UI stay
+intact + runnable while v2 grows in a parallel namespace (`src/engine/battle/`, `src/store`, `src/ui/battle/`).
+
 This repo currently holds **two codebases** that coexist:
 
 1. **The React prototype** (`index.html` → `src/main.jsx` → `src/App.jsx`): the
@@ -935,6 +949,8 @@ first APP_VERSION bump.
 
 **Deep-dive docs:** **`docs/game-overview.md` (THE conceptual portrait — vision, fantasy,
 all pillars + live design tensions; read this first to work on the game conceptually)**,
+**`docs/combat-v2-spec.md` (⚔️ THE NEXT-GEN COMBAT DIRECTION — squad-round / simultaneous
+blind-commit / 7-stat rework; LIVE spec, being built now in a parallel namespace)**,
 `docs/combat-engine-spec.md` (**LOCKED Vanguard/Peek combat
 spec — the active rebuild**), **`docs/mechanics.md` (MASTER MECHANICS REGISTRY — statuses,
 the reaction framework + status×attunement matrix, keywords, AI/readout master plans)**,
