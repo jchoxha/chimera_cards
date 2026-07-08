@@ -42,16 +42,19 @@ A clean symmetry — three matched attacker/defender pairs + order:
 | **Hit chance** | **Accuracy** | **Evasion** | whether an attack/debuff *lands* |
 | **Order** | **Speed** | — | *when* an action resolves |
 
-- **Attack** — multiplies outgoing attack damage. (was "Might".)
-- **Defense** — passive damage reduction. 🔧 a **divisor** on incoming (Defense 1.25 → take 80%), for
-  symmetry with Attack. ❓ *divisor vs. subtractive "armor" (−N) — finalize in Step 1.* Not related to
-  Block.
+- **Attack** — the opposing stat to Defense. **Pokémon-style raw stat.** (was "Might".)
+- **Defense** — the opposing stat to Attack. **Pokémon-style**: `damage = power × Attack ÷ Defense`
+  (a raw-stat **ratio**, NOT a standalone "% less damage" modifier — Defense only matters relative to the
+  attacker's Attack). ✅ Not related to Block.
 - **Focus** — increases magnitude of buffs/debuffs you apply to **others**.
 - **Resolve** — increases magnitude of buffs you **receive** + resistance (magnitude reduction) to
   debuffs you receive.
 - **Evasion** — flat **subtraction** from an attacker's Accuracy → chance to avoid being hit by
   attacks *and* debuffs.
-- **Accuracy** — base **100** (= 100% to hit before Evasion). `landChance% = Accuracy − Evasion`.
+- **Accuracy** — base **100**. `landChance% = clamp(Accuracy − Evasion, 0, 100)`. **The floor is 0% — a
+  guaranteed miss is possible** (if Evasion ≥ Accuracy) for any non-`lock-on` move; `lock-on` /
+  cannot-miss cards bypass the roll entirely. Enough Evasion is a real build (a hard dodge tank) whose
+  only counter is lock-on / accuracy buffs. ✅
 - **Speed** — sets **resolution order** (§7). Per-creature (§4). Also decides whether your Block
   lands before an incoming hit (§7).
 
@@ -68,14 +71,24 @@ any buff): self-block `× Resolve(self)`; ally-block `× Focus(caster) × Resolv
   the incoming hit actually protects). ❓ *watch for degeneracy (infinite stacking); we may cap it, add
   slow decay, or reserve true persistence to specific "lasting ward" cards. Decide during Step 3.*
 
-### The formulas (🔧 defaults, finalized in Step 1)
+### Stat derivation — raw stats, base 50 (🔧 working model, numbers tunable)
+Stats are **raw Pokémon-style numbers** derived from the biology composition (`Body × Subtype ×
+Family × size`), centered so a **neutral creature = Attack/Defense/Focus/Resolve 50, Accuracy 100,
+Evasion 0, Speed 50** — at parity (50 vs 50) a card deals its **face value**. The existing
+`biologyStats` factors (Mechanical guard ×1.4, Giant hp ×1.6…) scale the base 50 (Mechanical Defense
+≈ 70, etc.). v1's `biologyStats` is untouched; v2 adds `battleStats()` beside it. Because damage uses
+the **ratio** Attack/Defense, the absolute base (50) cancels at parity and only *relative* stats matter.
+
+### The formulas (🔧 defaults, `src/engine/battle/stats.js`)
 ```
-landChance%   = clamp(Accuracy_attacker − Evasion_target, floor?, 100)   ❓ is there a floor >0?
-hit           = seededRoll(0..100) < landChance      // binary; a MISS still spends the energy ✅
-attackDamage  = round( base × Attack_att × matchup ÷ Defense_tgt × stanceMult )
+landChance%   = clamp(Accuracy_att − Evasion_tgt, 0, 100)   // FLOOR 0 → guaranteed miss possible ✅
+hit           = seededRoll(0..100) < landChance             // binary; a MISS still spends energy ✅
+                (lock-on / cannot-miss cards skip the roll)
+attackDamage  = round( power × (Attack_att ÷ Defense_tgt) × matchup × stanceMult )   // Pokémon ratio ✅
                 → absorbed by target Block(temp HP) → then HP
-buffMagnitude = round( base × Resolve_recipient × (Focus_caster if caster≠recipient else 1) )
-debuffMag     = round( base × Focus_caster ÷ Resolve_target )   // landing also rolls Accuracy/Evasion
+debuffMag     = round( base × (Focus_caster ÷ Resolve_target) )   // landing also rolls Acc/Eva
+buffMag       = round( base × (Resolve_recipient ÷ 50) × (Focus_caster ÷ 50 if caster≠recipient) )
+blockGain     = buffMag   // Block (temp HP) is a buff
 ```
 - Sure-hit / cannot-miss effects bypass the roll ✅.
 - Seeded RNG (reuse `run/rng.js` mulberry32) so combat is replayable + node-testable ✅.
@@ -264,7 +277,8 @@ spec'd separately when Steps 1–3 stabilize.
 6. **Squad-builder meta** + flip the app from v1 → v2 at parity.
 
 ### Open decisions still to lock (tracked)
-- Defense: divisor vs subtractive; Accuracy floor > 0? (Step 1)
+- ~~Defense: divisor vs subtractive; Accuracy floor > 0?~~ ✅ LOCKED — Pokémon-style Attack÷Defense
+  ratio; land% floor 0 (guaranteed miss for non-lock-on).
 - `priority` field on cards; tie-break rule (Step 2)
 - Block persistence vs decay/cap (Step 3)
 - Squad energy flat vs scaling; hand size fixed vs stat (Step 3)

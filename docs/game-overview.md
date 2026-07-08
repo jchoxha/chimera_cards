@@ -64,11 +64,29 @@ Each body type has a **second, body-conditional axis** that supplies most of its
 (Chimera/Anomalous/Warped; Cybeast = Mechanical Beast; Leviathan = Giant Draconic…). Naming
 is data-driven from body × subtype × family.
 
-### Stats — five stats, no levels
+### Stats — no levels
 
-Derived from `Body × Subtype × Family` profiles: **Might** (damage) · **Guard** (block) ·
-**Focus** (effects on others) · **Resolve** (buffs gained + debuff resist) · **Speed**
-(tempo), plus HP. There are **no XP levels** — progression is **size/form** (see §3).
+All stats derive from `Body × Subtype × Family × size` profiles; there are **no XP levels** —
+progression is **size/form** (see §3).
+
+**The model is being reworked to seven stats** as part of the combat-v2 rework
+(`docs/combat-v2-spec.md`; the pure model + formulas live in `src/engine/battle/stats.js`,
+`test:battle`). It has a clean attacker/defender symmetry — three matched pairs plus order:
+
+| Axis | Attacker | Defender | Governs |
+|---|---|---|---|
+| **Damage magnitude** | **Attack** | **Defense** | how *big* an attack is — Pokémon-style ratio `power × Attack ÷ Defense` |
+| **Status magnitude** | **Focus** | **Resolve** | how *strong* a buff/debuff is |
+| **Hit chance** | **Accuracy** | **Evasion** | whether an attack/debuff *lands* — `land% = clamp(Acc − Eva, 0, 100)`, a guaranteed miss is possible |
+| **Order** | **Speed** | — | *when* it resolves (the simultaneous-resolution turn order) |
+
+Stats are **raw numbers centered on 50** (Accuracy 100 / Evasion 0), so a neutral creature deals
+a card's face value and only *relative* stats matter. **Guard & Block become buffs** (scaled by
+Focus/Resolve) and **Block = temporary HP**. HP is the sixth magnitude lever (`hpMult`).
+
+> *Live v1 combat still runs the older **5-stat** model (Might · Guard · Focus · Resolve · Speed),
+> where Might multiplies damage, Guard multiplies Block, Focus/Resolve scale statuses, and Speed
+> feeds hand size. The 7-stat model above supersedes it as v2 comes online.*
 
 ---
 
