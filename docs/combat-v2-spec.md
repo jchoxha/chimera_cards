@@ -275,9 +275,13 @@ spec'd separately when Steps 1–3 stabilize.
 3. **Squads** — 🔨 **ENGINE DONE** — `src/engine/battle/state.js`: squad board (1–3 creatures,
    front Vanguard + Support), squad-aware targeting (default squad-scoped redirect to live front,
    `locked`/`adaptive`/`reachesBack`, auto-promote on death), auto-swap-forward, reposition. Backward-
-   compatible with flat state. `test:battlesquad` (8). **PENDING:** the plan/commit layer (per-squad
-   deck/hand draw + energy spend + blind commit), deck sizing + solo floor, and the **reactions-v2
-   sub-spec**.
+   compatible with flat state. `test:battlesquad` (8).
+   **Plan/commit + round loop DONE** — `src/engine/battle/battle.js`: per-squad energy (base 3,
+   resets each round, no carry-over), `validatePlan`/`spendPlan` (blind commit ≤ squad energy),
+   `flattenPlans` (both blind commits → one ordered action list), `resolveBattleRound` (validate →
+   spend → resolve → win/loss via `battleOutcome`; invalid commit is a rejected no-op). `test:battleloop`
+   (14). **STILL PENDING:** per-squad deck/hand **draw** (shared deck, sizing + solo floor) + the
+   **reactions-v2 sub-spec**.
 4. **Battle UI** — top/bottom semi-3D, full-card units, per-squad plan→Resolve, carousel, auto-focus
    resolution.
 5. **RNG polish + AI** — cannot-miss/blind status tools; prediction AI; balance pass.
