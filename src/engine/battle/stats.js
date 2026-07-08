@@ -88,10 +88,18 @@ export function rollHit(chance, rng = Math.random) {
   return rng() * 100 < chance;
 }
 
-/** Pokémon-style damage: card power scaled by the Attack÷Defense ratio × matchup. */
-export function attackDamage(power, attackerAttack = BASE, targetDefense = BASE, matchup = 1, mult = 1) {
+/** Pokémon-style damage. `baseDamage` is the card's authored, LEGIBLE damage number —
+ *  realized 1:1 at neutral stats (Attack 50 vs Defense 50) — then scaled by the
+ *  Attack÷Defense ratio × matchup. (No abstract "power": the card says "Deal 8".) */
+export function attackDamage(baseDamage, attackerAttack = BASE, targetDefense = BASE, matchup = 1, mult = 1) {
   const def = targetDefense > 0 ? targetDefense : 1;
-  return Math.max(0, round(power * (attackerAttack / def) * matchup * mult));
+  return Math.max(0, round(baseDamage * (attackerAttack / def) * matchup * mult));
+}
+
+/** The owner-adjusted number to SHOW on a card face (StS-style, like Strength): the
+ *  card's base damage scaled by only the OWNER's Attack. Defense/matchup apply at hit. */
+export function displayedDamage(baseDamage, attackerAttack = BASE) {
+  return Math.max(0, round(baseDamage * (attackerAttack / BASE)));
 }
 
 /** Debuff magnitude: base × (caster Focus ÷ target Resolve). */

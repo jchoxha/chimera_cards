@@ -84,8 +84,11 @@ the **ratio** Attack/Defense, the absolute base (50) cancels at parity and only 
 landChance%   = clamp(Accuracy_att − Evasion_tgt, 0, 100)   // FLOOR 0 → guaranteed miss possible ✅
 hit           = seededRoll(0..100) < landChance             // binary; a MISS still spends energy ✅
                 (lock-on / cannot-miss cards skip the roll)
-attackDamage  = round( power × (Attack_att ÷ Defense_tgt) × matchup × stanceMult )   // Pokémon ratio ✅
+attackDamage  = round( baseDmg × (Attack_att ÷ Defense_tgt) × matchup × stanceMult )  // Pokémon ratio ✅
                 → absorbed by target Block(temp HP) → then HP
+                // baseDmg = the card's LEGIBLE authored number ("Deal 8"), realized 1:1 at
+                // neutral 50v50. Card FACE shows displayedDamage = baseDmg × Attack_owner/50
+                // (StS-style, like Strength); Defense/matchup apply when it lands. NO "power".
 debuffMag     = round( base × (Focus_caster ÷ Resolve_target) )   // landing also rolls Acc/Eva
 buffMag       = round( base × (Resolve_recipient ÷ 50) × (Focus_caster ÷ 50 if caster≠recipient) )
 blockGain     = buffMag   // Block (temp HP) is a buff
@@ -174,11 +177,11 @@ caster":
    sees the other's plan** ✅.
 2. **Reveal + resolve:** all committed actions across **both** sides resolve in a **single global order
    by Speed** (per owner-creature), highest first ✅.
-   - 🔧 **Order key:** `(priority tier desc, owner Speed desc, tiebreak)`. **Card priority tiers**
-     (Pokémon-style — Quick Attack / Protect) layer above Speed; "order-modification effects" live here.
-     ❓ *confirm we want an explicit `priority` field.*
-   - ❓ **Ties (equal priority + Speed):** seeded per-round initiative coin-flip, or fixed side
-     alternation? (default: seeded coin-flip.)
+   - ✅ **Order key:** `(priority tier desc, owner Speed desc, seeded tiebreak)`. **Cards carry a
+     `priority` field** (Pokémon-style — Quick Attack / Protect); default 0, higher resolves first,
+     layered ABOVE Speed. "Order-modification effects" live here.
+   - ✅ **Ties (equal priority + Speed):** **seeded coin-flip** — implemented as a per-action seeded
+     random key (deterministic + fair; avoids an unstable comparator).
    - 🔧 **Granularity:** because Speed is per-creature and cards are owned, resolution is **per-action**
      (each queued card resolves on its owner's Speed tick), *not* per-squad blocks. A squad that queues
      3 cards has 3 actions interleaved with everyone else's by Speed. Readability is handled by the
@@ -279,7 +282,10 @@ spec'd separately when Steps 1–3 stabilize.
 ### Open decisions still to lock (tracked)
 - ~~Defense: divisor vs subtractive; Accuracy floor > 0?~~ ✅ LOCKED — Pokémon-style Attack÷Defense
   ratio; land% floor 0 (guaranteed miss for non-lock-on).
-- `priority` field on cards; tie-break rule (Step 2)
+- ~~`priority` field on cards; tie-break rule~~ ✅ LOCKED — cards carry `priority` (default 0, higher
+  first, above Speed); ties → seeded per-action key.
+- ~~Ambiguous "power" vs legible damage~~ ✅ LOCKED — cards author concrete base damage (`value`),
+  realized 1:1 at neutral stats; face shows owner-adjusted (StS-style).
 - Block persistence vs decay/cap (Step 3)
 - Squad energy flat vs scaling; hand size fixed vs stat (Step 3)
 - Exact deck sizes + solo/duo floor (Step 3)
