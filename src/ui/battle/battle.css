@@ -26,19 +26,24 @@
 /* Width-driven cards (same model as the collection grid): .combat fills the box
    width and its height follows the card proportions. Front Vanguard large, Support
    smaller. The zones scroll if a side has many squads. */
-.bUnit { position: relative; flex: 0 0 auto; min-width: 0; transition: transform .12s, filter .12s; }
-.bUnit.front { width: clamp(116px, 12vw, 156px); }
-.bUnit.support { width: clamp(80px, 8vw, 106px); opacity: .95; }
-/* explicit card HEIGHT → the art has a definite box to fill (object-fit:cover),
-   so nothing overflows; width comes from .bUnit. */
-.bUnit.front .combat { width: 100%; height: clamp(150px, 30vh, 258px); max-height: none; }
-.bUnit.support .combat { width: 100%; height: clamp(104px, 21vh, 176px); max-height: none; }
+/* Cards are deliberately SMALL (shrink everything); click any card for a big view.
+   Width comes from .bUnit, an explicit .combat height gives the art a box to fill. */
+.bUnit { position: relative; flex: 0 0 auto; min-width: 0; cursor: pointer; transition: transform .12s, filter .12s; }
+.bUnit.front { width: clamp(84px, 8.5vw, 116px); z-index: 2; }
+.bUnit.support { width: clamp(56px, 6vw, 82px); opacity: .92; align-self: flex-end; }
+.bUnit.front .combat { width: 100%; height: clamp(112px, 22vh, 190px); max-height: none; }
+.bUnit.support .combat { width: 100%; height: clamp(78px, 15vh, 132px); max-height: none; }
 .bUnit.support .combat .axesLine, .bUnit.support .combat .stats { display: none; }   /* declutter minis */
+.bUnit .combat .nameBan { font-size: 10px; }
+.bUnit .hpFill { transition: width .38s ease; }              /* HP drains smoothly during Fight playback */
 .bUnit.dead { filter: grayscale(.85) brightness(.6); }
 .bUnit .combat .sideTag { display: none; }
+.bUnit:hover { transform: translateY(-3px); }
+.bUnit.acting .combat { outline: 3px solid var(--gold); outline-offset: 2px; box-shadow: 0 0 22px #f0c84a88; }
 .battleScreen.dragging .bUnit { cursor: copy; }
-.battleScreen.dragging .bUnit:hover { transform: translateY(-4px); }
-.battleScreen.dragging .bUnit:hover .combat { outline: 3px solid var(--gold); outline-offset: 2px; box-shadow: 0 0 20px #f0c84a66; }
+.battleScreen.dragging .bUnit:hover .combat { outline: 3px solid var(--good); outline-offset: 2px; box-shadow: 0 0 20px #2ecc7188; }
+.battleScreen.resolving { pointer-events: none; }
+.battleScreen.resolving .bZoom, .battleScreen.resolving .bMid { pointer-events: auto; }
 
 /* per-squad energy pips */
 .bEnergy { display: flex; align-items: center; gap: 3px; }
@@ -51,17 +56,32 @@
   background: #00000055; border: 1px solid var(--gold-deep); border-radius: 999px; padding: 1px 8px; }
 
 /* middle band */
-.bMid { flex: 0 0 auto; display: flex; align-items: center; justify-content: center; padding: 6px; }
-.bResolve { font-size: 16px; display: inline-flex; align-items: center; gap: 8px; }
-.bOutcome { font-family: var(--font-display); font-size: 26px; letter-spacing: 3px; text-transform: uppercase; padding: 6px 26px;
-  border-radius: 12px; border: 1px solid var(--gold-deep); }
+.bMid { flex: 0 0 auto; display: flex; align-items: center; justify-content: center; padding: 4px; min-height: 34px; }
+.bVs { font-family: var(--font-display); font-size: 12px; letter-spacing: 1.5px; text-transform: uppercase; color: var(--ink-faint); }
+.bOutcome { display: inline-flex; align-items: center; gap: 14px; font-family: var(--font-display); font-size: 24px; letter-spacing: 3px;
+  text-transform: uppercase; padding: 5px 24px; border-radius: 12px; border: 1px solid var(--gold-deep); }
 .bOutcome.win { color: var(--good); border-color: var(--good-line); background: #10261a; }
 .bOutcome.lose { color: var(--bad); border-color: var(--bad-line); background: #2a1418; }
+.bNew { width: 30px; height: 30px; border-radius: 8px; border: 1px solid var(--gold-deep); background: var(--surface-2);
+  color: var(--gold-bright); cursor: pointer; display: grid; place-items: center; font-size: 16px; }
+.bNew:hover { border-color: var(--gold); }
 
 /* hand */
-.bHandBar { flex: 0 0 auto; border-top: 1px solid var(--line); background: #1a130d; padding: 6px 16px 10px; }
+.bHandBar { flex: 0 0 auto; border-top: 1px solid var(--line); background: #1a130d; padding: 6px 16px 10px; position: relative; }
+.bHandTop { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 6px; }
 .bHandLbl { font: 700 11px var(--font-display); letter-spacing: 1px; text-transform: uppercase; color: var(--gold);
-  display: flex; align-items: center; gap: 12px; margin-bottom: 6px; }
+  display: flex; align-items: center; gap: 12px; }
+.bEnergyMini { font-family: var(--font-body); text-transform: none; letter-spacing: 0; color: var(--ink-dim); font-size: 12px; }
+/* Undo · Reset · Fight — icon controls, top-right of the hand space */
+.bControls { display: flex; align-items: center; gap: 8px; }
+.bCtl { width: 38px; height: 38px; border-radius: 10px; border: 1px solid var(--line); background: var(--surface-2);
+  color: var(--ink); cursor: pointer; display: grid; place-items: center; font-size: 19px; transition: transform .1s, border-color .1s, background .1s; }
+.bCtl:hover:not(:disabled) { border-color: var(--gold); color: var(--gold-bright); transform: translateY(-2px); }
+.bCtl:disabled { opacity: .35; cursor: default; }
+.bCtl.fight { width: 54px; height: 42px; font-size: 24px; color: #16110a; border-color: var(--gold-bright);
+  background: linear-gradient(#f0c84a, #c9922e); box-shadow: 0 3px 0 #7a5a12, 0 5px 12px #0008; }
+.bCtl.fight:hover:not(:disabled) { transform: translateY(-2px); box-shadow: 0 5px 0 #7a5a12, 0 8px 16px #0009; }
+.bCtl.fight:disabled { box-shadow: none; }
 .bHand { display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; min-height: 118px; }
 .bHandEmpty { color: var(--ink-faint); font-style: italic; align-self: center; }
 /* Move card — element-tinted header strip, cost orb, type line, rules text. */
@@ -83,6 +103,31 @@
 .bDragGhost { position: fixed; z-index: 999; transform: translate(-50%, -50%) rotate(-3deg); pointer-events: none;
   filter: drop-shadow(0 12px 22px #000b); }
 .bDragGhost .bCard { transform: none; }
+
+/* ── floating combat numbers ── */
+.bFx { position: fixed; z-index: 900; transform: translate(-50%, -50%); pointer-events: none;
+  font-family: var(--font-display); font-weight: 900; font-size: 22px; text-shadow: 0 2px 4px #000, 0 0 8px #000;
+  animation: bFxRise 1s ease-out forwards; }
+.bFx.dmg { color: #ff5a4a; }
+.bFx.blocked { color: #cbd5e1; font-size: 18px; }
+.bFx.block { color: #f0c84a; }
+.bFx.heal { color: #4ade80; }
+.bFx.miss { color: #cbd5e1; font-size: 16px; letter-spacing: 2px; }
+.bFx.death { font-size: 26px; }
+@keyframes bFxRise { 0% { opacity: 0; transform: translate(-50%, -30%) scale(.6); } 15% { opacity: 1; transform: translate(-50%, -60%) scale(1.15); }
+  40% { transform: translate(-50%, -75%) scale(1); } 100% { opacity: 0; transform: translate(-50%, -140%) scale(.95); } }
+
+/* ── enlarged card view (just the card, bigger — not the info modal) ── */
+.bZoom { position: fixed; inset: 0; z-index: 950; display: grid; place-items: center; background: var(--scrim, #000a);
+  backdrop-filter: blur(3px); animation: bZoomIn .16s ease-out; }
+@keyframes bZoomIn { from { opacity: 0; } to { opacity: 1; } }
+.bZoomCard { width: min(340px, 82vw); animation: bZoomPop .18s cubic-bezier(.2,1.2,.3,1); }
+.bZoomCard .combat { width: 100%; height: auto; max-height: none; }
+.bZoomCard .combat .sideTag { display: none; }
+@keyframes bZoomPop { from { transform: scale(.7); opacity: .3; } to { transform: scale(1); opacity: 1; } }
+.bZoomClose { position: fixed; top: 18px; right: 18px; width: 40px; height: 40px; border-radius: 50%;
+  border: 1px solid var(--line-strong); background: var(--surface-2); color: var(--gold-bright); font-size: 18px; cursor: pointer; }
+.bZoomClose:hover { border-color: var(--gold); }
 
 .battleScreen.empty { align-items: center; justify-content: center; }
 

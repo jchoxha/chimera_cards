@@ -109,13 +109,13 @@ function enemyPlan(state) {
 }
 
 export const useBattle = create((set, get) => ({
-  snapshot: null, state: null, plans: {}, hands: {}, selectedSquadId: null,
+  snapshot: null, state: null, plans: {}, hands: {}, queueOrder: [], selectedSquadId: null,
   phase: 'plan', outcome: null, log: [], version: 0,
 
   startBattle({ player, enemy }) {
     const { state, hands } = buildBattle(player, enemy);
     startRound(state);
-    const base = { state, hands, plans: {}, selectedSquadId: state.sides.p[0], phase: 'plan', outcome: null, log: [], version: 0 };
+    const base = { state, hands, plans: {}, queueOrder: [], selectedSquadId: state.sides.p[0], phase: 'plan', outcome: null, log: [], version: 0 };
     set({ ...base, snapshot: publish({ ...get(), ...base }) });
   },
 
@@ -135,29 +135,45 @@ export const useBattle = create((set, get) => ({
     const nextHand = hand.filter((c) => c.iid !== handIid);
     const plans = { ...s.plans, [sqId]: nextPlan };
     const hands = { ...s.hands, [sqId]: nextHand };
-    set({ plans, hands, snapshot: publish({ ...s, plans, hands }) });
+    const queueOrder = [...s.queueOrder, sqId];
+    set({ plans, hands, queueOrder, snapshot: publish({ ...s, plans, hands }) });
   },
 
-  /** Remove the last queued action of a squad (return its card to hand). */
-  undoQueue(sqId) {
+  /** Undo the MOST RECENT queued move across all squads (returns its card to hand). */
+  undoLast() {
     const s = get();
-    const plan = s.plans[sqId] || []; if (!plan.length) return;
+    if (!s.queueOrder.length) return;
+    const queueOrder = s.queueOrder.slice(0, -1);
+    const sqId = s.queueOrder[s.queueOrder.length - 1];
+    const plan = s.plans[sqId] || []; if (!plan.length) { set({ queueOrder }); return; }
     const last = plan[plan.length - 1];
     const plans = { ...s.plans, [sqId]: plan.slice(0, -1) };
     const hands = { ...s.hands, [sqId]: [...(s.hands[sqId] || []), last.card] };
-    set({ plans, hands, snapshot: publish({ ...s, plans, hands }) });
+    set({ plans, hands, queueOrder, snapshot: publish({ ...s, plans, hands }) });
   },
 
-  /** Commit the plan (+ enemy AI) and resolve one simultaneous round. */
+  /** Reset ALL of this turn's queued moves (return every card to its hand). */
+  resetPlans() {
+    const s = get();
+    if (!s.queueOrder.length) return;
+    const hands = { ...s.hands };
+    for (const [sqId, plan] of Object.entries(s.plans)) {
+      if (plan?.length) hands[sqId] = [...(hands[sqId] || []), ...plan.map((a) => a.card)];
+    }
+    set({ plans: {}, hands, queueOrder: [], snapshot: publish({ ...s, plans: {}, hands }) });
+  },
+
+  /** Commit the plan (+ enemy AI) and resolve one simultaneous round. Returns the log
+   *  so the UI can play it back before the final snapshot is shown. */
   resolve() {
     const s = get();
-    if (s.phase !== 'plan') return;
+    if (s.phase !== 'plan') return { log: [], outcome: null };
     const ePlan = enemyPlan(s.state);
     const { log, outcome } = resolveBattleRound(s.state, { p: s.plans, e: ePlan }, rng);
-    // fresh hands for the next round
     const hands = {};
-    for (const sqId of s.state.sides.p) hands[sqId] = drawHand();
-    const next = { ...s, plans: {}, hands, log, outcome, phase: outcome ? 'over' : 'plan' };
-    set({ plans: {}, hands, log, outcome, phase: next.phase, snapshot: publish(next) });
+    for (const sqId of s.state.sides.p) hands[sqId] = drawHand();   // fresh hands next round
+    const next = { ...s, plans: {}, hands, queueOrder: [], log, outcome, phase: outcome ? 'over' : 'plan' };
+    set({ plans: {}, hands, queueOrder: [], log, outcome, phase: next.phase, snapshot: publish(next) });
+    return { log, outcome };
   },
 }));
