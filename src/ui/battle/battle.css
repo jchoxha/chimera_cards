@@ -139,6 +139,11 @@
 .bCardCost { flex: none; width: 22px; height: 22px; border-radius: 50%; display: grid; place-items: center; font: 700 13px var(--font-display);
   color: #16110a; background: radial-gradient(circle at 38% 30%, #fff8, var(--el, var(--gold)) 62%, #0006); box-shadow: 0 1px 3px #000a; }
 .bCardType { font-size: 9px; letter-spacing: .08em; text-transform: uppercase; color: var(--ink-faint); padding: 4px 9px 0; }
+.bCardScope { display: inline-flex; align-items: center; gap: 4px; margin: 4px 9px 0; padding: 2px 7px;
+  font-size: 9px; font-weight: 700; letter-spacing: .05em; text-transform: uppercase; border-radius: 999px;
+  align-self: flex-start; background: color-mix(in srgb, var(--el, var(--gold)) 22%, #120c06);
+  color: var(--cream, #f6e7b0); border: 1px solid color-mix(in srgb, var(--el, var(--gold)) 55%, #0000); }
+.bCardScope iconify-icon { font-size: 11px; }
 .bCardText { font-size: 11px; line-height: 1.32; color: var(--ink-dim); padding: 3px 9px 0; flex: 1; }
 
 .bDragGhost { position: fixed; z-index: 999; transform: translate(-50%, -50%) rotate(-3deg); pointer-events: none;

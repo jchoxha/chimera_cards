@@ -14,7 +14,7 @@
 // ║ UPDATE WHEN: the round loop, ordering, targeting, or effects change.       ║
 // ╚══════════════════════════════════════════════════════════════════╝
 import { attackDamage, landChance, rollHit, buffMagnitude, debuffMagnitude } from './stats.js';
-import { unitSquad, liveFrontUnit, reachable, setFront, anyLiveEnemyFront, makeUnit } from './state.js';
+import { unitSquad, liveFrontUnit, reachable, setFront, anyLiveEnemyFront, squadLiveMembers, liveUnits, makeUnit } from './state.js';
 
 export { makeUnit };   // re-export so callers can build units from one entry point
 
@@ -40,25 +40,36 @@ export function resolveOrder(actions, unitsById, rng) {
   return keyed.map((k) => k.a);
 }
 
-/** Squad-scoped offensive target resolution + redirect (spec §7 dead-target ruling). */
-function resolveOffensiveTarget(state, action) {
+/** A card's target SCOPE: field (whole side) · squad · targeted (any one) · front (default). */
+const scopeOf = (card) => card.scope || (card.reachesBack ? 'targeted' : 'front');
+
+/** Offensive targets (enemy units) an action affects, honoring scope + the dead-target ruling. */
+function offensiveTargets(state, action) {
   const card = action.card;
+  const owner = state.unitsById[action.ownerId];
+  const enemySide = owner.side === 'p' ? 'e' : 'p';
+  const scope = scopeOf(card);
+  if (scope === 'field') return liveUnits(state, enemySide);
   const tgt = state.unitsById[action.targetId];
-  if (card.locked) return live(tgt) ? tgt : null;                        // true snipe → fizzle if gone
-  if (card.adaptive) {
-    if (live(tgt) && reachable(state, tgt, card)) return tgt;
-    return anyLiveEnemyFront(state, state.unitsById[action.ownerId]?.side);
-  }
   const squad = tgt ? unitSquad(state, tgt) : null;
-  if (!squad) return live(tgt) ? tgt : null;                             // legacy solo unit
-  if (card.reachesBack && live(tgt)) return tgt;                         // strike the specific Support
-  return liveFrontUnit(state, squad);                                    // else the squad's live front
+  if (scope === 'squad') return squad ? squadLiveMembers(state, squad) : (live(tgt) ? [tgt] : []);
+  // single-target: targeted (specific) or front (squad-scoped redirect)
+  let one;
+  if (card.locked) one = live(tgt) ? tgt : null;
+  else if (card.adaptive) one = (live(tgt) && reachable(state, tgt, card)) ? tgt : anyLiveEnemyFront(state, owner.side);
+  else if (!squad) one = live(tgt) ? tgt : null;
+  else if (scope === 'targeted' && live(tgt)) one = tgt;
+  else one = liveFrontUnit(state, squad);
+  return one ? [one] : [];
 }
 
-/** Friendly ops (block/buff/heal): the direct target, no redirect. */
-function directTarget(state, action) {
-  const tgt = state.unitsById[action.targetId];
-  return live(tgt) ? tgt : null;
+/** Friendly targets (own units) for block/buff/heal, honoring scope (self default). */
+function friendlyTargets(state, action) {
+  const owner = state.unitsById[action.ownerId];
+  const scope = scopeOf(action.card);
+  if (scope === 'field') return liveUnits(state, owner.side);
+  if (scope === 'squad') return squadLiveMembers(state, unitSquad(state, owner));
+  return [owner];
 }
 
 /** Absorb `amount` into Block (temp HP) first, then HP. Block persists (no decay). */
@@ -94,47 +105,66 @@ export function applyAction(state, action, rng, log) {
   if (card.swapsForward && setFront(state, owner)) log.push({ type: 'swap', squadId: owner.squadId, frontId: owner.id });
 
   const offensive = isOffensive(card);
-  const target = offensive ? resolveOffensiveTarget(state, action) : directTarget(state, action);
-  if (!live(target)) { log.push({ type: 'fizzle', reason: 'no-target', ownerId: owner.id, card: card.id }); return; }
+  const off = offensive ? offensiveTargets(state, action) : [];
+  if (offensive && !off.length) { log.push({ type: 'fizzle', reason: 'no-target', ownerId: owner.id, card: card.id }); return; }
 
-  if (offensive && !card.lockOn) {
-    const chance = landChance(owner.stats.accuracy, target.stats.evasion);
-    if (!rollHit(chance, rng)) { log.push({ type: 'miss', ownerId: owner.id, targetId: target.id, card: card.id, chance }); return; }
+  // Log the play against a primary target (first offensive target, else the owner).
+  const primary = off[0] || owner;
+  log.push({ type: 'play', ownerId: owner.id, targetId: primary.id, card: card.id });
+
+  // Pre-roll a binary hit per offensive target (lock-on always lands; a miss still
+  // "spent" the action — it just does nothing to that target).
+  const hit = new Set();
+  for (const t of off) {
+    if (card.lockOn) { hit.add(t.id); continue; }
+    const chance = landChance(owner.stats.accuracy, t.stats.evasion);
+    if (rollHit(chance, rng)) hit.add(t.id);
+    else log.push({ type: 'miss', ownerId: owner.id, targetId: t.id, card: card.id, chance });
   }
-  log.push({ type: 'play', ownerId: owner.id, targetId: target.id, card: card.id });
 
   for (const e of card.effects || []) {
     switch (e.op) {
       case 'damage': {
-        dealDamage(target, attackDamage(e.value, owner.stats.attack, target.stats.defense, e.matchup ?? 1), log);
-        break;
-      }
-      case 'block': {   // Block is a buff → temporary HP (self)
-        const amt = buffMagnitude(e.value, owner.stats.resolve);
-        owner.block = (owner.block || 0) + amt;
-        log.push({ type: 'block', unitId: owner.id, amount: amt, total: owner.block });
-        break;
-      }
-      case 'buff': {
-        const amt = buffMagnitude(e.value, owner.stats.resolve);
-        addStatus(owner, e.status || 'buff', amt);
-        log.push({ type: 'buff', unitId: owner.id, status: e.status, amount: amt });
+        for (const t of off) {
+          if (!hit.has(t.id) || !live(t)) continue;
+          dealDamage(t, attackDamage(e.value, owner.stats.attack, t.stats.defense, e.matchup ?? 1), log);
+        }
         break;
       }
       case 'debuff': {
-        const amt = debuffMagnitude(e.value, owner.stats.focus, target.stats.resolve);
-        addStatus(target, e.status || 'debuff', amt);
-        log.push({ type: 'debuff', targetId: target.id, status: e.status, amount: amt });
+        for (const t of off) {
+          if (!hit.has(t.id) || !live(t)) continue;
+          const amt = debuffMagnitude(e.value, owner.stats.focus, t.stats.resolve);
+          addStatus(t, e.status || 'debuff', amt);
+          log.push({ type: 'debuff', targetId: t.id, status: e.status, amount: amt });
+        }
+        break;
+      }
+      case 'block': {   // Block is a buff → temporary HP
+        for (const t of friendlyTargets(state, action)) {
+          const amt = buffMagnitude(e.value, t.stats.resolve);
+          t.block = (t.block || 0) + amt;
+          log.push({ type: 'block', unitId: t.id, amount: amt, total: t.block });
+        }
+        break;
+      }
+      case 'buff': {
+        for (const t of friendlyTargets(state, action)) {
+          const amt = buffMagnitude(e.value, t.stats.resolve);
+          addStatus(t, e.status || 'buff', amt);
+          log.push({ type: 'buff', unitId: t.id, status: e.status, amount: amt });
+        }
         break;
       }
       case 'heal': {
-        target.hp = Math.min(target.maxHp, target.hp + e.value);
-        log.push({ type: 'heal', targetId: target.id, amount: e.value, hp: target.hp });
+        for (const t of friendlyTargets(state, action)) {
+          t.hp = Math.min(t.maxHp, t.hp + e.value);
+          log.push({ type: 'heal', targetId: t.id, amount: e.value, hp: t.hp });
+        }
         break;
       }
       default: break;
     }
-    if (!live(target) && offensive) break;   // dead → remaining effects on it fizzle
   }
 }
 

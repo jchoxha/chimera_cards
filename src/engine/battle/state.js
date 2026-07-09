@@ -91,3 +91,8 @@ export function anyLiveEnemyFront(state, ownerSide) {
 export function liveUnits(state, side = null) {
   return Object.values(state.unitsById).filter((u) => alive(u) && (!side || u.side === side));
 }
+
+/** Living members of a squad. */
+export function squadLiveMembers(state, squad) {
+  return squad ? squad.memberIds.map((id) => state.unitsById[id]).filter(alive) : [];
+}

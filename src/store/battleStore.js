@@ -18,16 +18,20 @@ import { creatureToFace } from '../ui/combat/creatureVisuals.jsx';
 const rng = () => Math.random();
 const HAND_SIZE = 5;
 
-/** Demo battle cards for the current UI slice (op-list matches round.js). */
+/** Demo battle cards for the current UI slice (op-list matches round.js).
+ *  `scope` = front (squad-redirect default) · targeted (any one) · squad (whole squad) · field (whole side). */
 export const DEMO_CARDS = {
-  strike: { id: 'strike', name: 'Strike', cost: 1, type: 'attack', element: 'Physical', priority: 0, effects: [{ op: 'damage', value: 8 }], text: 'Deal 8 damage.' },
-  cleave: { id: 'cleave', name: 'Cleave', cost: 2, type: 'attack', element: 'Physical', priority: 0, reachesBack: true, effects: [{ op: 'damage', value: 12 }], text: 'Deal 12. Can strike the back row.' },
-  jab: { id: 'jab', name: 'Quick Jab', cost: 1, type: 'attack', element: 'Physical', priority: 1, effects: [{ op: 'damage', value: 5 }], text: 'Priority. Deal 5 damage.' },
-  guard: { id: 'guard', name: 'Guard', cost: 1, type: 'skill', element: 'Physical', priority: 2, effects: [{ op: 'block', value: 9 }], text: 'Priority. Gain 9 Block (temporary HP).' },
-  weaken: { id: 'weaken', name: 'Weaken', cost: 1, type: 'skill', element: 'Void', priority: 0, effects: [{ op: 'debuff', value: 2, status: 'weak' }], text: 'Apply 2 Weak.' },
-  overload: { id: 'overload', name: 'Overload', cost: 2, type: 'skill', element: 'Energy', priority: 1, exhaust: true, effects: [{ op: 'buff', value: 2, status: 'strength' }], text: 'Exhaust. Gain 2 Strength.' },
+  strike: { id: 'strike', name: 'Strike', cost: 1, type: 'attack', element: 'Physical', priority: 0, scope: 'front', effects: [{ op: 'damage', value: 8 }], text: 'Deal 8 damage.' },
+  cleave: { id: 'cleave', name: 'Cleave', cost: 2, type: 'attack', element: 'Physical', priority: 0, scope: 'targeted', reachesBack: true, effects: [{ op: 'damage', value: 12 }], text: 'Deal 12 to any one creature (front or back).' },
+  jab: { id: 'jab', name: 'Quick Jab', cost: 1, type: 'attack', element: 'Physical', priority: 1, scope: 'front', effects: [{ op: 'damage', value: 5 }], text: 'Priority. Deal 5 damage.' },
+  sweep: { id: 'sweep', name: 'Whirl Sweep', cost: 2, type: 'attack', element: 'Physical', priority: 0, scope: 'squad', effects: [{ op: 'damage', value: 6 }], text: 'Deal 6 to an entire enemy squad.' },
+  volley: { id: 'volley', name: 'Arc Volley', cost: 3, type: 'attack', element: 'Energy', priority: 0, scope: 'field', effects: [{ op: 'damage', value: 4 }], text: 'Deal 4 to every enemy creature.' },
+  guard: { id: 'guard', name: 'Guard', cost: 1, type: 'skill', element: 'Physical', priority: 2, scope: 'self', effects: [{ op: 'block', value: 9 }], text: 'Priority. Gain 9 Block (temporary HP).' },
+  rally: { id: 'rally', name: 'Rally', cost: 2, type: 'skill', element: 'Holy', priority: 2, scope: 'squad', effects: [{ op: 'block', value: 6 }], text: 'Priority. Give your squad 6 Block.' },
+  weaken: { id: 'weaken', name: 'Weaken', cost: 1, type: 'skill', element: 'Void', priority: 0, scope: 'front', effects: [{ op: 'debuff', value: 2, status: 'weak' }], text: 'Apply 2 Weak.' },
+  overload: { id: 'overload', name: 'Overload', cost: 2, type: 'skill', element: 'Energy', priority: 1, scope: 'self', exhaust: true, effects: [{ op: 'buff', value: 2, status: 'strength' }], text: 'Exhaust. Gain 2 Strength.' },
 };
-const DEMO_DECK = ['strike', 'strike', 'strike', 'jab', 'jab', 'guard', 'guard', 'cleave', 'weaken', 'overload'];
+const DEMO_DECK = ['strike', 'strike', 'strike', 'jab', 'jab', 'guard', 'guard', 'sweep', 'cleave', 'weaken', 'rally', 'overload'];
 const inst = (id) => ({ ...DEMO_CARDS[id], iid: `${id}#${uid()}` });
 const makeDeck = () => shuffle(DEMO_DECK.map(inst));
 

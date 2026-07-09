@@ -30,12 +30,28 @@ function tokenArt(u) {
   return { icon: creatureIcon({ biology: u.axes?.biology, attunement: u.axes?.attunement, class: u.axes?.class }), color: creatureColor({ attunement: u.axes?.attunement }) };
 }
 
+// A card's target SCOPE → a readable label. Noun is "Attack" for offensive cards,
+// "Buff" for friendly ones (block/buff/heal). `self` cards show no scope tag.
+const OFFENSIVE_OPS = new Set(['damage', 'debuff']);
+const isOffensiveCard = (card) => (card?.effects || []).some((e) => OFFENSIVE_OPS.has(e.op));
+const SCOPE_WORD = { front: 'Vanguard', targeted: 'Targeted', squad: 'Squad', field: 'Field' };
+function scopeLabel(card) {
+  const scope = card.scope || (card.reachesBack ? 'targeted' : 'front');
+  if (scope === 'self') return null;
+  const word = SCOPE_WORD[scope]; if (!word) return null;
+  return `${word} ${isOffensiveCard(card) ? 'Attack' : 'Buff'}`;
+}
+const SCOPE_ICON = { front: 'game-icons:spearhead', targeted: 'game-icons:convergence-target', squad: 'game-icons:group', field: 'game-icons:wide-arrow-dunk' };
+
 /** A move card (hand or drag ghost). */
 function MoveCard({ card, dragSrc, onPointerDown }) {
+  const scope = card.scope || (card.reachesBack ? 'targeted' : 'front');
+  const label = scopeLabel(card);
   return (
     <div className={`bCard${dragSrc ? ' dragSrc' : ''}`} style={{ '--el': elColor(card.element) }} onPointerDown={onPointerDown}>
       <div className="bCardHead"><span className="bCardCost">{card.cost}</span><span className="bCardName">{card.name}</span></div>
       <div className="bCardType">{card.element || ''} {card.type || 'card'}{card.priority ? ` · P${card.priority}` : ''}</div>
+      {label && <div className={`bCardScope ${scope}`}><Icon icon={SCOPE_ICON[scope] || 'game-icons:crossed-swords'} />{label}</div>}
       <div className="bCardText">{card.text}</div>
     </div>
   );
@@ -98,7 +114,7 @@ function BattleToken({ u, side, acting, willHit, hovered, onDropRef, onClick }) 
 }
 
 /** A squad: Support · Vanguard(centre) · Support. */
-function Squad({ sq, side, units, selected, acting, willHitId, hoveredId, onSelect, onDropRef, onTok }) {
+function Squad({ sq, side, units, selected, acting, willHitIds, hoveredId, onSelect, onDropRef, onTok }) {
   const front = units.find((u) => u.isFront);
   const supp = units.filter((u) => !u.isFront);
   const ordered = front ? [supp[0], front, supp[1]].filter(Boolean) : units;
@@ -107,7 +123,7 @@ function Squad({ sq, side, units, selected, acting, willHitId, hoveredId, onSele
       onClick={onSelect ? () => onSelect(sq.id) : undefined}>
       <div className="bSquadRow">
         {ordered.map((u) => (
-          <BattleToken key={u.id} u={u} side={side} acting={acting === u.id} willHit={willHitId === u.id} hovered={hoveredId === u.id}
+          <BattleToken key={u.id} u={u} side={side} acting={acting === u.id} willHit={!!willHitIds?.has(u.id)} hovered={hoveredId === u.id}
             onDropRef={onDropRef} onClick={onTok} />
         ))}
       </div>
@@ -185,10 +201,19 @@ export default function BattleScreen() {
 
   const disp = (u) => (anim ? { ...u, hp: anim.hp[u.id] ?? u.hp, block: anim.block[u.id] ?? u.block, dead: (anim.hp[u.id] ?? u.hp) <= 0 } : u);
 
-  // drop affordance: which token the pending card would hit (squad front, or the
-  // specific token for reachesBack cards)
+  // drop affordance: which token(s) the pending card would hit, honoring scope —
+  // field = the whole enemy side, squad = every member, targeted = the exact token,
+  // front = the target squad's live front.
   const overSquad = d?.over ? squadOfUnit(d.over) : null;
-  const willHitId = overSquad ? (d.card?.reachesBack ? d.over : overSquad.frontId) : null;
+  const willHit = new Set();
+  if (overSquad && d?.card) {
+    const scope = d.card.scope || (d.card.reachesBack ? 'targeted' : 'front');
+    const enemySide = overSquad.side === 'p' ? snap.player : snap.enemy;
+    if (scope === 'field') enemySide.forEach((sq) => sq.units.forEach((u) => !u.dead && willHit.add(u.id)));
+    else if (scope === 'squad') overSquad.units.forEach((u) => !u.dead && willHit.add(u.id));
+    else if (scope === 'targeted') willHit.add(d.over);
+    else if (overSquad.frontId) willHit.add(overSquad.frontId);
+  }
 
   // focus a squad: arm it (for info-open) + make it the planning squad if it's yours
   const focusSquad = (sqId, side) => { setArmedId(sqId); if (side === 'p') selectSquad(sqId); };
@@ -244,7 +269,7 @@ export default function BattleScreen() {
       <section className="bZone enemy">
         {snap.enemy.map((sq) => (
           <Squad key={sq.id} sq={sq} side="e" units={sq.units.map(disp)} acting={anim?.acting}
-            willHitId={willHitId} hoveredId={d?.over} selected={sq.id === focusId}
+            willHitIds={willHit} hoveredId={d?.over} selected={sq.id === focusId}
             onSelect={(id) => focusSquad(id, 'e')} onDropRef={setDropRef} onTok={onTok} />
         ))}
       </section>
@@ -261,7 +286,7 @@ export default function BattleScreen() {
       <section className="bZone player">
         {snap.player.map((sq) => (
           <Squad key={sq.id} sq={sq} side="p" units={sq.units.map(disp)} acting={anim?.acting}
-            willHitId={willHitId} hoveredId={d?.over} selected={sq.id === focusId}
+            willHitIds={willHit} hoveredId={d?.over} selected={sq.id === focusId}
             onSelect={(id) => focusSquad(id, 'p')} onDropRef={setDropRef} onTok={onTok} />
         ))}
       </section>
