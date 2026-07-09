@@ -4,26 +4,31 @@
 // ║ (full-bleed art background + name + HP), NOT the full card. Front Vanguard ║
 // ║ is CENTERED between its two rear Support. Selecting a squad is required    ║
 // ║ before a token click opens the creature's FULL info card (the CardFace,   ║
-// ║ enlarged). Drag a hand card onto any token to queue; Undo · Reset · Fight  ║
-// ║ icons sit top-right of the hand. Fight plays the round back (auto-focus on ║
-// ║ the acting unit + HP tweens + floating numbers). Selected squad pops       ║
-// ║ forward (semi-3D depth); others recede. Each side's field scrolls with     ║
-// ║ EDGE buttons that focus the next squad, wrapping around. The card DOCK      ║
-// ║ spans EVERY squad (yours interactive, the enemy's read-only: hand shown     ║
-// ║ face-DOWN, piles inspectable, deck '?' until cards are seen). Move cards    ║
-// ║ carry a SCOPE chip (Vanguard/Targeted/Squad/Field · Attack vs Buff).        ║
+// ║ enlarged). ACTION CARDS: tap to select, then click a target OR drag onto    ║
+// ║ one to queue; double-tap (or tap a selected card) opens the enlarged card.  ║
+// ║ Cards show cost·name, a corner attunement badge, art, a "(Scope) (Type)"    ║
+// ║ line, and a priority pip; the fanned hand bumps apart on hover. A toggle     ║
+// ║ SHOWS/HIDES the dock (hidden → the battlefield scales up). Fight CONFIRMS    ║
+// ║ if any squad still has energy. The middle bar shows the TURN number and,    ║
+// ║ during resolution, a combat-log ticker — click it for the full log.         ║
+// ║ Fight plays the round back (auto-focus on the acting unit + HP tweens +     ║
+// ║ floating numbers). Each side's field scrolls with EDGE buttons that focus   ║
+// ║ the next squad, wrapping around. The card DOCK spans EVERY squad (yours      ║
+// ║ interactive, the enemy's read-only: hand face-DOWN, piles inspectable,      ║
+// ║ deck '?' until cards are seen).                                             ║
 // ╚══════════════════════════════════════════════════════════════════╝
 import React, { useEffect, useRef, useState } from 'react';
 import { useBattle } from '../../store/battleStore.js';
-import { CardFace, STATUS_META } from '../combat/creatureVisuals.jsx';
+import { CardFace, STATUS_META, elementBadge } from '../combat/creatureVisuals.jsx';
 import { ATTUNEMENT_COLOR, creatureIcon, creatureColor } from '../../data/axisIcons.js';
-import { creatureArt } from '../../data/artPool.js';
+import { creatureArt, cardArt } from '../../data/artPool.js';
 import { sizedPortrait } from '../../data/sizeArt.js';
 import '../combat/combat.css';   // CardFace styling for the enlarged info card
 import './battle.css';
 
 const Icon = ({ icon }) => <iconify-icon icon={icon}></iconify-icon>;
 const elColor = (el) => ATTUNEMENT_COLOR[el] || '#c9a66b';
+const cap = (s) => (s ? s[0].toUpperCase() + s.slice(1) : s);
 
 /** Resolve a token's background art: generated portrait → pixel art → icon. */
 function tokenArt(u) {
@@ -34,28 +39,31 @@ function tokenArt(u) {
   return { icon: creatureIcon({ biology: u.axes?.biology, attunement: u.axes?.attunement, class: u.axes?.class }), color: creatureColor({ attunement: u.axes?.attunement }) };
 }
 
-// A card's target SCOPE → a readable label. Noun is "Attack" for offensive cards,
-// "Buff" for friendly ones (block/buff/heal). `self` cards show no scope tag.
-const OFFENSIVE_OPS = new Set(['damage', 'debuff']);
-const isOffensiveCard = (card) => (card?.effects || []).some((e) => OFFENSIVE_OPS.has(e.op));
-const SCOPE_WORD = { front: 'Vanguard', targeted: 'Targeted', squad: 'Squad', field: 'Field' };
-function scopeLabel(card) {
-  const scope = card.scope || (card.reachesBack ? 'targeted' : 'front');
-  if (scope === 'self') return null;
-  const word = SCOPE_WORD[scope]; if (!word) return null;
-  return `${word} ${isOffensiveCard(card) ? 'Attack' : 'Buff'}`;
+// The type line is "(Target Scope) (Attack/Skill/Power)". The attunement lives in the
+// corner badge (same as creature cards), not in this line.
+const SCOPE_WORD = { front: 'Vanguard', targeted: 'Targeted', squad: 'Squad', field: 'Field', self: 'Self' };
+const scopeOf = (card) => card.scope || (card.reachesBack ? 'targeted' : 'front');
+const isOffensiveCard = (card) => (card?.effects || []).some((e) => e.op === 'damage' || e.op === 'debuff');
+function typeLine(card) {
+  const word = SCOPE_WORD[scopeOf(card)] || 'Vanguard';
+  return `${word} ${cap(card.type || 'Card')}`;
 }
-const SCOPE_ICON = { front: 'game-icons:spearhead', targeted: 'game-icons:convergence-target', squad: 'game-icons:group', field: 'game-icons:wide-arrow-dunk' };
+const SCOPE_ICON = { front: 'game-icons:spearhead', targeted: 'game-icons:convergence-target', squad: 'game-icons:group', field: 'game-icons:wide-arrow-dunk', self: 'game-icons:round-shield' };
 
-/** A move card (hand or drag ghost). */
-function MoveCard({ card, dragSrc, onPointerDown }) {
-  const scope = card.scope || (card.reachesBack ? 'targeted' : 'front');
-  const label = scopeLabel(card);
+/** An Action Card (hand · drag ghost · inspection · enlarged detail). */
+function ActionCard({ card, dragSrc, selected, big, onPointerDown, onDoubleClick }) {
+  const art = cardArt({ ...card, attunement: card.element });
+  const scope = scopeOf(card);
   return (
-    <div className={`bCard${dragSrc ? ' dragSrc' : ''}`} style={{ '--el': elColor(card.element) }} onPointerDown={onPointerDown}>
+    <div className={`bCard${dragSrc ? ' dragSrc' : ''}${selected ? ' selected' : ''}${big ? ' big' : ''}`} style={{ '--el': elColor(card.element) }}
+      onPointerDown={onPointerDown} onDoubleClick={onDoubleClick}>
       <div className="bCardHead"><span className="bCardCost">{card.cost}</span><span className="bCardName">{card.name}</span></div>
-      <div className="bCardType">{card.element || ''} {card.type || 'card'}{card.priority ? ` · P${card.priority}` : ''}</div>
-      {label && <div className={`bCardScope ${scope}`}><Icon icon={SCOPE_ICON[scope] || 'game-icons:crossed-swords'} />{label}</div>}
+      {elementBadge(card.element)}
+      <div className="bCardArt">
+        {art ? <img src={art} alt="" /> : <span className="bCardArtIcon"><Icon icon={SCOPE_ICON[scope] || 'game-icons:crossed-swords'} /></span>}
+        {card.priority ? <span className="bCardPrio" title={`Priority ${card.priority}`}><Icon icon="game-icons:sprint" />P{card.priority}</span> : null}
+      </div>
+      <div className={`bCardType ${scope}`}><Icon icon={SCOPE_ICON[scope] || 'game-icons:crossed-swords'} />{typeLine(card)}</div>
       <div className="bCardText">{card.text}</div>
     </div>
   );
@@ -72,19 +80,22 @@ function Pile({ kind, icon, count, label, onInspect }) {
     </button>
   );
 }
-/** The player's own squad station — draggable face-up hand + inspectable piles. */
-function Station({ sq, dealKey, onDrag, dragIid, onInspect }) {
+/** The player's own squad station — face-up FANNED hand (tap to select, drag or
+ *  click-target to play, double-tap for detail) + inspectable piles. */
+function Station({ sq, dealKey, onCardDown, onCardDetail, dragIid, selectedIid, onInspect }) {
+  const hand = sq.hand || [];
   return (
     <div className="bStation">
       <Pile kind="deck" icon="game-icons:card-random" count={sq.deckCount} label="Deck"
         onInspect={sq.deckCount ? () => onInspect({ title: 'Draw Pile', cards: sq.deck, note: 'Contents known · draw order hidden' }) : null} />
-      <div className="bHand">
-        {(sq.hand || []).map((card, i) => (
-          <div key={`${dealKey}-${card.iid}`} className="bDeal" style={{ animationDelay: `${i * 55}ms` }}>
-            <MoveCard card={card} dragSrc={dragIid === card.iid} onPointerDown={(e) => onDrag(e, card)} />
+      <div className={`bHand fan n${hand.length}`}>
+        {hand.map((card, i) => (
+          <div key={`${dealKey}-${card.iid}`} className="bDeal" style={{ animationDelay: `${i * 55}ms`, zIndex: i + 1 }}>
+            <ActionCard card={card} dragSrc={dragIid === card.iid} selected={selectedIid === card.iid}
+              onPointerDown={(e) => onCardDown(e, card)} onDoubleClick={() => onCardDetail(card)} />
           </div>
         ))}
-        {(sq.hand || []).length === 0 && <div className="bHandEmpty">No cards in hand.</div>}
+        {hand.length === 0 && <div className="bHandEmpty">No cards in hand.</div>}
       </div>
       <div className="bDiscardPiles">
         <Pile kind="discard" icon="game-icons:card-pickup" count={sq.discardCount} label="Discard"
@@ -180,30 +191,44 @@ export default function BattleScreen() {
   const dropEls = useRef(new Map());
   const setDropRef = (id, el) => { if (el) dropEls.current.set(id, el); else dropEls.current.delete(id); };
   const drag = useRef(null);
-  const [d, setD] = useState(null);          // hand-card drag
-  const [zoom, setZoom] = useState(null);    // { u, side } full info card
+  const [d, setD] = useState(null);          // active hand-card DRAG (only once moved past threshold)
+  const [pressing, setPressing] = useState(false);   // a card is pressed (may become a drag or a tap)
+  const [zoom, setZoom] = useState(null);    // { u, side } full creature info card
+  const [cardZoom, setCardZoom] = useState(null);    // enlarged Action Card detail
+  const [selId2, setSelId2] = useState(null);        // selected hand-card iid (click-to-target)
   const [anim, setAnim] = useState(null);    // resolution playback
   const [fx, setFx] = useState([]);
   const [armedId, setArmedId] = useState(null);   // squad tapped once (arm) → tap again opens info
   const [inspect, setInspect] = useState(null);   // pile-inspection overlay { title, cards, note? }
+  const [ticker, setTicker] = useState(null);     // latest combat-log line (middle bar)
+  const [logOpen, setLogOpen] = useState(false);  // full combat log overlay
+  const [confirmFight, setConfirmFight] = useState(false);   // "energy left" confirmation
+  const [dockHidden, setDockHidden] = useState(false);       // Action Cards shown/hidden
   const fxSeq = useRef(0);
   const timers = useRef([]);
   useEffect(() => () => timers.current.forEach(clearTimeout), []);
 
-  // hand-card drag → drop on a token to queue
+  // press → tap (select / detail) vs drag (past a small threshold), tracked on the window
   useEffect(() => {
-    if (!d) return undefined;
+    if (!pressing) return undefined;
     const onMove = (e) => {
       const g = drag.current; if (!g) return;
       g.x = e.clientX; g.y = e.clientY;
-      g.over = document.elementFromPoint(e.clientX, e.clientY)?.closest('[data-drop-id]')?.getAttribute('data-drop-id') || null;
-      setD({ ...g });
+      if (!g.moved && Math.hypot(e.clientX - g.x0, e.clientY - g.y0) > 6) g.moved = true;
+      if (g.moved) { g.over = document.elementFromPoint(e.clientX, e.clientY)?.closest('[data-drop-id]')?.getAttribute('data-drop-id') || null; setD({ ...g }); }
     };
-    const onUp = () => { const g = drag.current; drag.current = null; if (g && g.over) queueCard(g.iid, g.over); setD(null); };
+    const onUp = () => {
+      const g = drag.current; drag.current = null; setPressing(false); setD(null);
+      if (!g) return;
+      if (g.moved) { if (g.over) { queueCard(g.iid, g.over); setSelId2(null); } }
+      else {   // a TAP: select, or open detail if already selected
+        if (g.tapSel) setCardZoom(g.card); else setSelId2(g.iid);
+      }
+    };
     window.addEventListener('pointermove', onMove);
     window.addEventListener('pointerup', onUp);
     return () => { window.removeEventListener('pointermove', onMove); window.removeEventListener('pointerup', onUp); };
-  }, [d?.iid, queueCard]);
+  }, [pressing, queueCard]);
 
   // auto-focus: pan to the acting unit during resolution
   useEffect(() => {
@@ -226,26 +251,32 @@ export default function BattleScreen() {
   const dockSquad = dockList[dockIdx];
   const squadOfUnit = (uid) => allSquads.find((sq) => sq.units.some((u) => u.id === uid));
   const totalQueued = snap.player.reduce((n, sq) => n + (sq.plan?.length || 0), 0);
-  const startDrag = (e, card) => { if (anim) return; drag.current = { iid: card.iid, card, x: e.clientX, y: e.clientY, over: null }; setD({ ...drag.current }); };
+  const hasUnspent = snap.player.some((sq) => sq.energyLeft > 0);
+  const selectedSquad = snap.player.find((sq) => sq.id === selId);
+  const selectedCard = selId2 ? (selectedSquad?.hand || []).find((c) => c.iid === selId2) : null;
+  // press a card: a tap selects it (or opens detail if already selected); a drag past
+  // the threshold begins a drag-ghost (handled by the window effect above).
+  const onCardDown = (e, card) => { if (anim) return; e.preventDefault(); drag.current = { iid: card.iid, card, x0: e.clientX, y0: e.clientY, x: e.clientX, y: e.clientY, moved: false, over: null, tapSel: selId2 === card.iid }; setPressing(true); };
 
   const disp = (u) => (anim ? { ...u, hp: anim.hp[u.id] ?? u.hp, block: anim.block[u.id] ?? u.block, dead: (anim.hp[u.id] ?? u.hp) <= 0 } : u);
 
-  // drop affordance: which token(s) the pending card would hit, honoring scope —
-  // field = the whole enemy side, squad = every member, targeted = the exact token,
-  // front = the target squad's live front.
-  const overSquad = d?.over ? squadOfUnit(d.over) : null;
-  const willHit = new Set();
-  if (overSquad && d?.card) {
-    const scope = d.card.scope || (d.card.reachesBack ? 'targeted' : 'front');
-    const enemySide = overSquad.side === 'p' ? snap.player : snap.enemy;
-    if (scope === 'field') enemySide.forEach((sq) => sq.units.forEach((u) => !u.dead && willHit.add(u.id)));
-    else if (scope === 'squad') overSquad.units.forEach((u) => !u.dead && willHit.add(u.id));
-    else if (scope === 'targeted') willHit.add(d.over);
-    else if (overSquad.frontId) willHit.add(overSquad.frontId);
-  }
+  // which token(s) a card would hit, honoring scope — field = whole enemy side,
+  // squad = every member, targeted = the exact token, front = the target's live front.
+  const hitSetFor = (card, overId) => {
+    const set = new Set(); const sq = overId ? squadOfUnit(overId) : null;
+    if (!sq || !card) return set;
+    const scope = card.scope || (card.reachesBack ? 'targeted' : 'front');
+    if (scope === 'field') sq.side === 'p' ? snap.player.forEach((s) => s.units.forEach((u) => !u.dead && set.add(u.id))) : snap.enemy.forEach((s) => s.units.forEach((u) => !u.dead && set.add(u.id)));
+    else if (scope === 'squad') sq.units.forEach((u) => !u.dead && set.add(u.id));
+    else if (scope === 'targeted') set.add(overId);
+    else if (sq.frontId) set.add(sq.frontId);
+    return set;
+  };
+  // drop affordance: the dragged card's targets, else the selected card hovering a token
+  const willHit = d?.over ? hitSetFor(d.card, d.over) : new Set();
 
   // focus a squad: arm it (for info-open) + make it the planning squad if it's yours
-  const focusSquad = (sqId, side) => { setArmedId(sqId); if (side === 'p') selectSquad(sqId); };
+  const focusSquad = (sqId, side) => { if (sqId !== selId) setSelId2(null); setArmedId(sqId); if (side === 'p') selectSquad(sqId); };
   const cycleSquad = (dir) => {
     if (dockList.length < 2) return;
     const i = (((dockIdx + dir) % dockList.length) + dockList.length) % dockList.length;
@@ -261,10 +292,17 @@ export default function BattleScreen() {
     const i = (((from + dir) % list.length) + list.length) % list.length;
     focusSquad(list[i].id, side);
   };
-  // click a token: its squad must be FOCUSED first; a second tap opens the full info card
+  // click a token: (1) if a card is SELECTED, the click plays it at this target;
+  // (2) else its squad must be FOCUSED first; (3) a second tap opens the info card.
   const onTok = (u, side) => {
     if (anim) return;
     const sq = squadOfUnit(u.id); if (!sq) return;
+    if (selectedCard) {
+      // offensive cards must target the ENEMY side; friendly cards your OWN side
+      const wantSide = isOffensiveCard(selectedCard) ? 'e' : 'p';
+      if (side === wantSide) { queueCard(selectedCard.iid, u.id); setSelId2(null); }
+      return;
+    }
     if (armedId === sq.id) setZoom({ u: disp(u), side });
     else focusSquad(sq.id, side);
   };
@@ -276,17 +314,27 @@ export default function BattleScreen() {
     timers.current.push(setTimeout(() => setFx((f) => f.filter((x) => x.key !== key)), 1000));
   };
 
-  const onFight = () => {
+  // Fight: confirm first if any squad still has energy to spend, else resolve.
+  const requestFight = () => {
     if (anim || snap.outcome) return;
+    if (hasUnspent) { setConfirmFight(true); return; }
+    doFight();
+  };
+  const doFight = () => {
+    if (anim || snap.outcome) return;
+    setConfirmFight(false); setSelId2(null);
     const pre = { hp: {}, block: {} };
     allSquads.forEach((sq) => sq.units.forEach((u) => { pre.hp[u.id] = u.hp; pre.block[u.id] = u.block; }));
     setAnim({ hp: { ...pre.hp }, block: { ...pre.block }, acting: null });
-    const { log } = resolve();
+    const { log, entries } = resolve();
+    const lines = entries || [];
+    let entryIdx = 0;
     const steps = (log || []).filter((e) => ['play', 'damage', 'block', 'heal', 'regen', 'miss', 'death'].includes(e.type));
     let i = 0;
     const run = () => {
       if (i >= steps.length) { setAnim(null); return; }
       const e = steps[i++];
+      if (e.type === 'play' && lines[entryIdx]) setTicker(lines[entryIdx++]);
       setAnim((a) => { if (!a) return a; const n = { hp: { ...a.hp }, block: { ...a.block }, acting: a.acting };
         if (e.type === 'play') n.acting = e.ownerId;
         else if (e.type === 'damage') { n.hp[e.targetId] = e.hp; if (e.blocked) n.block[e.targetId] = Math.max(0, (n.block[e.targetId] || 0) - e.blocked); }
@@ -304,7 +352,7 @@ export default function BattleScreen() {
   };
 
   return (
-    <div className={`battleScreen${d ? ' dragging' : ''}${anim ? ' resolving' : ''}`}>
+    <div className={`battleScreen${d ? ' dragging' : ''}${anim ? ' resolving' : ''}${dockHidden ? ' dockHidden' : ''}${selectedCard ? ' picking' : ''}`}>
       <div className="bField enemy">
         {snap.enemy.length > 1 && <button className="bEdge left" title="Previous enemy squad" onClick={() => cycleSide('e', -1)}><Icon icon="tabler:chevron-left" /></button>}
         <section className="bZone enemy">
@@ -317,14 +365,18 @@ export default function BattleScreen() {
         {snap.enemy.length > 1 && <button className="bEdge right" title="Next enemy squad" onClick={() => cycleSide('e', 1)}><Icon icon="tabler:chevron-right" /></button>}
       </div>
 
-      <div className="bMid">
+      <button type="button" className={`bMid${(snap.logHistory?.length || ticker) ? ' log' : ''}`}
+        title={snap.logHistory?.length ? 'View full combat log' : undefined}
+        onClick={() => snap.logHistory?.length && setLogOpen(true)}>
         {snap.outcome
-          ? <div className={`bOutcome ${snap.outcome === 'p' ? 'win' : 'lose'}`}>
+          ? <span className={`bOutcome ${snap.outcome === 'p' ? 'win' : 'lose'}`}>
               {snap.outcome === 'p' ? 'Victory' : snap.outcome === 'e' ? 'Defeat' : 'Draw'}
-              <button className="bNew" onClick={() => window.location.reload()} title="New battle"><Icon icon="tabler:refresh" /></button>
-            </div>
-          : <div className="bVs">{anim ? 'Resolving…' : 'Plan your squads, then Fight'}</div>}
-      </div>
+              <span className="bNew" onClick={(e) => { e.stopPropagation(); window.location.reload(); }} title="New battle"><Icon icon="tabler:refresh" /></span>
+            </span>
+          : anim && ticker
+            ? <span className={`bTick ${ticker.side === 'e' ? 'foe' : 'ally'}`}>{ticker.text}</span>
+            : <span className="bVs"><b>Turn {snap.turn}</b>{snap.logHistory?.length ? <em><Icon icon="game-icons:scroll-quill" /> Combat Log</em> : ' · Plan your squads, then Fight'}</span>}
+      </button>
 
       <div className="bField player">
         {snap.player.length > 1 && <button className="bEdge left" title="Previous squad" onClick={() => cycleSide('p', -1)}><Icon icon="tabler:chevron-left" /></button>}
@@ -339,8 +391,11 @@ export default function BattleScreen() {
       </div>
 
       {/* DOCK — every squad's Deck · Hand · Discard · Exhaust (yours first, enemy read-only), a rotating carousel */}
-      <div className={`bDock${dockSquad?.side === 'e' ? ' enemyDock' : ''}`}>
+      <div className={`bDock${dockSquad?.side === 'e' ? ' enemyDock' : ''}${dockHidden ? ' hidden' : ''}`}>
         <div className="bDockTop">
+          <button className="bCtl sm toggle" title={dockHidden ? 'Show Action Cards' : 'Hide Action Cards'} onClick={() => setDockHidden((v) => !v)}>
+            <Icon icon={dockHidden ? 'tabler:cards' : 'tabler:chevron-down'} />
+          </button>
           <div className="bSquadNav">
             <button className="bCtl sm" title="Previous squad" disabled={dockList.length < 2} onClick={() => cycleSquad(-1)}><Icon icon="tabler:chevron-left" /></button>
             <span className="bSquadNavLbl">
@@ -353,19 +408,22 @@ export default function BattleScreen() {
           <div className="bControls">
             <button className="bCtl" title="Undo last move" disabled={!totalQueued || !!anim} onClick={undoLast}><Icon icon="tabler:arrow-back-up" /></button>
             <button className="bCtl" title="Reset all moves this turn" disabled={!totalQueued || !!anim} onClick={resetPlans}><Icon icon="tabler:refresh" /></button>
-            <button className="bCtl fight" title="Fight — resolve the round" disabled={!!anim || !!snap.outcome} onClick={onFight}><Icon icon="game-icons:crossed-swords" /></button>
+            <button className="bCtl fight" title="Fight — resolve the round" disabled={!!anim || !!snap.outcome} onClick={requestFight}><Icon icon="game-icons:crossed-swords" /></button>
           </div>
         </div>
-        <div className="bStations">
-          <div className="bTrack" style={{ transform: `translateX(${-dockIdx * 100}%)` }}>
-            {dockList.map((sq) => (sq.side === 'p'
-              ? <Station key={sq.id} sq={sq} dealKey={snap.dealKey} onDrag={startDrag} dragIid={d?.iid} onInspect={setInspect} />
-              : <EnemyStation key={sq.id} sq={sq} onInspect={setInspect} />))}
+        {!dockHidden && (
+          <div className="bStations">
+            <div className="bTrack" style={{ transform: `translateX(${-dockIdx * 100}%)` }}>
+              {dockList.map((sq) => (sq.side === 'p'
+                ? <Station key={sq.id} sq={sq} dealKey={snap.dealKey} onCardDown={onCardDown} onCardDetail={setCardZoom}
+                    dragIid={d?.iid} selectedIid={selId2} onInspect={setInspect} />
+                : <EnemyStation key={sq.id} sq={sq} onInspect={setInspect} />))}
+            </div>
           </div>
-        </div>
+        )}
       </div>
 
-      {d && <div className="bDragGhost" style={{ left: d.x, top: d.y }}><MoveCard card={d.card} /></div>}
+      {d && <div className="bDragGhost" style={{ left: d.x, top: d.y }}><ActionCard card={d.card} /></div>}
 
       {fx.map((f) => <div key={f.key} className={`bFx ${f.kind}`} style={{ left: f.x, top: f.y }}>{f.text}</div>)}
 
@@ -386,7 +444,46 @@ export default function BattleScreen() {
             <div className="bInspectGrid">
               {inspect.cards.map((card, i) => (card.known === false
                 ? <div key={i} className="bCardBack big" title="Unknown card"><Icon icon="game-icons:card-random" /><span>?</span></div>
-                : <MoveCard key={card.iid || i} card={card} />))}
+                : <ActionCard key={card.iid || i} card={card} onDoubleClick={() => setCardZoom(card)} />))}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* enlarged Action Card detail (like the creature card, but for a card) */}
+      {cardZoom && (
+        <div className="bZoom" onClick={() => setCardZoom(null)}>
+          <div className="bZoomCard action" onClick={(e) => e.stopPropagation()}><ActionCard card={cardZoom} big /></div>
+          <button className="bZoomClose" onClick={() => setCardZoom(null)}><Icon icon="tabler:x" /></button>
+        </div>
+      )}
+
+      {/* Fight confirmation — energy still unspent in a squad */}
+      {confirmFight && (
+        <div className="bInspect" onClick={() => setConfirmFight(false)}>
+          <div className="bConfirm" onClick={(e) => e.stopPropagation()}>
+            <h3><Icon icon="game-icons:crossed-swords" /> Fight now?</h3>
+            <p>One or more of your squads still has <b>energy to spend</b>. Resolve the round anyway?</p>
+            <div className="bConfirmBtns">
+              <button className="bCtl wide" onClick={() => setConfirmFight(false)}>Keep planning</button>
+              <button className="bCtl fight wide" onClick={doFight}>Fight</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* full combat log */}
+      {logOpen && (
+        <div className="bInspect" onClick={() => setLogOpen(false)}>
+          <div className="bInspectPanel log" onClick={(e) => e.stopPropagation()}>
+            <div className="bInspectHead"><span><Icon icon="game-icons:scroll-quill" /> Combat Log</span>
+              <button className="bZoomClose sm" onClick={() => setLogOpen(false)}><Icon icon="tabler:x" /></button>
+            </div>
+            <div className="bLogList">
+              {(snap.logHistory || []).length === 0 && <div className="bHandEmpty">No actions yet.</div>}
+              {(snap.logHistory || []).slice().reverse().map((en, i) => (
+                <div key={i} className={`bLogRow ${en.side === 'e' ? 'foe' : 'ally'}`}>{en.text}</div>
+              ))}
             </div>
           </div>
         </div>

@@ -110,7 +110,7 @@ export function applyAction(state, action, rng, log) {
 
   // Log the play against a primary target (first offensive target, else the owner).
   const primary = off[0] || owner;
-  log.push({ type: 'play', ownerId: owner.id, targetId: primary.id, card: card.id });
+  log.push({ type: 'play', ownerId: owner.id, targetId: primary.id, card: card.id, cardName: card.name, offensive, scope: scopeOf(card) });
 
   // Pre-roll a binary hit per offensive target (lock-on always lands; a miss still
   // "spent" the action — it just does nothing to that target).

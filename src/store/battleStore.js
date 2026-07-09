@@ -129,10 +129,41 @@ function publish(store) {
   return {
     version: (store.version || 0) + 1,
     phase: store.phase, outcome: store.outcome, log: store.log, dealKey: store.dealKey || 0,
+    turn: store.turn || 1, logHistory: store.logHistory || [],
     selectedSquadId,
     enemy: state.sides.e.map((id) => squadSnap(store, id, 'e')),
     player: state.sides.p.map((id) => squadSnap(store, id, 'p')),
   };
+}
+
+const cap = (s) => (s ? s[0].toUpperCase() + s.slice(1) : s);
+
+/** Turn the raw round log into readable combat-log entries (one per card played):
+ *  "Turn 3 — Enemy Frostmind Attacked Friendly Ironhide with Strike, causing 8 Damage". */
+export function formatRoundLog(state, log, turn) {
+  const nameOf = (id) => state.unitsById[id]?.creature?.name || state.unitsById[id]?.name || 'Unknown';
+  const sideLbl = (id) => (state.unitsById[id]?.side === 'e' ? 'Enemy' : 'Friendly');
+  const entries = []; let cur = null;
+  for (const e of log) {
+    if (e.type === 'play') {
+      cur = { turn, side: state.unitsById[e.ownerId]?.side || 'p', actor: nameOf(e.ownerId), actorSide: sideLbl(e.ownerId),
+        verb: e.offensive ? 'Attacked' : 'Buffed', target: nameOf(e.targetId), targetSide: sideLbl(e.targetId),
+        card: e.cardName || 'a card', effects: [] };
+      entries.push(cur);
+    } else if (cur) {
+      if (e.type === 'damage') { const net = e.amount - (e.blocked || 0); cur.effects.push(`${net} Damage`); }
+      else if (e.type === 'block') cur.effects.push(`${e.amount} Block`);
+      else if (e.type === 'heal') cur.effects.push(`${e.amount} Heal`);
+      else if (e.type === 'debuff') cur.effects.push(`${e.amount} ${cap(e.status || 'Debuff')}`);
+      else if (e.type === 'buff') cur.effects.push(`${e.amount} ${cap(e.status || 'Buff')}`);
+      else if (e.type === 'miss') cur.effects.push('Miss');
+    }
+  }
+  for (const en of entries) {
+    en.text = `Turn ${en.turn} — ${en.actorSide} ${en.actor} ${en.verb} ${en.targetSide} ${en.target} with ${en.card}`
+      + (en.effects.length ? `, causing ${en.effects.join(', ')}` : '');
+  }
+  return entries;
 }
 
 const isOffensiveCard = (card) => (card?.effects || []).some((e) => e.op === 'damage' || e.op === 'debuff');
@@ -163,12 +194,12 @@ function enemyPlan(state, cards) {
 
 export const useBattle = create((set, get) => ({
   snapshot: null, state: null, plans: {}, cards: {}, seen: new Set(), queueOrder: [], selectedSquadId: null,
-  phase: 'plan', outcome: null, log: [], version: 0, dealKey: 0,
+  phase: 'plan', outcome: null, log: [], version: 0, dealKey: 0, turn: 1, logHistory: [],
 
   startBattle({ player, enemy }) {
     const { state, cards } = buildBattle(player, enemy);
     startRound(state);
-    const base = { state, cards, seen: new Set(), plans: {}, queueOrder: [], selectedSquadId: state.sides.p[0], phase: 'plan', outcome: null, log: [], version: 0, dealKey: 1 };
+    const base = { state, cards, seen: new Set(), plans: {}, queueOrder: [], selectedSquadId: state.sides.p[0], phase: 'plan', outcome: null, log: [], version: 0, dealKey: 1, turn: 1, logHistory: [] };
     set({ ...base, snapshot: publish({ ...get(), ...base }) });
   },
 
@@ -238,9 +269,12 @@ export const useBattle = create((set, get) => ({
         cards[sqId] = cycle({ ...pile, hand: pile.hand.filter((c) => !playedIids.has(c.iid)) }, played);
       }
     }
+    const entries = formatRoundLog(s.state, log, s.turn);
+    const logHistory = [...(s.logHistory || []), ...entries];
+    const turn = outcome ? s.turn : s.turn + 1;
     const dealKey = (s.dealKey || 0) + 1;
-    const next = { ...s, plans: {}, cards, seen, queueOrder: [], log, outcome, phase: outcome ? 'over' : 'plan', dealKey };
-    set({ plans: {}, cards, seen, queueOrder: [], log, outcome, phase: next.phase, dealKey, snapshot: publish(next) });
-    return { log, outcome };
+    const next = { ...s, plans: {}, cards, seen, queueOrder: [], log, outcome, phase: outcome ? 'over' : 'plan', dealKey, turn, logHistory };
+    set({ plans: {}, cards, seen, queueOrder: [], log, outcome, phase: next.phase, dealKey, turn, logHistory, snapshot: publish(next) });
+    return { log, outcome, entries };
   },
 }));
