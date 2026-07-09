@@ -237,8 +237,11 @@ html:has(.cmbt),body:has(.cmbt){height:100%;margin:0;overflow:hidden}
    portrait reads as a tall illustration, and every card stays the same height. */
 .combat .art{flex:1 1 auto;height:auto;min-height:0;border-radius:8px;margin:2px 2px 0;cursor:pointer}
 .combat .art .creature{font-size:clamp(72px,17vh,168px)}
-.cmbt .combat .art img.creature.artImg.gen{width:100%;height:100%;border-radius:8px;object-fit:cover}
-.cmbt .combat .art img.creature.artImg{width:auto;height:90%;max-width:100%}
+/* Portrait sizing scoped to .combat (the CardFace frame) so a card renders correctly
+   ANYWHERE — combat, the collection/editor grids, AND the v2 battle board. Without
+   this the <img> falls back to its natural 384px and blows the card's size out. */
+.combat .art img.creature.artImg{image-rendering:pixelated;object-fit:contain;display:block;width:auto;height:90%;max-width:100%}
+.combat .art img.creature.artImg.gen{image-rendering:auto;width:100%;height:100%;border-radius:8px;object-fit:cover}
 .art .moon{position:absolute;top:12px;right:22px;width:32px;height:32px;border-radius:50%;
   background:radial-gradient(circle at 40% 40%,#fffbe9,#ffe9a8);box-shadow:0 0 26px #ffe9a8aa;opacity:.85}
 .art .mtn{position:absolute;bottom:0;left:0;right:0;height:42px;background-color:#2a1c16;opacity:.55;

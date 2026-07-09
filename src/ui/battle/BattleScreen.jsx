@@ -9,9 +9,23 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { useBattle } from '../../store/battleStore.js';
 import { CardFace } from '../combat/creatureVisuals.jsx';
+import { ATTUNEMENT_COLOR } from '../../data/axisIcons.js';
+import '../combat/combat.css';   // CardFace styling (frame/art/badges) lives here
 import './battle.css';
 
 const Icon = ({ icon }) => <iconify-icon icon={icon}></iconify-icon>;
+const elColor = (el) => ATTUNEMENT_COLOR[el] || '#c9a66b';
+
+/** A move card (hand or drag ghost). */
+function MoveCard({ card, dragSrc, onPointerDown }) {
+  return (
+    <div className={`bCard${dragSrc ? ' dragSrc' : ''}`} style={{ '--el': elColor(card.element) }} onPointerDown={onPointerDown}>
+      <div className="bCardHead"><span className="bCardCost">{card.cost}</span><span className="bCardName">{card.name}</span></div>
+      <div className="bCardType">{card.element || ''} {card.type || 'card'}{card.priority ? ` · Priority ${card.priority}` : ''}</div>
+      <div className="bCardText">{card.text}</div>
+    </div>
+  );
+}
 
 /** A creature card in the board (front = full, support = smaller). */
 function UnitCard({ u, side, onDropRef }) {
@@ -115,11 +129,7 @@ export default function BattleScreen() {
         </div>
         <div className="bHand">
           {(selected?.hand || []).map((card) => (
-            <div key={card.iid} className={`bCard${d?.iid === card.iid ? ' dragSrc' : ''}`}
-              onPointerDown={(e) => startDrag(e, card)}>
-              <div className="bCardTop"><span className="bCardName">{card.name}</span><span className="bCardCost">{card.cost}</span></div>
-              <div className="bCardText">{card.text}</div>
-            </div>
+            <MoveCard key={card.iid} card={card} dragSrc={d?.iid === card.iid} onPointerDown={(e) => startDrag(e, card)} />
           ))}
           {selected && (selected.hand || []).length === 0 && <div className="bHandEmpty">No cards in hand.</div>}
         </div>
@@ -127,7 +137,7 @@ export default function BattleScreen() {
 
       {d && (
         <div className="bDragGhost" style={{ left: d.x, top: d.y }}>
-          <div className="bCard"><div className="bCardTop"><span className="bCardName">{d.card.name}</span><span className="bCardCost">{d.card.cost}</span></div><div className="bCardText">{d.card.text}</div></div>
+          <MoveCard card={d.card} />
         </div>
       )}
     </div>

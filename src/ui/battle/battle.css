@@ -23,14 +23,22 @@
 .bSquad.selected { border-color: var(--gold); background: #c9a23a14; box-shadow: 0 0 16px #c9a23a22; }
 .bSquadRow { display: flex; align-items: flex-end; gap: 8px; }
 
-.bUnit { position: relative; transition: transform .12s, filter .12s; }
-.bUnit.front .combat { width: clamp(120px, 13vw, 168px); height: auto; max-height: none; }
-.bUnit.support { opacity: .9; }
-.bUnit.support .combat { width: clamp(78px, 8.5vw, 112px); height: auto; max-height: none; filter: brightness(.9); }
+/* Width-driven cards (same model as the collection grid): .combat fills the box
+   width and its height follows the card proportions. Front Vanguard large, Support
+   smaller. The zones scroll if a side has many squads. */
+.bUnit { position: relative; flex: 0 0 auto; min-width: 0; transition: transform .12s, filter .12s; }
+.bUnit.front { width: clamp(116px, 12vw, 156px); }
+.bUnit.support { width: clamp(80px, 8vw, 106px); opacity: .95; }
+/* explicit card HEIGHT → the art has a definite box to fill (object-fit:cover),
+   so nothing overflows; width comes from .bUnit. */
+.bUnit.front .combat { width: 100%; height: clamp(150px, 30vh, 258px); max-height: none; }
+.bUnit.support .combat { width: 100%; height: clamp(104px, 21vh, 176px); max-height: none; }
 .bUnit.support .combat .axesLine, .bUnit.support .combat .stats { display: none; }   /* declutter minis */
 .bUnit.dead { filter: grayscale(.85) brightness(.6); }
 .bUnit .combat .sideTag { display: none; }
-.battleScreen.dragging .bUnit:hover { outline: 2px dashed var(--gold); outline-offset: 3px; border-radius: 12px; }
+.battleScreen.dragging .bUnit { cursor: copy; }
+.battleScreen.dragging .bUnit:hover { transform: translateY(-4px); }
+.battleScreen.dragging .bUnit:hover .combat { outline: 3px solid var(--gold); outline-offset: 2px; box-shadow: 0 0 20px #f0c84a66; }
 
 /* per-squad energy pips */
 .bEnergy { display: flex; align-items: center; gap: 3px; }
@@ -54,21 +62,27 @@
 .bHandBar { flex: 0 0 auto; border-top: 1px solid var(--line); background: #1a130d; padding: 6px 16px 10px; }
 .bHandLbl { font: 700 11px var(--font-display); letter-spacing: 1px; text-transform: uppercase; color: var(--gold);
   display: flex; align-items: center; gap: 12px; margin-bottom: 6px; }
-.bHand { display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; min-height: 92px; }
+.bHand { display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; min-height: 118px; }
 .bHandEmpty { color: var(--ink-faint); font-style: italic; align-self: center; }
-.bCard { width: 132px; min-height: 88px; padding: 8px 10px; cursor: grab; touch-action: none; user-select: none;
-  display: flex; flex-direction: column; gap: 5px; border-radius: 10px; border: 1px solid var(--gold-deep);
-  background: linear-gradient(165deg, #2a1f14, #160f09); box-shadow: 0 3px 8px #0007; transition: transform .1s; }
-.bCard:hover { transform: translateY(-4px); border-color: var(--gold); }
-.bCard.dragSrc { opacity: .35; }
-.bCardTop { display: flex; align-items: center; justify-content: space-between; }
-.bCardName { font-family: var(--font-display); font-size: 13px; color: var(--gold-bright); }
-.bCardCost { width: 20px; height: 20px; border-radius: 50%; display: grid; place-items: center; font: 700 12px var(--font-display);
-  color: #10261a; background: radial-gradient(circle at 38% 30%, #fff6, var(--gold) 60%, #7a5a12); }
-.bCardText { font-size: 11px; line-height: 1.35; color: var(--ink-dim); }
+/* Move card — element-tinted header strip, cost orb, type line, rules text. */
+.bCard { width: 150px; height: 112px; padding: 0 0 8px; cursor: grab; touch-action: none; user-select: none;
+  display: flex; flex-direction: column; border-radius: 11px; overflow: hidden;
+  border: 1px solid var(--el, var(--gold-deep)); background: linear-gradient(168deg, #241a10, #140d08);
+  box-shadow: 0 3px 9px #0008, inset 0 0 0 1px #0006; transition: transform .1s, box-shadow .1s; }
+.bCard:hover { transform: translateY(-6px) scale(1.03); box-shadow: 0 10px 20px #000a, 0 0 14px color-mix(in srgb, var(--el, var(--gold)) 45%, transparent); }
+.bCard.dragSrc { opacity: .3; }
+.bCardHead { display: flex; align-items: center; gap: 7px; padding: 6px 9px;
+  background: linear-gradient(90deg, color-mix(in srgb, var(--el, var(--gold)) 34%, #1c130b), #1c130b); }
+.bCardName { font-family: var(--font-display); font-size: 13px; font-weight: 700; color: var(--cream, #f6e7b0);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis; flex: 1; }
+.bCardCost { flex: none; width: 22px; height: 22px; border-radius: 50%; display: grid; place-items: center; font: 700 13px var(--font-display);
+  color: #16110a; background: radial-gradient(circle at 38% 30%, #fff8, var(--el, var(--gold)) 62%, #0006); box-shadow: 0 1px 3px #000a; }
+.bCardType { font-size: 9px; letter-spacing: .08em; text-transform: uppercase; color: var(--ink-faint); padding: 4px 9px 0; }
+.bCardText { font-size: 11px; line-height: 1.32; color: var(--ink-dim); padding: 3px 9px 0; flex: 1; }
 
 .bDragGhost { position: fixed; z-index: 999; transform: translate(-50%, -50%) rotate(-3deg); pointer-events: none;
   filter: drop-shadow(0 12px 22px #000b); }
+.bDragGhost .bCard { transform: none; }
 
 .battleScreen.empty { align-items: center; justify-content: center; }
 
