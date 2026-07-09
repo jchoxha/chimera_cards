@@ -988,8 +988,11 @@ npm run test:engine  # node smoke test for the new engine (src/engine/__smoke__.
 # content layer test: node src/engine/content/__smoke__.mjs
 ```
 
-The prototype is `index.html`; the new engine combat demo is `combat.html`
-(both built via Vite multi-page — see `vite.config.js`).
+**PAGES (Vite multi-page — see `vite.config.js`):** `index.html` is now the **DEV HUB**
+(`src/hub/` — lists every build + renders all `docs/*.md`+root `*.md` via `marked`); the original
+**prototype moved to `prototype.html`** (→ `src/main.jsx`). `app.html` = the v1 game, `battle.html` =
+the combat-v2 squad prototype (`src/battle-v2/`), `combat.html` = the v1 engine demo, `editor.html` =
+the standalone editor. All deploy to GH Pages; the ROOT url now serves the hub.
 
 ## Golden rules (must follow on every gameplay edit)
 
@@ -1052,8 +1055,9 @@ The prototype is `index.html`; the new engine combat demo is `combat.html`
 ## Deploy
 
 Pushing to `main` triggers `.github/workflows/deploy.yml`, which builds with the
-correct `/<repo>/` base path (`VITE_BASE`) and publishes to GitHub Pages. Both
-`index.html` (prototype) and `combat.html` (engine demo) are deployed.
+correct `/<repo>/` base path (`VITE_BASE`) and publishes to GitHub Pages. All six pages deploy;
+the ROOT url serves the **Dev Hub** (`index.html`), which links each build (app/battle/combat/
+editor/prototype) + renders the docs.
 
 ## Roadmap / next steps (candidates, not yet started)
 

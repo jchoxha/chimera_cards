@@ -11,10 +11,13 @@ export default defineConfig({
   plugins: [react(), cardWritePlugin()],
   build: {
     rollupOptions: {
-      // Multi-page: the React prototype (index.html), the new engine combat demo
-      // (combat.html), and the card editor (editor.html) are built side by side.
+      // Multi-page. index.html is the DEV HUB (lists builds + renders docs); the
+      // original prototype moved to prototype.html. app = the v1 game, battle =
+      // the combat-v2 squad prototype, combat = the v1 engine demo, editor = the
+      // standalone editor.
       input: {
         main: "index.html",
+        prototype: "prototype.html",
         combat: "combat.html",
         editor: "editor.html",
         app: "app.html",

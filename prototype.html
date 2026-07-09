@@ -3,15 +3,22 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
-    <meta name="theme-color" content="#16110a" />
-    <title>Chimera Cards — Dev Hub</title>
+    <meta name="theme-color" content="#0b0b14" />
+    <title>Chimera Cards — Original Prototype</title>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;700;900&family=Cinzel+Decorative:wght@700;900&family=Spectral:ital,wght@0,400;0,600;1,400&display=swap" rel="stylesheet" />
     <script src="https://cdn.jsdelivr.net/npm/iconify-icon@2/dist/iconify-icon.min.js"></script>
+    <!--
+      OPTIONAL local AI key: the game calls the Anthropic API directly for
+      art/forge/fusion. Inside Claude this needs no key. For LOCAL testing on
+      your own machine you may uncomment and set the line below. NEVER commit a
+      real key or deploy it to the public page — the repo is public.
+      <script>window.ANTHROPIC_API_KEY = "sk-ant-...";</script>
+    -->
   </head>
-  <body style="margin:0">
+  <body>
     <div id="root"></div>
-    <script type="module" src="/src/hub/main.jsx"></script>
+    <script type="module" src="/src/main.jsx"></script>
   </body>
 </html>
