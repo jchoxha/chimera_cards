@@ -249,6 +249,34 @@ function Picker({ pickRef, meshes }) {
   return null;
 }
 
+/** In-scene FX: a floating combat number that rises + fades over the struck creature. */
+function FxItem({ it, meshes }) {
+  const { camera } = useThree();
+  const grp = useRef();
+  const t = useRef(0);
+  const pos = useRef(null);
+  const tex = useLabelTexture(it.text, { color: it.color, px: 72, weight: 900 });
+  useFrame((_, dt) => {
+    const g = grp.current; if (!g) return;
+    if (!pos.current) { const m = meshes.current.get(it.unitId); pos.current = m ? m.getWorldPosition(new THREE.Vector3()) : new THREE.Vector3(0, 0.5, 0); }
+    t.current += dt;
+    g.position.set(pos.current.x, pos.current.y + 0.4 + t.current * 1.3, pos.current.z);
+    g.quaternion.copy(camera.quaternion);   // billboard toward camera
+    const o = Math.max(0, 1 - t.current / 1.2);
+    const s = 1 + Math.min(0.35, t.current * 1.2);
+    g.scale.setScalar(s);
+    if (g.children[0]) g.children[0].material.opacity = o;
+  });
+  return (
+    <group ref={grp}>
+      <mesh><planeGeometry args={[1.1, 0.44]} /><meshBasicMaterial map={tex} transparent depthTest={false} depthWrite={false} toneMapped={false} /></mesh>
+    </group>
+  );
+}
+function FxLayer({ items, meshes }) {
+  return (items || []).map((it) => <FxItem key={it.key} it={it} meshes={meshes} />);
+}
+
 /** Squads laid out on the table: enemy far, you near; Vanguard centered/forward, Support flanking/back. */
 function Side({ squads, side, focusId, actingId, hoverId, onPick, onOver, onCam, registerMesh }) {
   const frontZ = LAYOUT.frontZ[side];
@@ -274,7 +302,7 @@ function Side({ squads, side, focusId, actingId, hoverId, onPick, onOver, onCam,
   });
 }
 
-export default function Board3D({ enemy, player, focusId, actingId, onPick, pickRef, hand }) {
+export default function Board3D({ enemy, player, focusId, actingId, onPick, pickRef, hand, fx }) {
   const [hoverId, setHoverId] = useState(null);
   const [camFocus, setCamFocus] = useState(null);   // manual camera focus (a squad center) | null = overview
   const orbit = useOrbit();
@@ -304,6 +332,7 @@ export default function Board3D({ enemy, player, focusId, actingId, onPick, pick
       <Side squads={enemy} side="e" focusId={focusId} actingId={actingId} hoverId={hoverId} onPick={onPick} onOver={setHoverId} onCam={setCamFocus} registerMesh={registerMesh} />
       <Side squads={player} side="p" focusId={focusId} actingId={actingId} hoverId={hoverId} onPick={onPick} onOver={setHoverId} onCam={setCamFocus} registerMesh={registerMesh} />
       {hand && <HandDock3D {...hand} />}
+      <FxLayer items={fx} meshes={meshes} />
     </Canvas>
   );
 }

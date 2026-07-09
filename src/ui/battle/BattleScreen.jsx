@@ -67,66 +67,6 @@ function ActionCard({ card, dragSrc, selected, big, onPointerDown, onDoubleClick
   );
 }
 
-/** One squad's card station: Deck · Hand · Discard · Exhaust (a carousel slide). */
-function Pile({ kind, icon, count, label, onInspect }) {
-  return (
-    <button type="button" className={`bPile ${kind}${onInspect ? ' inspectable' : ''}`} title={onInspect ? `Inspect ${label}` : label}
-      disabled={!onInspect} onClick={onInspect}>
-      <div className="bPileStack"><Icon icon={icon} /></div>
-      <span className="bPileN">{count}</span>
-      <label>{label}</label>
-    </button>
-  );
-}
-/** The player's own squad station — face-up FANNED hand (tap to select, drag or
- *  click-target to play, double-tap for detail) + inspectable piles. */
-function Station({ sq, dealKey, onCardDown, onCardDetail, dragIid, selectedIid, onInspect }) {
-  const hand = sq.hand || [];
-  return (
-    <div className="bStation">
-      <Pile kind="deck" icon="game-icons:card-random" count={sq.deckCount} label="Deck"
-        onInspect={sq.deckCount ? () => onInspect({ title: 'Draw Pile', cards: sq.deck, note: 'Contents known · draw order hidden' }) : null} />
-      <div className={`bHand fan n${hand.length}`}>
-        {hand.map((card, i) => (
-          <div key={`${dealKey}-${card.iid}`} className="bDeal" style={{ animationDelay: `${i * 55}ms`, zIndex: i + 1 }}>
-            <ActionCard card={card} dragSrc={dragIid === card.iid} selected={selectedIid === card.iid}
-              onPointerDown={(e) => onCardDown(e, card)} onDoubleClick={() => onCardDetail(card)} />
-          </div>
-        ))}
-        {hand.length === 0 && <div className="bHandEmpty">No cards in hand.</div>}
-      </div>
-      <div className="bDiscardPiles">
-        <Pile kind="discard" icon="game-icons:card-pickup" count={sq.discardCount} label="Discard"
-          onInspect={sq.discardCount ? () => onInspect({ title: 'Discard', cards: sq.discard }) : null} />
-        <Pile kind="exhaust" icon="game-icons:card-burn" count={sq.exhaustCount} label="Exhaust"
-          onInspect={sq.exhaustCount ? () => onInspect({ title: 'Exhaust', cards: sq.exhaust }) : null} />
-      </div>
-    </div>
-  );
-}
-/** An enemy squad station — face-DOWN hand (hidden), inspectable discard/exhaust, and a
- *  deck that is '?' until cards have been seen played or discarded. */
-function EnemyStation({ sq, onInspect }) {
-  return (
-    <div className="bStation enemy">
-      <Pile kind="deck" icon="game-icons:card-random" count={sq.deckCount} label="Deck"
-        onInspect={sq.deckCount ? () => onInspect({ title: 'Enemy Draw Pile', cards: sq.deck, note: 'Cards you have seen are revealed · order unknown' }) : null} />
-      <div className="bHand facedown">
-        {Array.from({ length: sq.handCount || 0 }).map((_, i) => (
-          <div key={i} className="bCardBack" title="Hidden enemy card"><Icon icon="game-icons:card-random" /></div>
-        ))}
-        {!sq.handCount && <div className="bHandEmpty">Enemy hand empty.</div>}
-      </div>
-      <div className="bDiscardPiles">
-        <Pile kind="discard" icon="game-icons:card-pickup" count={sq.discardCount} label="Discard"
-          onInspect={sq.discardCount ? () => onInspect({ title: 'Enemy Discard', cards: sq.discard }) : null} />
-        <Pile kind="exhaust" icon="game-icons:card-burn" count={sq.exhaustCount} label="Exhaust"
-          onInspect={sq.exhaustCount ? () => onInspect({ title: 'Enemy Exhaust', cards: sq.exhaust }) : null} />
-      </div>
-    </div>
-  );
-}
-
 export default function BattleScreen() {
   const snap = useBattle((s) => s.snapshot);
   const selectSquad = useBattle((s) => s.selectSquad);
@@ -139,7 +79,6 @@ export default function BattleScreen() {
   const pickRef = useRef(null);        // Board3D raycast picker: (clientX,clientY) → unitId | null
   const drag = useRef(null);
   const [d, setD] = useState(null);          // active hand-card DRAG (only once moved past threshold)
-  const [pressing, setPressing] = useState(false);   // a card is pressed (may become a drag or a tap)
   const [zoom, setZoom] = useState(null);    // { u, side } full creature info card
   const [cardZoom, setCardZoom] = useState(null);    // enlarged Action Card detail
   const [selId2, setSelId2] = useState(null);        // selected hand-card iid (click-to-target)
@@ -155,32 +94,26 @@ export default function BattleScreen() {
   const timers = useRef([]);
   useEffect(() => () => timers.current.forEach(clearTimeout), []);
 
-  // press → tap (select / detail) vs drag (past a small threshold), tracked on the window
+  // Hand card press → TAP (select / detail) vs DRAG-to-play. Listeners are bound ONCE
+  // on mount and gate on the drag.current ref — binding lazily on a `pressing` state
+  // would miss the pointer-up of a fast tap (the effect re-binds after the up fires).
   useEffect(() => {
-    if (!pressing) return undefined;
     const onMove = (e) => {
       const g = drag.current; if (!g) return;
       g.x = e.clientX; g.y = e.clientY;
       if (!g.moved && Math.hypot(e.clientX - g.x0, e.clientY - g.y0) > 6) g.moved = true;
-      if (g.moved) {
-        // over a 3D creature (raycast) or, as a fallback, a DOM drop target
-        g.over = (pickRef.current && pickRef.current(e.clientX, e.clientY))
-          || document.elementFromPoint(e.clientX, e.clientY)?.closest('[data-drop-id]')?.getAttribute('data-drop-id') || null;
-        setD({ ...g });
-      }
+      if (g.moved) { g.over = (pickRef.current && pickRef.current(e.clientX, e.clientY)) || null; setD({ ...g }); }
     };
     const onUp = () => {
-      const g = drag.current; drag.current = null; setPressing(false); setD(null);
-      if (!g) return;
+      const g = drag.current; if (!g) return; drag.current = null; setD(null);
       if (g.moved) { if (g.over) { queueCard(g.iid, g.over); setSelId2(null); } }
-      else {   // a TAP: select, or open detail if already selected
-        if (g.tapSel) setCardZoom(g.card); else setSelId2(g.iid);
-      }
+      else if (g.tapSel) setCardZoom(g.card);   // tap a selected card → detail
+      else setSelId2(g.iid);                     // tap → select
     };
     window.addEventListener('pointermove', onMove);
     window.addEventListener('pointerup', onUp);
     return () => { window.removeEventListener('pointermove', onMove); window.removeEventListener('pointerup', onUp); };
-  }, [pressing, queueCard]);
+  }, [queueCard]);
 
   // auto-focus: pan to the acting unit during resolution
   useEffect(() => {
@@ -206,9 +139,14 @@ export default function BattleScreen() {
   const hasUnspent = snap.player.some((sq) => sq.energyLeft > 0);
   const selectedSquad = snap.player.find((sq) => sq.id === selId);
   const selectedCard = selId2 ? (selectedSquad?.hand || []).find((c) => c.iid === selId2) : null;
-  // press a card: a tap selects it (or opens detail if already selected); a drag past
-  // the threshold begins a drag-ghost (handled by the window effect above).
-  const onCardDown = (e, card) => { if (anim) return; e.preventDefault(); drag.current = { iid: card.iid, card, x0: e.clientX, y0: e.clientY, x: e.clientX, y: e.clientY, moved: false, over: null, tapSel: selId2 === card.iid }; setPressing(true); };
+  // press a 3D hand card (native pointer event): a tap selects it (or opens detail if
+  // already selected); a drag past the threshold raycasts onto a board creature to PLAY.
+  // Handled by the window pressing-effect above; the drag ghost follows the cursor.
+  const startHandDrag = (card, ne) => {
+    if (anim) return;
+    drag.current = { iid: card.iid, card, x0: ne.clientX, y0: ne.clientY, x: ne.clientX, y: ne.clientY, moved: false, over: null, tapSel: selId2 === card.iid };
+
+  };
 
   const disp = (u) => (anim ? { ...u, hp: anim.hp[u.id] ?? u.hp, block: anim.block[u.id] ?? u.block, dead: (anim.hp[u.id] ?? u.hp) <= 0 } : u);
 
@@ -244,11 +182,13 @@ export default function BattleScreen() {
     else focusSquad(sq.id, side);
   };
 
+  // in-SCENE FX: push a floating label anchored to a unit's 3D card (Board3D renders it)
+  const FX_COLOR = { dmg: '#ff5a4a', blocked: '#cbd5e1', block: '#f0c84a', heal: '#4ade80', miss: '#cbd5e1', death: '#ff7b7b' };
   const spawnFx = (unitId, kind, text) => {
-    const el = dropEls.current.get(unitId); if (!el) return;
-    const r = el.getBoundingClientRect(); const key = ++fxSeq.current;
-    setFx((f) => [...f, { key, kind, text, x: r.left + r.width / 2, y: r.top + r.height * 0.34 }]);
-    timers.current.push(setTimeout(() => setFx((f) => f.filter((x) => x.key !== key)), 1000));
+    if (!unitId) return;
+    const key = ++fxSeq.current;
+    setFx((f) => [...f, { key, unitId, text, color: FX_COLOR[kind] || '#fff' }]);
+    timers.current.push(setTimeout(() => setFx((f) => f.filter((x) => x.key !== key)), 1200));
   };
 
   // Fight: confirm first if any squad still has energy to spend, else resolve.
@@ -296,11 +236,11 @@ export default function BattleScreen() {
         <Board3D
           enemy={snap.enemy.map((sq) => ({ ...sq, units: sq.units.map(disp) }))}
           player={snap.player.map((sq) => ({ ...sq, units: sq.units.map(disp) }))}
-          focusId={focusId} actingId={anim?.acting} onPick={onTok} pickRef={pickRef}
+          focusId={focusId} actingId={anim?.acting} onPick={onTok} pickRef={pickRef} fx={fx}
           hand={dockHidden || anim ? null : {
             station: snap.player.find((sq) => sq.id === selId) || snap.player[0],
             selectedIid: selId2, dealKey: snap.dealKey,
-            onSelectCard: (iid) => setSelId2(iid), onCardDetail: setCardZoom, onInspect: setInspect,
+            onCardPointerDown: startHandDrag, onInspect: setInspect,
           }} />
 
         {/* squad carousels + horizon log bar overlay the canvas */}
@@ -348,7 +288,6 @@ export default function BattleScreen() {
 
       {d && <div className="bDragGhost" style={{ left: d.x, top: d.y }}><ActionCard card={d.card} /></div>}
 
-      {fx.map((f) => <div key={f.key} className={`bFx ${f.kind}`} style={{ left: f.x, top: f.y }}>{f.text}</div>)}
 
       {zoom && (
         <div className="bZoom" onClick={() => setZoom(null)}>

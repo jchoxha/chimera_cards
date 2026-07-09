@@ -72,8 +72,9 @@ function useActionCardTexture(card) {
 
 const CARD_W = 0.74, CARD_H = 1.03;
 
-/** One fanned hand card (a mesh). Tap = select; tap-when-selected = detail. */
-function HandCard3D({ card, index, count, dealKey, selected, onSelect, onDetail }) {
+/** One fanned hand card (a mesh). Pointer-down starts a press the shell resolves
+ *  into a TAP (select / detail) or a DRAG-to-play (raycast onto a board creature). */
+function HandCard3D({ card, index, count, dealKey, selected, onCardPointerDown }) {
   const tex = useActionCardTexture(card);
   const grp = useRef();
   const hov = useRef(false);
@@ -99,7 +100,7 @@ function HandCard3D({ card, index, count, dealKey, selected, onSelect, onDetail 
   return (
     <group ref={grp} position={[baseX, baseY - 0.6, 0]}>
       <mesh
-        onPointerDown={(e) => { e.stopPropagation(); selected ? onDetail(card) : onSelect(card.iid); }}
+        onPointerDown={(e) => { e.stopPropagation(); onCardPointerDown(card, e.nativeEvent); }}
         onPointerOver={(e) => { e.stopPropagation(); hov.current = true; }}
         onPointerOut={() => { hov.current = false; }}>
         <planeGeometry args={[CARD_W, CARD_H]} />
@@ -156,7 +157,7 @@ function CamShelf({ children, aspect }) {
   return <group ref={ref} position={[0, -1.22, -3.7]} rotation={[0.3, 0, 0]} scale={s}>{children}</group>;
 }
 
-export default function HandDock3D({ station, selectedIid, dealKey, onSelectCard, onCardDetail, onInspect }) {
+export default function HandDock3D({ station, selectedIid, dealKey, onCardPointerDown, onInspect }) {
   const { size } = useThree();
   const aspect = size.width / Math.max(1, size.height);
   if (!station) return null;
@@ -170,7 +171,7 @@ export default function HandDock3D({ station, selectedIid, dealKey, onSelectCard
       <group position={[0, 0.1, 0.2]}>
         {hand.map((card, i) => (
           <HandCard3D key={`${dealKey}-${card.iid}`} card={card} index={i} count={hand.length} dealKey={dealKey}
-            selected={selectedIid === card.iid} onSelect={onSelectCard} onDetail={onCardDetail} />
+            selected={selectedIid === card.iid} onCardPointerDown={onCardPointerDown} />
         ))}
       </group>
       {/* discard + exhaust (right) */}

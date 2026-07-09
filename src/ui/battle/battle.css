@@ -185,8 +185,9 @@
 .bCardBack { width: 46px; height: 66px; border-radius: 9px; display: grid; place-items: center; font-size: 22px;
   color: #e6b8a0; background: repeating-linear-gradient(45deg, #3a1712, #3a1712 6px, #481d16 6px, #481d16 12px);
   border: 1px solid #7a3226; box-shadow: 0 3px 8px #0008; }
-.bCardBack.big { width: 64px; height: 92px; position: relative; font-size: 30px; }
-.bCardBack.big span { position: absolute; bottom: 5px; font: 900 16px var(--font-display); color: #f6d3c2; }
+/* enemy "?" cards match the known-card (ActionCard) footprint so inspect grids read uniformly */
+.bCardBack.big { width: 150px; height: 210px; position: relative; font-size: 64px; }
+.bCardBack.big span { position: absolute; bottom: 14px; font: 900 30px var(--font-display); color: #f6d3c2; }
 
 /* deck / discard / exhaust piles */
 .bDiscardPiles { display: flex; gap: 10px; align-self: center; }
