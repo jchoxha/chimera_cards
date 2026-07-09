@@ -20,7 +20,8 @@ const elColor = (el) => ATTUNEMENT_COLOR[el] || '#c9a66b';
 const CARD_W = 1.12, CARD_H = 1.54;
 
 // Shared squad layout (used by the board AND the camera rig so focusing lines up).
-const LAYOUT = { spacing: 3.5, frontZ: { e: -2.6, p: 2.3 }, backZ: { e: -3.4, p: 3.1 } };
+// Cards lie FLAT so the front/back rows need more Z separation (a card is CARD_H deep).
+const LAYOUT = { spacing: 3.6, frontZ: { e: -1.9, p: 1.6 }, backZ: { e: -3.6, p: 3.3 } };
 const squadX = (i, n) => (i - (n - 1) / 2) * LAYOUT.spacing;
 const squadCenter = (side, i, n) => ({ x: squadX(i, n), z: (LAYOUT.frontZ[side] + LAYOUT.backZ[side]) / 2 });
 
@@ -93,15 +94,15 @@ function Card3D({ u, side, x, frontZ, backZ, selected, acting, hovered, onPick, 
   const meshRef = useRef();
   const scaleBase = u.isFront ? 1 : 0.82;
   const z = u.isFront ? frontZ : backZ;
-  const baseY = (CARD_H * scaleBase) / 2;
+  const baseY = 0.05;   // cards lie FLAT on the table; select/act lifts them off it
 
   useEffect(() => { if (meshRef.current) registerMesh(u.id, meshRef.current); return () => registerMesh(u.id, null); }, [u.id]);
 
   useFrame(() => {
     const g = grp.current; if (!g) return;
-    const lift = (selected ? 0.22 : 0) + (acting ? 0.5 : 0) + (hovered ? 0.12 : 0);
+    const lift = (selected ? 0.28 : 0) + (acting ? 0.55 : 0) + (hovered ? 0.16 : 0);
     g.position.y = THREE.MathUtils.lerp(g.position.y, baseY + lift, 0.16);
-    const s = scaleBase * (acting ? 1.14 : 1);
+    const s = scaleBase * (acting ? 1.14 : 1) * (selected ? 1.05 : 1);
     const cur = g.scale.x + (s - g.scale.x) * 0.16;
     g.scale.setScalar(cur);
   });
@@ -109,9 +110,18 @@ function Card3D({ u, side, x, frontZ, backZ, selected, acting, hovered, onPick, 
   const hpFrac = Math.max(0, Math.min(1, u.hp / u.maxHp));
   const frameColor = selected ? '#f0c84a' : (acting ? '#ffd873' : elColor(u.element));
   const dim = u.dead ? 0.4 : 1;
+  const glow = selected ? '#f0c84a' : (hovered ? '#dfeaff' : null);
 
+  // flat on the table (face up), leaned a hair toward the camera for readability
   return (
-    <group ref={grp} position={[x, baseY, z]} rotation={[-0.15, 0, 0]}>
+    <group ref={grp} position={[x, baseY, z]} rotation={[-Math.PI / 2 + 0.16, 0, 0]}>
+      {/* selection / hover AURA: a soft glow just under the card */}
+      {glow && (
+        <mesh position={[0, 0, -0.06]}>
+          <planeGeometry args={[CARD_W + 0.9, CARD_H + 0.9]} />
+          <meshBasicMaterial color={glow} transparent opacity={selected ? 0.5 : 0.28} blending={THREE.AdditiveBlending} depthWrite={false} />
+        </mesh>
+      )}
       {/* frame / border behind the face */}
       <mesh position={[0, 0, -0.04]}>
         <boxGeometry args={[CARD_W + 0.08, CARD_H + 0.08, 0.06]} />
@@ -152,43 +162,68 @@ function Card3D({ u, side, x, frontZ, backZ, selected, acting, hovered, onPick, 
   );
 }
 
-/** The wooden table + a receding grid. */
-function Table() {
+/** The wooden table + a receding grid. Dragging the table ORBITS the camera; a plain
+ *  tap on it returns to the overview. */
+function Table({ onOrbitStart }) {
   return (
     <group>
-      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.02, -0.5]} receiveShadow>
-        <planeGeometry args={[60, 60]} />
+      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.02, -0.5]}
+        onPointerDown={(e) => { e.stopPropagation(); onOrbitStart(e.nativeEvent); }}>
+        <planeGeometry args={[80, 80]} />
         <meshStandardMaterial color="#2a1d10" roughness={1} />
       </mesh>
-      <gridHelper args={[60, 60, '#5a4327', '#3a2a18']} position={[0, 0, -0.5]} />
+      <gridHelper args={[80, 80, '#5a4327', '#3a2a18']} position={[0, 0, -0.5]} />
     </group>
   );
 }
 
-/** Navigable camera: eases toward an overview by default, or toward a FOCUS
- *  point {x,z} (a squad, or the acting creature during resolution). Auto-widens
- *  on narrow/portrait viewports so the spread of squads stays in frame. */
-function CameraRig({ focus }) {
+/** Click-drag ORBIT state (azimuth/polar/zoom the user controls). Drag on the table
+ *  rotates; wheel/pinch zooms. Coexists with the auto camera (which drives target +
+ *  base distance); the user's angle/zoom ride on top. */
+function useOrbit() {
+  const az = useRef(0);           // yaw around the table
+  const pol = useRef(0.64);       // tilt from vertical (small = top-down)
+  const zoom = useRef(1);         // user zoom multiplier
+  const drag = useRef(null);
+  useEffect(() => {
+    const onMove = (e) => {
+      const d = drag.current; if (!d) return;
+      az.current = d.az - (e.clientX - d.x) * 0.006;
+      pol.current = Math.max(0.12, Math.min(1.15, d.pol - (e.clientY - d.y) * 0.005));
+      if (!d.moved && Math.hypot(e.clientX - d.x, e.clientY - d.y) > 4) d.moved = true;
+    };
+    const onUp = () => { const d = drag.current; drag.current = null; if (d && !d.moved && d.onTap) d.onTap(); };
+    const onWheel = (e) => { zoom.current = Math.max(0.55, Math.min(1.8, zoom.current + Math.sign(e.deltaY) * 0.08)); };
+    window.addEventListener('pointermove', onMove);
+    window.addEventListener('pointerup', onUp);
+    window.addEventListener('wheel', onWheel, { passive: true });
+    return () => { window.removeEventListener('pointermove', onMove); window.removeEventListener('pointerup', onUp); window.removeEventListener('wheel', onWheel); };
+  }, []);
+  const start = (e, onTap) => { drag.current = { x: e.clientX, y: e.clientY, az: az.current, pol: pol.current, moved: false, onTap }; };
+  return { az, pol, zoom, start };
+}
+
+/** Navigable camera: eases the LOOK-AT toward an overview, or a FOCUS point {x,z}
+ *  (a squad, or the acting creature during resolution). The user's orbit angle + zoom
+ *  are applied on top, so click-drag navigation and auto-movement coexist. */
+function CameraRig({ focus, orbit }) {
   const { camera, size } = useThree();
-  const pos = useRef(new THREE.Vector3(0, 4.6, 8.1));
-  const tgt = useRef(new THREE.Vector3(0, 0.2, -0.8));
+  const tgt = useRef(new THREE.Vector3(0, 0.2, -0.4));
+  const dist = useRef(11);
   useFrame(() => {
     const aspect = size.width / Math.max(1, size.height);
-    // fov is CONSTANT (per aspect) so the camera-attached hand shelf never resizes;
-    // zoom is achieved by dollying the camera position instead.
-    const fov = aspect < 1 ? 62 : 47;
+    const fov = aspect < 1 ? 60 : 46;   // CONSTANT per aspect so the hand shelf never resizes
     if (Math.abs(camera.fov - fov) > 0.01) { camera.fov = fov; camera.updateProjectionMatrix(); }
-    let dp, dt;
-    if (focus) {
-      dp = new THREE.Vector3(focus.x * 0.85, 3.7, focus.z > 0 ? focus.z + 4.6 : 5.6);
-      dt = new THREE.Vector3(focus.x, 0.4, focus.z);
-    } else {
-      dp = new THREE.Vector3(0, 4.6, aspect < 1 ? 9.6 : 8.1);
-      dt = new THREE.Vector3(0, 0.2, -0.8);
-    }
-    pos.current.lerp(dp, 0.09);
-    tgt.current.lerp(dt, 0.09);
-    camera.position.copy(pos.current);
+    const dt = focus ? new THREE.Vector3(focus.x, 0.3, focus.z) : new THREE.Vector3(0, 0.2, -0.4);
+    const dd = (focus ? 7.6 : (aspect < 1 ? 12 : 10.6)) * orbit.zoom.current;
+    tgt.current.lerp(dt, 0.08);
+    dist.current += (dd - dist.current) * 0.08;
+    const r = dist.current, pol = orbit.pol.current, az = orbit.az.current;
+    camera.position.set(
+      tgt.current.x + r * Math.sin(pol) * Math.sin(az),
+      tgt.current.y + r * Math.cos(pol),
+      tgt.current.z + r * Math.sin(pol) * Math.cos(az),
+    );
     camera.lookAt(tgt.current);
   });
   return null;
@@ -242,6 +277,7 @@ function Side({ squads, side, focusId, actingId, hoverId, onPick, onOver, onCam,
 export default function Board3D({ enemy, player, focusId, actingId, onPick, pickRef, hand }) {
   const [hoverId, setHoverId] = useState(null);
   const [camFocus, setCamFocus] = useState(null);   // manual camera focus (a squad center) | null = overview
+  const orbit = useOrbit();
   const meshes = useRef(new Map());
   const registerMesh = (id, m) => { if (m) meshes.current.set(id, m); else meshes.current.delete(id); };
 
@@ -255,16 +291,16 @@ export default function Board3D({ enemy, player, focusId, actingId, onPick, pick
   const focus = actingId ? (unitCenter.get(actingId) || camFocus) : camFocus;
 
   return (
-    <Canvas dpr={[1, 2]} gl={{ antialias: true, alpha: false }} camera={{ position: [0, 4.6, 8.1], fov: 46, near: 0.1, far: 100 }}
-      onPointerMissed={() => { setHoverId(null); setCamFocus(null); }}>
+    <Canvas dpr={[1, 2]} gl={{ antialias: true, alpha: false }} camera={{ position: [0, 8, 7], fov: 46, near: 0.1, far: 120 }}
+      onPointerMissed={() => setHoverId(null)}>
       <color attach="background" args={['#0c0805']} />
-      <fog attach="fog" args={['#0c0805', 12, 26]} />
-      <CameraRig focus={focus} />
+      <fog attach="fog" args={['#0c0805', 16, 46]} />
+      <CameraRig focus={focus} orbit={orbit} />
       <Picker pickRef={pickRef} meshes={meshes} />
-      <ambientLight intensity={0.75} />
+      <ambientLight intensity={0.78} />
       <directionalLight position={[4, 9, 7]} intensity={1.15} />
       <directionalLight position={[-5, 4, 2]} intensity={0.35} color="#8fb4ff" />
-      <Table />
+      <Table onOrbitStart={(ne) => orbit.start(ne, () => setCamFocus(null))} />
       <Side squads={enemy} side="e" focusId={focusId} actingId={actingId} hoverId={hoverId} onPick={onPick} onOver={setHoverId} onCam={setCamFocus} registerMesh={registerMesh} />
       <Side squads={player} side="p" focusId={focusId} actingId={actingId} hoverId={hoverId} onPick={onPick} onOver={setHoverId} onCam={setCamFocus} registerMesh={registerMesh} />
       {hand && <HandDock3D {...hand} />}

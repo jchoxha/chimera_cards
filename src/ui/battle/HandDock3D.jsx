@@ -152,8 +152,8 @@ function CamShelf({ children, aspect }) {
     return () => { camera.remove(node); };
   }, [camera, scene]);
   // sit low + in front, tilted up toward the viewer; scale down a touch on portrait
-  const s = aspect < 1 ? 0.8 : 1;
-  return <group ref={ref} position={[0, -0.86 * s, -3.05]} rotation={[0.46, 0, 0]} scale={s}>{children}</group>;
+  const s = aspect < 1 ? 0.58 : 0.7;
+  return <group ref={ref} position={[0, -1.22, -3.7]} rotation={[0.3, 0, 0]} scale={s}>{children}</group>;
 }
 
 export default function HandDock3D({ station, selectedIid, dealKey, onSelectCard, onCardDetail, onInspect }) {
