@@ -1,11 +1,12 @@
 // ╔══════════════════════════════════════════════════════════════════╗
-// ║ MODULE: ui/battle/BattleScreen — the COMBAT-V2 board (3D TABLETOP).      ║
-// ║ A perspective floor recedes to a horizon (the turn/log bar); the enemy    ║
-// ║ rack sits small/dim on the far side, your rack large + near. Depth is 2.5D ║
-// ║ by design: the rotateX is ONLY on the non-interactive floor — a rotateX on ║
-// ║ an interactive card layer desyncs pointer hit-testing (creatures become    ║
-// ║ unclickable), so racks use scale/elevation and every unit stays exactly    ║
-// ║ tappable on touch/mouse. (Full WebGL/orbit is a later R3F pass.)           ║
+// ║ MODULE: ui/battle/BattleScreen — the COMBAT-V2 shell. The BOARD is a real  ║
+// ║ WebGL 3D scene (Board3D / react-three-fiber): creatures are textured card  ║
+// ║ MESHES on a receding table, picked by RAYCAST (works on rotated meshes, so ║
+// ║ tilted 3D cards stay exactly tappable on touch/mouse — what CSS rotateX    ║
+// ║ could not do). This file owns the DOM chrome layered over the canvas: the  ║
+// ║ hand/dock, the horizon turn/log bar, squad-nav arrows, and all overlays    ║
+// ║ (card detail, pile inspect, combat log, fight confirm). The DOM hand-drag  ║
+// ║ finds a 3D drop target via Board3D's raycast picker (pickRef).             ║
 // ║ Top = enemy, bottom = friendly. Each creature is a compact BATTLE TOKEN   ║
 // ║ (full-bleed art background + name + HP), NOT the full card. Front Vanguard ║
 // ║ is CENTERED between its two rear Support. Selecting a squad is required    ║
@@ -25,25 +26,16 @@
 // ╚══════════════════════════════════════════════════════════════════╝
 import React, { useEffect, useRef, useState } from 'react';
 import { useBattle } from '../../store/battleStore.js';
-import { CardFace, STATUS_META, elementBadge } from '../combat/creatureVisuals.jsx';
-import { ATTUNEMENT_COLOR, creatureIcon, creatureColor } from '../../data/axisIcons.js';
-import { creatureArt, cardArt } from '../../data/artPool.js';
-import { sizedPortrait } from '../../data/sizeArt.js';
+import Board3D from './Board3D.jsx';
+import { CardFace, elementBadge } from '../combat/creatureVisuals.jsx';
+import { ATTUNEMENT_COLOR } from '../../data/axisIcons.js';
+import { cardArt } from '../../data/artPool.js';
 import '../combat/combat.css';   // CardFace styling for the enlarged info card
 import './battle.css';
 
 const Icon = ({ icon }) => <iconify-icon icon={icon}></iconify-icon>;
 const elColor = (el) => ATTUNEMENT_COLOR[el] || '#c9a66b';
 const cap = (s) => (s ? s[0].toUpperCase() + s.slice(1) : s);
-
-/** Resolve a token's background art: generated portrait → pixel art → icon. */
-function tokenArt(u) {
-  const p = sizedPortrait(u.portrait, u.form);
-  if (p) return { img: p };
-  const art = u.axes?.biology ? creatureArt({ id: u.id, biology: u.axes.biology, family: u.axes.family, subtypes: u.axes.subtypes }) : null;
-  if (art) return { img: art, pixel: true };
-  return { icon: creatureIcon({ biology: u.axes?.biology, attunement: u.axes?.attunement, class: u.axes?.class }), color: creatureColor({ attunement: u.axes?.attunement }) };
-}
 
 // The type line is "(Target Scope) (Attack/Skill/Power)". The attunement lives in the
 // corner badge (same as creature cards), not in this line.
@@ -135,57 +127,6 @@ function EnemyStation({ sq, onInspect }) {
   );
 }
 
-/** The compact battle token: art background + name + HP (the board view). */
-function BattleToken({ u, side, acting, willHit, hovered, onDropRef, onClick }) {
-  const art = tokenArt(u);
-  const pct = Math.max(0, (u.hp / u.maxHp) * 100);
-  return (
-    <div className={`bTok ${u.isFront ? 'front' : 'support'}${u.dead ? ' dead' : ''}${acting ? ' acting' : ''}${willHit ? ' willHit' : ''}${hovered ? ' hovered' : ''}`}
-      data-drop-id={u.id} ref={(el) => onDropRef && onDropRef(u.id, el)} style={{ '--el': elColor(u.element) }}
-      onClick={(e) => { e.stopPropagation(); onClick && onClick(u, side); }}>
-      <div className="bTokArt" style={art.img ? { backgroundImage: `url(${art.img})`, imageRendering: art.pixel ? 'pixelated' : 'auto' } : undefined}>
-        {!art.img && <span className="bTokIcon" style={{ color: art.color }}><Icon icon={art.icon} /></span>}
-      </div>
-      <div className="bTokName">{u.name}</div>
-      {(u.statuses?.length > 0) && (
-        <div className="bTokStatus">
-          {u.statuses.slice(0, 4).map((s) => { const m = STATUS_META[s.id] || { cls: '', icon: 'game-icons:hazard-sign' };
-            return <span key={s.id} className={`bTokPip ${m.cls}`} title={`${s.id} ${s.amount}`}><Icon icon={m.icon} />{s.amount}</span>; })}
-        </div>
-      )}
-      <div className="bTokFoot">
-        {u.block > 0 && <span className="bTokBlock" title={`Block ${u.block}`}><Icon icon="game-icons:checked-shield" />{u.block}</span>}
-        <div className="bTokHp"><i className={pct <= 33 ? 'low' : ''} style={{ width: `${pct}%` }} /><em>{u.hp}</em></div>
-      </div>
-    </div>
-  );
-}
-
-/** A squad: Support · Vanguard(centre) · Support. */
-function Squad({ sq, side, units, selected, acting, willHitIds, hoveredId, onSelect, onDropRef, onTok }) {
-  const front = units.find((u) => u.isFront);
-  const supp = units.filter((u) => !u.isFront);
-  const ordered = front ? [supp[0], front, supp[1]].filter(Boolean) : units;
-  return (
-    <div className={`bSquad${selected ? ' selected' : ''} ${side}`} data-sqid={sq.id}
-      onClick={onSelect ? () => onSelect(sq.id) : undefined}>
-      <div className="bSquadRow">
-        {ordered.map((u) => (
-          <BattleToken key={u.id} u={u} side={side} acting={acting === u.id} willHit={!!willHitIds?.has(u.id)} hovered={hoveredId === u.id}
-            onDropRef={onDropRef} onClick={onTok} />
-        ))}
-      </div>
-      {side === 'p' && (
-        <div className="bEnergy" title="Squad energy">
-          {Array.from({ length: sq.maxEnergy }).map((_, i) => <span key={i} className={`bPip${i < sq.energyLeft ? ' on' : ''}`} />)}
-          <em>{sq.energyLeft}/{sq.maxEnergy}</em>
-        </div>
-      )}
-      {sq.plan?.length > 0 && <div className="bPlan">{sq.plan.map((a, i) => <span key={i} className="bPlanChip">{a.card.name}</span>)}</div>}
-    </div>
-  );
-}
-
 export default function BattleScreen() {
   const snap = useBattle((s) => s.snapshot);
   const selectSquad = useBattle((s) => s.selectSquad);
@@ -194,8 +135,8 @@ export default function BattleScreen() {
   const resetPlans = useBattle((s) => s.resetPlans);
   const resolve = useBattle((s) => s.resolve);
 
-  const dropEls = useRef(new Map());
-  const setDropRef = (id, el) => { if (el) dropEls.current.set(id, el); else dropEls.current.delete(id); };
+  const dropEls = useRef(new Map());   // (reserved for in-scene FX anchoring)
+  const pickRef = useRef(null);        // Board3D raycast picker: (clientX,clientY) → unitId | null
   const drag = useRef(null);
   const [d, setD] = useState(null);          // active hand-card DRAG (only once moved past threshold)
   const [pressing, setPressing] = useState(false);   // a card is pressed (may become a drag or a tap)
@@ -221,7 +162,12 @@ export default function BattleScreen() {
       const g = drag.current; if (!g) return;
       g.x = e.clientX; g.y = e.clientY;
       if (!g.moved && Math.hypot(e.clientX - g.x0, e.clientY - g.y0) > 6) g.moved = true;
-      if (g.moved) { g.over = document.elementFromPoint(e.clientX, e.clientY)?.closest('[data-drop-id]')?.getAttribute('data-drop-id') || null; setD({ ...g }); }
+      if (g.moved) {
+        // over a 3D creature (raycast) or, as a fallback, a DOM drop target
+        g.over = (pickRef.current && pickRef.current(e.clientX, e.clientY))
+          || document.elementFromPoint(e.clientX, e.clientY)?.closest('[data-drop-id]')?.getAttribute('data-drop-id') || null;
+        setD({ ...g });
+      }
     };
     const onUp = () => {
       const g = drag.current; drag.current = null; setPressing(false); setD(null);
@@ -265,21 +211,6 @@ export default function BattleScreen() {
   const onCardDown = (e, card) => { if (anim) return; e.preventDefault(); drag.current = { iid: card.iid, card, x0: e.clientX, y0: e.clientY, x: e.clientX, y: e.clientY, moved: false, over: null, tapSel: selId2 === card.iid }; setPressing(true); };
 
   const disp = (u) => (anim ? { ...u, hp: anim.hp[u.id] ?? u.hp, block: anim.block[u.id] ?? u.block, dead: (anim.hp[u.id] ?? u.hp) <= 0 } : u);
-
-  // which token(s) a card would hit, honoring scope — field = whole enemy side,
-  // squad = every member, targeted = the exact token, front = the target's live front.
-  const hitSetFor = (card, overId) => {
-    const set = new Set(); const sq = overId ? squadOfUnit(overId) : null;
-    if (!sq || !card) return set;
-    const scope = card.scope || (card.reachesBack ? 'targeted' : 'front');
-    if (scope === 'field') sq.side === 'p' ? snap.player.forEach((s) => s.units.forEach((u) => !u.dead && set.add(u.id))) : snap.enemy.forEach((s) => s.units.forEach((u) => !u.dead && set.add(u.id)));
-    else if (scope === 'squad') sq.units.forEach((u) => !u.dead && set.add(u.id));
-    else if (scope === 'targeted') set.add(overId);
-    else if (sq.frontId) set.add(sq.frontId);
-    return set;
-  };
-  // drop affordance: the dragged card's targets, else the selected card hovering a token
-  const willHit = d?.over ? hitSetFor(d.card, d.over) : new Set();
 
   // focus a squad: arm it (for info-open) + make it the planning squad if it's yours
   const focusSquad = (sqId, side) => { if (sqId !== selId) setSelId2(null); setArmedId(sqId); if (side === 'p') selectSquad(sqId); };
@@ -359,48 +290,32 @@ export default function BattleScreen() {
 
   return (
     <div className={`battleScreen${d ? ' dragging' : ''}${anim ? ' resolving' : ''}${dockHidden ? ' dockHidden' : ''}${selectedCard ? ' picking' : ''}`}>
-      {/* 3D TABLETOP: a receding table plane, enemy rack leaning back (far), player rack near */}
-      <div className="bArena">
-        <div className="bFloor" aria-hidden="true"><span className="bFloorGrid" /></div>
-        <div className="bArenaInner">
-          <div className="bField enemy">
-            {snap.enemy.length > 1 && <button className="bEdge left" title="Previous enemy squad" onClick={() => cycleSide('e', -1)}><Icon icon="tabler:chevron-left" /></button>}
-            <section className="bZone enemy">
-              {snap.enemy.map((sq) => (
-                <Squad key={sq.id} sq={sq} side="e" units={sq.units.map(disp)} acting={anim?.acting}
-                  willHitIds={willHit} hoveredId={d?.over} selected={sq.id === focusId}
-                  onSelect={(id) => focusSquad(id, 'e')} onDropRef={setDropRef} onTok={onTok} />
-              ))}
-            </section>
-            {snap.enemy.length > 1 && <button className="bEdge right" title="Next enemy squad" onClick={() => cycleSide('e', 1)}><Icon icon="tabler:chevron-right" /></button>}
-          </div>
+      {/* REAL 3D BOARD (react-three-fiber): creatures are card meshes on a table,
+          raycast-picked so tilted 3D cards stay tappable. Hand/HUD stay DOM below. */}
+      <div className="bArena3d">
+        <Board3D
+          enemy={snap.enemy.map((sq) => ({ ...sq, units: sq.units.map(disp) }))}
+          player={snap.player.map((sq) => ({ ...sq, units: sq.units.map(disp) }))}
+          focusId={focusId} actingId={anim?.acting} onPick={onTok} pickRef={pickRef} />
 
-          {/* horizon: turn number + combat-log ticker (click for the full log) */}
-          <button type="button" className={`bMid${(snap.logHistory?.length || ticker) ? ' log' : ''}`}
-            title={snap.logHistory?.length ? 'View full combat log' : undefined}
-            onClick={() => snap.logHistory?.length && setLogOpen(true)}>
-            {snap.outcome
-              ? <span className={`bOutcome ${snap.outcome === 'p' ? 'win' : 'lose'}`}>
-                  {snap.outcome === 'p' ? 'Victory' : snap.outcome === 'e' ? 'Defeat' : 'Draw'}
-                  <span className="bNew" onClick={(e) => { e.stopPropagation(); window.location.reload(); }} title="New battle"><Icon icon="tabler:refresh" /></span>
-                </span>
-              : anim && ticker
-                ? <span className={`bTick ${ticker.side === 'e' ? 'foe' : 'ally'}`}>{ticker.text}</span>
-                : <span className="bVs"><b>Turn {snap.turn}</b>{snap.logHistory?.length ? <em><Icon icon="game-icons:scroll-quill" /> Combat Log</em> : ' · Plan your squads, then Fight'}</span>}
-          </button>
+        {/* squad carousels + horizon log bar overlay the canvas */}
+        {snap.enemy.length > 1 && <button className="bEdge left far" title="Previous enemy squad" onClick={() => cycleSide('e', -1)}><Icon icon="tabler:chevron-left" /></button>}
+        {snap.enemy.length > 1 && <button className="bEdge right far" title="Next enemy squad" onClick={() => cycleSide('e', 1)}><Icon icon="tabler:chevron-right" /></button>}
+        {snap.player.length > 1 && <button className="bEdge left near" title="Previous squad" onClick={() => cycleSide('p', -1)}><Icon icon="tabler:chevron-left" /></button>}
+        {snap.player.length > 1 && <button className="bEdge right near" title="Next squad" onClick={() => cycleSide('p', 1)}><Icon icon="tabler:chevron-right" /></button>}
 
-          <div className="bField player">
-            {snap.player.length > 1 && <button className="bEdge left" title="Previous squad" onClick={() => cycleSide('p', -1)}><Icon icon="tabler:chevron-left" /></button>}
-            <section className="bZone player">
-              {snap.player.map((sq) => (
-                <Squad key={sq.id} sq={sq} side="p" units={sq.units.map(disp)} acting={anim?.acting}
-                  willHitIds={willHit} hoveredId={d?.over} selected={sq.id === focusId}
-                  onSelect={(id) => focusSquad(id, 'p')} onDropRef={setDropRef} onTok={onTok} />
-              ))}
-            </section>
-            {snap.player.length > 1 && <button className="bEdge right" title="Next squad" onClick={() => cycleSide('p', 1)}><Icon icon="tabler:chevron-right" /></button>}
-          </div>
-        </div>
+        <button type="button" className={`bMid overlay${(snap.logHistory?.length || ticker) ? ' log' : ''}`}
+          title={snap.logHistory?.length ? 'View full combat log' : undefined}
+          onClick={() => snap.logHistory?.length && setLogOpen(true)}>
+          {snap.outcome
+            ? <span className={`bOutcome ${snap.outcome === 'p' ? 'win' : 'lose'}`}>
+                {snap.outcome === 'p' ? 'Victory' : snap.outcome === 'e' ? 'Defeat' : 'Draw'}
+                <span className="bNew" onClick={(e) => { e.stopPropagation(); window.location.reload(); }} title="New battle"><Icon icon="tabler:refresh" /></span>
+              </span>
+            : anim && ticker
+              ? <span className={`bTick ${ticker.side === 'e' ? 'foe' : 'ally'}`}>{ticker.text}</span>
+              : <span className="bVs"><b>Turn {snap.turn}</b>{snap.logHistory?.length ? <em><Icon icon="game-icons:scroll-quill" /> Combat Log</em> : ' · Plan your squads, then Fight'}</span>}
+        </button>
       </div>
 
       {/* DOCK — every squad's Deck · Hand · Discard · Exhaust (yours first, enemy read-only), a rotating carousel */}
