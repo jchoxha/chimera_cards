@@ -296,7 +296,12 @@ export default function BattleScreen() {
         <Board3D
           enemy={snap.enemy.map((sq) => ({ ...sq, units: sq.units.map(disp) }))}
           player={snap.player.map((sq) => ({ ...sq, units: sq.units.map(disp) }))}
-          focusId={focusId} actingId={anim?.acting} onPick={onTok} pickRef={pickRef} />
+          focusId={focusId} actingId={anim?.acting} onPick={onTok} pickRef={pickRef}
+          hand={dockHidden || anim ? null : {
+            station: snap.player.find((sq) => sq.id === selId) || snap.player[0],
+            selectedIid: selId2, dealKey: snap.dealKey,
+            onSelectCard: (iid) => setSelId2(iid), onCardDetail: setCardZoom, onInspect: setInspect,
+          }} />
 
         {/* squad carousels + horizon log bar overlay the canvas */}
         {snap.enemy.length > 1 && <button className="bEdge left far" title="Previous enemy squad" onClick={() => cycleSide('e', -1)}><Icon icon="tabler:chevron-left" /></button>}
@@ -339,16 +344,6 @@ export default function BattleScreen() {
             <button className="bCtl fight" title="Fight — resolve the round" disabled={!!anim || !!snap.outcome} onClick={requestFight}><Icon icon="game-icons:crossed-swords" /></button>
           </div>
         </div>
-        {!dockHidden && (
-          <div className="bStations">
-            <div className="bTrack" style={{ transform: `translateX(${-dockIdx * 100}%)` }}>
-              {dockList.map((sq) => (sq.side === 'p'
-                ? <Station key={sq.id} sq={sq} dealKey={snap.dealKey} onCardDown={onCardDown} onCardDetail={setCardZoom}
-                    dragIid={d?.iid} selectedIid={selId2} onInspect={setInspect} />
-                : <EnemyStation key={sq.id} sq={sq} onInspect={setInspect} />))}
-            </div>
-          </div>
-        )}
       </div>
 
       {d && <div className="bDragGhost" style={{ left: d.x, top: d.y }}><ActionCard card={d.card} /></div>}

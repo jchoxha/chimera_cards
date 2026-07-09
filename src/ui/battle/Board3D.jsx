@@ -11,6 +11,7 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Canvas, useFrame, useThree } from '@react-three/fiber';
 import * as THREE from 'three';
+import HandDock3D from './HandDock3D.jsx';
 import { ATTUNEMENT_COLOR, creatureColor } from '../../data/axisIcons.js';
 import { creatureArt } from '../../data/artPool.js';
 import { sizedPortrait } from '../../data/sizeArt.js';
@@ -173,21 +174,22 @@ function CameraRig({ focus }) {
   const tgt = useRef(new THREE.Vector3(0, 0.2, -0.8));
   useFrame(() => {
     const aspect = size.width / Math.max(1, size.height);
-    let dp, dt, fov;
+    // fov is CONSTANT (per aspect) so the camera-attached hand shelf never resizes;
+    // zoom is achieved by dollying the camera position instead.
+    const fov = aspect < 1 ? 62 : 47;
+    if (Math.abs(camera.fov - fov) > 0.01) { camera.fov = fov; camera.updateProjectionMatrix(); }
+    let dp, dt;
     if (focus) {
-      dp = new THREE.Vector3(focus.x * 0.9, 4.0, focus.z > 0 ? focus.z + 5.4 : 6.4);
-      dt = new THREE.Vector3(focus.x, 0.45, focus.z);
-      fov = aspect < 1 ? 54 : 43;
+      dp = new THREE.Vector3(focus.x * 0.85, 3.7, focus.z > 0 ? focus.z + 4.6 : 5.6);
+      dt = new THREE.Vector3(focus.x, 0.4, focus.z);
     } else {
       dp = new THREE.Vector3(0, 4.6, aspect < 1 ? 9.6 : 8.1);
       dt = new THREE.Vector3(0, 0.2, -0.8);
-      fov = aspect < 1 ? 60 : 46;
     }
     pos.current.lerp(dp, 0.09);
     tgt.current.lerp(dt, 0.09);
     camera.position.copy(pos.current);
     camera.lookAt(tgt.current);
-    if (Math.abs(camera.fov - fov) > 0.05) { camera.fov += (fov - camera.fov) * 0.09; camera.updateProjectionMatrix(); }
   });
   return null;
 }
@@ -237,7 +239,7 @@ function Side({ squads, side, focusId, actingId, hoverId, onPick, onOver, onCam,
   });
 }
 
-export default function Board3D({ enemy, player, focusId, actingId, onPick, pickRef }) {
+export default function Board3D({ enemy, player, focusId, actingId, onPick, pickRef, hand }) {
   const [hoverId, setHoverId] = useState(null);
   const [camFocus, setCamFocus] = useState(null);   // manual camera focus (a squad center) | null = overview
   const meshes = useRef(new Map());
@@ -265,6 +267,7 @@ export default function Board3D({ enemy, player, focusId, actingId, onPick, pick
       <Table />
       <Side squads={enemy} side="e" focusId={focusId} actingId={actingId} hoverId={hoverId} onPick={onPick} onOver={setHoverId} onCam={setCamFocus} registerMesh={registerMesh} />
       <Side squads={player} side="p" focusId={focusId} actingId={actingId} hoverId={hoverId} onPick={onPick} onOver={setHoverId} onCam={setCamFocus} registerMesh={registerMesh} />
+      {hand && <HandDock3D {...hand} />}
     </Canvas>
   );
 }
