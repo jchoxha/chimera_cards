@@ -24,12 +24,14 @@ console.log('Stat derivation (raw, base 50):');
 { const feral = battleStats(['Beast'], ['Feral']);
   ok(feral.stats.evasion > 5, `Feral Beast → nimble (EVA ${feral.stats.evasion})`); }
 
-console.log('Damage (Pokémon Attack÷Defense ratio):');
+console.log('Damage (damped Attack÷Defense ratio, parity = face value):');
 ok(attackDamage(10, BASE, BASE) === 10, `parity 50v50 → face value (${attackDamage(10, BASE, BASE)})`);
-ok(attackDamage(10, 100, 50) === 20, `2× Attack → double (${attackDamage(10, 100, 50)})`);
-ok(attackDamage(10, 50, 100) === 5, `2× Defense → half (${attackDamage(10, 50, 100)})`);
-ok(attackDamage(10, BASE, BASE, 1.5) === 15, `matchup ×1.5 applied (${attackDamage(10, BASE, BASE, 1.5)})`);
+ok(attackDamage(10, 100, 50) === 14, `2× Attack → ~+41% damped (${attackDamage(10, 100, 50)})`);
+ok(attackDamage(10, 50, 100) === 7, `2× Defense → ~−29% damped (${attackDamage(10, 50, 100)})`);
+ok(attackDamage(10, BASE, BASE, 1.5) === 15, `matchup ×1.5 applied on top (${attackDamage(10, BASE, BASE, 1.5)})`);
 ok(attackDamage(10, 50, 0) >= 10, 'zero Defense does not divide-by-zero');
+ok(attackDamage(3, 40, 200) >= 1, `a landed hit always deals ≥1 (${attackDamage(3, 40, 200)})`);
+ok(attackDamage(10, 300, 40) <= 30, `runaway Attack is clamped (${attackDamage(10, 300, 40)})`);
 
 console.log('Hit chance (floor 0, guaranteed miss possible):');
 ok(landChance(100, 0) === 100, 'ACC100 EVA0 → 100%');
@@ -44,11 +46,11 @@ ok(rollHit(100, () => 0.999) === true, 'a 100% chance always hits');
 
 console.log('Status magnitude (ratios):');
 ok(debuffMagnitude(6, BASE, BASE) === 6, `debuff parity → face value (${debuffMagnitude(6, BASE, BASE)})`);
-ok(debuffMagnitude(6, 100, 50) === 12, `high Focus vs low Resolve → bigger (${debuffMagnitude(6, 100, 50)})`);
-ok(debuffMagnitude(6, 50, 100) === 3, `high target Resolve → resisted (${debuffMagnitude(6, 50, 100)})`);
+ok(debuffMagnitude(6, 100, 50) === 8, `high Focus vs low Resolve → bigger, damped (${debuffMagnitude(6, 100, 50)})`);
+ok(debuffMagnitude(6, 50, 100) === 4, `high target Resolve → resisted, damped (${debuffMagnitude(6, 50, 100)})`);
 ok(buffMagnitude(8, BASE) === 8, `self-buff parity → face value (${buffMagnitude(8, BASE)})`);
-ok(buffMagnitude(8, 100) === 16, `high Resolve → better received buff (${buffMagnitude(8, 100)})`);
-ok(buffMagnitude(8, BASE, 100) === 16, `ally buff projected by caster Focus (${buffMagnitude(8, BASE, 100)})`);
+ok(buffMagnitude(8, 100) === 11, `high Resolve → better received buff, damped (${buffMagnitude(8, 100)})`);
+ok(buffMagnitude(8, BASE, 100) === 11, `ally buff projected by caster Focus, damped (${buffMagnitude(8, BASE, 100)})`);
 ok(blockGain(10, BASE) === 10, `Block (temp HP) uses buff scaling (${blockGain(10, BASE)})`);
 
 console.log(`\nbattle/stats: ${pass} passed, ${fail} failed`);

@@ -76,6 +76,19 @@ export function battleStats(biology, subtypes = [], family = null) {
 
 // ── Pure combat formulas (see §2). All clamp to sane bounds. ──
 
+/** DAMPED stat ratio (the heart of the magnitude model). A raw Attack÷Defense ratio is
+ *  Pokémon-literal but too swingy for a card game: a 2× defender crushes an 8 to ~1, a
+ *  buffed attacker explodes. We keep the Pokémon SPIRIT — higher Attack vs lower Defense
+ *  = more damage, parity (a==b) = exactly 1 (so a card's authored "Deal 8" lands as 8) —
+ *  but soften it with a sub-linear exponent and clamp the extremes. So a 2× stat edge is
+ *  ~+41% (not +100%), a 2× wall is ~−29% (not −50%), and nothing crushes to 0 or runs away. */
+const RATIO_EXP = 0.5;                 // sub-linear damping (0=flat, 1=raw Pokémon linear)
+const RATIO_MIN = 0.25, RATIO_MAX = 3; // hard bounds on the multiplier
+export function statRatio(a = BASE, b = BASE, exp = RATIO_EXP) {
+  const num = a > 0 ? a : 1, den = b > 0 ? b : 1;
+  return Math.max(RATIO_MIN, Math.min(RATIO_MAX, Math.pow(num / den, exp)));
+}
+
 /** % chance a non-lock-on attack/debuff lands. FLOOR 0 → a guaranteed miss is possible. */
 export function landChance(accuracy = BASE_ACCURACY, evasion = BASE_EVASION) {
   return Math.max(0, Math.min(100, accuracy - evasion));
@@ -88,30 +101,30 @@ export function rollHit(chance, rng = Math.random) {
   return rng() * 100 < chance;
 }
 
-/** Pokémon-style damage. `baseDamage` is the card's authored, LEGIBLE damage number —
- *  realized 1:1 at neutral stats (Attack 50 vs Defense 50) — then scaled by the
- *  Attack÷Defense ratio × matchup. (No abstract "power": the card says "Deal 8".) */
+/** Damage. `baseDamage` is the card's authored, LEGIBLE number — realized 1:1 at neutral
+ *  stats (Attack 50 vs Defense 50) — scaled by the DAMPED Attack÷Defense ratio × matchup.
+ *  A landed hit always deals ≥ 1 (chip damage never stalls the fight). */
 export function attackDamage(baseDamage, attackerAttack = BASE, targetDefense = BASE, matchup = 1, mult = 1) {
-  const def = targetDefense > 0 ? targetDefense : 1;
-  return Math.max(0, round(baseDamage * (attackerAttack / def) * matchup * mult));
+  const dmg = round(baseDamage * statRatio(attackerAttack, targetDefense) * matchup * mult);
+  return baseDamage > 0 ? Math.max(1, dmg) : Math.max(0, dmg);
 }
 
-/** The owner-adjusted number to SHOW on a card face (StS-style, like Strength): the
- *  card's base damage scaled by only the OWNER's Attack. Defense/matchup apply at hit. */
+/** The owner-adjusted number to SHOW on a card face (StS-style, like Strength): the card's
+ *  base damage vs a NEUTRAL defender (Defense 50). Real defense/matchup apply at hit. */
 export function displayedDamage(baseDamage, attackerAttack = BASE) {
-  return Math.max(0, round(baseDamage * (attackerAttack / BASE)));
+  return Math.max(0, round(baseDamage * statRatio(attackerAttack, BASE)));
 }
 
-/** Debuff magnitude: base × (caster Focus ÷ target Resolve). */
+/** Debuff magnitude: base × damped (caster Focus ÷ target Resolve). */
 export function debuffMagnitude(base, casterFocus = BASE, targetResolve = BASE) {
-  const res = targetResolve > 0 ? targetResolve : 1;
-  return Math.max(0, round(base * (casterFocus / res)));
+  return Math.max(0, round(base * statRatio(casterFocus, targetResolve)));
 }
 
-/** Buff magnitude: base × (recipient Resolve ÷ BASE), × (caster Focus ÷ BASE) when cast on another. */
+/** Buff magnitude: base × damped(recipient Resolve ÷ BASE), × damped(caster Focus ÷ BASE)
+ *  when cast on another creature. */
 export function buffMagnitude(base, recipientResolve = BASE, casterFocus = null) {
-  const recv = recipientResolve / BASE;
-  const proj = casterFocus == null ? 1 : (casterFocus / BASE);
+  const recv = statRatio(recipientResolve, BASE);
+  const proj = casterFocus == null ? 1 : statRatio(casterFocus, BASE);
   return Math.max(0, round(base * recv * proj));
 }
 

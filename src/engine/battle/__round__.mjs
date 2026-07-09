@@ -63,12 +63,12 @@ console.log('Damage · Block(temp HP) · Speed-gated block:');
   resolveRound(s, acts, mulberry32(2));
   ok(def.hp === 30 && def.block === 12, `slow Block lands after the hit (hp ${def.hp}, block ${def.block})`);
 }
-{ // Pokémon ratio: strong attacker vs weak defense
+{ // damped ratio: strong attacker (2× Attack) → ~+41%, not double
   const atk = makeUnit({ id: 'atk', side: 'e', stats: stat({ attack: 100 }), maxHp: 40 });
   const def = makeUnit({ id: 'def', side: 'p', stats: stat({ defense: 50 }), maxHp: 40 });
   const s = state([atk, def]);
   resolveRound(s, [{ ownerId: 'atk', targetId: 'def', card: card({ id: 's', effects: [{ op: 'damage', value: 10 }] }) }], mulberry32(3));
-  ok(def.hp === 20, `2× Attack → 20 dmg (hp ${def.hp})`);
+  ok(def.hp === 26, `2× Attack → 14 dmg damped (hp ${def.hp})`);
 }
 
 console.log('Hit / miss (Accuracy − Evasion, floor 0):');
