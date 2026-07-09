@@ -291,8 +291,12 @@ spec'd separately when Steps 1–3 stabilize.
    with a drop **reticle** on the squad-front it will actually hit (or the specific token for
    `reachesBack`). Hand controls = **Undo · Reset · Fight** (icons, top-right). **Fight** plays the round
    back: **auto-focus** pans to each acting unit, HP bars **tween**, floating damage/block/heal/miss
-   numbers. Demo cards + placeholder AI; real roster art. **PENDING:** carousel for >3 squads/side, real
-   per-squad decks/hands, the AI, deeper juice.
+   numbers. The **dock is a rotating carousel** — a track of per-squad **stations** (Deck · Hand ·
+   Discard · Exhaust piles), translated to the selected squad so switching **slides all cards**; hand
+   cards **deal in from the deck**. **◀▶ squad nav** cycles squads and pans the board to it (board +
+   dock carousel move in conjunction). Real per-squad **piles** now exist in the store (deck/hand/
+   discard/exhaust, draw + reshuffle each round; `exhaust` cards banish). Demo cards + placeholder AI;
+   real roster art. **PENDING:** the real GENERATED per-squad decks (content), the AI, deeper juice.
 5. **RNG polish + AI** — cannot-miss/blind status tools; prediction AI; balance pass.
 6. **Squad-builder meta** + flip the app from v1 → v2 at parity.
 

@@ -41,6 +41,36 @@ function MoveCard({ card, dragSrc, onPointerDown }) {
   );
 }
 
+/** One squad's card station: Deck · Hand · Discard · Exhaust (a carousel slide). */
+function Pile({ kind, icon, count, label }) {
+  return (
+    <div className={`bPile ${kind}`} title={label}>
+      <div className="bPileStack"><Icon icon={icon} /></div>
+      <span className="bPileN">{count}</span>
+      <label>{label}</label>
+    </div>
+  );
+}
+function Station({ sq, dealKey, onDrag, dragIid }) {
+  return (
+    <div className="bStation">
+      <Pile kind="deck" icon="game-icons:card-random" count={sq.deckCount} label="Deck" />
+      <div className="bHand">
+        {(sq.hand || []).map((card, i) => (
+          <div key={`${dealKey}-${card.iid}`} className="bDeal" style={{ animationDelay: `${i * 55}ms` }}>
+            <MoveCard card={card} dragSrc={dragIid === card.iid} onPointerDown={(e) => onDrag(e, card)} />
+          </div>
+        ))}
+        {(sq.hand || []).length === 0 && <div className="bHandEmpty">No cards in hand.</div>}
+      </div>
+      <div className="bDiscardPiles">
+        <Pile kind="discard" icon="game-icons:card-pickup" count={sq.discardCount} label="Discard" />
+        <Pile kind="exhaust" icon="game-icons:card-burn" count={sq.exhaustCount} label="Exhaust" />
+      </div>
+    </div>
+  );
+}
+
 /** The compact battle token: art background + name + HP (the board view). */
 function BattleToken({ u, side, acting, willHit, hovered, onDropRef, onClick }) {
   const art = tokenArt(u);
@@ -73,7 +103,7 @@ function Squad({ sq, side, units, selected, acting, willHitId, hoveredId, onSele
   const supp = units.filter((u) => !u.isFront);
   const ordered = front ? [supp[0], front, supp[1]].filter(Boolean) : units;
   return (
-    <div className={`bSquad${selected ? ' selected' : ''} ${side}`}
+    <div className={`bSquad${selected ? ' selected' : ''} ${side}`} data-sqid={sq.id}
       onClick={onSelect ? () => onSelect(sq.id) : undefined}>
       <div className="bSquadRow">
         {ordered.map((u) => (
@@ -107,6 +137,8 @@ export default function BattleScreen() {
   const [zoom, setZoom] = useState(null);    // { u, side } full info card
   const [anim, setAnim] = useState(null);    // resolution playback
   const [fx, setFx] = useState([]);
+  const [armedId, setArmedId] = useState(null);   // squad tapped once (arm) → tap again opens info
+  const [dockIdx, setDockIdx] = useState(0);       // which player squad the card carousel shows
   const fxSeq = useRef(0);
   const timers = useRef([]);
   useEffect(() => () => timers.current.forEach(clearTimeout), []);
@@ -131,11 +163,22 @@ export default function BattleScreen() {
     if (anim?.acting) dropEls.current.get(anim.acting)?.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
   }, [anim?.acting]);
 
+  // dock carousel follows the selected player squad
+  const selId = snap?.selectedSquadId;
+  useEffect(() => {
+    const i = snap?.player?.findIndex((sq) => sq.id === selId);
+    if (i != null && i >= 0) setDockIdx(i);
+  }, [selId, snap?.player?.length]);
+  // board carousel: pan to the focused squad
+  const focusId = armedId || selId;
+  useEffect(() => {
+    if (focusId) document.querySelector(`.bSquad[data-sqid="${focusId}"]`)?.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' });
+  }, [focusId]);
+
   if (!snap) return <div className="battleScreen empty">Loading…</div>;
 
   const allSquads = [...snap.enemy, ...snap.player];
   const squadOfUnit = (uid) => allSquads.find((sq) => sq.units.some((u) => u.id === uid));
-  const selectedSquad = allSquads.find((sq) => sq.id === snap.selectedSquadId);
   const selectedPlayer = snap.player.find((sq) => sq.id === snap.selectedSquadId);
   const totalQueued = snap.player.reduce((n, sq) => n + (sq.plan?.length || 0), 0);
   const startDrag = (e, card) => { if (anim) return; drag.current = { iid: card.iid, card, x: e.clientX, y: e.clientY, over: null }; setD({ ...drag.current }); };
@@ -147,12 +190,19 @@ export default function BattleScreen() {
   const overSquad = d?.over ? squadOfUnit(d.over) : null;
   const willHitId = overSquad ? (d.card?.reachesBack ? d.over : overSquad.frontId) : null;
 
-  // click a token: require its squad be SELECTED first; then open the full info card
+  // focus a squad: arm it (for info-open) + make it the planning squad if it's yours
+  const focusSquad = (sqId, side) => { setArmedId(sqId); if (side === 'p') selectSquad(sqId); };
+  const cycleSquad = (dir) => {
+    if (snap.player.length < 2) return;
+    const i = (((dockIdx + dir) % snap.player.length) + snap.player.length) % snap.player.length;
+    focusSquad(snap.player[i].id, 'p');
+  };
+  // click a token: its squad must be FOCUSED first; a second tap opens the full info card
   const onTok = (u, side) => {
     if (anim) return;
     const sq = squadOfUnit(u.id); if (!sq) return;
-    if (snap.selectedSquadId === sq.id) setZoom({ u: disp(u), side });
-    else selectSquad(sq.id);
+    if (armedId === sq.id) setZoom({ u: disp(u), side });
+    else focusSquad(sq.id, side);
   };
 
   const spawnFx = (unitId, kind, text) => {
@@ -194,8 +244,8 @@ export default function BattleScreen() {
       <section className="bZone enemy">
         {snap.enemy.map((sq) => (
           <Squad key={sq.id} sq={sq} side="e" units={sq.units.map(disp)} acting={anim?.acting}
-            willHitId={willHitId} hoveredId={d?.over} selected={sq.id === snap.selectedSquadId}
-            onSelect={selectSquad} onDropRef={setDropRef} onTok={onTok} />
+            willHitId={willHitId} hoveredId={d?.over} selected={sq.id === focusId}
+            onSelect={(id) => focusSquad(id, 'e')} onDropRef={setDropRef} onTok={onTok} />
         ))}
       </section>
 
@@ -211,16 +261,20 @@ export default function BattleScreen() {
       <section className="bZone player">
         {snap.player.map((sq) => (
           <Squad key={sq.id} sq={sq} side="p" units={sq.units.map(disp)} acting={anim?.acting}
-            willHitId={willHitId} hoveredId={d?.over} selected={sq.id === snap.selectedSquadId}
-            onSelect={selectSquad} onDropRef={setDropRef} onTok={onTok} />
+            willHitId={willHitId} hoveredId={d?.over} selected={sq.id === focusId}
+            onSelect={(id) => focusSquad(id, 'p')} onDropRef={setDropRef} onTok={onTok} />
         ))}
       </section>
 
-      <div className="bHandBar">
-        <div className="bHandTop">
-          <div className="bHandLbl">
-            {selectedPlayer ? `Squad ${snap.player.indexOf(selectedPlayer) + 1}` : selectedSquad ? 'Enemy squad' : 'Select a squad'}
-            {selectedPlayer && <span className="bEnergyMini">⚡ {selectedPlayer.energyLeft}/{selectedPlayer.maxEnergy}</span>}
+      {/* DOCK — each squad's Deck · Hand · Discard · Exhaust, as a rotating carousel */}
+      <div className="bDock">
+        <div className="bDockTop">
+          <div className="bSquadNav">
+            <button className="bCtl sm" title="Previous squad" disabled={snap.player.length < 2} onClick={() => cycleSquad(-1)}><Icon icon="tabler:chevron-left" /></button>
+            <span className="bSquadNavLbl">Squad {dockIdx + 1}<em> / {snap.player.length}</em>
+              {selectedPlayer && <span className="bEnergyMini">⚡ {selectedPlayer.energyLeft}/{selectedPlayer.maxEnergy}</span>}
+            </span>
+            <button className="bCtl sm" title="Next squad" disabled={snap.player.length < 2} onClick={() => cycleSquad(1)}><Icon icon="tabler:chevron-right" /></button>
           </div>
           <div className="bControls">
             <button className="bCtl" title="Undo last move" disabled={!totalQueued || !!anim} onClick={undoLast}><Icon icon="tabler:arrow-back-up" /></button>
@@ -228,10 +282,10 @@ export default function BattleScreen() {
             <button className="bCtl fight" title="Fight — resolve the round" disabled={!!anim || !!snap.outcome} onClick={onFight}><Icon icon="game-icons:crossed-swords" /></button>
           </div>
         </div>
-        <div className="bHand">
-          {selectedPlayer
-            ? (selectedPlayer.hand || []).map((card) => <MoveCard key={card.iid} card={card} dragSrc={d?.iid === card.iid} onPointerDown={(e) => startDrag(e, card)} />)
-            : <div className="bHandEmpty">{selectedSquad ? 'Enemy squad — tap its creatures to inspect.' : 'Tap one of your squads to plan its moves.'}</div>}
+        <div className="bStations">
+          <div className="bTrack" style={{ transform: `translateX(${-dockIdx * 100}%)` }}>
+            {snap.player.map((sq) => <Station key={sq.id} sq={sq} dealKey={snap.dealKey} onDrag={startDrag} dragIid={d?.iid} />)}
+          </div>
         </div>
       </div>
 
