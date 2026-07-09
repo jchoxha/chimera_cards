@@ -168,8 +168,19 @@ export function formatRoundLog(state, log, turn) {
 
 const isOffensiveCard = (card) => (card?.effects || []).some((e) => e.op === 'damage' || e.op === 'debuff');
 
+/**
+ * OPPONENT PROVIDER seam (multiplayer-ready). The engine never assumes the enemy side
+ * is an AI: `resolve()` asks a provider for the enemy's committed plan given the live
+ * (state, cards). Today the only provider is `aiOpponent`; a NETWORK provider would
+ * return the remote player's committed plan instead (same shape), and because the round
+ * resolves from a shared seed the result is identical on both clients. Swap via
+ * `useBattle.getState().setOpponent(fn)` — no engine change needed for multiplayer.
+ * @typedef {(state:object, cards:object) => Record<string, object[]>} OpponentProvider
+ */
+export function aiOpponent(state, cards) { return enemyPlan(state, cards); }
+
 /** Enemy AI: each enemy squad draws a real hand and plays affordable cards from it,
- *  aiming offense at the player's front squad. Returns { plans, played } per squad. */
+ *  aiming offense at the player's front squad. Returns per-squad plans. */
 function enemyPlan(state, cards) {
   const plans = {};
   const targetFront = liveFrontUnit(state, state.squadsById[state.sides.p[0]]);
@@ -195,6 +206,10 @@ function enemyPlan(state, cards) {
 export const useBattle = create((set, get) => ({
   snapshot: null, state: null, plans: {}, cards: {}, seen: new Set(), queueOrder: [], selectedSquadId: null,
   phase: 'plan', outcome: null, log: [], version: 0, dealKey: 0, turn: 1, logHistory: [],
+  opponent: aiOpponent,   // multiplayer seam: swap for a network provider (see aiOpponent)
+
+  /** Replace the opponent provider (AI ↔ remote player). Netcode entry point. */
+  setOpponent(fn) { set({ opponent: fn || aiOpponent }); },
 
   startBattle({ player, enemy }) {
     const { state, cards } = buildBattle(player, enemy);
@@ -251,7 +266,7 @@ export const useBattle = create((set, get) => ({
   resolve() {
     const s = get();
     if (s.phase !== 'plan') return { log: [], outcome: null };
-    const ePlan = enemyPlan(s.state, s.cards);
+    const ePlan = (s.opponent || aiOpponent)(s.state, s.cards);
     const { log, outcome } = resolveBattleRound(s.state, { p: s.plans, e: ePlan }, rng);
     // discard played + leftover, draw fresh hands (unless the battle ended)
     const cards = { ...s.cards };

@@ -1,15 +1,41 @@
-/* Combat-v2 board — top (enemy) / bottom (friendly), full-card units, per-squad
-   hand. Gilded-wood tokens (ui/theme.css). First slice: flat layout; the semi-3D
-   zoom + carousel come later. */
+/* Combat-v2 board — a 3D TABLETOP. The enemy rack leans back (far, hazed), the
+   player rack sits near the camera, a wood floor recedes to a horizon at the mid
+   bar. Cards stay upright HTML (all pointer/controller interaction unchanged);
+   the depth is CSS 3D transforms only. Gilded-wood tokens (ui/theme.css). */
 .battleScreen { position: fixed; inset: 0; display: flex; flex-direction: column; box-sizing: border-box;
-  background: radial-gradient(130% 100% at 50% 0%, #241a10 0%, #170f0a 55%, #0a0705 100%);
+  background: radial-gradient(130% 90% at 50% 8%, #2b2013 0%, #170f0a 52%, #060403 100%);
   color: var(--ink); font-family: var(--font-body); overflow: hidden; }
 .battleScreen, .battleScreen * { box-sizing: border-box; }
 .battleScreen iconify-icon { display: inline-flex; width: 1em; height: 1em; flex: none; }
 .battleScreen.dragging { cursor: grabbing; }
 
-/* a side FIELD: edge nav buttons flanking the horizontally-scrolling squad zone */
-.bField { flex: 1 1 0; position: relative; display: flex; align-items: stretch; min-height: 0; }
+/* ── 3D arena: perspective camera + the tilted play surface ── */
+.bArena { flex: 1 1 0; position: relative; min-height: 0; overflow: hidden;
+  perspective: 1500px; perspective-origin: 50% 40%; }
+.bArenaInner { position: absolute; inset: 0; display: flex; flex-direction: column; }
+/* the receding wood floor plane, laid flat and vanishing toward the horizon */
+.bFloor { position: absolute; left: -30%; right: -30%; top: 34%; height: 150%; z-index: 0;
+  transform-origin: 50% 0; transform: rotateX(72deg);
+  background: radial-gradient(120% 80% at 50% 0%, #3c2c1a, #1c130b 55%, #0c0805 100%);
+  box-shadow: inset 0 40px 90px #0009; pointer-events: none; }
+.bFloorGrid { position: absolute; inset: 0; opacity: .16;
+  background-image: repeating-linear-gradient(0deg, #d9b978 0 1px, transparent 1px 64px),
+    repeating-linear-gradient(90deg, #d9b978 0 1px, transparent 1px 64px);
+  mask-image: linear-gradient(#000, transparent 70%); }
+
+/* a side FIELD: edge nav buttons flanking the horizontally-scrolling squad zone.
+   DEPTH VIA SCALE, NOT rotateX. A rotateX on an INTERACTIVE field desyncs rendering
+   from pointer hit-testing (elementFromPoint misses → the enemy became unclickable),
+   which is disqualifying for touch/mouse. So the 3D table illusion comes from the
+   rotateX FLOOR (non-interactive) + the racks' scale/elevation; the racks themselves
+   stay 2D-transformed, so every creature is exactly clickable on any device. */
+.bField { flex: 1 1 0; position: relative; display: flex; align-items: stretch; min-height: 0;
+  transition: transform .35s cubic-bezier(.3,0,0,1); }
+/* enemy rack: smaller + lifted toward the horizon = "the far side" */
+.bArena .bField.enemy { transform-origin: 50% 100%; transform: scale(.8) translateY(-4%); z-index: 1; }
+.bArena .bField.enemy .bZone { filter: brightness(.9) saturate(.94); }
+/* player rack: full size, near the camera */
+.bArena .bField.player { transform-origin: 50% 0%; transform: scale(1.04); z-index: 3; }
 .bEdge { position: absolute; top: 0; bottom: 0; z-index: 8; width: 40px; border: none; cursor: pointer;
   display: grid; place-items: center; font-size: 26px; color: var(--gold-bright);
   background: linear-gradient(90deg, #0b0705dd, #0b070500); transition: color .12s, background .12s; }
@@ -18,17 +44,12 @@
 .bEdge:hover { color: #fff; background: linear-gradient(90deg, #1a120bee, #1a120b00); }
 .bEdge.right:hover { background: linear-gradient(270deg, #1a120bee, #1a120b00); }
 
-.bZone { flex: 1 1 0; display: flex; align-items: center; justify-content: center; gap: 22px;
+.bZone { position: relative; z-index: 2; flex: 1 1 0; display: flex; align-items: center; justify-content: center; gap: 26px;
   padding: 10px 46px; overflow-x: auto; overflow-y: hidden; min-height: 0; scroll-behavior: smooth; }
-.bField.enemy .bZone { align-items: flex-start; }
-.bField.player .bZone { align-items: flex-end; }
-.bZone.enemy { align-items: flex-start; padding-top: 14px;
-  background: linear-gradient(#2a140f55, transparent); border-bottom: 1px solid var(--line); }
-.bZone.player { align-items: flex-end; padding-bottom: 10px;
-  background: linear-gradient(transparent, #10210f55); border-top: 1px solid var(--line); }
+.bZone.enemy { align-items: flex-end; padding-top: 14px; }
+.bZone.player { align-items: flex-start; padding-bottom: 10px; }
 
 /* a squad = its Support (smaller) flanking the front Vanguard (full) */
-.bZone { perspective: 1100px; }
 .bSquad { display: flex; flex-direction: column; align-items: center; gap: 5px; padding: 8px 10px; cursor: pointer;
   border-radius: 14px; border: 1.5px solid transparent; transition: transform .18s, opacity .18s, border-color .12s, background .12s; }
 .bSquad:hover { background: #ffffff08; }
@@ -87,11 +108,14 @@
 .bPlanChip { font-size: 10px; font-family: var(--font-display); color: var(--gold-bright);
   background: #00000055; border: 1px solid var(--gold-deep); border-radius: 999px; padding: 1px 8px; }
 
-/* middle band — turn number + combat-log ticker; click to open the full log */
-.bMid { flex: 0 0 auto; width: 100%; display: flex; align-items: center; justify-content: center; gap: 8px; padding: 5px 10px; min-height: 36px;
-  border: none; border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); background: #1a120bcc; color: inherit; font: inherit; cursor: default; }
+/* middle band — the HORIZON: turn number + combat-log ticker; click for the full log */
+.bMid { flex: 0 0 auto; position: relative; z-index: 4; width: 100%; display: flex; align-items: center; justify-content: center; gap: 8px;
+  padding: 5px 10px; min-height: 34px; transform: translateZ(-30px);
+  border: none; color: inherit; font: inherit; cursor: default;
+  background: linear-gradient(90deg, transparent, #120c07dd 12%, #120c07dd 88%, transparent);
+  box-shadow: 0 0 26px 10px #0007; }
 .bMid.log { cursor: pointer; }
-.bMid.log:hover { background: #241811; }
+.bMid.log:hover { background: linear-gradient(90deg, transparent, #24180fee 12%, #24180fee 88%, transparent); }
 .bVs { display: inline-flex; align-items: center; gap: 8px; font-family: var(--font-display); font-size: 12px; letter-spacing: 1.5px; text-transform: uppercase; color: var(--ink-faint); }
 .bVs b { color: var(--gold-bright); font-size: 14px; }
 .bVs em { display: inline-flex; align-items: center; gap: 4px; font-style: normal; color: var(--gold); letter-spacing: 1px; }

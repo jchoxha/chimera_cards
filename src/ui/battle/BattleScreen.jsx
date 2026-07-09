@@ -1,5 +1,11 @@
 // ╔══════════════════════════════════════════════════════════════════╗
-// ║ MODULE: ui/battle/BattleScreen — the COMBAT-V2 board.                    ║
+// ║ MODULE: ui/battle/BattleScreen — the COMBAT-V2 board (3D TABLETOP).      ║
+// ║ A perspective floor recedes to a horizon (the turn/log bar); the enemy    ║
+// ║ rack sits small/dim on the far side, your rack large + near. Depth is 2.5D ║
+// ║ by design: the rotateX is ONLY on the non-interactive floor — a rotateX on ║
+// ║ an interactive card layer desyncs pointer hit-testing (creatures become    ║
+// ║ unclickable), so racks use scale/elevation and every unit stays exactly    ║
+// ║ tappable on touch/mouse. (Full WebGL/orbit is a later R3F pass.)           ║
 // ║ Top = enemy, bottom = friendly. Each creature is a compact BATTLE TOKEN   ║
 // ║ (full-bleed art background + name + HP), NOT the full card. Front Vanguard ║
 // ║ is CENTERED between its two rear Support. Selecting a squad is required    ║
@@ -353,41 +359,48 @@ export default function BattleScreen() {
 
   return (
     <div className={`battleScreen${d ? ' dragging' : ''}${anim ? ' resolving' : ''}${dockHidden ? ' dockHidden' : ''}${selectedCard ? ' picking' : ''}`}>
-      <div className="bField enemy">
-        {snap.enemy.length > 1 && <button className="bEdge left" title="Previous enemy squad" onClick={() => cycleSide('e', -1)}><Icon icon="tabler:chevron-left" /></button>}
-        <section className="bZone enemy">
-          {snap.enemy.map((sq) => (
-            <Squad key={sq.id} sq={sq} side="e" units={sq.units.map(disp)} acting={anim?.acting}
-              willHitIds={willHit} hoveredId={d?.over} selected={sq.id === focusId}
-              onSelect={(id) => focusSquad(id, 'e')} onDropRef={setDropRef} onTok={onTok} />
-          ))}
-        </section>
-        {snap.enemy.length > 1 && <button className="bEdge right" title="Next enemy squad" onClick={() => cycleSide('e', 1)}><Icon icon="tabler:chevron-right" /></button>}
-      </div>
+      {/* 3D TABLETOP: a receding table plane, enemy rack leaning back (far), player rack near */}
+      <div className="bArena">
+        <div className="bFloor" aria-hidden="true"><span className="bFloorGrid" /></div>
+        <div className="bArenaInner">
+          <div className="bField enemy">
+            {snap.enemy.length > 1 && <button className="bEdge left" title="Previous enemy squad" onClick={() => cycleSide('e', -1)}><Icon icon="tabler:chevron-left" /></button>}
+            <section className="bZone enemy">
+              {snap.enemy.map((sq) => (
+                <Squad key={sq.id} sq={sq} side="e" units={sq.units.map(disp)} acting={anim?.acting}
+                  willHitIds={willHit} hoveredId={d?.over} selected={sq.id === focusId}
+                  onSelect={(id) => focusSquad(id, 'e')} onDropRef={setDropRef} onTok={onTok} />
+              ))}
+            </section>
+            {snap.enemy.length > 1 && <button className="bEdge right" title="Next enemy squad" onClick={() => cycleSide('e', 1)}><Icon icon="tabler:chevron-right" /></button>}
+          </div>
 
-      <button type="button" className={`bMid${(snap.logHistory?.length || ticker) ? ' log' : ''}`}
-        title={snap.logHistory?.length ? 'View full combat log' : undefined}
-        onClick={() => snap.logHistory?.length && setLogOpen(true)}>
-        {snap.outcome
-          ? <span className={`bOutcome ${snap.outcome === 'p' ? 'win' : 'lose'}`}>
-              {snap.outcome === 'p' ? 'Victory' : snap.outcome === 'e' ? 'Defeat' : 'Draw'}
-              <span className="bNew" onClick={(e) => { e.stopPropagation(); window.location.reload(); }} title="New battle"><Icon icon="tabler:refresh" /></span>
-            </span>
-          : anim && ticker
-            ? <span className={`bTick ${ticker.side === 'e' ? 'foe' : 'ally'}`}>{ticker.text}</span>
-            : <span className="bVs"><b>Turn {snap.turn}</b>{snap.logHistory?.length ? <em><Icon icon="game-icons:scroll-quill" /> Combat Log</em> : ' · Plan your squads, then Fight'}</span>}
-      </button>
+          {/* horizon: turn number + combat-log ticker (click for the full log) */}
+          <button type="button" className={`bMid${(snap.logHistory?.length || ticker) ? ' log' : ''}`}
+            title={snap.logHistory?.length ? 'View full combat log' : undefined}
+            onClick={() => snap.logHistory?.length && setLogOpen(true)}>
+            {snap.outcome
+              ? <span className={`bOutcome ${snap.outcome === 'p' ? 'win' : 'lose'}`}>
+                  {snap.outcome === 'p' ? 'Victory' : snap.outcome === 'e' ? 'Defeat' : 'Draw'}
+                  <span className="bNew" onClick={(e) => { e.stopPropagation(); window.location.reload(); }} title="New battle"><Icon icon="tabler:refresh" /></span>
+                </span>
+              : anim && ticker
+                ? <span className={`bTick ${ticker.side === 'e' ? 'foe' : 'ally'}`}>{ticker.text}</span>
+                : <span className="bVs"><b>Turn {snap.turn}</b>{snap.logHistory?.length ? <em><Icon icon="game-icons:scroll-quill" /> Combat Log</em> : ' · Plan your squads, then Fight'}</span>}
+          </button>
 
-      <div className="bField player">
-        {snap.player.length > 1 && <button className="bEdge left" title="Previous squad" onClick={() => cycleSide('p', -1)}><Icon icon="tabler:chevron-left" /></button>}
-        <section className="bZone player">
-          {snap.player.map((sq) => (
-            <Squad key={sq.id} sq={sq} side="p" units={sq.units.map(disp)} acting={anim?.acting}
-              willHitIds={willHit} hoveredId={d?.over} selected={sq.id === focusId}
-              onSelect={(id) => focusSquad(id, 'p')} onDropRef={setDropRef} onTok={onTok} />
-          ))}
-        </section>
-        {snap.player.length > 1 && <button className="bEdge right" title="Next squad" onClick={() => cycleSide('p', 1)}><Icon icon="tabler:chevron-right" /></button>}
+          <div className="bField player">
+            {snap.player.length > 1 && <button className="bEdge left" title="Previous squad" onClick={() => cycleSide('p', -1)}><Icon icon="tabler:chevron-left" /></button>}
+            <section className="bZone player">
+              {snap.player.map((sq) => (
+                <Squad key={sq.id} sq={sq} side="p" units={sq.units.map(disp)} acting={anim?.acting}
+                  willHitIds={willHit} hoveredId={d?.over} selected={sq.id === focusId}
+                  onSelect={(id) => focusSquad(id, 'p')} onDropRef={setDropRef} onTok={onTok} />
+              ))}
+            </section>
+            {snap.player.length > 1 && <button className="bEdge right" title="Next squad" onClick={() => cycleSide('p', 1)}><Icon icon="tabler:chevron-right" /></button>}
+          </div>
+        </div>
       </div>
 
       {/* DOCK — every squad's Deck · Hand · Discard · Exhaust (yours first, enemy read-only), a rotating carousel */}
