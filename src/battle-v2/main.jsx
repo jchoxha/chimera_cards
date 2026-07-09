@@ -12,7 +12,8 @@ import { POOLS, rosterPool } from '../app/pools.js';
 const ROSTER = buildRoster(POOLS, POOLS.Warrior || [], rosterPool);
 const byId = (id) => ROSTER.find((c) => c.id === id) || ROSTER[0];
 
-// A demo: two player squads vs two enemy squads (mix of front + support).
+// A demo: three player squads vs three enemy squads (mix of front + support) —
+// enough to exercise the field carousel + per-squad card piles on both sides.
 function demo() {
   const ids = ROSTER_ENTRIES.map((r) => r.id);
   const pick = (i) => byId(ids[i % ids.length]);
@@ -20,10 +21,12 @@ function demo() {
     player: [
       { creatures: [pick(0), pick(1), pick(2)] },   // full squad (Vanguard + 2 Support)
       { creatures: [pick(3)] },                      // solo squad
+      { creatures: [pick(9), pick(10)] },            // duo squad
     ],
     enemy: [
       { creatures: [pick(4), pick(5)] },
       { creatures: [pick(6), pick(7), pick(8)] },
+      { creatures: [pick(11)] },
     ],
   };
 }

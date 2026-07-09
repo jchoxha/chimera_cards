@@ -51,6 +51,19 @@ function cycle(p, playedCards) {
   for (const card of p.hand) c.discard.push(card);   // unplayed cards discard
   return drawInto(c, HAND_SIZE);
 }
+const emptyPile = () => ({ deck: makeDeck(), hand: [], discard: [], exhaust: [] });
+
+/** Card display fields for pile inspection (own piles + enemy piles seen face-up). */
+const cardInfo = (c) => ({ iid: c.iid, id: c.id, name: c.name, element: c.element, type: c.type, cost: c.cost, priority: c.priority, scope: c.scope, reachesBack: c.reachesBack, effects: c.effects, text: c.text });
+/** A pile shown with its ORDER hidden (sorted by name) — you know the contents, not the draw order. */
+const pileHidden = (pile) => pile.map(cardInfo).sort((a, b) => a.name.localeCompare(b.name));
+/** The enemy deck: cards whose id has been SEEN (played/discarded) show face-up; the rest are '?'. Order hidden. */
+function deckInspect(deck, seen) {
+  const known = [], unknown = [];
+  for (const c of deck) (seen.has(c.id) ? known : unknown).push(c);
+  known.sort((a, b) => a.name.localeCompare(b.name));
+  return [...known.map((c) => ({ ...cardInfo(c), known: true })), ...unknown.map((c) => ({ iid: c.iid, known: false }))];
+}
 
 /** creature → engine battle unit (7-stat line + hp); keeps the creature for the card face. */
 function creatureToUnit(creature, id) {
@@ -71,8 +84,8 @@ function buildBattle(playerSquads, enemySquads) {
   spec.p = toSide(playerSquads, 'p');
   spec.e = toSide(enemySquads, 'e');
   const state = buildState(spec);
-  const cards = {};
-  for (const sqId of state.sides.p) cards[sqId] = drawInto({ deck: makeDeck(), hand: [], discard: [], exhaust: [] }, HAND_SIZE);
+  const cards = {};   // BOTH sides own real piles now (enemy hand is hidden from the player)
+  for (const side of ['p', 'e']) for (const sqId of state.sides[side]) cards[sqId] = drawInto(emptyPile(), HAND_SIZE);
   return { state, cards };
 }
 
@@ -98,10 +111,15 @@ function squadSnap(store, sqId, side) {
     frontId: liveFrontUnit(state, squad)?.id || null, units,
     plan: plan.map((a) => ({ card: a.card, targetId: a.targetId })),
   };
+  const c = cards[sqId] || { deck: [], hand: [], discard: [], exhaust: [] };
+  snap.deckCount = c.deck.length; snap.discardCount = c.discard.length; snap.exhaustCount = c.exhaust.length;
+  snap.discard = pileHidden(c.discard); snap.exhaust = pileHidden(c.exhaust);   // piles are visible to the player on BOTH sides
   if (side === 'p') {
-    const c = cards[sqId] || { deck: [], hand: [], discard: [], exhaust: [] };
-    snap.hand = c.hand;
-    snap.deckCount = c.deck.length; snap.discardCount = c.discard.length; snap.exhaustCount = c.exhaust.length;
+    snap.hand = c.hand;                       // your own hand, face-up + draggable
+    snap.deck = pileHidden(c.deck);           // your draw pile — contents known, order hidden
+  } else {
+    snap.handCount = c.hand.length;           // enemy hand: face-down count only
+    snap.deck = deckInspect(c.deck, store.seen || new Set());   // '?' until seen
   }
   return snap;
 }
@@ -117,30 +135,40 @@ function publish(store) {
   };
 }
 
-/** Placeholder enemy AI: each enemy squad spends its energy on Strikes at the player's front squad. */
-function enemyPlan(state) {
+const isOffensiveCard = (card) => (card?.effects || []).some((e) => e.op === 'damage' || e.op === 'debuff');
+
+/** Enemy AI: each enemy squad draws a real hand and plays affordable cards from it,
+ *  aiming offense at the player's front squad. Returns { plans, played } per squad. */
+function enemyPlan(state, cards) {
   const plans = {};
   const targetFront = liveFrontUnit(state, state.squadsById[state.sides.p[0]]);
-  if (!targetFront) return plans;
   for (const sqId of state.sides.e) {
     const squad = state.squadsById[sqId];
     const front = liveFrontUnit(state, squad);
-    if (!front) continue;
+    const pile = cards[sqId];
+    if (!front || !pile) { plans[sqId] = []; continue; }
     const actions = []; let energy = squad.energy;
-    while (energy >= 1) { actions.push({ ownerId: front.id, targetId: targetFront.id, card: { ...DEMO_CARDS.strike } }); energy -= 1; }
+    for (const card of pile.hand) {
+      const cost = card.cost ?? 1;
+      if (cost > energy) continue;
+      const offensive = isOffensiveCard(card);
+      if (offensive && !targetFront) continue;
+      actions.push({ ownerId: front.id, targetId: (offensive ? targetFront : front).id, card });
+      energy -= cost;
+    }
     plans[sqId] = actions;
   }
   return plans;
 }
 
 export const useBattle = create((set, get) => ({
-  snapshot: null, state: null, plans: {}, cards: {}, queueOrder: [], selectedSquadId: null,
+  snapshot: null, state: null, plans: {}, cards: {}, seen: new Set(), queueOrder: [], selectedSquadId: null,
   phase: 'plan', outcome: null, log: [], version: 0, dealKey: 0,
 
   startBattle({ player, enemy }) {
     const { state, cards } = buildBattle(player, enemy);
     startRound(state);
-    const base = { state, cards, plans: {}, queueOrder: [], selectedSquadId: state.sides.p[0], phase: 'plan', outcome: null, log: [], version: 0, dealKey: 1 };
+    const base = { state, cards, seen: new Set(), plans: {}, queueOrder: [], selectedSquadId: state.sides.p[0], phase: 'plan', outcome: null, log: [], version: 0, dealKey: 1 };
     set({ ...base, snapshot: publish({ ...get(), ...base }) });
   },
 
@@ -192,19 +220,27 @@ export const useBattle = create((set, get) => ({
   resolve() {
     const s = get();
     if (s.phase !== 'plan') return { log: [], outcome: null };
-    const ePlan = enemyPlan(s.state);
+    const ePlan = enemyPlan(s.state, s.cards);
     const { log, outcome } = resolveBattleRound(s.state, { p: s.plans, e: ePlan }, rng);
     // discard played + leftover, draw fresh hands (unless the battle ended)
     const cards = { ...s.cards };
+    const seen = new Set(s.seen);
     if (!outcome) {
       for (const sqId of s.state.sides.p) {
         const played = (s.plans[sqId] || []).map((a) => a.card);
-        cards[sqId] = cycle(s.cards[sqId] || { deck: makeDeck(), hand: [], discard: [], exhaust: [] }, played);
+        cards[sqId] = cycle(s.cards[sqId] || emptyPile(), played);
+      }
+      for (const sqId of s.state.sides.e) {
+        const pile = s.cards[sqId] || emptyPile();
+        const played = (ePlan[sqId] || []).map((a) => a.card);
+        const playedIids = new Set(played.map((c) => c.iid));
+        for (const c of pile.hand) seen.add(c.id);   // the whole enemy hand becomes visible (played or discarded)
+        cards[sqId] = cycle({ ...pile, hand: pile.hand.filter((c) => !playedIids.has(c.iid)) }, played);
       }
     }
     const dealKey = (s.dealKey || 0) + 1;
-    const next = { ...s, plans: {}, cards, queueOrder: [], log, outcome, phase: outcome ? 'over' : 'plan', dealKey };
-    set({ plans: {}, cards, queueOrder: [], log, outcome, phase: next.phase, dealKey, snapshot: publish(next) });
+    const next = { ...s, plans: {}, cards, seen, queueOrder: [], log, outcome, phase: outcome ? 'over' : 'plan', dealKey };
+    set({ plans: {}, cards, seen, queueOrder: [], log, outcome, phase: next.phase, dealKey, snapshot: publish(next) });
     return { log, outcome };
   },
 }));
