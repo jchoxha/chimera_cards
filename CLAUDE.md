@@ -989,7 +989,9 @@ npm run test:engine  # node smoke test for the new engine (src/engine/__smoke__.
 ```
 
 **PAGES (Vite multi-page — see `vite.config.js`):** `index.html` is now the **DEV HUB**
-(`src/hub/` — lists every build + renders all `docs/*.md`+root `*.md` via `marked`); the original
+(`src/hub/`, a hash-routed SPA: **Landing** `#/` → big "Play" link to the current build · **Versions**
+`#/versions` → all builds · **Docs** `#/docs[/slug]` → all `docs/*.md`+root `*.md` rendered via `marked`);
+the original
 **prototype moved to `prototype.html`** (→ `src/main.jsx`). `app.html` = the v1 game, `battle.html` =
 the combat-v2 squad prototype (`src/battle-v2/`), `combat.html` = the v1 engine demo, `editor.html` =
 the standalone editor. All deploy to GH Pages; the ROOT url now serves the hub.

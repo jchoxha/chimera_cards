@@ -1,19 +1,58 @@
-/* Dev Hub — landing page listing builds + rendering design docs.
-   Gilded-wood theme (ui/theme.css tokens). */
-.hub { min-height: 100vh; box-sizing: border-box; padding: 28px clamp(14px, 4vw, 48px) 60px;
-  background: radial-gradient(120% 80% at 50% 0%, #2a1d0c 0%, #16110a 55%, #0c0905 100%);
-  color: var(--ink); font-family: var(--font-body); }
-.hub *, .hub *::before { box-sizing: border-box; }
-
-.hubHead { text-align: center; margin-bottom: 22px; }
-.hubHead h1 { margin: 0; font-family: 'Cinzel Decorative', 'Cinzel', serif; font-weight: 900; letter-spacing: 3px;
-  font-size: clamp(30px, 5vw, 46px); color: var(--gold); text-shadow: 0 2px 0 #000, 0 0 24px #f0c84a22; }
+/* Dev Hub SPA — landing / versions / docs, gilded-wood theme (ui/theme.css tokens). */
+.hubLanding, .hubPage { min-height: 100vh; box-sizing: border-box; color: var(--ink); font-family: var(--font-body);
+  background: radial-gradient(120% 80% at 50% 0%, #2a1d0c 0%, #16110a 55%, #0c0905 100%); }
+.hubLanding *, .hubPage *, .hubLanding *::before, .hubPage *::before { box-sizing: border-box; }
 .hubDim { color: var(--ink-dim); font-weight: 400; letter-spacing: 1px; }
-.hubHead p { margin: 4px 0 0; color: var(--ink-dim); font-style: italic; }
+
+/* ── Landing ── */
+.hubLanding { display: flex; flex-direction: column; align-items: center; justify-content: center;
+  min-height: 100vh; text-align: center; padding: 40px 20px; position: relative; }
+.hubHero { max-width: 640px; }
+.hubHero h1 { margin: 0; font-family: 'Cinzel Decorative', 'Cinzel', serif; font-weight: 900; letter-spacing: 5px;
+  font-size: clamp(44px, 9vw, 88px); line-height: .95; color: var(--gold);
+  text-shadow: 0 3px 0 #000, 0 0 40px #f0c84a33; }
+.hubHero h1 span { display: block; font-size: .5em; letter-spacing: 12px; color: var(--gold-bright); margin-top: 4px; }
+.hubTagline { margin: 16px 0 28px; font-size: clamp(14px, 2.4vw, 18px); font-style: italic; color: var(--ink-dim); }
+.hubPlay { display: inline-block; font-family: var(--font-display); font-weight: 700; font-size: clamp(18px, 3vw, 22px);
+  letter-spacing: 1px; text-decoration: none; color: #16110a; padding: 14px 42px; border-radius: var(--r-pill);
+  background: linear-gradient(#f0c84a, #c9922e); border: 1px solid var(--gold-bright);
+  box-shadow: 0 6px 0 #7a5a12, 0 10px 22px #000a; transition: transform .1s, box-shadow .1s; }
+.hubPlay:hover { transform: translateY(-2px); box-shadow: 0 8px 0 #7a5a12, 0 14px 26px #000b; }
+.hubPlay:active { transform: translateY(4px); box-shadow: 0 2px 0 #7a5a12, 0 6px 14px #000a; }
+.hubHeroSub { margin: 16px 0 30px; }
+.hubHeroChip { display: inline-flex; align-items: center; gap: 6px; text-decoration: none; font-size: 13px;
+  color: var(--gold-bright); background: var(--surface-1); border: 1px solid var(--gold-deep); border-radius: var(--r-pill); padding: 7px 16px; }
+.hubHeroChip:hover { border-color: var(--gold); background: var(--surface-2); }
+.hubHeroNav { display: flex; gap: 14px; justify-content: center; flex-wrap: wrap; }
+.hubHeroTile { display: flex; flex-direction: column; align-items: center; gap: 3px; width: 190px; text-decoration: none;
+  color: inherit; background: var(--surface-1); border: 1px solid var(--line); border-radius: var(--r-lg); padding: 16px; transition: transform .12s, border-color .12s; }
+.hubHeroTile:hover { transform: translateY(-3px); border-color: var(--gold); }
+.hubHeroTile span { font-size: 26px; }
+.hubHeroTile b { font-family: var(--font-display); color: var(--gold-bright); font-size: 15px; }
+.hubHeroTile em { font-style: normal; font-size: 11px; color: var(--ink-dim); }
+.hubFoot { position: absolute; bottom: 16px; left: 0; right: 0; text-align: center; font-size: 11px; color: var(--ink-faint); }
+.hubFoot code { font-family: ui-monospace, monospace; color: var(--ink-dim); }
+
+/* ── shared page chrome (versions + docs) ── */
+.hubNav { position: sticky; top: 0; z-index: 10; display: flex; align-items: center; justify-content: space-between;
+  gap: 14px; padding: 12px clamp(14px, 4vw, 40px); background: #140f09ee; backdrop-filter: blur(6px); border-bottom: 1px solid var(--line); }
+.hubBrand { text-decoration: none; font-family: 'Cinzel Decorative', 'Cinzel', serif; font-weight: 900; letter-spacing: 2px;
+  font-size: 20px; color: var(--gold); }
+.hubNavLinks { display: flex; align-items: center; gap: 4px; }
+.hubNavLink { text-decoration: none; font-family: var(--font-display); font-size: 13.5px; color: var(--ink-dim);
+  padding: 7px 13px; border-radius: var(--r-sm); }
+.hubNavLink:hover { color: var(--gold-bright); background: var(--surface-2); }
+.hubNavLink.on { color: var(--gold-bright); background: var(--surface-3); }
+.hubNavLink.play { color: #16110a; background: linear-gradient(#f0c84a, #c9922e); font-weight: 700; }
+.hubBody { padding: 24px clamp(14px, 4vw, 48px) 60px; }
+.hubPageHead { text-align: center; margin: 6px 0 24px; }
+.hubPageHead h2 { margin: 0; font-family: var(--font-display); color: var(--gold); font-size: 28px; letter-spacing: 1px; }
+.hubPageHead p { margin: 4px 0 0; color: var(--ink-dim); font-style: italic; }
 
 /* version cards */
 .hubVersions { display: grid; gap: 14px; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
   max-width: 1100px; margin: 0 auto 34px; }
+.hubCardUrl { margin-top: 6px; font-family: ui-monospace, monospace; font-size: 11px; color: var(--ink-faint); }
 .hubCard { display: flex; gap: 14px; align-items: flex-start; text-decoration: none; color: inherit;
   background: var(--surface-1); border: 1px solid var(--line); border-radius: var(--r-lg); padding: 16px 18px;
   transition: transform .12s, border-color .12s, box-shadow .12s; }
