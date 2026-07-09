@@ -282,13 +282,17 @@ spec'd separately when Steps 1–3 stabilize.
    spend → resolve → win/loss via `battleOutcome`; invalid commit is a rejected no-op). `test:battleloop`
    (14). **STILL PENDING:** per-squad deck/hand **draw** (shared deck, sizing + solo floor) + the
    **reactions-v2 sub-spec**.
-4. **Battle UI** — 🔨 **FIRST SLICE DONE** — `src/store/battleStore.js` + `src/ui/battle/BattleScreen.jsx`
-   + `battle.html`: top (enemy) / bottom (friendly) board, every unit a full **CardFace**, front
-   Vanguard large + Support smaller, per-squad **energy pips** + selectable **hand**, **drag a card onto
-   any creature card** to queue (spends that squad's energy), **Resolve** runs one simultaneous round
-   with win/loss. Demo cards + placeholder enemy AI, real roster creatures for art. Verified in-browser
-   (priority-2 Guard resolves first and its Block absorbs the enemy strikes). **PENDING:** the semi-3D
-   zoom + carousel + auto-focus resolution animation, real per-squad decks/hands, and the AI.
+4. **Battle UI** — 🔨 **BUILT (iterating)** — `src/store/battleStore.js` + `src/ui/battle/BattleScreen.jsx`
+   + `battle.html`. Top (enemy) / bottom (friendly). Each creature is a compact **battle token**
+   (full-bleed art + name + HP + status/block pips) — the full **CardFace** opens as an enlarged info
+   card ONLY after that creature's **squad is selected** (first tap selects, second opens). Front
+   Vanguard **centered** between its two Support. **Semi-3D depth** (selected squad pops forward, others
+   recede). Per-squad **energy pips** + selectable **hand**; **drag a card onto any token** to queue,
+   with a drop **reticle** on the squad-front it will actually hit (or the specific token for
+   `reachesBack`). Hand controls = **Undo · Reset · Fight** (icons, top-right). **Fight** plays the round
+   back: **auto-focus** pans to each acting unit, HP bars **tween**, floating damage/block/heal/miss
+   numbers. Demo cards + placeholder AI; real roster art. **PENDING:** carousel for >3 squads/side, real
+   per-squad decks/hands, the AI, deeper juice.
 5. **RNG polish + AI** — cannot-miss/blind status tools; prediction AI; balance pass.
 6. **Squad-builder meta** + flip the app from v1 → v2 at parity.
 

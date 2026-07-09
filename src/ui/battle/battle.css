@@ -16,32 +16,52 @@
   background: linear-gradient(transparent, #10210f55); border-top: 1px solid var(--line); }
 
 /* a squad = its Support (smaller) flanking the front Vanguard (full) */
-.bSquad { display: flex; flex-direction: column; align-items: center; gap: 5px; padding: 8px 10px;
-  border-radius: 14px; border: 1.5px solid transparent; transition: border-color .12s, background .12s; }
-.bSquad.clickable { cursor: pointer; }
-.bSquad.clickable:hover { background: #ffffff08; }
-.bSquad.selected { border-color: var(--gold); background: #c9a23a14; box-shadow: 0 0 16px #c9a23a22; }
-.bSquadRow { display: flex; align-items: flex-end; gap: 8px; }
+.bZone { perspective: 1100px; }
+.bSquad { display: flex; flex-direction: column; align-items: center; gap: 5px; padding: 8px 10px; cursor: pointer;
+  border-radius: 14px; border: 1.5px solid transparent; transition: transform .18s, opacity .18s, border-color .12s, background .12s; }
+.bSquad:hover { background: #ffffff08; }
+/* semi-3D depth: the selected squad zooms forward, others recede slightly */
+.bSquad.selected { border-color: var(--gold); background: #c9a23a14; box-shadow: 0 0 18px #c9a23a2a; transform: translateY(-4px) scale(1.06); z-index: 3; }
+.bSquad:not(.selected) { opacity: .88; transform: scale(.97); }
+.bSquadRow { display: flex; align-items: flex-end; gap: 6px; }
 
 /* Width-driven cards (same model as the collection grid): .combat fills the box
    width and its height follows the card proportions. Front Vanguard large, Support
    smaller. The zones scroll if a side has many squads. */
-/* Cards are deliberately SMALL (shrink everything); click any card for a big view.
-   Width comes from .bUnit, an explicit .combat height gives the art a box to fill. */
-.bUnit { position: relative; flex: 0 0 auto; min-width: 0; cursor: pointer; transition: transform .12s, filter .12s; }
-.bUnit.front { width: clamp(84px, 8.5vw, 116px); z-index: 2; }
-.bUnit.support { width: clamp(56px, 6vw, 82px); opacity: .92; align-self: flex-end; }
-.bUnit.front .combat { width: 100%; height: clamp(112px, 22vh, 190px); max-height: none; }
-.bUnit.support .combat { width: 100%; height: clamp(78px, 15vh, 132px); max-height: none; }
-.bUnit.support .combat .axesLine, .bUnit.support .combat .stats { display: none; }   /* declutter minis */
-.bUnit .combat .nameBan { font-size: 10px; }
-.bUnit .hpFill { transition: width .38s ease; }              /* HP drains smoothly during Fight playback */
-.bUnit.dead { filter: grayscale(.85) brightness(.6); }
-.bUnit .combat .sideTag { display: none; }
-.bUnit:hover { transform: translateY(-3px); }
-.bUnit.acting .combat { outline: 3px solid var(--gold); outline-offset: 2px; box-shadow: 0 0 22px #f0c84a88; }
-.battleScreen.dragging .bUnit { cursor: copy; }
-.battleScreen.dragging .bUnit:hover .combat { outline: 3px solid var(--good); outline-offset: 2px; box-shadow: 0 0 20px #2ecc7188; }
+/* ── battle token: full-bleed art background + name + HP (the board view).
+   The full CardFace opens on click as an enlarged info card. ── */
+.bTok { position: relative; flex: 0 0 auto; border-radius: 11px; overflow: hidden; cursor: pointer;
+  border: 1.5px solid var(--el, var(--gold-deep)); background: #0c0805;
+  box-shadow: 0 3px 8px #0007; transition: transform .14s, box-shadow .14s; }
+.bTok.front { width: clamp(92px, 9.5vw, 126px); aspect-ratio: 0.82; z-index: 2; }
+.bTok.support { width: clamp(60px, 6.2vw, 84px); aspect-ratio: 0.82; align-self: flex-end; }
+.bTokArt { position: absolute; inset: 0; z-index: 0; background-size: cover; background-position: 50% 26%; }
+.bTok .bTokIcon { position: absolute; inset: 0; display: grid; place-items: center; }
+.bTok .bTokIcon iconify-icon { font-size: clamp(30px, 4vw, 52px); filter: drop-shadow(0 2px 4px #000a); }
+.bTokName { position: relative; z-index: 2; padding: 4px 6px 9px; font: 700 clamp(9px, 1vw, 12px) var(--font-display);
+  color: var(--cream, #f6e7b0); line-height: 1.05; text-shadow: 0 1px 2px #000, 0 0 4px #000;
+  background: linear-gradient(#000d, #0009 55%, transparent); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.bTokStatus { position: absolute; top: 20px; right: 3px; z-index: 3; display: flex; flex-direction: column; gap: 2px; align-items: flex-end; }
+.bTokPip { display: inline-flex; align-items: center; gap: 1px; font: 700 8px var(--font-display); color: #fff;
+  background: #000a; border: 1px solid #ffffff33; border-radius: 5px; padding: 0 3px; }
+.bTokPip iconify-icon { font-size: 9px; }
+.bTokFoot { position: absolute; left: 0; right: 0; bottom: 0; z-index: 2; padding: 9px 4px 3px; display: flex; align-items: center; gap: 3px;
+  background: linear-gradient(transparent, #000d 62%); }
+.bTokBlock { display: inline-flex; align-items: center; gap: 1px; font: 700 9px var(--font-display); color: #cfe0ff;
+  background: #10306acc; border: 1px solid #7aa2ff88; border-radius: 5px; padding: 0 3px; }
+.bTokBlock iconify-icon { font-size: 10px; }
+.bTokHp { position: relative; flex: 1; height: 11px; border-radius: 6px; overflow: hidden; background: #120b08; box-shadow: inset 0 0 0 1px #0009; }
+.bTokHp i { position: absolute; inset: 0; background: linear-gradient(var(--good), #2ea85c); transition: width .38s ease; }
+.bTokHp i.low { background: linear-gradient(#e6603a, #b5341f); }
+.bTokHp em { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; font: 700 8px var(--font-display); color: #fff; text-shadow: 0 1px 1px #000; }
+.bTok.dead { filter: grayscale(.85) brightness(.55); }
+.bTok:hover { transform: translateY(-3px); box-shadow: 0 8px 16px #000a; }
+.bTok.acting { transform: scale(1.16); z-index: 6; border-color: var(--gold-bright); box-shadow: 0 0 24px #f0c84a99, 0 8px 18px #000b; }
+.bTok.hovered { box-shadow: 0 0 0 2px #ffffff88, 0 6px 14px #000a; }
+.bTok.willHit { border-color: var(--good); box-shadow: 0 0 0 2px var(--good), 0 0 18px #2ecc7199; }
+.bTok.willHit::after { content: '⌖'; position: absolute; z-index: 4; inset: 0; display: grid; place-items: center;
+  font-size: 30px; color: var(--good); text-shadow: 0 0 8px #000, 0 0 4px #000; pointer-events: none; }
+.battleScreen.dragging .bTok { cursor: copy; }
 .battleScreen.resolving { pointer-events: none; }
 .battleScreen.resolving .bZoom, .battleScreen.resolving .bMid { pointer-events: auto; }
 
