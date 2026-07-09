@@ -18,6 +18,11 @@ import { sizedPortrait } from '../../data/sizeArt.js';
 const elColor = (el) => ATTUNEMENT_COLOR[el] || '#c9a66b';
 const CARD_W = 1.12, CARD_H = 1.54;
 
+// Shared squad layout (used by the board AND the camera rig so focusing lines up).
+const LAYOUT = { spacing: 3.5, frontZ: { e: -2.6, p: 2.3 }, backZ: { e: -3.4, p: 3.1 } };
+const squadX = (i, n) => (i - (n - 1) / 2) * LAYOUT.spacing;
+const squadCenter = (side, i, n) => ({ x: squadX(i, n), z: (LAYOUT.frontZ[side] + LAYOUT.backZ[side]) / 2 });
+
 /** A text label baked to a CanvasTexture (system fonts — no CDN/troika font fetch,
  *  which the sandboxed/offline env blocks). Rendered on a thin plane. */
 function useLabelTexture(text, { color = '#f6e7b0', px = 44, weight = 700 } = {}) {
@@ -80,7 +85,7 @@ function useImageTexture(url, pixel) {
 }
 
 /** One creature: a standing, camera-tilted card mesh with name + HP bar. Raycast-picked. */
-function Card3D({ u, side, x, frontZ, backZ, selected, acting, hovered, onPick, onOver, registerMesh }) {
+function Card3D({ u, side, x, frontZ, backZ, selected, acting, hovered, onPick, onOver, onCam, registerMesh }) {
   const art = useMemo(() => cardArtOf(u), [u.id, u.portrait, u.form]);
   const tex = useImageTexture(art.url, art.pixel);
   const grp = useRef();
@@ -113,7 +118,7 @@ function Card3D({ u, side, x, frontZ, backZ, selected, acting, hovered, onPick, 
       </mesh>
       {/* the face (art or solid color) — the pick target. UNLIT so art shows true colors. */}
       <mesh ref={meshRef} userData={{ unitId: u.id, side }}
-        onPointerDown={(e) => { e.stopPropagation(); onPick(u, side); }}
+        onPointerDown={(e) => { e.stopPropagation(); onPick(u, side); onCam && onCam(); }}
         onPointerOver={(e) => { e.stopPropagation(); onOver(u.id); }}
         onPointerOut={() => onOver(null)}>
         <boxGeometry args={[CARD_W, CARD_H, 0.06]} />
@@ -159,18 +164,31 @@ function Table() {
   );
 }
 
-/** Fixed camera aimed across the table (auto-fits width on resize). */
-function Rig() {
+/** Navigable camera: eases toward an overview by default, or toward a FOCUS
+ *  point {x,z} (a squad, or the acting creature during resolution). Auto-widens
+ *  on narrow/portrait viewports so the spread of squads stays in frame. */
+function CameraRig({ focus }) {
   const { camera, size } = useThree();
-  useEffect(() => {
-    // widen fov / pull back a touch on narrow (portrait/mobile) viewports so the
-    // full spread of squads stays in frame.
+  const pos = useRef(new THREE.Vector3(0, 4.6, 8.1));
+  const tgt = useRef(new THREE.Vector3(0, 0.2, -0.8));
+  useFrame(() => {
     const aspect = size.width / Math.max(1, size.height);
-    camera.fov = aspect < 1 ? 60 : 46;
-    camera.position.set(0, 4.6, aspect < 1 ? 9.4 : 8.1);
-    camera.updateProjectionMatrix();
-    camera.lookAt(0, 0.2, -0.8);
-  }, [camera, size.width, size.height]);
+    let dp, dt, fov;
+    if (focus) {
+      dp = new THREE.Vector3(focus.x * 0.9, 4.0, focus.z > 0 ? focus.z + 5.4 : 6.4);
+      dt = new THREE.Vector3(focus.x, 0.45, focus.z);
+      fov = aspect < 1 ? 54 : 43;
+    } else {
+      dp = new THREE.Vector3(0, 4.6, aspect < 1 ? 9.6 : 8.1);
+      dt = new THREE.Vector3(0, 0.2, -0.8);
+      fov = aspect < 1 ? 60 : 46;
+    }
+    pos.current.lerp(dp, 0.09);
+    tgt.current.lerp(dt, 0.09);
+    camera.position.copy(pos.current);
+    camera.lookAt(tgt.current);
+    if (Math.abs(camera.fov - fov) > 0.05) { camera.fov += (fov - camera.fov) * 0.09; camera.updateProjectionMatrix(); }
+  });
   return null;
 }
 
@@ -195,12 +213,12 @@ function Picker({ pickRef, meshes }) {
 }
 
 /** Squads laid out on the table: enemy far, you near; Vanguard centered/forward, Support flanking/back. */
-function Side({ squads, side, focusId, actingId, hoverId, onPick, onOver, registerMesh }) {
-  const frontZ = side === 'e' ? -2.6 : 2.3;
-  const backZ = side === 'e' ? -3.4 : 3.1;
-  const spacing = 3.5;
+function Side({ squads, side, focusId, actingId, hoverId, onPick, onOver, onCam, registerMesh }) {
+  const frontZ = LAYOUT.frontZ[side];
+  const backZ = LAYOUT.backZ[side];
   return squads.map((sq, i) => {
-    const cx = (i - (squads.length - 1) / 2) * spacing;
+    const cx = squadX(i, squads.length);
+    const center = squadCenter(side, i, squads.length);
     const front = sq.units.find((u) => u.isFront);
     const supp = sq.units.filter((u) => !u.isFront);
     const ordered = front ? [supp[0], front, supp[1]].filter(Boolean) : sq.units;
@@ -211,7 +229,7 @@ function Side({ squads, side, focusId, actingId, hoverId, onPick, onOver, regist
           return (
             <Card3D key={u.id} u={u} side={side} x={cx + slot * 1.2} frontZ={frontZ} backZ={backZ}
               selected={sq.id === focusId} acting={actingId === u.id} hovered={hoverId === u.id}
-              onPick={onPick} onOver={onOver} registerMesh={registerMesh} />
+              onPick={onPick} onOver={onOver} onCam={() => onCam(center)} registerMesh={registerMesh} />
           );
         })}
       </group>
@@ -221,22 +239,32 @@ function Side({ squads, side, focusId, actingId, hoverId, onPick, onOver, regist
 
 export default function Board3D({ enemy, player, focusId, actingId, onPick, pickRef }) {
   const [hoverId, setHoverId] = useState(null);
+  const [camFocus, setCamFocus] = useState(null);   // manual camera focus (a squad center) | null = overview
   const meshes = useRef(new Map());
   const registerMesh = (id, m) => { if (m) meshes.current.set(id, m); else meshes.current.delete(id); };
 
+  // unit → its squad center, so the camera can auto-follow the ACTING creature during resolution
+  const unitCenter = useMemo(() => {
+    const m = new Map();
+    [[enemy, 'e'], [player, 'p']].forEach(([arr, side]) =>
+      arr.forEach((sq, i) => sq.units.forEach((u) => m.set(u.id, squadCenter(side, i, arr.length)))));
+    return m;
+  }, [enemy, player]);
+  const focus = actingId ? (unitCenter.get(actingId) || camFocus) : camFocus;
+
   return (
     <Canvas dpr={[1, 2]} gl={{ antialias: true, alpha: false }} camera={{ position: [0, 4.6, 8.1], fov: 46, near: 0.1, far: 100 }}
-      onPointerMissed={() => setHoverId(null)}>
+      onPointerMissed={() => { setHoverId(null); setCamFocus(null); }}>
       <color attach="background" args={['#0c0805']} />
       <fog attach="fog" args={['#0c0805', 12, 26]} />
-      <Rig />
+      <CameraRig focus={focus} />
       <Picker pickRef={pickRef} meshes={meshes} />
       <ambientLight intensity={0.75} />
       <directionalLight position={[4, 9, 7]} intensity={1.15} />
       <directionalLight position={[-5, 4, 2]} intensity={0.35} color="#8fb4ff" />
       <Table />
-      <Side squads={enemy} side="e" focusId={focusId} actingId={actingId} hoverId={hoverId} onPick={onPick} onOver={setHoverId} registerMesh={registerMesh} />
-      <Side squads={player} side="p" focusId={focusId} actingId={actingId} hoverId={hoverId} onPick={onPick} onOver={setHoverId} registerMesh={registerMesh} />
+      <Side squads={enemy} side="e" focusId={focusId} actingId={actingId} hoverId={hoverId} onPick={onPick} onOver={setHoverId} onCam={setCamFocus} registerMesh={registerMesh} />
+      <Side squads={player} side="p" focusId={focusId} actingId={actingId} hoverId={hoverId} onPick={onPick} onOver={setHoverId} onCam={setCamFocus} registerMesh={registerMesh} />
     </Canvas>
   );
 }
