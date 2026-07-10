@@ -124,7 +124,7 @@ function Card3D({ u, side, x, z, selected, acting, hovered, onPick, onOver, regi
         onPointerOut={() => onOver(null)}>
         <planeGeometry args={[CARD_W, CARD_H]} />
         {tex
-          ? <meshBasicMaterial key="img" map={tex} color={new THREE.Color(dim, dim, dim)} transparent toneMapped={false} />
+          ? <meshBasicMaterial key="img" map={tex} color={new THREE.Color(dim, dim, dim)} toneMapped={false} />
           : <meshBasicMaterial key="col" color={art.color || '#8a6d3f'} toneMapped={false} />}
       </mesh>
       {/* LIVE HP bar over the baked stat plate */}

@@ -14,7 +14,7 @@ import { useFrame, useThree } from '@react-three/fiber';
 import * as THREE from 'three';
 import { ATTUNEMENT_COLOR } from '../../data/axisIcons.js';
 import { cardArt } from '../../data/artPool.js';
-import { drawActionFace } from './cardArt3d.js';
+import { drawActionFace, cardBackTexture } from './cardArt3d.js';
 
 const elColor = (el) => ATTUNEMENT_COLOR[el] || '#c9a66b';
 const SCOPE_WORD = { front: 'Vanguard', targeted: 'Targeted', squad: 'Squad', field: 'Field', self: 'Self' };
@@ -49,26 +49,6 @@ export function useActionCardTexture(card) {
 export const HAND_CARD_W = 0.74, HAND_CARD_H = 1.03;
 const CARD_W = HAND_CARD_W, CARD_H = HAND_CARD_H;
 
-// the shared card BACK (reverse side) — an ornate gilded pattern with a central crest.
-// Used for face-down enemy hands / unknown cards.
-let _backTex = null;
-function cardBackTexture() {
-  if (_backTex) return _backTex;
-  const W = 256, H = 356; const c = document.createElement('canvas'); c.width = W; c.height = H;
-  const ctx = c.getContext('2d');
-  ctx.fillStyle = '#2a1710'; ctx.fillRect(0, 0, W, H);
-  const g = ctx.createLinearGradient(0, 0, W, H); g.addColorStop(0, '#3a2113'); g.addColorStop(0.5, '#25130c'); g.addColorStop(1, '#3a2113');
-  ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);
-  ctx.strokeStyle = '#8a5a2a'; ctx.lineWidth = 8; ctx.strokeRect(12, 12, W - 24, H - 24);
-  ctx.strokeStyle = '#c9922e88'; ctx.lineWidth = 2;
-  for (let d = -H; d < W; d += 22) { ctx.beginPath(); ctx.moveTo(d, 0); ctx.lineTo(d + H, H); ctx.stroke(); }
-  ctx.fillStyle = '#1c110b'; ctx.beginPath(); ctx.arc(W / 2, H / 2, 62, 0, Math.PI * 2); ctx.fill();
-  ctx.strokeStyle = '#e6c079'; ctx.lineWidth = 4; ctx.stroke();
-  ctx.fillStyle = '#e6c079'; ctx.font = 'bold 70px Cinzel, Georgia, serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-  ctx.fillText('?', W / 2, H / 2 + 4);
-  _backTex = new THREE.CanvasTexture(c); _backTex.colorSpace = THREE.SRGBColorSpace; _backTex.anisotropy = 4;
-  return _backTex;
-}
 
 /** One fanned hand card (a mesh). Pointer-down starts a press the shell resolves
  *  into a TAP (select / detail) or a DRAG-to-play (raycast onto a board creature). */
@@ -106,13 +86,13 @@ function HandCard3D({ card, index, count, dealKey, selected, faceDown, onCardPoi
         onPointerOut={faceDown ? undefined : () => { hov.current = false; }}>
         <planeGeometry args={[CARD_W, CARD_H]} />
         {tex
-          ? <meshBasicMaterial key="t" map={tex} depthTest={false} depthWrite={false} toneMapped={false} />
-          : <meshBasicMaterial key="c" color={elColor(card.element)} depthTest={false} depthWrite={false} toneMapped={false} />}
+          ? <meshBasicMaterial key="t" map={tex} depthTest={false} toneMapped={false} />
+          : <meshBasicMaterial key="c" color={elColor(card.element)} depthTest={false} toneMapped={false} />}
       </mesh>
       {selected && (
         <mesh position={[0, 0, -0.01]} renderOrder={ro - 1}>
           <planeGeometry args={[CARD_W + 0.06, CARD_H + 0.06]} />
-          <meshBasicMaterial color="#f0c84a" depthTest={false} depthWrite={false} toneMapped={false} />
+          <meshBasicMaterial color="#f0c84a" depthTest={false} toneMapped={false} />
         </mesh>
       )}
     </group>
@@ -131,26 +111,29 @@ function Pile3D({ x, color, count, label, onTap }) {
     const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; setTex(t);
     return () => t.dispose();
   }, [count, label]);
-  const n = Math.max(1, Math.min(24, count));      // number of card layers to draw
-  const pw = CARD_W * 0.86, ph = CARD_H * 0.86;
-  const lift = 0.028;                              // per-card vertical rise → a visible stack height
+  const n = Math.max(1, Math.min(20, count));      // number of card layers to draw
+  const pw = CARD_W * 0.9, ph = CARD_H * 0.9;
+  const lift = 0.03;                               // per-card vertical rise → visible stack height
   const top = (n - 1) * lift;
-  // the pile is TILTED BACK (laid down toward horizontal) so you read it as a 3-D stack of
-  // cards seen at an angle, not a single upright card. Each card is a thin slab.
+  const back = cardBackTexture();
+  // the pile lies almost FLAT (tilted right back toward horizontal) so it reads as a real
+  // 3-D stack of cards seen from a shallow top angle — never a single upright card.
   return (
-    <group position={[x, -0.1, 0.05]} rotation={[0.95, 0, 0]}>
+    <group position={[x, -0.02, 0.02]} rotation={[1.24, 0, 0]}>
       {Array.from({ length: n }).map((_, i) => (
-        <mesh key={i} position={[0, i * lift, i * 0.006]} renderOrder={20 + i}
+        <mesh key={i} position={[0, i * lift, 0]} renderOrder={22 + i}
           onPointerDown={i === n - 1 ? (e) => { e.stopPropagation(); if (count) onTap(); } : undefined}>
-          <boxGeometry args={[pw, 0.018, ph]} />
-          <meshStandardMaterial color={count ? color : '#20160d'} roughness={0.72} metalness={0.12} transparent opacity={count ? 1 : 0.5} depthTest={false} depthWrite={false} />
+          <boxGeometry args={[pw, 0.02, ph]} />
+          <meshStandardMaterial color={count ? '#3a2a18' : '#20160d'} roughness={0.7} metalness={0.15} transparent={!count} opacity={count ? 1 : 0.4} depthTest={false} depthWrite={false} />
         </mesh>
       ))}
-      {/* thin gilded edge on the topmost card so the stack face reads clearly */}
-      <mesh position={[0, top + 0.012, 0.003]} renderOrder={20 + n}>
-        <planeGeometry args={[pw, ph]} /><meshBasicMaterial color={count ? '#e6c079' : '#3a2a18'} transparent opacity={0.22} depthTest={false} depthWrite={false} />
+      {/* the TOP card's face-down back (so the deck reads as a stack of real cards) */}
+      <mesh position={[0, top + 0.012, 0]} rotation={[-Math.PI / 2, 0, 0]} renderOrder={22 + n}>
+        <planeGeometry args={[pw, ph]} />
+        <meshBasicMaterial map={count ? back : null} color={count ? '#ffffff' : '#241a10'} depthTest={false} toneMapped={false} />
       </mesh>
-      {tex && <mesh position={[0, top + 0.02, -ph * 0.5 - 0.16]} rotation={[-0.95, 0, 0]} renderOrder={45}><planeGeometry args={[0.66, 0.3]} /><meshBasicMaterial map={tex} transparent depthTest={false} depthWrite={false} toneMapped={false} /></mesh>}
+      {/* count · label plate, stood back up to face the camera in front of the stack */}
+      {tex && <mesh position={[0, 0.02, ph * 0.5 + 0.12]} rotation={[-1.24, 0, 0]} renderOrder={48}><planeGeometry args={[0.66, 0.3]} /><meshBasicMaterial map={tex} transparent depthTest={false} toneMapped={false} /></mesh>}
     </group>
   );
 }
@@ -176,7 +159,7 @@ function CamShelf({ children, aspect, slideRef }) {
   // face the camera FLAT (no slant); the hand plane is distinct from the board table.
   // Raised a touch so the bottom row clears the dock bar; sits close to the camera so a
   // zoomed-in board never pokes in front of it (its meshes also skip the depth test).
-  return <group ref={ref} position={[0, -1.02, -3.5]} rotation={[0.08, 0, 0]} scale={s}>{children}</group>;
+  return <group ref={ref} position={[0, -0.86, -3.5]} rotation={[0.08, 0, 0]} scale={s}>{children}</group>;
 }
 
 export default function HandDock3D({ station, selectedIid, dealKey, squadIndex = 0, draggingIid = null, faceDown = false, onCardPointerDown, onInspect }) {

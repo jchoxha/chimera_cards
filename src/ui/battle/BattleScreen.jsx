@@ -93,6 +93,7 @@ export default function BattleScreen() {
   const [ticker, setTicker] = useState(null);     // latest combat-log line (middle bar)
   const [logOpen, setLogOpen] = useState(false);  // full combat log overlay
   const [confirmFight, setConfirmFight] = useState(false);   // "energy left" confirmation
+  const [confirmReset, setConfirmReset] = useState(false);   // "reset all moves?" confirmation
   const [dockHidden, setDockHidden] = useState(false);       // Action Cards shown/hidden
   const fxSeq = useRef(0);
   const timers = useRef([]);
@@ -154,7 +155,6 @@ export default function BattleScreen() {
 
   // planning squad: whichever PLAYER squad the selection has drilled into (store-tracked)
   const selId = snap?.selectedSquadId;
-  const focusId = sel.squadId;   // the highlighted squad (either side), for the dock header
   // keep the store's active planning squad in sync with the selection
   useEffect(() => {
     if (sel.side === 'p' && sel.squadId && sel.squadId !== selId) selectSquad(sel.squadId);
@@ -163,10 +163,8 @@ export default function BattleScreen() {
   if (!snap) return <div className="battleScreen empty">Loading…</div>;
 
   const allSquads = [...snap.enemy, ...snap.player];
-  // the card DOCK spans every squad (your squads first, then the enemy's — read-only)
+  // every squad (your squads first, then the enemy's) — for the hand carousel index
   const dockList = [...snap.player, ...snap.enemy];
-  const dockIdx = Math.max(0, dockList.findIndex((sq) => sq.id === focusId));
-  const dockSquad = dockList[dockIdx];
   const squadOfUnit = (uid) => allSquads.find((sq) => sq.units.some((u) => u.id === uid));
   const sideOfSquad = (sq) => (snap.enemy.includes(sq) ? 'e' : 'p');
   const totalQueued = snap.player.reduce((n, sq) => n + (sq.plan?.length || 0), 0);
@@ -221,14 +219,6 @@ export default function BattleScreen() {
     if (s.level === 'side') return { level: 'field', side: null, squadId: null, unitId: null };
     return { level: 'field', side: null, squadId: null, unitId: null };
   });
-  const selectSquadLvl = (side, squadId) => setSel({ level: 'squad', side, squadId, unitId: null });
-  const cycleSquad = (dir) => {
-    if (dockList.length < 2) return;
-    const base = focusId ? dockIdx : 0;
-    const i = (((base + dir) % dockList.length) + dockList.length) % dockList.length;
-    const sq = dockList[i];
-    selectSquadLvl(sideOfSquad(sq), sq.id);
-  };
   // click a creature token: if a card is SELECTED it plays at this target; otherwise the
   // click DRILLS DOWN one level toward the creature (Field→Side→Squad→Unit). Clicking a
   // creature outside the current selection re-drills to the appropriate level.
@@ -302,9 +292,40 @@ export default function BattleScreen() {
     run();
   };
 
-  const pLen = snap.player.length;
-  const withinIdx = dockIdx < pLen ? dockIdx : dockIdx - pLen;
-  const squadLabel = `${dockSquad?.side === 'e' ? 'Enemy' : 'Ally'} Squad ${withinIdx + 1}`;
+  // ── selection PILL: content is relevant to the current selection level ──
+  const sideName = (s) => (s === 'e' ? 'Enemy' : 'Ally');
+  const selSquad = sel.squadId ? allSquads.find((sq) => sq.id === sel.squadId) : null;
+  const selUnit = sel.unitId ? allSquads.flatMap((sq) => sq.units).find((u) => u.id === sel.unitId) : null;
+  const roleName = (u) => (u?.isFront ? 'Vanguard' : 'Support');
+  let pill = null;
+  if (sel.level === 'unit' && selUnit && selSquad) {
+    const arr = sel.side === 'e' ? snap.enemy : snap.player;
+    pill = { kind: 'unit', side: sel.side, title: `${sideName(sel.side)} Squad ${arr.indexOf(selSquad) + 1} ${roleName(selUnit)}` };
+  } else if (sel.level === 'squad' && selSquad) {
+    const arr = sel.side === 'e' ? snap.enemy : snap.player;
+    pill = { kind: 'squad', side: sel.side, title: `${sideName(sel.side)} Squad (${arr.indexOf(selSquad) + 1} of ${arr.length})`, energy: sel.side === 'p' ? selSquad : null };
+  } else if (sel.level === 'side' && sel.side) {
+    pill = { kind: 'side', side: sel.side, title: `${sideName(sel.side)} Field`, unspent: sel.side === 'p' ? unspentSquads.length : null };
+  }
+  // arrows change function by scope: cycle fields / squads-in-field / creatures-in-squad
+  const cycleSel = (dir) => {
+    if (!pill) return;
+    if (pill.kind === 'side') { setSel({ level: 'side', side: sel.side === 'e' ? 'p' : 'e', squadId: null, unitId: null }); return; }
+    if (pill.kind === 'squad') {
+      const arr = sel.side === 'e' ? snap.enemy : snap.player;
+      const i = (((arr.indexOf(selSquad) + dir) % arr.length) + arr.length) % arr.length;
+      setSel({ level: 'squad', side: sel.side, squadId: arr[i].id, unitId: null });
+    } else {
+      const us = selSquad.units;
+      const ci = us.findIndex((u) => u.id === sel.unitId);
+      const i = (((ci + dir) % us.length) + us.length) % us.length;
+      setSel({ level: 'unit', side: sel.side, squadId: selSquad.id, unitId: us[i].id });
+    }
+  };
+  const canCycle = !!pill && (pill.kind === 'side'
+    || (pill.kind === 'squad' && (sel.side === 'e' ? snap.enemy : snap.player).length > 1)
+    || (pill.kind === 'unit' && selSquad && selSquad.units.length > 1));
+  const canToggleHand = sel.side === 'p' && !!sel.squadId;   // hand toggle only on your squad/creature
 
   return (
     <div className={`battleScreen${d ? ' dragging' : ''}${anim ? ' resolving' : ''}${dockHidden ? ' dockHidden' : ''}${selectedCard ? ' picking' : ''}`}
@@ -323,57 +344,63 @@ export default function BattleScreen() {
             onCardPointerDown: startHandDrag, onInspect: setInspect,
           } : null} />
 
-        {/* ONE set of squad arrows — cycles through ALL squads (ally + enemy) and moves the camera */}
-        {dockList.length > 1 && <>
-          <button className="bEdge left" title="Previous squad" onClick={() => cycleSquad(-1)}><Icon icon="tabler:chevron-left" /></button>
-          <button className="bEdge right" title="Next squad" onClick={() => cycleSquad(1)}><Icon icon="tabler:chevron-right" /></button>
-        </>}
+        {/* TOP-LEFT: turn tracker (just "Turn X") */}
+        <div className="bTurn"><b>Turn {snap.turn}</b></div>
 
-        <button type="button" className={`bMid overlay${(snap.logHistory?.length || ticker) ? ' log' : ''}`}
-          title={snap.logHistory?.length ? 'View full combat log' : undefined}
-          onClick={() => snap.logHistory?.length && setLogOpen(true)}>
-          {snap.outcome
-            ? <span className={`bOutcome ${snap.outcome === 'p' ? 'win' : 'lose'}`}>
-                {snap.outcome === 'p' ? 'Victory' : snap.outcome === 'e' ? 'Defeat' : 'Draw'}
-                <span className="bNew" onClick={(e) => { e.stopPropagation(); window.location.reload(); }} title="New battle"><Icon icon="tabler:refresh" /></span>
-              </span>
-            : anim && ticker
-              ? <span className={`bTick ${ticker.side === 'e' ? 'foe' : 'ally'}`}>{ticker.text}</span>
-              : <span className="bVs"><b>Turn {snap.turn}</b>{snap.logHistory?.length ? <em><Icon icon="game-icons:scroll-quill" /> Combat Log</em> : ' · Plan your squads, then Fight'}</span>}
-        </button>
+        {/* TOP-RIGHT: combat log button */}
+        {snap.logHistory?.length ? (
+          <button className="bLogBtn" title="View combat log" onClick={() => setLogOpen(true)}>
+            <Icon icon="game-icons:scroll-quill" /><span>Log</span>
+          </button>
+        ) : null}
+
+        {/* CENTRE: the action currently resolving (roughly under its target), or the outcome */}
+        {snap.outcome ? (
+          <div className={`bOutcome center ${snap.outcome === 'p' ? 'win' : 'lose'}`}>
+            {snap.outcome === 'p' ? 'Victory' : snap.outcome === 'e' ? 'Defeat' : 'Draw'}
+            <span className="bNew" onClick={() => window.location.reload()} title="New battle"><Icon icon="tabler:refresh" /></span>
+          </div>
+        ) : (anim && ticker ? (
+          <div className={`bActionText ${ticker.side === 'e' ? 'foe' : 'ally'}`}>{ticker.text}</div>
+        ) : null)}
       </div>
 
-      {/* BOTTOM HUD — floating button CLUSTERS over the canvas (no solid bar, so toggling
-          the hand never reflows anything). Left: show/hide hand. Centre: squad nav +
-          energy. Right: undo / reset / fight. */}
+      {/* BOTTOM HUD — the hand toggle (only on your squad), the CENTRED selection pill
+          (only when something is selected, content relevant to the selection), and the
+          action controls. The pill is centred; the hand renders above it in the canvas. */}
       <div className="bHud">
         <div className="bHudCluster left">
-          <button className="bHudBtn toggle" title={dockHidden ? 'Show Action Cards' : 'Hide Action Cards'} onClick={() => setDockHidden((v) => !v)}>
-            <Icon icon="tabler:cards" />
-            {!dockHidden && <span className="bHudX"><Icon icon="tabler:x" /></span>}
-          </button>
+          {canToggleHand && (
+            <button className="bHudBtn toggle" title={dockHidden ? 'Show Action Cards' : 'Hide Action Cards'} onClick={() => setDockHidden((v) => !v)}>
+              <Icon icon="tabler:cards" />
+              {!dockHidden && <span className="bHudX"><Icon icon="tabler:x" /></span>}
+            </button>
+          )}
         </div>
 
-        <div className="bHudCluster center">
-          <button className="bHudBtn" title="Previous squad" disabled={dockList.length < 2} onClick={() => cycleSquad(-1)}><Icon icon="tabler:chevron-left" /></button>
-          <div className={`bHudSquad${dockSquad?.side === 'e' ? ' foe' : ''}`}>
-            <span className="bHudSquadName">{squadLabel}<em> · {withinIdx + 1}/{dockSquad?.side === 'e' ? snap.enemy.length : pLen}</em></span>
-            {dockSquad?.side === 'p' && (
-              <span className="bEnergy" title={`${dockSquad.energyLeft} of ${dockSquad.maxEnergy} energy`}>
-                <Icon icon="game-icons:lightning-arc" />
-                <span className="bEnergyPips">
-                  {Array.from({ length: dockSquad.maxEnergy }).map((_, k) => <i key={k} className={k < dockSquad.energyLeft ? 'on' : ''} />)}
+        {pill && (
+          <div className="bHudCluster center pill">
+            <button className="bHudBtn" title="Previous" disabled={!canCycle} onClick={() => cycleSel(-1)}><Icon icon="tabler:chevron-left" /></button>
+            <div className={`bHudSquad${pill.side === 'e' ? ' foe' : ''}`}>
+              <span className="bHudSquadName">{pill.title}</span>
+              {pill.kind === 'squad' && pill.energy && (
+                <span className="bEnergy" title={`${pill.energy.energyLeft} of ${pill.energy.maxEnergy} energy`}>
+                  <Icon icon="tabler:bolt" />
+                  <span className="bEnergyPips">{Array.from({ length: pill.energy.maxEnergy }).map((_, k) => <i key={k} className={k < pill.energy.energyLeft ? 'on' : ''} />)}</span>
+                  <b>{pill.energy.energyLeft}</b>
                 </span>
-                <b>{dockSquad.energyLeft}</b>
-              </span>
-            )}
+              )}
+              {pill.kind === 'side' && pill.unspent != null && (
+                <span className="bEnergy" title="Squads with energy left"><Icon icon="tabler:bolt" /><b>{pill.unspent}</b><em className="bEnergyLbl">squad{pill.unspent === 1 ? '' : 's'} unspent</em></span>
+              )}
+            </div>
+            <button className="bHudBtn" title="Next" disabled={!canCycle} onClick={() => cycleSel(1)}><Icon icon="tabler:chevron-right" /></button>
           </div>
-          <button className="bHudBtn" title="Next squad" disabled={dockList.length < 2} onClick={() => cycleSquad(1)}><Icon icon="tabler:chevron-right" /></button>
-        </div>
+        )}
 
         <div className="bHudCluster right">
           <button className="bHudBtn" title="Undo last move" disabled={!totalQueued || !!anim} onClick={undoLast}><Icon icon="tabler:arrow-back-up" /></button>
-          <button className="bHudBtn" title="Reset all moves this turn" disabled={!totalQueued || !!anim} onClick={resetPlans}><Icon icon="tabler:refresh" /></button>
+          <button className="bHudBtn" title="Reset all moves this turn" disabled={!totalQueued || !!anim} onClick={() => setConfirmReset(true)}><Icon icon="tabler:refresh" /></button>
           <button className="bHudBtn fight" title="Fight — resolve the round" disabled={!!anim || !!snap.outcome} onClick={requestFight}><Icon icon="game-icons:crossed-swords" /><span>Fight</span></button>
         </div>
       </div>
@@ -433,6 +460,20 @@ export default function BattleScreen() {
             <div className="bConfirmBtns">
               <button className="bCtl wide" onClick={() => setConfirmFight(false)}>Keep planning</button>
               <button className="bCtl fight wide" onClick={doFight}>Fight anyway</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Reset confirmation */}
+      {confirmReset && (
+        <div className="bInspect" onClick={() => setConfirmReset(false)}>
+          <div className="bConfirm" onClick={(e) => e.stopPropagation()}>
+            <h3><Icon icon="tabler:refresh" /> Reset moves?</h3>
+            <p>Return <b>every card</b> queued this turn to its squad's hand?</p>
+            <div className="bConfirmBtns">
+              <button className="bCtl wide" onClick={() => setConfirmReset(false)}>Keep them</button>
+              <button className="bCtl fight wide" onClick={() => { resetPlans(); setConfirmReset(false); }}>Reset all</button>
             </div>
           </div>
         </div>

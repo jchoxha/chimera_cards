@@ -27,9 +27,12 @@ function mix(hex, other, t) {   // simple hex lerp
   return `rgb(${r},${g},${bl})`;
 }
 
-/** The shared gilded chrome (border + inner panel). Returns key rects for the caller. */
+/** The shared gilded chrome (border + inner panel). The whole canvas is filled OPAQUE
+ *  (dark) first so the card texture has no transparent pixels — it renders solid on the
+ *  board / hand with correct occlusion (no see-through corners). */
 export function drawShell(ctx, W, H, accent) {
   ctx.clearRect(0, 0, W, H);
+  ctx.fillStyle = '#0a0705'; ctx.fillRect(0, 0, W, H);   // opaque backing (rounded corners read dark, not see-through)
   roundRect(ctx, 0, 0, W, H, 30); ctx.fillStyle = '#0d0906'; ctx.fill();
   const bg = ctx.createLinearGradient(0, 0, 0, H);
   bg.addColorStop(0, mix('#241a10', accent, 0.18)); bg.addColorStop(0.5, '#1b130c'); bg.addColorStop(1, mix('#241a10', accent, 0.14));
@@ -127,6 +130,45 @@ export function drawCreatureFace(ctx, u, img, { W = 384, H = 528 } = {}) {
   const y = H - 74, x = 26, w = W - 52;
   roundRect(ctx, x, y, w, 52, 9); ctx.fillStyle = '#0c0805cc'; ctx.fill();
   ctx.lineWidth = 1.5; ctx.strokeStyle = '#5a431f88'; ctx.stroke();
+}
+
+/** The shared physical REVERSE side of every card — an ornate gilded medallion on a
+ *  warm filigree field (matches the front frame's gold-on-wood artstyle). Baked once. */
+export function drawCardBack(ctx, W, H) {
+  ctx.fillStyle = '#0a0705'; ctx.fillRect(0, 0, W, H);
+  roundRect(ctx, 0, 0, W, H, 30); ctx.fillStyle = '#160d07'; ctx.fill();
+  roundRect(ctx, 16, 16, W - 32, H - 32, 20); ctx.save(); ctx.clip();
+  const g = ctx.createRadialGradient(W / 2, H / 2, 16, W / 2, H / 2, H * 0.62);
+  g.addColorStop(0, '#452a14'); g.addColorStop(0.6, '#241408'); g.addColorStop(1, '#100803');
+  ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);
+  ctx.strokeStyle = 'rgba(201,146,46,0.15)'; ctx.lineWidth = 3;
+  for (let d = -H; d < W; d += 34) {
+    ctx.beginPath(); ctx.moveTo(d, 0); ctx.lineTo(d + H, H); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(d + H, 0); ctx.lineTo(d, H); ctx.stroke();
+  }
+  ctx.restore();
+  ctx.lineWidth = 7; ctx.strokeStyle = GOLD; roundRect(ctx, 10, 10, W - 20, H - 20, 22); ctx.stroke();
+  ctx.lineWidth = 2; ctx.strokeStyle = GOLD_HI; roundRect(ctx, 17, 17, W - 34, H - 34, 17); ctx.stroke();
+  const cx = W / 2, cy = H / 2;
+  ctx.beginPath(); ctx.arc(cx, cy, H * 0.205, 0, Math.PI * 2); ctx.lineWidth = 6; ctx.strokeStyle = GOLD; ctx.stroke();
+  ctx.beginPath(); ctx.arc(cx, cy, H * 0.16, 0, Math.PI * 2); ctx.lineWidth = 3; ctx.strokeStyle = GOLD_HI; ctx.stroke();
+  ctx.beginPath(); ctx.arc(cx, cy, H * 0.118, 0, Math.PI * 2); ctx.fillStyle = '#160d07'; ctx.fill();
+  ctx.strokeStyle = 'rgba(240,214,138,0.55)'; ctx.lineWidth = 2.5;
+  for (let i = 0; i < 16; i++) { const a = i * Math.PI / 8; ctx.beginPath(); ctx.moveTo(cx + Math.cos(a) * H * 0.122, cy + Math.sin(a) * H * 0.122); ctx.lineTo(cx + Math.cos(a) * H * 0.155, cy + Math.sin(a) * H * 0.155); ctx.stroke(); }
+  ctx.save(); ctx.translate(cx, cy); ctx.rotate(Math.PI / 4);
+  ctx.fillStyle = GOLD; ctx.fillRect(-H * 0.05, -H * 0.05, H * 0.1, H * 0.1); ctx.restore();
+  ctx.beginPath(); ctx.arc(cx, cy, H * 0.052, 0, Math.PI * 2); ctx.fillStyle = '#160d07'; ctx.fill();
+  ctx.fillStyle = GOLD_HI; ctx.font = `bold ${Math.round(H * 0.1)}px Cinzel, Georgia, serif`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  ctx.fillText('C', cx, cy + H * 0.006);
+  ctx.fillStyle = GOLD;
+  for (const [x, y] of [[36, 36], [W - 36, 36], [36, H - 36], [W - 36, H - 36]]) { ctx.beginPath(); ctx.arc(x, y, 6, 0, Math.PI * 2); ctx.fill(); }
+}
+
+let _backTex = null;
+export function cardBackTexture() {
+  if (_backTex) return _backTex;
+  const { texture } = makeFaceTexture(256, 356, (ctx) => drawCardBack(ctx, 256, 356));
+  _backTex = texture; return _backTex;
 }
 
 export function makeFaceTexture(W, H, draw) {
