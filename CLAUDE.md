@@ -1031,6 +1031,10 @@ the standalone editor. All deploy to GH Pages; the ROOT url now serves the hub.
 
 ## Conventions
 
+- **Branching: work directly on `main`.** Per the repo owner (2026-07-10), all work
+  goes on `main` — do NOT create feature/`claude/*` branches. If a harness setup hands
+  you a designated branch, still land the work on `main` (merge it back and delete the
+  extra branch, local + remote). Push-to-`main` is what triggers the GH-Pages deploy.
 - **Continuity discipline:** update this file's "Project state" section + the memory
   files *as each milestone completes*, and **commit per-milestone** (don't batch doc
   updates or commits for session end). A session can be cut off at any time; keeping
