@@ -135,8 +135,6 @@ export default function BattleScreen() {
   const dockIdx = Math.max(0, dockList.findIndex((sq) => sq.id === focusId));
   const dockSquad = dockList[dockIdx];
   const squadOfUnit = (uid) => allSquads.find((sq) => sq.units.some((u) => u.id === uid));
-  const focusedSide = snap.enemy.some((sq) => sq.id === focusId) ? 'e' : 'p';
-  const focusedSideSquads = focusedSide === 'e' ? snap.enemy : snap.player;
   const totalQueued = snap.player.reduce((n, sq) => n + (sq.plan?.length || 0), 0);
   const hasUnspent = snap.player.some((sq) => sq.energyLeft > 0);
   const selectedSquad = snap.player.find((sq) => sq.id === selId);
@@ -158,16 +156,6 @@ export default function BattleScreen() {
     if (dockList.length < 2) return;
     const i = (((dockIdx + dir) % dockList.length) + dockList.length) % dockList.length;
     focusSquad(dockList[i].id, dockList[i].side);
-  };
-  // board field carousel: focus the next/prev squad ON THAT SIDE, wrapping around
-  // (infinite loop back to the other end of the field).
-  const cycleSide = (side, dir) => {
-    const list = side === 'e' ? snap.enemy : snap.player;
-    if (list.length < 2) return;
-    const cur = list.findIndex((sq) => sq.id === focusId);
-    const from = cur >= 0 ? cur : (dir > 0 ? -1 : 0);
-    const i = (((from + dir) % list.length) + list.length) % list.length;
-    focusSquad(list[i].id, side);
   };
   // click a token: (1) if a card is SELECTED, the click plays it at this target;
   // (2) else its squad must be FOCUSED first; (3) a second tap opens the info card.
@@ -246,10 +234,10 @@ export default function BattleScreen() {
             onCardPointerDown: startHandDrag, onInspect: setInspect,
           }} />
 
-        {/* ONE set of squad arrows — cycles the focused side's squads and moves the camera */}
-        {focusedSideSquads.length > 1 && <>
-          <button className="bEdge left" title="Previous squad" onClick={() => cycleSide(focusedSide, -1)}><Icon icon="tabler:chevron-left" /></button>
-          <button className="bEdge right" title="Next squad" onClick={() => cycleSide(focusedSide, 1)}><Icon icon="tabler:chevron-right" /></button>
+        {/* ONE set of squad arrows — cycles through ALL squads (ally + enemy) and moves the camera */}
+        {dockList.length > 1 && <>
+          <button className="bEdge left" title="Previous squad" onClick={() => cycleSquad(-1)}><Icon icon="tabler:chevron-left" /></button>
+          <button className="bEdge right" title="Next squad" onClick={() => cycleSquad(1)}><Icon icon="tabler:chevron-right" /></button>
         </>}
 
         <button type="button" className={`bMid overlay${(snap.logHistory?.length || ticker) ? ' log' : ''}`}
