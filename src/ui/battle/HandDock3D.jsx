@@ -14,6 +14,7 @@ import { useFrame, useThree } from '@react-three/fiber';
 import * as THREE from 'three';
 import { ATTUNEMENT_COLOR } from '../../data/axisIcons.js';
 import { cardArt } from '../../data/artPool.js';
+import { drawActionFace } from './cardArt3d.js';
 
 const elColor = (el) => ATTUNEMENT_COLOR[el] || '#c9a66b';
 const SCOPE_WORD = { front: 'Vanguard', targeted: 'Targeted', squad: 'Squad', field: 'Field', self: 'Self' };
@@ -22,36 +23,11 @@ const isOffensive = (c) => (c?.effects || []).some((e) => e.op === 'damage' || e
 const cap = (s) => (s ? s[0].toUpperCase() + s.slice(1) : s);
 const FACE_W = 384, FACE_H = 540;
 
-/** Bake an Action Card face (header · art · scope strip) to a canvas → CanvasTexture. */
+/** Bake an Action Card face through the SHARED TCG frame (matches the creature cards). */
 function drawFace(ctx, card, img) {
-  const el = elColor(card.element);
-  ctx.clearRect(0, 0, FACE_W, FACE_H);
-  ctx.fillStyle = '#1a120b'; ctx.fillRect(0, 0, FACE_W, FACE_H);
-  // header
-  ctx.fillStyle = el; ctx.globalAlpha = 0.9; ctx.fillRect(0, 0, FACE_W, 78); ctx.globalAlpha = 1;
-  ctx.fillStyle = '#120b08'; ctx.beginPath(); ctx.arc(44, 39, 27, 0, Math.PI * 2); ctx.fill();
-  ctx.fillStyle = '#fff'; ctx.font = 'bold 34px Georgia'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-  ctx.fillText(String(card.cost ?? ''), 44, 40);
-  ctx.textAlign = 'left'; ctx.fillStyle = '#f6e7b0'; ctx.font = 'bold 30px Georgia';
-  let name = card.name || ''; while (ctx.measureText(name).width > FACE_W - 92 && name.length > 4) name = name.slice(0, -2);
-  ctx.fillText(name === card.name ? name : name + '…', 84, 40);
-  // art
-  const ax = 16, ay = 92, aw = FACE_W - 32, ah = 322;
-  ctx.fillStyle = '#0d0805'; ctx.fillRect(ax, ay, aw, ah);
-  if (img) { try { ctx.drawImage(img, ax, ay, aw, ah); } catch { /* ignore */ } }
-  // scope strip
-  ctx.fillStyle = 'rgba(0,0,0,0.62)'; ctx.fillRect(ax, ay + ah - 46, aw, 46);
-  ctx.fillStyle = '#f6e7b0'; ctx.font = 'bold 24px Georgia'; ctx.textAlign = 'center';
-  const noun = isOffensive(card) ? 'Attack' : (scopeOf(card) === 'self' ? 'Skill' : 'Buff');
-  ctx.fillText(`${SCOPE_WORD[scopeOf(card)] || 'Vanguard'} ${cap(card.type) || noun}`, FACE_W / 2, ay + ah - 22);
-  // rules text (wrapped, small)
-  ctx.fillStyle = '#cbb996'; ctx.font = '22px Georgia'; ctx.textAlign = 'left';
-  const words = String(card.text || '').split(' '); let line = '', yy = ay + ah + 34;
-  for (const w of words) {
-    if (ctx.measureText(line + w).width > FACE_W - 32) { ctx.fillText(line, 16, yy); line = w + ' '; yy += 28; if (yy > FACE_H - 12) break; }
-    else line += w + ' ';
-  }
-  if (yy <= FACE_H - 12) ctx.fillText(line, 16, yy);
+  const scopeWord = SCOPE_WORD[scopeOf(card)] || 'Vanguard';
+  const typeWord = cap(card.type) || (isOffensive(card) ? 'Attack' : (scopeOf(card) === 'self' ? 'Skill' : 'Buff'));
+  drawActionFace(ctx, card, img, { W: FACE_W, H: FACE_H, scopeWord, typeWord });
 }
 
 export function useActionCardTexture(card) {
@@ -73,10 +49,32 @@ export function useActionCardTexture(card) {
 export const HAND_CARD_W = 0.74, HAND_CARD_H = 1.03;
 const CARD_W = HAND_CARD_W, CARD_H = HAND_CARD_H;
 
+// the shared card BACK (reverse side) — an ornate gilded pattern with a central crest.
+// Used for face-down enemy hands / unknown cards.
+let _backTex = null;
+function cardBackTexture() {
+  if (_backTex) return _backTex;
+  const W = 256, H = 356; const c = document.createElement('canvas'); c.width = W; c.height = H;
+  const ctx = c.getContext('2d');
+  ctx.fillStyle = '#2a1710'; ctx.fillRect(0, 0, W, H);
+  const g = ctx.createLinearGradient(0, 0, W, H); g.addColorStop(0, '#3a2113'); g.addColorStop(0.5, '#25130c'); g.addColorStop(1, '#3a2113');
+  ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);
+  ctx.strokeStyle = '#8a5a2a'; ctx.lineWidth = 8; ctx.strokeRect(12, 12, W - 24, H - 24);
+  ctx.strokeStyle = '#c9922e88'; ctx.lineWidth = 2;
+  for (let d = -H; d < W; d += 22) { ctx.beginPath(); ctx.moveTo(d, 0); ctx.lineTo(d + H, H); ctx.stroke(); }
+  ctx.fillStyle = '#1c110b'; ctx.beginPath(); ctx.arc(W / 2, H / 2, 62, 0, Math.PI * 2); ctx.fill();
+  ctx.strokeStyle = '#e6c079'; ctx.lineWidth = 4; ctx.stroke();
+  ctx.fillStyle = '#e6c079'; ctx.font = 'bold 70px Cinzel, Georgia, serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  ctx.fillText('?', W / 2, H / 2 + 4);
+  _backTex = new THREE.CanvasTexture(c); _backTex.colorSpace = THREE.SRGBColorSpace; _backTex.anisotropy = 4;
+  return _backTex;
+}
+
 /** One fanned hand card (a mesh). Pointer-down starts a press the shell resolves
  *  into a TAP (select / detail) or a DRAG-to-play (raycast onto a board creature). */
-function HandCard3D({ card, index, count, dealKey, selected, onCardPointerDown }) {
-  const tex = useActionCardTexture(card);
+function HandCard3D({ card, index, count, dealKey, selected, faceDown, onCardPointerDown }) {
+  const faceTex = useActionCardTexture(card);
+  const tex = (faceDown && card.known !== true) ? cardBackTexture() : faceTex;
   const grp = useRef();
   const hov = useRef(false);
   // fan: centre the row, arc + tilt by offset from centre
@@ -103,9 +101,9 @@ function HandCard3D({ card, index, count, dealKey, selected, onCardPointerDown }
   return (
     <group ref={grp} position={[baseX, baseY - 0.6, 0]}>
       <mesh renderOrder={ro}
-        onPointerDown={(e) => { e.stopPropagation(); onCardPointerDown(card, e.nativeEvent); }}
-        onPointerOver={(e) => { e.stopPropagation(); hov.current = true; }}
-        onPointerOut={() => { hov.current = false; }}>
+        onPointerDown={faceDown ? undefined : (e) => { e.stopPropagation(); onCardPointerDown(card, e.nativeEvent); }}
+        onPointerOver={faceDown ? undefined : (e) => { e.stopPropagation(); hov.current = true; }}
+        onPointerOut={faceDown ? undefined : () => { hov.current = false; }}>
         <planeGeometry args={[CARD_W, CARD_H]} />
         {tex
           ? <meshBasicMaterial key="t" map={tex} depthTest={false} depthWrite={false} toneMapped={false} />
@@ -133,18 +131,26 @@ function Pile3D({ x, color, count, label, onTap }) {
     const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; setTex(t);
     return () => t.dispose();
   }, [count, label]);
-  const n = Math.max(1, Math.min(18, count));      // number of card layers to draw
-  const pw = CARD_W * 0.82, ph = CARD_H * 0.82;
+  const n = Math.max(1, Math.min(24, count));      // number of card layers to draw
+  const pw = CARD_W * 0.86, ph = CARD_H * 0.86;
+  const lift = 0.028;                              // per-card vertical rise → a visible stack height
+  const top = (n - 1) * lift;
+  // the pile is TILTED BACK (laid down toward horizontal) so you read it as a 3-D stack of
+  // cards seen at an angle, not a single upright card. Each card is a thin slab.
   return (
-    <group position={[x, 0, 0]}>
+    <group position={[x, -0.1, 0.05]} rotation={[0.95, 0, 0]}>
       {Array.from({ length: n }).map((_, i) => (
-        <mesh key={i} position={[i * 0.004, i * 0.004, i * 0.012]} renderOrder={20 + i}
+        <mesh key={i} position={[0, i * lift, i * 0.006]} renderOrder={20 + i}
           onPointerDown={i === n - 1 ? (e) => { e.stopPropagation(); if (count) onTap(); } : undefined}>
-          <boxGeometry args={[pw, ph, 0.02]} />
+          <boxGeometry args={[pw, 0.018, ph]} />
           <meshStandardMaterial color={count ? color : '#20160d'} roughness={0.72} metalness={0.12} transparent opacity={count ? 1 : 0.5} depthTest={false} depthWrite={false} />
         </mesh>
       ))}
-      {tex && <mesh position={[0, -ph * 0.5 - 0.14, n * 0.012 + 0.02]} renderOrder={40}><planeGeometry args={[0.62, 0.28]} /><meshBasicMaterial map={tex} transparent depthTest={false} depthWrite={false} toneMapped={false} /></mesh>}
+      {/* thin gilded edge on the topmost card so the stack face reads clearly */}
+      <mesh position={[0, top + 0.012, 0.003]} renderOrder={20 + n}>
+        <planeGeometry args={[pw, ph]} /><meshBasicMaterial color={count ? '#e6c079' : '#3a2a18'} transparent opacity={0.22} depthTest={false} depthWrite={false} />
+      </mesh>
+      {tex && <mesh position={[0, top + 0.02, -ph * 0.5 - 0.16]} rotation={[-0.95, 0, 0]} renderOrder={45}><planeGeometry args={[0.66, 0.3]} /><meshBasicMaterial map={tex} transparent depthTest={false} depthWrite={false} toneMapped={false} /></mesh>}
     </group>
   );
 }
@@ -173,7 +179,7 @@ function CamShelf({ children, aspect, slideRef }) {
   return <group ref={ref} position={[0, -1.02, -3.5]} rotation={[0.08, 0, 0]} scale={s}>{children}</group>;
 }
 
-export default function HandDock3D({ station, selectedIid, dealKey, squadIndex = 0, draggingIid = null, onCardPointerDown, onInspect }) {
+export default function HandDock3D({ station, selectedIid, dealKey, squadIndex = 0, draggingIid = null, faceDown = false, onCardPointerDown, onInspect }) {
   const { size } = useThree();
   const aspect = size.width / Math.max(1, size.height);
   // carousel: on squad switch, start the shelf off-screen on the side we came FROM
@@ -184,8 +190,11 @@ export default function HandDock3D({ station, selectedIid, dealKey, squadIndex =
     prevIdx.current = squadIndex;
   }
   if (!station) return null;
-  // the card being dragged out is removed so the remaining hand closes ranks (re-fans)
-  const hand = (station.hand || []).filter((c) => c.iid !== draggingIid);
+  // enemy squads expose only a face-DOWN count (their cards are hidden) → render that many
+  // backs; your own hand is the real face-up cards (minus whichever one is being dragged).
+  const hand = faceDown
+    ? Array.from({ length: station.handCount || 0 }, (_, i) => ({ iid: `back-${i}`, known: false }))
+    : (station.hand || []).filter((c) => c.iid !== draggingIid);
   // piles pushed to the OUTER edges of the shelf; deck far-left, discard/exhaust far-right
   const px = aspect < 1 ? 2.7 : 3.25;
   return (
@@ -197,7 +206,7 @@ export default function HandDock3D({ station, selectedIid, dealKey, squadIndex =
       <group position={[0, 0.1, 0.2]}>
         {hand.map((card, i) => (
           <HandCard3D key={`${dealKey}-${card.iid}`} card={card} index={i} count={hand.length} dealKey={dealKey}
-            selected={selectedIid === card.iid} onCardPointerDown={onCardPointerDown} />
+            selected={!faceDown && selectedIid === card.iid} faceDown={faceDown} onCardPointerDown={onCardPointerDown} />
         ))}
       </group>
       {/* discard + exhaust (far right) */}

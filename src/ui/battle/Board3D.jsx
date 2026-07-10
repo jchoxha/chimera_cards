@@ -12,11 +12,11 @@ import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Canvas, useFrame, useThree } from '@react-three/fiber';
 import * as THREE from 'three';
 import HandDock3D, { useActionCardTexture, HAND_CARD_W, HAND_CARD_H } from './HandDock3D.jsx';
-import { ATTUNEMENT_COLOR, creatureColor } from '../../data/axisIcons.js';
+import { creatureColor } from '../../data/axisIcons.js';
 import { creatureArt } from '../../data/artPool.js';
 import { sizedPortrait } from '../../data/sizeArt.js';
+import { drawCreatureFace, makeFaceTexture } from './cardArt3d.js';
 
-const elColor = (el) => ATTUNEMENT_COLOR[el] || '#c9a66b';
 const CARD_W = 1.12, CARD_H = 1.54;
 
 // Shared squad layout (used by the board AND the camera rig so focusing lines up).
@@ -63,35 +63,29 @@ function cardArtOf(u) {
   return { url: null, color: creatureColor({ attunement: u.axes?.attunement }) || '#8a6d3f' };
 }
 
-/** Load an image URL into a THREE texture WITHOUT suspense — 404s fall back to null
- *  (→ a solid colored card) instead of throwing, so a missing portrait never blanks
- *  the whole scene. Uses a plain <img> (no crossOrigin) — THREE's TextureLoader sets
- *  crossOrigin='anonymous', which some same-origin dev/static servers reject. */
-function useImageTexture(url, pixel) {
+/** Bake a creature card face through the SHARED TCG frame (a plain <img> loads the
+ *  portrait — no crossOrigin, which some same-origin dev servers reject — then the face
+ *  is re-baked with the art). HP is drawn LIVE as a separate mesh, so it never re-bakes. */
+function useCreatureFace(u) {
   const [tex, setTex] = useState(null);
+  const art = useMemo(() => cardArtOf(u), [u.id, u.portrait, u.form]);
   useEffect(() => {
-    if (!url) { setTex(null); return undefined; }
+    const { texture, canvas } = makeFaceTexture(384, 528, () => {});
+    const ctx = canvas.getContext('2d');
     let alive = true;
-    const img = new Image();
-    img.onload = () => {
-      if (!alive) return;
-      const t = new THREE.Texture(img);
-      t.colorSpace = THREE.SRGBColorSpace;
-      if (pixel) { t.magFilter = THREE.NearestFilter; t.minFilter = THREE.NearestFilter; }
-      t.needsUpdate = true;
-      setTex(t);
-    };
-    img.onerror = () => { if (alive) setTex(null); };
-    img.src = url;
-    return () => { alive = false; };
-  }, [url, pixel]);
-  return tex;
+    const redraw = (img) => { if (!alive) return; drawCreatureFace(ctx, u, img); texture.needsUpdate = true; setTex(texture); };
+    redraw(null);
+    if (art.url) { const img = new Image(); img.onload = () => redraw(img); img.onerror = () => {}; img.src = art.url; }
+    return () => { alive = false; texture.dispose(); };
+    // deps are the BAKED fields only (HP is live/overlaid) so a new `u` object each render
+    // doesn't re-bake; `u` inside redraw is fine because these fields are stable per creature.
+  }, [u.id, u.name, u.element, u.sizeWord, art.url, u.axes?.biology, u.axes?.attunement]);
+  return { tex, art };
 }
 
-/** One creature: a FLAT card mesh with name + HP bar on a fixed slot. Raycast-picked. */
+/** One creature: a FLAT TCG card mesh (baked face) with a LIVE HP bar. Raycast-picked. */
 function Card3D({ u, side, x, z, selected, acting, hovered, onPick, onOver, registerMesh }) {
-  const art = useMemo(() => cardArtOf(u), [u.id, u.portrait, u.form]);
-  const tex = useImageTexture(art.url, art.pixel);
+  const { tex, art } = useCreatureFace(u);
   const grp = useRef();
   const meshRef = useRef();
   const scaleBase = u.isFront ? 1 : 0.82;
@@ -109,47 +103,42 @@ function Card3D({ u, side, x, z, selected, acting, hovered, onPick, onOver, regi
   });
 
   const hpFrac = Math.max(0, Math.min(1, u.hp / u.maxHp));
-  const frameColor = selected ? '#f0c84a' : (acting ? '#ffd873' : elColor(u.element));
   const dim = u.dead ? 0.4 : 1;
+  const hpW = CARD_W - 0.26;          // HP bar width (over the reserved plate baked in the face)
+  const hpY = -CARD_H / 2 + 0.18;     // sits on the bottom stat plate
 
-  // fully FLAT on the table (face up)
+  // fully FLAT on the table (face up) — the whole card is one BAKED TCG face; HP is live.
   return (
     <group ref={grp} position={[x, baseY, z]} rotation={[-Math.PI / 2, 0, 0]}>
-      {/* frame / border behind the face */}
-      <mesh position={[0, 0, -0.04]}>
-        <boxGeometry args={[CARD_W + 0.08, CARD_H + 0.08, 0.06]} />
-        <meshStandardMaterial color={frameColor} roughness={0.5} metalness={0.3} emissive={frameColor} emissiveIntensity={selected || acting ? 0.5 : 0.08} />
-      </mesh>
-      {/* the face (art or solid color) — the pick target. UNLIT so art shows true colors. */}
+      {/* selection / acting glow edge behind the card */}
+      {(selected || acting) && (
+        <mesh position={[0, 0, -0.03]}>
+          <planeGeometry args={[CARD_W + 0.14, CARD_H + 0.14]} />
+          <meshBasicMaterial color={acting ? '#ffd873' : '#f0c84a'} transparent opacity={0.9} toneMapped={false} />
+        </mesh>
+      )}
+      {/* the baked TCG face — the pick target. UNLIT so art shows true colors. */}
       <mesh ref={meshRef} userData={{ unitId: u.id, side }}
         onPointerDown={(e) => { e.stopPropagation(); onPick(u, side); }}
         onPointerOver={(e) => { e.stopPropagation(); onOver(u.id); }}
         onPointerOut={() => onOver(null)}>
-        <boxGeometry args={[CARD_W, CARD_H, 0.06]} />
-        {/* keyed so the material REMOUNTS when the texture arrives (map null→tex needs a
-            shader recompile that r3f won't do on a prop change alone) */}
+        <planeGeometry args={[CARD_W, CARD_H]} />
         {tex
-          ? <meshBasicMaterial key="img" map={tex} color={new THREE.Color(dim, dim, dim)} toneMapped={false} />
+          ? <meshBasicMaterial key="img" map={tex} color={new THREE.Color(dim, dim, dim)} transparent toneMapped={false} />
           : <meshBasicMaterial key="col" color={art.color || '#8a6d3f'} toneMapped={false} />}
       </mesh>
-      {/* name plate (dark strip behind for legibility) */}
-      <mesh position={[0, CARD_H / 2 - 0.14, 0.045]}>
-        <planeGeometry args={[CARD_W, 0.3]} />
-        <meshBasicMaterial color="#0b0705" transparent opacity={0.72} depthWrite={false} />
-      </mesh>
-      <Label text={u.name} position={[0, CARD_H / 2 - 0.14, 0.05]} width={CARD_W - 0.06} color="#f6e7b0" px={40} />
-      {/* HP bar */}
-      <group position={[0, -CARD_H / 2 + 0.12, 0.05]}>
-        <mesh><planeGeometry args={[CARD_W - 0.16, 0.14]} /><meshBasicMaterial color="#120b08" /></mesh>
-        <mesh position={[-((CARD_W - 0.16) / 2) * (1 - hpFrac), 0, 0.002]} scale={[Math.max(0.0001, hpFrac), 1, 1]}>
-          <planeGeometry args={[CARD_W - 0.16, 0.1]} />
+      {/* LIVE HP bar over the baked stat plate */}
+      <group position={[0, hpY, 0.02]}>
+        <mesh><planeGeometry args={[hpW, 0.16]} /><meshBasicMaterial color="#0a0605" /></mesh>
+        <mesh position={[-(hpW / 2) * (1 - hpFrac), 0, 0.002]} scale={[Math.max(0.0001, hpFrac), 1, 1]}>
+          <planeGeometry args={[hpW, 0.12]} />
           <meshBasicMaterial color={hpFrac <= 0.33 ? '#e6603a' : '#3fa860'} />
         </mesh>
-        <Label text={u.hp} position={[0, 0, 0.004]} width={0.7} color="#ffffff" px={40} />
+        <Label text={`${u.hp}/${u.maxHp}`} position={[0, 0, 0.004]} width={0.85} color="#ffffff" px={38} />
       </group>
       {/* block pip */}
-      {u.block > 0 && <Label text={`+${u.block}`} position={[CARD_W / 2 - 0.2, -CARD_H / 2 + 0.34, 0.05]} width={0.5} color="#bcd4ff" px={40} />}
-      {/* target reticle when a card is selected & this is a valid target */}
+      {u.block > 0 && <Label text={`+${u.block}`} position={[CARD_W / 2 - 0.22, hpY + 0.26, 0.05]} width={0.5} color="#bcd4ff" px={40} />}
+      {/* target reticle when hovered / a valid target */}
       {hovered && <mesh position={[0, 0, 0.08]}><ringGeometry args={[0.55, 0.66, 32]} /><meshBasicMaterial color="#7CFF9B" transparent opacity={0.9} /></mesh>}
     </group>
   );
@@ -170,7 +159,7 @@ function Table({ onOrbitStart }) {
   );
 }
 
-const PAN_BOUND = 7;   // how far WASD can roam from the focus point (both axes)
+const clamp = (v, lo, hi) => Math.max(lo, Math.min(hi, v));
 
 /** Click-drag ORBIT + WASD PAN state the user controls (rides on top of the auto
  *  camera). Drag the table to rotate, wheel to zoom, WASD to pan (CAMERA-RELATIVE —
@@ -215,7 +204,7 @@ function useOrbit() {
 /** Navigable camera: eases the LOOK-AT toward an overview, or a FOCUS point {x,z}
  *  (a squad, or the acting creature during resolution). The user's orbit angle + zoom
  *  are applied on top, so click-drag navigation and auto-movement coexist. */
-function CameraRig({ view, orbit }) {
+function CameraRig({ view, orbit, stage }) {
   const { camera, size } = useThree();
   const tgt = useRef(new THREE.Vector3(0, 0.2, -0.4));
   const dist = useRef(11);
@@ -236,14 +225,19 @@ function CameraRig({ view, orbit }) {
       const rx = -fwd.current.z, rz = fwd.current.x;       // right = fwd rotated -90° on the ground
       const sp = 9 * Math.min(0.05, delta);
       const p = orbit.pan.current;
-      p.x = Math.max(-PAN_BOUND, Math.min(PAN_BOUND, p.x + (fwd.current.x * f + rx * rt) * sp));
-      p.z = Math.max(-PAN_BOUND, Math.min(PAN_BOUND, p.z + (fwd.current.z * f + rz * rt) * sp));
+      p.x += (fwd.current.x * f + rx * rt) * sp;
+      p.z += (fwd.current.z * f + rz * rt) * sp;
     }
     const aspect = size.width / Math.max(1, size.height);
     const fov = aspect < 1 ? 60 : 46;   // CONSTANT per aspect so the hand shelf never resizes
     if (Math.abs(camera.fov - fov) > 0.01) { camera.fov = fov; camera.updateProjectionMatrix(); }
-    const dt = new THREE.Vector3(view.x, view.y ?? 0.3, view.z);
-    dt.x += orbit.pan.current.x; dt.z += orbit.pan.current.z;   // WASD roam
+    // the look-at = level focus + WASD roam, CLAMPED to ABSOLUTE stage bounds (not relative
+    // to the selection), then the pan is written back so it can't accumulate past the wall.
+    const p = orbit.pan.current;
+    const tx = clamp(view.x + p.x, stage.xMin, stage.xMax);
+    const tz = clamp(view.z + p.z, stage.zMin, stage.zMax);
+    p.x = tx - view.x; p.z = tz - view.z;
+    const dt = new THREE.Vector3(tx, view.y ?? 0.3, tz);
     const dd = view.dist * (aspect < 1 ? 1.2 : 1) * orbit.zoom.current;
     tgt.current.lerp(dt, 0.1);
     dist.current += (dd - dist.current) * 0.1;
@@ -396,9 +390,11 @@ function SquadPlaymat({ side, squads, sq, i, on }) {
   // beyond the back row. Selected → high-contrast WHITE (reads over the gold aura).
   const dir = side === 'e' ? -1 : 1;                 // front → back direction along z
   const lblCol = on ? '#ffffff' : col;
-  const vanZ = LAYOUT.frontZ[side] + dir * 0.9;       // just behind the vanguard card, in the gap
-  const supZ = LAYOUT.backZ[side] - dir * 0.9;        // just in front of the support cards, in the gap
-  const squadZ = LAYOUT.frontZ[side] - dir * 1.35;    // toward table CENTRE (clear of the hand + piles)
+  const vanZ = LAYOUT.frontZ[side] + dir * 1.12;      // in the gap, pushed further off the card
+  const supZ = LAYOUT.backZ[side] - dir * 1.12;       // in the gap, pushed further off the card
+  // squad name: ENEMY beyond its back row (far edge); ALLY toward table centre (clear of
+  // the hand). Kept on opposite sides so the two sides' labels never collide at centre.
+  const squadZ = side === 'e' ? LAYOUT.backZ[side] - 1.25 : LAYOUT.frontZ[side] - 1.3;
   return (
     <group>
       {slots.map((sl, j) => (
@@ -413,10 +409,10 @@ function SquadPlaymat({ side, squads, sq, i, on }) {
           </mesh>
         </group>
       ))}
-      <GroundLabel text="Vanguard" x={s.cx} z={vanZ} w={1.5} color={lblCol} px={38} opacity={on ? 1 : 0.7} />
-      <GroundLabel text="Support" x={s.supp0.x} z={supZ} w={1.3} color={lblCol} px={34} opacity={on ? 1 : 0.7} />
-      <GroundLabel text="Support" x={s.supp1.x} z={supZ} w={1.3} color={lblCol} px={34} opacity={on ? 1 : 0.7} />
-      <GroundLabel text={`${side === 'e' ? 'Enemy' : 'Ally'} Squad ${i + 1}`} x={s.cx} z={squadZ} w={2.1} color={on ? '#ffdf8a' : col} px={40} opacity={on ? 1 : 0.72} />
+      <GroundLabel text="Vanguard" x={s.cx} z={vanZ} w={1.9} color={lblCol} px={46} opacity={on ? 1 : 0.72} />
+      <GroundLabel text="Support" x={s.supp0.x} z={supZ} w={1.6} color={lblCol} px={42} opacity={on ? 1 : 0.72} />
+      <GroundLabel text="Support" x={s.supp1.x} z={supZ} w={1.6} color={lblCol} px={42} opacity={on ? 1 : 0.72} />
+      <GroundLabel text={`${side === 'e' ? 'Enemy' : 'Ally'} Squad ${i + 1}`} x={s.cx} z={squadZ} w={2.5} color={on ? '#ffdf8a' : col} px={48} opacity={on ? 1 : 0.75} />
     </group>
   );
 }
@@ -530,9 +526,21 @@ export default function Board3D({ enemy, player, sel, actingId, onPick, onStepUp
     return { squadCenterById: sc, squadSideById: ss, unitPos: up };
   }, [enemy, player]);
 
+  // ABSOLUTE stage bounds (derived from the board, NOT the current selection) — the
+  // camera look-at is clamped to these so panning can never leave the combat stage.
+  const stage = useMemo(() => {
+    const maxN = Math.max(enemy.length, player.length, 1);
+    const halfX = squadX(maxN - 1, maxN) + SUPP_DX + SLOT_W * 0.4;
+    return { xMin: -halfX, xMax: halfX, zMin: LAYOUT.backZ.e - 1.6, zMax: LAYOUT.backZ.p + 1.6 };
+  }, [enemy.length, player.length]);
+
+  // The camera FOLLOWS the selection at every level. During a card drag the selection is
+  // driven by the card's scope (see BattleScreen), so the camera dollies toward the target
+  // as you drag — and the DROP is resolved from the SELECTION (not a pixel raycast), so the
+  // moving camera never makes you miss (BattleScreen.resolveDropTarget).
   const view = viewFor(sel, maps, actingId);
-  // on selection change: recentre WASD roam + reframe the camera (tilt + zoom reset for
-  // the new level). az always eases to 0 — no yaw. Keyed on the selection SIGNATURE.
+  // on selection change: recentre WASD roam + reframe (tilt + zoom reset for the new
+  // level). az always eases to 0 — no yaw. Keyed on the selection signature.
   const selKey = `${sel.level}:${sel.side || ''}:${sel.squadId || ''}:${sel.unitId || ''}`;
   useEffect(() => {
     orbit.pan.current.x = 0; orbit.pan.current.z = 0;
@@ -544,7 +552,7 @@ export default function Board3D({ enemy, player, sel, actingId, onPick, onStepUp
       onPointerMissed={() => setHoverId(null)}>{/* table tap (onStepUp) handles stepping up */}
       <color attach="background" args={['#0c0805']} />
       <fog attach="fog" args={['#0c0805', 18, 52]} />
-      <CameraRig view={view} orbit={orbit} />
+      <CameraRig view={view} orbit={orbit} stage={stage} />
       <Picker pickRef={pickRef} meshes={meshes} />
       <ambientLight intensity={0.82} />
       <directionalLight position={[4, 9, 7]} intensity={1.1} />

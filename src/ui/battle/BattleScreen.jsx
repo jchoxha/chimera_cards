@@ -78,6 +78,7 @@ export default function BattleScreen() {
   const dropEls = useRef(new Map());   // (reserved for in-scene FX anchoring)
   const pickRef = useRef(null);        // Board3D raycast picker: (clientX,clientY) → unitId | null
   const drag = useRef(null);
+  const liveRef = useRef({});          // bridge for the once-bound window drag handler → current render values
   const [d, setD] = useState(null);          // active hand-card DRAG (only once moved past threshold)
   const [zoom, setZoom] = useState(null);    // { u, side } full creature info card
   const [cardZoom, setCardZoom] = useState(null);    // enlarged Action Card detail
@@ -105,11 +106,25 @@ export default function BattleScreen() {
       const g = drag.current; if (!g) return;
       g.x = e.clientX; g.y = e.clientY;
       if (!g.moved && Math.hypot(e.clientX - g.x0, e.clientY - g.y0) > 6) g.moved = true;
-      if (g.moved) { g.over = (pickRef.current && pickRef.current(e.clientX, e.clientY)) || null; setD({ ...g }); }
+      if (g.moved) {
+        g.over = (pickRef.current && pickRef.current(e.clientX, e.clientY)) || null;
+        // DRAG-DRIVEN SELECTION: follow the card's scope. Its floor is the "relevant"
+        // side (attack→enemy, else your side); over a valid-side creature it drills to
+        // that creature's SQUAD (squad/field scope) or the UNIT (single-target scope).
+        const L = liveRef.current;
+        if (L.updateDragSel) L.updateDragSel(g.card, g.over);
+        setD({ ...g });
+      }
     };
     const onUp = () => {
       const g = drag.current; if (!g) return; drag.current = null; setD(null);
-      if (g.moved) { if (g.over) { queueCard(g.iid, g.over); setSelId2(null); } }
+      if (g.moved) {
+        // drop target = the creature under the pointer, else the DRILLED selection
+        // (unit / squad-vanguard / side-vanguard) — robust to the camera moving mid-drag.
+        const L = liveRef.current;
+        const target = g.over || (L.resolveDropTarget && L.resolveDropTarget());
+        if (target) { queueCard(g.iid, target); setSelId2(null); }
+      }
       else if (g.tapSel) setCardZoom(g.card);   // tap a selected card → detail
       else setSelId2(g.iid);                     // tap → select
     };
@@ -122,6 +137,20 @@ export default function BattleScreen() {
   useEffect(() => {
     if (anim?.acting) dropEls.current.get(anim.acting)?.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
   }, [anim?.acting]);
+
+  // mobile: request FULLSCREEN on the first touch (best-effort — needs a user gesture and
+  // is only attempted on coarse-pointer / small screens so desktop is unaffected).
+  useEffect(() => {
+    const wantsFs = window.matchMedia?.('(pointer: coarse)')?.matches || window.innerWidth < 900;
+    if (!wantsFs) return undefined;
+    const go = () => {
+      const el = document.documentElement;
+      if (!document.fullscreenElement && el.requestFullscreen) el.requestFullscreen().catch(() => {});
+      window.removeEventListener('pointerdown', go);
+    };
+    window.addEventListener('pointerdown', go, { once: true });
+    return () => window.removeEventListener('pointerdown', go);
+  }, []);
 
   // planning squad: whichever PLAYER squad the selection has drilled into (store-tracked)
   const selId = snap?.selectedSquadId;
@@ -141,17 +170,46 @@ export default function BattleScreen() {
   const squadOfUnit = (uid) => allSquads.find((sq) => sq.units.some((u) => u.id === uid));
   const sideOfSquad = (sq) => (snap.enemy.includes(sq) ? 'e' : 'p');
   const totalQueued = snap.player.reduce((n, sq) => n + (sq.plan?.length || 0), 0);
-  const hasUnspent = snap.player.some((sq) => sq.energyLeft > 0);
+  const unspentSquads = snap.player.filter((sq) => sq.energyLeft > 0);
+  const hasUnspent = unspentSquads.length > 0;
   // the hand belongs to the player squad the selection is inside (squad OR unit level)
   const planSquadId = (sel.side === 'p' && sel.squadId) ? sel.squadId : selId;
   const selectedSquad = snap.player.find((sq) => sq.id === planSquadId);
   const selectedCard = selId2 ? (selectedSquad?.hand || []).find((c) => c.iid === selId2) : null;
-  // hand shows only once you've drilled into one of YOUR squads (or a unit in it)
-  const showHand = !dockHidden && !anim && sel.side === 'p' && !!sel.squadId;
+  // hand shows once a squad is selected: YOUR squad = playable, an ENEMY squad = face-DOWN
+  const handSquad = sel.squadId ? allSquads.find((sq) => sq.id === sel.squadId) : null;
+  const showHand = !dockHidden && !anim && !!handSquad;
+  const handIsEnemy = handSquad ? sideOfSquad(handSquad) === 'e' : false;
+
+  // bridge current values into the once-bound window drag handler (drag-driven selection)
+  liveRef.current.updateDragSel = (card, overUnitId) => {
+    const offensive = isOffensiveCard(card);
+    const wantSide = offensive ? 'e' : 'p';
+    const sc = scopeOf(card);
+    const over = overUnitId ? squadOfUnit(overUnitId) : null;
+    let next;
+    if (over && sideOfSquad(over) === wantSide) {
+      next = (sc === 'squad' || sc === 'field')
+        ? { level: 'squad', side: wantSide, squadId: over.id, unitId: null }
+        : { level: 'unit', side: wantSide, squadId: over.id, unitId: overUnitId };
+    } else {
+      next = { level: 'side', side: wantSide, squadId: null, unitId: null };
+    }
+    setSel((s) => (s.level === next.level && s.side === next.side && s.squadId === next.squadId && s.unitId === next.unitId ? s : next));
+  };
+  const frontOf = (sq) => sq?.units.find((u) => u.isFront)?.id || sq?.units[0]?.id || null;
+  liveRef.current.resolveDropTarget = () => {
+    if (sel.level === 'unit' && sel.unitId) return sel.unitId;
+    if (sel.squadId) return frontOf(allSquads.find((sq) => sq.id === sel.squadId));
+    if (sel.side) return frontOf((sel.side === 'e' ? snap.enemy : snap.player)[0]);
+    return null;
+  };
 
   const startHandDrag = (card, ne) => {
     if (anim) return;
-    drag.current = { iid: card.iid, card, x0: ne.clientX, y0: ne.clientY, x: ne.clientX, y: ne.clientY, moved: false, over: null, tapSel: selId2 === card.iid };
+    // originSel = the selection at grab time → the camera freezes HERE during the drag
+    // (drag-driven selection still updates the highlight, but the view holds still).
+    drag.current = { iid: card.iid, card, x0: ne.clientX, y0: ne.clientY, x: ne.clientX, y: ne.clientY, moved: false, over: null, tapSel: selId2 === card.iid, originSel: sel };
   };
 
   const disp = (u) => (anim ? { ...u, hp: anim.hp[u.id] ?? u.hp, block: anim.block[u.id] ?? u.block, dead: (anim.hp[u.id] ?? u.hp) <= 0 } : u);
@@ -244,8 +302,13 @@ export default function BattleScreen() {
     run();
   };
 
+  const pLen = snap.player.length;
+  const withinIdx = dockIdx < pLen ? dockIdx : dockIdx - pLen;
+  const squadLabel = `${dockSquad?.side === 'e' ? 'Enemy' : 'Ally'} Squad ${withinIdx + 1}`;
+
   return (
-    <div className={`battleScreen${d ? ' dragging' : ''}${anim ? ' resolving' : ''}${dockHidden ? ' dockHidden' : ''}${selectedCard ? ' picking' : ''}`}>
+    <div className={`battleScreen${d ? ' dragging' : ''}${anim ? ' resolving' : ''}${dockHidden ? ' dockHidden' : ''}${selectedCard ? ' picking' : ''}`}
+      onContextMenu={(e) => e.preventDefault()}>
       {/* REAL 3D BOARD (react-three-fiber): creatures are card meshes on a table,
           raycast-picked so tilted 3D cards stay tappable. Hand/HUD stay DOM below. */}
       <div className="bArena3d">
@@ -254,9 +317,9 @@ export default function BattleScreen() {
           player={snap.player.map((sq) => ({ ...sq, units: sq.units.map(disp) }))}
           sel={sel} onStepUp={stepUp} actingId={anim?.acting} onPick={onTok} pickRef={pickRef} fx={fx} drag={d}
           hand={showHand ? {
-            station: selectedSquad || snap.player[0],
-            selectedIid: selId2, dealKey: snap.dealKey,
-            squadIndex: Math.max(0, snap.player.findIndex((sq) => sq.id === planSquadId)),
+            station: handSquad,
+            selectedIid: selId2, dealKey: snap.dealKey, faceDown: handIsEnemy,
+            squadIndex: Math.max(0, dockList.findIndex((sq) => sq.id === handSquad.id)),
             onCardPointerDown: startHandDrag, onInspect: setInspect,
           } : null} />
 
@@ -280,26 +343,38 @@ export default function BattleScreen() {
         </button>
       </div>
 
-      {/* DOCK — every squad's Deck · Hand · Discard · Exhaust (yours first, enemy read-only), a rotating carousel */}
-      <div className={`bDock${dockSquad?.side === 'e' ? ' enemyDock' : ''}${dockHidden ? ' hidden' : ''}`}>
-        <div className="bDockTop">
-          <button className="bCtl sm toggle" title={dockHidden ? 'Show Action Cards' : 'Hide Action Cards'} onClick={() => setDockHidden((v) => !v)}>
-            <Icon icon={dockHidden ? 'tabler:cards' : 'tabler:chevron-down'} />
+      {/* BOTTOM HUD — floating button CLUSTERS over the canvas (no solid bar, so toggling
+          the hand never reflows anything). Left: show/hide hand. Centre: squad nav +
+          energy. Right: undo / reset / fight. */}
+      <div className="bHud">
+        <div className="bHudCluster left">
+          <button className="bHudBtn toggle" title={dockHidden ? 'Show Action Cards' : 'Hide Action Cards'} onClick={() => setDockHidden((v) => !v)}>
+            <Icon icon="tabler:cards" />
+            {!dockHidden && <span className="bHudX"><Icon icon="tabler:x" /></span>}
           </button>
-          <div className="bSquadNav">
-            <button className="bCtl sm" title="Previous squad" disabled={dockList.length < 2} onClick={() => cycleSquad(-1)}><Icon icon="tabler:chevron-left" /></button>
-            <span className="bSquadNavLbl">
-              {dockSquad?.side === 'e' ? <><Icon icon="game-icons:despair" /> Enemy Squad</> : <>Squad {dockIdx + 1}</>}
-              <em> / {dockList.length}</em>
-              {dockSquad?.side === 'p' && <span className="bEnergyMini">⚡ {dockSquad.energyLeft}/{dockSquad.maxEnergy}</span>}
-            </span>
-            <button className="bCtl sm" title="Next squad" disabled={dockList.length < 2} onClick={() => cycleSquad(1)}><Icon icon="tabler:chevron-right" /></button>
+        </div>
+
+        <div className="bHudCluster center">
+          <button className="bHudBtn" title="Previous squad" disabled={dockList.length < 2} onClick={() => cycleSquad(-1)}><Icon icon="tabler:chevron-left" /></button>
+          <div className={`bHudSquad${dockSquad?.side === 'e' ? ' foe' : ''}`}>
+            <span className="bHudSquadName">{squadLabel}<em> · {withinIdx + 1}/{dockSquad?.side === 'e' ? snap.enemy.length : pLen}</em></span>
+            {dockSquad?.side === 'p' && (
+              <span className="bEnergy" title={`${dockSquad.energyLeft} of ${dockSquad.maxEnergy} energy`}>
+                <Icon icon="game-icons:lightning-arc" />
+                <span className="bEnergyPips">
+                  {Array.from({ length: dockSquad.maxEnergy }).map((_, k) => <i key={k} className={k < dockSquad.energyLeft ? 'on' : ''} />)}
+                </span>
+                <b>{dockSquad.energyLeft}</b>
+              </span>
+            )}
           </div>
-          <div className="bControls">
-            <button className="bCtl" title="Undo last move" disabled={!totalQueued || !!anim} onClick={undoLast}><Icon icon="tabler:arrow-back-up" /></button>
-            <button className="bCtl" title="Reset all moves this turn" disabled={!totalQueued || !!anim} onClick={resetPlans}><Icon icon="tabler:refresh" /></button>
-            <button className="bCtl fight" title="Fight — resolve the round" disabled={!!anim || !!snap.outcome} onClick={requestFight}><Icon icon="game-icons:crossed-swords" /></button>
-          </div>
+          <button className="bHudBtn" title="Next squad" disabled={dockList.length < 2} onClick={() => cycleSquad(1)}><Icon icon="tabler:chevron-right" /></button>
+        </div>
+
+        <div className="bHudCluster right">
+          <button className="bHudBtn" title="Undo last move" disabled={!totalQueued || !!anim} onClick={undoLast}><Icon icon="tabler:arrow-back-up" /></button>
+          <button className="bHudBtn" title="Reset all moves this turn" disabled={!totalQueued || !!anim} onClick={resetPlans}><Icon icon="tabler:refresh" /></button>
+          <button className="bHudBtn fight" title="Fight — resolve the round" disabled={!!anim || !!snap.outcome} onClick={requestFight}><Icon icon="game-icons:crossed-swords" /><span>Fight</span></button>
         </div>
       </div>
 
@@ -337,19 +412,37 @@ export default function BattleScreen() {
         </div>
       )}
 
-      {/* Fight confirmation — energy still unspent in a squad */}
+      {/* Fight confirmation — energy still unspent in a squad. Each squad is a LINK that
+          selects it (and closes) so you can go spend the energy. */}
       {confirmFight && (
         <div className="bInspect" onClick={() => setConfirmFight(false)}>
           <div className="bConfirm" onClick={(e) => e.stopPropagation()}>
             <h3><Icon icon="game-icons:crossed-swords" /> Fight now?</h3>
-            <p>One or more of your squads still has <b>energy to spend</b>. Resolve the round anyway?</p>
+            <p>These squads still have <b>energy to spend</b>. Click one to go plan it, or fight anyway:</p>
+            <div className="bEnergyList">
+              {unspentSquads.map((sq) => {
+                const n = snap.player.indexOf(sq) + 1;
+                return (
+                  <button key={sq.id} className="bEnergyLink" onClick={() => { setConfirmFight(false); setSelId2(null); setSel({ level: 'squad', side: 'p', squadId: sq.id, unitId: null }); }}>
+                    <span><Icon icon="tabler:chevron-right" /> Ally Squad {n}</span>
+                    <em><Icon icon="game-icons:lightning-arc" /> {sq.energyLeft}/{sq.maxEnergy}</em>
+                  </button>
+                );
+              })}
+            </div>
             <div className="bConfirmBtns">
               <button className="bCtl wide" onClick={() => setConfirmFight(false)}>Keep planning</button>
-              <button className="bCtl fight wide" onClick={doFight}>Fight</button>
+              <button className="bCtl fight wide" onClick={doFight}>Fight anyway</button>
             </div>
           </div>
         </div>
       )}
+
+      {/* mobile: require landscape (a portrait gate) — the 3-D board needs the width */}
+      <div className="bRotateGate">
+        <Icon icon="tabler:device-mobile-rotated" />
+        <p>Rotate your device to <b>landscape</b> to play.</p>
+      </div>
 
       {/* full combat log */}
       {logOpen && (
