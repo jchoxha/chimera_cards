@@ -135,6 +135,8 @@ export default function BattleScreen() {
   const dockIdx = Math.max(0, dockList.findIndex((sq) => sq.id === focusId));
   const dockSquad = dockList[dockIdx];
   const squadOfUnit = (uid) => allSquads.find((sq) => sq.units.some((u) => u.id === uid));
+  const focusedSide = snap.enemy.some((sq) => sq.id === focusId) ? 'e' : 'p';
+  const focusedSideSquads = focusedSide === 'e' ? snap.enemy : snap.player;
   const totalQueued = snap.player.reduce((n, sq) => n + (sq.plan?.length || 0), 0);
   const hasUnspent = snap.player.some((sq) => sq.energyLeft > 0);
   const selectedSquad = snap.player.find((sq) => sq.id === selId);
@@ -243,11 +245,11 @@ export default function BattleScreen() {
             onCardPointerDown: startHandDrag, onInspect: setInspect,
           }} />
 
-        {/* squad carousels + horizon log bar overlay the canvas */}
-        {snap.enemy.length > 1 && <button className="bEdge left far" title="Previous enemy squad" onClick={() => cycleSide('e', -1)}><Icon icon="tabler:chevron-left" /></button>}
-        {snap.enemy.length > 1 && <button className="bEdge right far" title="Next enemy squad" onClick={() => cycleSide('e', 1)}><Icon icon="tabler:chevron-right" /></button>}
-        {snap.player.length > 1 && <button className="bEdge left near" title="Previous squad" onClick={() => cycleSide('p', -1)}><Icon icon="tabler:chevron-left" /></button>}
-        {snap.player.length > 1 && <button className="bEdge right near" title="Next squad" onClick={() => cycleSide('p', 1)}><Icon icon="tabler:chevron-right" /></button>}
+        {/* ONE set of squad arrows — cycles the focused side's squads and moves the camera */}
+        {focusedSideSquads.length > 1 && <>
+          <button className="bEdge left" title="Previous squad" onClick={() => cycleSide(focusedSide, -1)}><Icon icon="tabler:chevron-left" /></button>
+          <button className="bEdge right" title="Next squad" onClick={() => cycleSide(focusedSide, 1)}><Icon icon="tabler:chevron-right" /></button>
+        </>}
 
         <button type="button" className={`bMid overlay${(snap.logHistory?.length || ticker) ? ' log' : ''}`}
           title={snap.logHistory?.length ? 'View full combat log' : undefined}

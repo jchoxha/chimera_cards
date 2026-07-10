@@ -118,26 +118,30 @@ function HandCard3D({ card, index, count, dealKey, selected, onCardPointerDown }
   );
 }
 
-/** A face-up little card stack with a count label (deck / discard / exhaust). */
+/** A physical card PILE: a stack of thin card meshes (height ∝ count) + a count/label
+ *  plate. Tapping the stack opens the inspect overlay. */
 function Pile3D({ x, color, count, label, onTap }) {
   const [tex, setTex] = useState(null);
   useEffect(() => {
-    const c = document.createElement('canvas'); c.width = 128; c.height = 64;
-    const ctx = c.getContext('2d'); ctx.font = 'bold 30px Georgia'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-    ctx.fillStyle = '#000'; ctx.lineWidth = 6; ctx.strokeStyle = '#000';
-    ctx.strokeText(`${count}`, 64, 24); ctx.fillStyle = '#f6e7b0'; ctx.fillText(`${count}`, 64, 24);
-    ctx.font = '15px Georgia'; ctx.fillStyle = '#c9a66b'; ctx.fillText(label, 64, 50);
+    const c = document.createElement('canvas'); c.width = 160; c.height = 72;
+    const ctx = c.getContext('2d'); ctx.font = 'bold 34px Georgia'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.lineWidth = 6; ctx.strokeStyle = '#000'; ctx.strokeText(`${count}`, 80, 26); ctx.fillStyle = '#f6e7b0'; ctx.fillText(`${count}`, 80, 26);
+    ctx.font = '16px Georgia'; ctx.fillStyle = '#c9a66b'; ctx.fillText(label, 80, 56);
     const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; setTex(t);
     return () => t.dispose();
   }, [count, label]);
-  const depth = Math.min(0.16, 0.02 + count * 0.008);
+  const n = Math.max(1, Math.min(18, count));      // number of card layers to draw
+  const pw = CARD_W * 0.82, ph = CARD_H * 0.82;
   return (
     <group position={[x, 0, 0]}>
-      <mesh onPointerDown={(e) => { e.stopPropagation(); if (count) onTap(); }}>
-        <boxGeometry args={[CARD_W * 0.8, CARD_H * 0.8, Math.max(0.02, depth)]} />
-        <meshStandardMaterial color={color} roughness={0.7} metalness={0.15} />
-      </mesh>
-      {tex && <mesh position={[0, -CARD_H * 0.5, depth / 2 + 0.01]}><planeGeometry args={[0.5, 0.25]} /><meshBasicMaterial map={tex} transparent toneMapped={false} /></mesh>}
+      {Array.from({ length: n }).map((_, i) => (
+        <mesh key={i} position={[i * 0.004, i * 0.004, i * 0.012]}
+          onPointerDown={i === n - 1 ? (e) => { e.stopPropagation(); if (count) onTap(); } : undefined}>
+          <boxGeometry args={[pw, ph, 0.02]} />
+          <meshStandardMaterial color={count ? color : '#20160d'} roughness={0.72} metalness={0.12} transparent={!count} opacity={count ? 1 : 0.5} />
+        </mesh>
+      ))}
+      {tex && <mesh position={[0, -ph * 0.5 - 0.14, n * 0.012 + 0.02]}><planeGeometry args={[0.62, 0.28]} /><meshBasicMaterial map={tex} transparent toneMapped={false} /></mesh>}
     </group>
   );
 }
@@ -154,7 +158,8 @@ function CamShelf({ children, aspect }) {
   }, [camera, scene]);
   // sit low + in front, tilted up toward the viewer; scale down a touch on portrait
   const s = aspect < 1 ? 0.58 : 0.7;
-  return <group ref={ref} position={[0, -1.22, -3.7]} rotation={[0.3, 0, 0]} scale={s}>{children}</group>;
+  // face the camera FLAT (no slant); the hand plane is distinct from the board table
+  return <group ref={ref} position={[0, -1.18, -3.7]} rotation={[0.08, 0, 0]} scale={s}>{children}</group>;
 }
 
 export default function HandDock3D({ station, selectedIid, dealKey, onCardPointerDown, onInspect }) {
