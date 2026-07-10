@@ -226,7 +226,7 @@ export default function BattleScreen() {
         <Board3D
           enemy={snap.enemy.map((sq) => ({ ...sq, units: sq.units.map(disp) }))}
           player={snap.player.map((sq) => ({ ...sq, units: sq.units.map(disp) }))}
-          focusId={focusId} actingId={anim?.acting} onPick={onTok} pickRef={pickRef} fx={fx}
+          focusId={focusId} actingId={anim?.acting} onPick={onTok} pickRef={pickRef} fx={fx} drag={d}
           hand={dockHidden || anim ? null : {
             station: snap.player.find((sq) => sq.id === selId) || snap.player[0],
             selectedIid: selId2, dealKey: snap.dealKey,
@@ -277,8 +277,8 @@ export default function BattleScreen() {
         </div>
       </div>
 
-      {d && <div className="bDragGhost" style={{ left: d.x, top: d.y }}><ActionCard card={d.card} /></div>}
-
+      {/* the dragged Action Card is now a REAL 3D card mesh in Board3D (DragCard3D),
+          lifted out of the hand and followed through the scene — no DOM ghost. */}
 
       {zoom && (
         <div className="bZoom" onClick={() => setZoom(null)}>

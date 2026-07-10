@@ -11,7 +11,7 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Canvas, useFrame, useThree } from '@react-three/fiber';
 import * as THREE from 'three';
-import HandDock3D from './HandDock3D.jsx';
+import HandDock3D, { useActionCardTexture, HAND_CARD_W, HAND_CARD_H } from './HandDock3D.jsx';
 import { ATTUNEMENT_COLOR, creatureColor } from '../../data/axisIcons.js';
 import { creatureArt } from '../../data/artPool.js';
 import { sizedPortrait } from '../../data/sizeArt.js';
@@ -20,8 +20,10 @@ const elColor = (el) => ATTUNEMENT_COLOR[el] || '#c9a66b';
 const CARD_W = 1.12, CARD_H = 1.54;
 
 // Shared squad layout (used by the board AND the camera rig so focusing lines up).
-// Cards lie FLAT so the front/back rows need more Z separation (a card is CARD_H deep).
-const LAYOUT = { spacing: 3.6, frontZ: { e: -1.9, p: 1.6 }, backZ: { e: -3.6, p: 3.3 } };
+// Cards lie FLAT so the front/back rows need generous Z separation (a card is CARD_H
+// deep) AND squads need generous X spacing — otherwise the slot outlines overlap.
+const SUPP_DX = 1.35;   // support slot horizontal offset from the squad centre
+const LAYOUT = { spacing: 4.4, frontZ: { e: -1.8, p: 1.6 }, backZ: { e: -4.0, p: 3.8 } };
 const squadX = (i, n) => (i - (n - 1) / 2) * LAYOUT.spacing;
 const squadCenter = (side, i, n) => ({ x: squadX(i, n), z: (LAYOUT.frontZ[side] + LAYOUT.backZ[side]) / 2 });
 
@@ -175,21 +177,21 @@ const PAN_BOUND = 7;   // how far WASD can roam from the focus point (both axes)
  *  the actual panning uses the live camera basis in CameraRig). Returns a STABLE
  *  object so effects that depend on it don't re-fire every render. */
 function useOrbit() {
-  const az = useRef(0);           // yaw around the table
-  const pol = useRef(0.64);       // tilt from vertical (small = top-down)
-  const zoom = useRef(1);         // user zoom multiplier
+  const az = useRef(0), azT = useRef(0);       // yaw around the table (live + eased target)
+  const pol = useRef(0.64), polT = useRef(0.64);   // tilt from vertical (small = top-down)
+  const zoom = useRef(1), zoomT = useRef(1);   // zoom multiplier (bigger = further out)
   const pan = useRef({ x: 0, z: 0 });   // WASD offset applied to the look-at (world)
   const keys = useRef({});
   const drag = useRef(null);
   useEffect(() => {
     const onMove = (e) => {
       const d = drag.current; if (!d) return;
-      az.current = d.az - (e.clientX - d.x) * 0.006;
-      pol.current = Math.max(0.12, Math.min(1.15, d.pol - (e.clientY - d.y) * 0.005));
+      az.current = azT.current = d.az - (e.clientX - d.x) * 0.006;                                   // drag is instant
+      pol.current = polT.current = Math.max(0.12, Math.min(1.2, d.pol - (e.clientY - d.y) * 0.005));
       if (!d.moved && Math.hypot(e.clientX - d.x, e.clientY - d.y) > 4) d.moved = true;
     };
     const onUp = () => { const d = drag.current; drag.current = null; if (d && !d.moved && d.onTap) d.onTap(); };
-    const onWheel = (e) => { zoom.current = Math.max(0.55, Math.min(1.8, zoom.current + Math.sign(e.deltaY) * 0.08)); };
+    const onWheel = (e) => { zoomT.current = Math.max(0.72, Math.min(1.8, zoomT.current + Math.sign(e.deltaY) * 0.08)); };
     const isText = (t) => t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA' || t.isContentEditable);
     const onKey = (down) => (e) => {
       const k = e.key.toLowerCase();
@@ -205,7 +207,9 @@ function useOrbit() {
     return () => { window.removeEventListener('pointermove', onMove); window.removeEventListener('pointerup', onUp); window.removeEventListener('wheel', onWheel); window.removeEventListener('keydown', kd); window.removeEventListener('keyup', ku); };
   }, []);
   const start = (e, onTap) => { drag.current = { x: e.clientX, y: e.clientY, az: az.current, pol: pol.current, moved: false, onTap }; };
-  return useMemo(() => ({ az, pol, zoom, pan, keys, start }), []);
+  // selection reframing: ease the angle + zoom toward a nicer framing (drag still overrides)
+  const frameTo = ({ az: a, pol: p, zoom: z }) => { if (a != null) azT.current = a; if (p != null) polT.current = p; if (z != null) zoomT.current = z; };
+  return useMemo(() => ({ az, pol, zoom, azT, polT, zoomT, pan, keys, start, frameTo }), []);
 }
 
 /** Navigable camera: eases the LOOK-AT toward an overview, or a FOCUS point {x,z}
@@ -217,6 +221,11 @@ function CameraRig({ focus, orbit }) {
   const dist = useRef(11);
   const fwd = useRef(new THREE.Vector3());
   useFrame((_, delta) => {
+    // ease the orbit ANGLE + ZOOM toward their targets (selection reframes; drag snaps).
+    const e = Math.min(1, delta * 6);
+    orbit.az.current += (orbit.azT.current - orbit.az.current) * e;
+    orbit.pol.current += (orbit.polT.current - orbit.pol.current) * e;
+    orbit.zoom.current += (orbit.zoomT.current - orbit.zoom.current) * e;
     // WASD pan, CAMERA-RELATIVE: move along the camera's own ground forward/right.
     const k = orbit.keys.current;
     const f = (k.w ? 1 : 0) - (k.s ? 1 : 0);
@@ -312,40 +321,66 @@ function bakeCanvas(w, h, draw) {
   return t;
 }
 // the three fixed slots of a squad (matches where creatures are placed) → alignment
-const SLOT_W = CARD_W + 0.36, SLOT_H = CARD_H + 0.36;
+const SLOT_W = CARD_W + 0.34, SLOT_H = CARD_H + 0.34;
 function squadSlots(side, i, n) {
   const cx = squadX(i, n);
   return {
     front: { x: cx, z: LAYOUT.frontZ[side] },
-    supp0: { x: cx - 1.2, z: LAYOUT.backZ[side] },
-    supp1: { x: cx + 1.2, z: LAYOUT.backZ[side] },
+    supp0: { x: cx - SUPP_DX, z: LAYOUT.backZ[side] },
+    supp1: { x: cx + SUPP_DX, z: LAYOUT.backZ[side] },
     cx,
   };
 }
-function useSlotTexture(color, label) {   // dashed border + role label, transparent (opaque fill is a separate plane)
-  return useMemo(() => bakeCanvas(256, 356, (ctx) => {
-    ctx.strokeStyle = color; ctx.lineWidth = 5; ctx.setLineDash([16, 11]);
-    roundRect(ctx, 10, 10, 236, 336, 20); ctx.stroke();
-    ctx.setLineDash([]); ctx.fillStyle = color; ctx.font = 'bold 30px Georgia'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-    ctx.globalAlpha = 0.9; ctx.fillText(label, 128, 330);
-  }), [color, label]);
+// A soft ROUND radial glow (white → transparent) — tinted per material. Rounded, not
+// rectangular, and its alpha fades to ~0 before it reaches the role labels in the gap.
+let _glowTex = null;
+function glowTexture() {
+  if (_glowTex) return _glowTex;
+  const c = document.createElement('canvas'); c.width = c.height = 128;
+  const ctx = c.getContext('2d');
+  const g = ctx.createRadialGradient(64, 64, 6, 64, 64, 62);
+  g.addColorStop(0, 'rgba(255,255,255,1)'); g.addColorStop(0.5, 'rgba(255,255,255,0.55)'); g.addColorStop(1, 'rgba(255,255,255,0)');
+  ctx.fillStyle = g; ctx.fillRect(0, 0, 128, 128);
+  _glowTex = new THREE.CanvasTexture(c); _glowTex.colorSpace = THREE.SRGBColorSpace;
+  return _glowTex;
 }
-function useTextTexture(text, color) {
-  return useMemo(() => bakeCanvas(512, 96, (ctx) => {
-    ctx.font = 'bold 44px Cinzel, Georgia, serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-    ctx.lineJoin = 'round'; ctx.lineWidth = 8; ctx.strokeStyle = 'rgba(0,0,0,0.85)'; ctx.strokeText(text, 256, 48);
-    ctx.fillStyle = color; ctx.fillText(text, 256, 48);
-  }), [text, color]);
+function useSlotBorder(color) {   // dashed rounded border only — role labels are SEPARATE planes outside the slot
+  return useMemo(() => bakeCanvas(248, 320, (ctx) => {
+    ctx.strokeStyle = color; ctx.lineWidth = 5; ctx.setLineDash([16, 11]);
+    roundRect(ctx, 9, 9, 230, 302, 24); ctx.stroke();
+  }), [color]);
+}
+function useTextTexture(text, color, px = 44) {
+  return useMemo(() => bakeCanvas(512, 128, (ctx) => {
+    ctx.font = `bold ${px}px Cinzel, Georgia, serif`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.lineJoin = 'round'; ctx.lineWidth = 9; ctx.strokeStyle = 'rgba(0,0,0,0.92)'; ctx.strokeText(text, 256, 64);
+    ctx.fillStyle = color; ctx.fillText(text, 256, 64);
+  }), [text, color, px]);
+}
+/** A flat text plane laid on the table (role / squad labels). */
+function GroundLabel({ text, x, z, w, color, px, opacity = 1 }) {
+  const tex = useTextTexture(text, color, px);
+  return (
+    <mesh position={[x, 0.02, z]} rotation={[-Math.PI / 2, 0, 0]}>
+      <planeGeometry args={[w, w * (128 / 512)]} />
+      <meshBasicMaterial map={tex} transparent depthWrite={false} depthTest={false} opacity={opacity} toneMapped={false} />
+    </mesh>
+  );
 }
 function SquadPlaymat({ side, squads, sq, i, focusId }) {
   const on = sq.id === focusId;
   const col = side === 'e' ? '#d68f74' : '#e6c079';
-  const vTex = useSlotTexture(col, 'Vanguard');
-  const sTex = useSlotTexture(col, 'Support');
-  const labelTex = useTextTexture(`${side === 'e' ? 'Enemy' : 'Ally'} Squad ${i + 1}`, on ? '#ffdf8a' : col);
+  const border = useSlotBorder(col);
   const s = squadSlots(side, i, squads.length);
-  const slots = [{ ...s.front, tex: vTex }, { ...s.supp0, tex: sTex }, { ...s.supp1, tex: sTex }];
-  const lblZ = side === 'e' ? LAYOUT.backZ[side] - 1.05 : LAYOUT.backZ[side] + 1.05;
+  const slots = [s.front, s.supp0, s.supp1];
+  // role + squad labels live OUTSIDE the slots so a card on the slot never covers them.
+  // Role labels sit in the GAP between the front and back rows; the squad label sits
+  // beyond the back row. Selected → high-contrast WHITE (reads over the gold aura).
+  const dir = side === 'e' ? -1 : 1;                 // front → back direction along z
+  const lblCol = on ? '#ffffff' : col;
+  const vanZ = LAYOUT.frontZ[side] + dir * 0.9;       // just behind the vanguard card, in the gap
+  const supZ = LAYOUT.backZ[side] - dir * 0.9;        // just in front of the support cards, in the gap
+  const squadZ = LAYOUT.frontZ[side] - dir * 1.35;    // toward table CENTRE (clear of the hand + piles)
   return (
     <group>
       {slots.map((sl, j) => (
@@ -354,15 +389,16 @@ function SquadPlaymat({ side, squads, sq, i, focusId }) {
           <mesh position={[sl.x, 0.004, sl.z]} rotation={[-Math.PI / 2, 0, 0]}>
             <planeGeometry args={[SLOT_W, SLOT_H]} /><meshBasicMaterial color={on ? '#2a1c11' : '#20160d'} />
           </mesh>
-          {/* dashed border + role label ON TOP (above the aura) */}
+          {/* dashed rounded border ON TOP */}
           <mesh position={[sl.x, 0.016, sl.z]} rotation={[-Math.PI / 2, 0, 0]}>
-            <planeGeometry args={[SLOT_W, SLOT_H]} /><meshBasicMaterial map={sl.tex} transparent depthWrite={false} opacity={on ? 1 : 0.55} />
+            <planeGeometry args={[SLOT_W, SLOT_H]} /><meshBasicMaterial map={border} transparent depthWrite={false} opacity={on ? 1 : 0.5} />
           </mesh>
         </group>
       ))}
-      <mesh position={[s.cx, 0.016, lblZ]} rotation={[-Math.PI / 2, 0, 0]}>
-        <planeGeometry args={[2.6, 0.49]} /><meshBasicMaterial map={labelTex} transparent depthWrite={false} opacity={on ? 1 : 0.7} />
-      </mesh>
+      <GroundLabel text="Vanguard" x={s.cx} z={vanZ} w={1.5} color={lblCol} px={38} opacity={on ? 1 : 0.7} />
+      <GroundLabel text="Support" x={s.supp0.x} z={supZ} w={1.3} color={lblCol} px={34} opacity={on ? 1 : 0.7} />
+      <GroundLabel text="Support" x={s.supp1.x} z={supZ} w={1.3} color={lblCol} px={34} opacity={on ? 1 : 0.7} />
+      <GroundLabel text={`${side === 'e' ? 'Enemy' : 'Ally'} Squad ${i + 1}`} x={s.cx} z={squadZ} w={2.1} color={on ? '#ffdf8a' : col} px={40} opacity={on ? 1 : 0.72} />
     </group>
   );
 }
@@ -393,10 +429,11 @@ function Side({ squads, side, focusId, actingId, hoverId, onPick, onOver, regist
           const glow = on ? '#f0c84a' : (hoverId === u.id ? '#cfe0ff' : null);
           return (
             <group key={u.id}>
-              {glow && (   // AURA on the ground, BELOW the slot labels (y 0.010 < label 0.016)
+              {glow && (   // ROUND radial aura pooled under the card; its soft edge fades
+                           // before the gap labels, and labels draw on top (depthTest off)
                 <mesh position={[x, 0.010, z]} rotation={[-Math.PI / 2, 0, 0]}>
-                  <planeGeometry args={[SLOT_W + 0.7, SLOT_H + 0.7]} />
-                  <meshBasicMaterial color={glow} transparent opacity={on ? 0.55 : 0.32} blending={THREE.AdditiveBlending} depthWrite={false} />
+                  <planeGeometry args={[SLOT_W + 0.9, SLOT_H + 0.9]} />
+                  <meshBasicMaterial map={glowTexture()} color={glow} transparent opacity={on ? 0.7 : 0.45} blending={THREE.AdditiveBlending} depthWrite={false} />
                 </mesh>
               )}
               <Card3D u={u} side={side} x={x} z={z}
@@ -410,23 +447,68 @@ function Side({ squads, side, focusId, actingId, hoverId, onPick, onOver, regist
   });
 }
 
-export default function Board3D({ enemy, player, focusId, actingId, onPick, pickRef, hand, fx }) {
+/** The lifted 3D Action Card during a hand drag: a real world-space card mesh that
+ *  follows the pointer THROUGH the scene (unprojected onto a plane above the table),
+ *  faces the camera, and draws over everything. Green-tinted while over a valid target. */
+function DragCard3D({ card, sx, sy, over }) {
+  const { camera, gl } = useThree();
+  const grp = useRef();
+  const tex = useActionCardTexture(card);
+  const plane = useRef(new THREE.Plane(new THREE.Vector3(0, 1, 0), -1.15));   // hover height above the table
+  const ray = useRef(new THREE.Raycaster());
+  const v = useRef(new THREE.Vector2());
+  const hit = useRef(new THREE.Vector3());
+  const started = useRef(false);
+  useFrame(() => {
+    const g = grp.current; if (!g) return;
+    const rect = gl.domElement.getBoundingClientRect();
+    v.current.set(((sx - rect.left) / rect.width) * 2 - 1, -((sy - rect.top) / rect.height) * 2 + 1);
+    ray.current.setFromCamera(v.current, camera);
+    if (ray.current.ray.intersectPlane(plane.current, hit.current)) {
+      if (!started.current) { g.position.copy(hit.current); started.current = true; }
+      else g.position.lerp(hit.current, 0.4);
+    }
+    g.quaternion.copy(camera.quaternion);   // billboard toward the camera
+  });
+  const tint = over ? new THREE.Color(0.6, 1, 0.72) : new THREE.Color(1, 1, 1);
+  return (
+    <group ref={grp} renderOrder={60}>
+      <mesh position={[0, 0, -0.01]} renderOrder={59}>
+        <planeGeometry args={[HAND_CARD_W * 1.62, HAND_CARD_H * 1.62]} />
+        <meshBasicMaterial color={over ? '#7CFF9B' : '#f0c84a'} transparent opacity={0.9} depthTest={false} depthWrite={false} toneMapped={false} />
+      </mesh>
+      <mesh renderOrder={60}>
+        <planeGeometry args={[HAND_CARD_W * 1.5, HAND_CARD_H * 1.5]} />
+        {tex
+          ? <meshBasicMaterial map={tex} color={tint} transparent depthTest={false} depthWrite={false} toneMapped={false} />
+          : <meshBasicMaterial color="#c9a66b" depthTest={false} depthWrite={false} toneMapped={false} />}
+      </mesh>
+    </group>
+  );
+}
+
+export default function Board3D({ enemy, player, focusId, actingId, onPick, pickRef, hand, fx, drag }) {
   const [hoverId, setHoverId] = useState(null);
   const orbit = useOrbit();
   const meshes = useRef(new Map());
   const registerMesh = (id, m) => { if (m) meshes.current.set(id, m); else meshes.current.delete(id); };
 
-  // unit → its squad center (auto-follow the acting creature) + squadId → center
-  const { unitCenter, squadCenterById } = useMemo(() => {
-    const uc = new Map(); const sc = new Map();
+  // unit → its squad center (auto-follow the acting creature) + squadId → center / side
+  const { unitCenter, squadCenterById, squadSideById } = useMemo(() => {
+    const uc = new Map(); const sc = new Map(); const ss = new Map();
     [[enemy, 'e'], [player, 'p']].forEach(([arr, side]) =>
-      arr.forEach((sq, i) => { const c = squadCenter(side, i, arr.length); sc.set(sq.id, c); sq.units.forEach((u) => uc.set(u.id, c)); }));
-    return { unitCenter: uc, squadCenterById: sc };
+      arr.forEach((sq, i) => { const c = squadCenter(side, i, arr.length); sc.set(sq.id, c); ss.set(sq.id, side); sq.units.forEach((u) => uc.set(u.id, c)); }));
+    return { unitCenter: uc, squadCenterById: sc, squadSideById: ss };
   }, [enemy, player]);
   // the camera FOLLOWS the selected squad (or the acting creature during resolution)
   const focus = actingId ? (unitCenter.get(actingId) || squadCenterById.get(focusId)) : (squadCenterById.get(focusId) || null);
-  // recentre (clear WASD roam) whenever the focused squad changes
-  useEffect(() => { orbit.pan.current.x = 0; orbit.pan.current.z = 0; }, [focusId, orbit]);
+  // on focus change: recentre WASD roam AND reframe the camera (angle + zoom, not just
+  // position) — a proper dolly toward the chosen squad, enemy viewed from a small angle.
+  useEffect(() => {
+    orbit.pan.current.x = 0; orbit.pan.current.z = 0;
+    if (focusId) orbit.frameTo({ pol: 0.6, zoom: 0.82, az: squadSideById.get(focusId) === 'e' ? -0.16 : 0 });
+    else orbit.frameTo({ pol: 0.72, zoom: 1.1, az: 0 });
+  }, [focusId, orbit, squadSideById]);
 
   return (
     <Canvas dpr={[1, 2]} gl={{ antialias: true, alpha: false }} camera={{ position: [0, 8, 7], fov: 46, near: 0.1, far: 120 }}
@@ -442,7 +524,8 @@ export default function Board3D({ enemy, player, focusId, actingId, onPick, pick
       <Playmat enemy={enemy} player={player} focusId={focusId} />
       <Side squads={enemy} side="e" focusId={focusId} actingId={actingId} hoverId={hoverId} onPick={onPick} onOver={setHoverId} registerMesh={registerMesh} />
       <Side squads={player} side="p" focusId={focusId} actingId={actingId} hoverId={hoverId} onPick={onPick} onOver={setHoverId} registerMesh={registerMesh} />
-      {hand && <HandDock3D {...hand} />}
+      {hand && <HandDock3D {...hand} draggingIid={drag?.iid || null} />}
+      {drag?.card && <DragCard3D card={drag.card} sx={drag.x} sy={drag.y} over={!!drag.over} />}
       <FxLayer items={fx} meshes={meshes} />
     </Canvas>
   );

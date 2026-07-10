@@ -54,7 +54,7 @@ function drawFace(ctx, card, img) {
   if (yy <= FACE_H - 12) ctx.fillText(line, 16, yy);
 }
 
-function useActionCardTexture(card) {
+export function useActionCardTexture(card) {
   const [tex, setTex] = useState(null);
   useEffect(() => {
     const canvas = document.createElement('canvas'); canvas.width = FACE_W; canvas.height = FACE_H;
@@ -70,7 +70,8 @@ function useActionCardTexture(card) {
   return tex;
 }
 
-const CARD_W = 0.74, CARD_H = 1.03;
+export const HAND_CARD_W = 0.74, HAND_CARD_H = 1.03;
+const CARD_W = HAND_CARD_W, CARD_H = HAND_CARD_H;
 
 /** One fanned hand card (a mesh). Pointer-down starts a press the shell resolves
  *  into a TAP (select / detail) or a DRAG-to-play (raycast onto a board creature). */
@@ -97,21 +98,23 @@ function HandCard3D({ card, index, count, dealKey, selected, onCardPointerDown }
     const s = (selected ? 1.16 : 1) * ease;
     g.scale.setScalar(THREE.MathUtils.lerp(g.scale.x, Math.max(0.001, s), 0.25));
   });
+  // draw above the board (depthTest off) — a zoomed-in board must not poke over the hand
+  const ro = 30 + index;
   return (
     <group ref={grp} position={[baseX, baseY - 0.6, 0]}>
-      <mesh
+      <mesh renderOrder={ro}
         onPointerDown={(e) => { e.stopPropagation(); onCardPointerDown(card, e.nativeEvent); }}
         onPointerOver={(e) => { e.stopPropagation(); hov.current = true; }}
         onPointerOut={() => { hov.current = false; }}>
         <planeGeometry args={[CARD_W, CARD_H]} />
         {tex
-          ? <meshBasicMaterial key="t" map={tex} toneMapped={false} />
-          : <meshBasicMaterial key="c" color={elColor(card.element)} toneMapped={false} />}
+          ? <meshBasicMaterial key="t" map={tex} depthTest={false} depthWrite={false} toneMapped={false} />
+          : <meshBasicMaterial key="c" color={elColor(card.element)} depthTest={false} depthWrite={false} toneMapped={false} />}
       </mesh>
       {selected && (
-        <mesh position={[0, 0, -0.01]}>
+        <mesh position={[0, 0, -0.01]} renderOrder={ro - 1}>
           <planeGeometry args={[CARD_W + 0.06, CARD_H + 0.06]} />
-          <meshBasicMaterial color="#f0c84a" toneMapped={false} />
+          <meshBasicMaterial color="#f0c84a" depthTest={false} depthWrite={false} toneMapped={false} />
         </mesh>
       )}
     </group>
@@ -135,13 +138,13 @@ function Pile3D({ x, color, count, label, onTap }) {
   return (
     <group position={[x, 0, 0]}>
       {Array.from({ length: n }).map((_, i) => (
-        <mesh key={i} position={[i * 0.004, i * 0.004, i * 0.012]}
+        <mesh key={i} position={[i * 0.004, i * 0.004, i * 0.012]} renderOrder={20 + i}
           onPointerDown={i === n - 1 ? (e) => { e.stopPropagation(); if (count) onTap(); } : undefined}>
           <boxGeometry args={[pw, ph, 0.02]} />
-          <meshStandardMaterial color={count ? color : '#20160d'} roughness={0.72} metalness={0.12} transparent={!count} opacity={count ? 1 : 0.5} />
+          <meshStandardMaterial color={count ? color : '#20160d'} roughness={0.72} metalness={0.12} transparent opacity={count ? 1 : 0.5} depthTest={false} depthWrite={false} />
         </mesh>
       ))}
-      {tex && <mesh position={[0, -ph * 0.5 - 0.14, n * 0.012 + 0.02]}><planeGeometry args={[0.62, 0.28]} /><meshBasicMaterial map={tex} transparent toneMapped={false} /></mesh>}
+      {tex && <mesh position={[0, -ph * 0.5 - 0.14, n * 0.012 + 0.02]} renderOrder={40}><planeGeometry args={[0.62, 0.28]} /><meshBasicMaterial map={tex} transparent depthTest={false} depthWrite={false} toneMapped={false} /></mesh>}
     </group>
   );
 }
@@ -163,12 +166,14 @@ function CamShelf({ children, aspect, slideRef }) {
     slideRef.current += (0 - slideRef.current) * 0.16;   // ease to centre
     if (Math.abs(slideRef.current) < 0.002) slideRef.current = 0;
   });
-  const s = aspect < 1 ? 0.58 : 0.7;
-  // face the camera FLAT (no slant); the hand plane is distinct from the board table
-  return <group ref={ref} position={[0, -1.18, -3.7]} rotation={[0.08, 0, 0]} scale={s}>{children}</group>;
+  const s = aspect < 1 ? 0.56 : 0.68;
+  // face the camera FLAT (no slant); the hand plane is distinct from the board table.
+  // Raised a touch so the bottom row clears the dock bar; sits close to the camera so a
+  // zoomed-in board never pokes in front of it (its meshes also skip the depth test).
+  return <group ref={ref} position={[0, -1.02, -3.5]} rotation={[0.08, 0, 0]} scale={s}>{children}</group>;
 }
 
-export default function HandDock3D({ station, selectedIid, dealKey, squadIndex = 0, onCardPointerDown, onInspect }) {
+export default function HandDock3D({ station, selectedIid, dealKey, squadIndex = 0, draggingIid = null, onCardPointerDown, onInspect }) {
   const { size } = useThree();
   const aspect = size.width / Math.max(1, size.height);
   // carousel: on squad switch, start the shelf off-screen on the side we came FROM
@@ -179,11 +184,14 @@ export default function HandDock3D({ station, selectedIid, dealKey, squadIndex =
     prevIdx.current = squadIndex;
   }
   if (!station) return null;
-  const hand = station.hand || [];
+  // the card being dragged out is removed so the remaining hand closes ranks (re-fans)
+  const hand = (station.hand || []).filter((c) => c.iid !== draggingIid);
+  // piles pushed to the OUTER edges of the shelf; deck far-left, discard/exhaust far-right
+  const px = aspect < 1 ? 2.7 : 3.25;
   return (
     <CamShelf aspect={aspect} slideRef={slideRef}>
-      {/* deck (left) */}
-      <Pile3D x={-2.15} color="#33240f" count={station.deckCount || 0} label="Deck"
+      {/* deck (far left) */}
+      <Pile3D x={-px} color="#33240f" count={station.deckCount || 0} label="Deck"
         onTap={() => onInspect({ title: 'Draw Pile', cards: station.deck, note: 'Contents known · order hidden' })} />
       {/* hand (centre) */}
       <group position={[0, 0.1, 0.2]}>
@@ -192,10 +200,10 @@ export default function HandDock3D({ station, selectedIid, dealKey, squadIndex =
             selected={selectedIid === card.iid} onCardPointerDown={onCardPointerDown} />
         ))}
       </group>
-      {/* discard + exhaust (right) */}
-      <Pile3D x={1.75} color="#241528" count={station.discardCount || 0} label="Discard"
+      {/* discard + exhaust (far right) */}
+      <Pile3D x={px - 0.62} color="#241528" count={station.discardCount || 0} label="Discard"
         onTap={() => onInspect({ title: 'Discard', cards: station.discard })} />
-      <Pile3D x={2.4} color="#241228" count={station.exhaustCount || 0} label="Exhaust"
+      <Pile3D x={px} color="#241228" count={station.exhaustCount || 0} label="Exhaust"
         onTap={() => onInspect({ title: 'Exhaust', cards: station.exhaust })} />
     </CamShelf>
   );
