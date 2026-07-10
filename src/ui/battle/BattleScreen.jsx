@@ -242,6 +242,7 @@ export default function BattleScreen() {
           hand={dockHidden || anim ? null : {
             station: snap.player.find((sq) => sq.id === selId) || snap.player[0],
             selectedIid: selId2, dealKey: snap.dealKey,
+            squadIndex: Math.max(0, snap.player.findIndex((sq) => sq.id === selId)),
             onCardPointerDown: startHandDrag, onInspect: setInspect,
           }} />
 

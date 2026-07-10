@@ -146,8 +146,9 @@ function Pile3D({ x, color, count, label, onTap }) {
   );
 }
 
-/** Ensures a group rides the camera (a fixed foreground shelf). */
-function CamShelf({ children, aspect }) {
+/** Ensures a group rides the camera (a fixed foreground shelf). `slideRef` carries a
+ *  horizontal offset (set on squad switch) that eases back to 0 — the carousel slide. */
+function CamShelf({ children, aspect, slideRef }) {
   const camera = useThree((s) => s.camera);
   const scene = useThree((s) => s.scene);
   const ref = useRef();
@@ -156,19 +157,31 @@ function CamShelf({ children, aspect }) {
     const node = ref.current; camera.add(node);
     return () => { camera.remove(node); };
   }, [camera, scene]);
-  // sit low + in front, tilted up toward the viewer; scale down a touch on portrait
+  useFrame(() => {
+    if (!ref.current || !slideRef) return;
+    ref.current.position.x = slideRef.current;
+    slideRef.current += (0 - slideRef.current) * 0.16;   // ease to centre
+    if (Math.abs(slideRef.current) < 0.002) slideRef.current = 0;
+  });
   const s = aspect < 1 ? 0.58 : 0.7;
   // face the camera FLAT (no slant); the hand plane is distinct from the board table
   return <group ref={ref} position={[0, -1.18, -3.7]} rotation={[0.08, 0, 0]} scale={s}>{children}</group>;
 }
 
-export default function HandDock3D({ station, selectedIid, dealKey, onCardPointerDown, onInspect }) {
+export default function HandDock3D({ station, selectedIid, dealKey, squadIndex = 0, onCardPointerDown, onInspect }) {
   const { size } = useThree();
   const aspect = size.width / Math.max(1, size.height);
+  // carousel: on squad switch, start the shelf off-screen on the side we came FROM
+  const slideRef = useRef(0);
+  const prevIdx = useRef(squadIndex);
+  if (squadIndex !== prevIdx.current) {
+    slideRef.current = (squadIndex > prevIdx.current ? 1 : -1) * (aspect < 1 ? 6 : 9);
+    prevIdx.current = squadIndex;
+  }
   if (!station) return null;
   const hand = station.hand || [];
   return (
-    <CamShelf aspect={aspect}>
+    <CamShelf aspect={aspect} slideRef={slideRef}>
       {/* deck (left) */}
       <Pile3D x={-2.15} color="#33240f" count={station.deckCount || 0} label="Deck"
         onTap={() => onInspect({ title: 'Draw Pile', cards: station.deck, note: 'Contents known · order hidden' })} />
