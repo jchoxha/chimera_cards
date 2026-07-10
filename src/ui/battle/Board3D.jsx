@@ -280,26 +280,61 @@ function Picker({ pickRef, meshes }) {
 }
 
 /** In-scene FX: a floating combat number that rises + fades over the struck creature. */
+const FX_TRAVEL = 0.36;   // projectile flight time (s)
 function FxItem({ it, meshes }) {
   const { camera } = useThree();
-  const grp = useRef();
+  const grp = useRef();      // number billboard
+  const proj = useRef();     // projectile / burst
   const t = useRef(0);
-  const pos = useRef(null);
+  const pos = useRef(null);  // target world pos
+  const src = useRef(null);  // actor world pos
+  const tmp = useRef(new THREE.Vector3());
   const tex = useLabelTexture(it.text, { color: it.color, px: 72, weight: 900 });
+  const travel = it.from ? FX_TRAVEL : 0;
   useFrame((_, dt) => {
-    const g = grp.current; if (!g) return;
-    if (!pos.current) { const m = meshes.current.get(it.unitId); pos.current = m ? m.getWorldPosition(new THREE.Vector3()) : new THREE.Vector3(0, 0.5, 0); }
+    if (!pos.current) {
+      const m = meshes.current.get(it.unitId); pos.current = m ? m.getWorldPosition(new THREE.Vector3()) : new THREE.Vector3(0, 0.5, 0);
+      const mf = it.from && meshes.current.get(it.from); src.current = mf ? mf.getWorldPosition(new THREE.Vector3()) : pos.current.clone();
+    }
     t.current += dt;
-    g.position.set(pos.current.x, pos.current.y + 0.4 + t.current * 1.3, pos.current.z);
-    g.quaternion.copy(camera.quaternion);   // billboard toward camera
-    const o = Math.max(0, 1 - t.current / 1.2);
-    const s = 1 + Math.min(0.35, t.current * 1.2);
-    g.scale.setScalar(s);
-    if (g.children[0]) g.children[0].material.opacity = o;
+    // 1) projectile flies actor → target, then a small impact flare at the target
+    if (proj.current) {
+      if (t.current < travel) {
+        const k = t.current / travel;
+        proj.current.visible = true;
+        proj.current.position.lerpVectors(src.current, pos.current, k);
+        proj.current.position.y += Math.sin(k * Math.PI) * 0.5 + 0.35;
+        proj.current.scale.setScalar(1);
+      } else {
+        const b = Math.min(1, (t.current - travel) / 0.28);
+        proj.current.visible = b < 1;
+        proj.current.position.copy(pos.current); proj.current.position.y += 0.35;
+        proj.current.scale.setScalar(1 + b * 3.2);
+        proj.current.material.opacity = 0.9 * (1 - b);
+      }
+    }
+    // 2) the number rises + fades AFTER the projectile lands
+    const nt = Math.max(0, t.current - travel);
+    const g = grp.current; if (g) {
+      g.visible = t.current >= travel;
+      tmp.current.set(pos.current.x, pos.current.y + 0.4 + nt * 1.3, pos.current.z);
+      g.position.copy(tmp.current);
+      g.quaternion.copy(camera.quaternion);
+      const s = 1 + Math.min(0.35, nt * 1.2); g.scale.setScalar(s);
+      if (g.children[0]) g.children[0].material.opacity = Math.max(0, 1 - nt / 1.15);
+    }
   });
   return (
-    <group ref={grp}>
-      <mesh><planeGeometry args={[1.1, 0.44]} /><meshBasicMaterial map={tex} transparent depthTest={false} depthWrite={false} toneMapped={false} /></mesh>
+    <group>
+      {it.from && (
+        <mesh ref={proj} visible={false} renderOrder={80}>
+          <sphereGeometry args={[0.16, 14, 14]} />
+          <meshBasicMaterial color={it.color} transparent depthTest={false} depthWrite={false} toneMapped={false} />
+        </mesh>
+      )}
+      <group ref={grp} visible={!it.from}>
+        <mesh renderOrder={82}><planeGeometry args={[1.1, 0.44]} /><meshBasicMaterial map={tex} transparent depthTest={false} depthWrite={false} toneMapped={false} /></mesh>
+      </group>
     </group>
   );
 }

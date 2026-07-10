@@ -85,6 +85,10 @@ export default function BattleScreen() {
   const [selId2, setSelId2] = useState(null);        // selected hand-card iid (click-to-target)
   const [anim, setAnim] = useState(null);    // resolution playback
   const [fx, setFx] = useState([]);
+  const [playSpeed, setPlaySpeed] = useState(1);     // resolution playback speed (0.5 / 1 / 2)
+  const [playPaused, setPlayPaused] = useState(false);
+  const speedRef = useRef(1); const pausedRef = useRef(false); const actingRef = useRef(null);
+  speedRef.current = playSpeed; pausedRef.current = playPaused;
   // hierarchical selection: Field › Side › Squad › Unit. A click drills DOWN one level
   // toward what was clicked (you must select a SIDE before a squad, a squad before a
   // unit); clicking empty space steps UP one level. Each level gets its own camera framing.
@@ -238,13 +242,16 @@ export default function BattleScreen() {
     setSel({ level: 'unit', side, squadId: sq.id, unitId: u.id });
   };
 
-  // in-SCENE FX: push a floating label anchored to a unit's 3D card (Board3D renders it)
+  // in-SCENE FX: a floating label anchored to a unit's 3D card, optionally preceded by a
+  // PROJECTILE flying from the actor (`from`) to the target so the action reads directionally.
   const FX_COLOR = { dmg: '#ff5a4a', blocked: '#cbd5e1', block: '#f0c84a', heal: '#4ade80', miss: '#cbd5e1', death: '#ff7b7b' };
-  const spawnFx = (unitId, kind, text) => {
+  const FX_KIND = { dmg: 'strike', blocked: 'strike', heal: 'heal', miss: 'strike' };
+  const spawnFx = (unitId, kind, text, from) => {
     if (!unitId) return;
     const key = ++fxSeq.current;
-    setFx((f) => [...f, { key, unitId, text, color: FX_COLOR[kind] || '#fff' }]);
-    timers.current.push(setTimeout(() => setFx((f) => f.filter((x) => x.key !== key)), 1200));
+    const proj = from && from !== unitId ? { from, fx: FX_KIND[kind] || 'strike' } : null;
+    setFx((f) => [...f, { key, unitId, text, color: FX_COLOR[kind] || '#fff', ...proj }]);
+    timers.current.push(setTimeout(() => setFx((f) => f.filter((x) => x.key !== key)), 1600));
   };
 
   // Fight: confirm first if any squad still has energy to spend, else resolve.
@@ -253,9 +260,12 @@ export default function BattleScreen() {
     if (hasUnspent) { setConfirmFight(true); return; }
     doFight();
   };
+  // slower, understandable DEFAULT timings (ms) — divided by the live speed multiplier.
+  const CAST_MS = 780;   // beat AFTER the actor casts, before the effect lands on the target
+  const HIT_MS = 620;    // beat after an effect resolves
   const doFight = () => {
     if (anim || snap.outcome) return;
-    setConfirmFight(false); setSelId2(null);
+    setConfirmFight(false); setSelId2(null); setPlayPaused(false);
     const pre = { hp: {}, block: {} };
     allSquads.forEach((sq) => sq.units.forEach((u) => { pre.hp[u.id] = u.hp; pre.block[u.id] = u.block; }));
     setAnim({ hp: { ...pre.hp }, block: { ...pre.block }, acting: null });
@@ -264,22 +274,33 @@ export default function BattleScreen() {
     let entryIdx = 0;
     const steps = (log || []).filter((e) => ['play', 'damage', 'block', 'heal', 'regen', 'miss', 'death'].includes(e.type));
     let i = 0;
+    const schedule = (fn, ms) => timers.current.push(setTimeout(fn, ms));
     const run = () => {
+      if (pausedRef.current) { schedule(run, 110); return; }   // live PAUSE: hold at this beat
       if (i >= steps.length) { setAnim(null); return; }
       const e = steps[i++];
-      if (e.type === 'play' && lines[entryIdx]) setTicker(lines[entryIdx++]);
+      const sp = Math.max(0.25, speedRef.current);
+      if (e.type === 'play') {
+        // 1) show the ACTOR doing the action first (it lifts/glows via acting), then pause
+        if (lines[entryIdx]) setTicker(lines[entryIdx++]);
+        actingRef.current = e.ownerId;
+        setAnim((a) => (a ? { ...a, acting: e.ownerId } : a));
+        schedule(run, CAST_MS / sp);
+        return;
+      }
+      // 2) effect lands on the TARGET — fly an FX from the actor to the target, then apply
+      const from = actingRef.current;
       setAnim((a) => { if (!a) return a; const n = { hp: { ...a.hp }, block: { ...a.block }, acting: a.acting };
-        if (e.type === 'play') n.acting = e.ownerId;
-        else if (e.type === 'damage') { n.hp[e.targetId] = e.hp; if (e.blocked) n.block[e.targetId] = Math.max(0, (n.block[e.targetId] || 0) - e.blocked); }
+        if (e.type === 'damage') { n.hp[e.targetId] = e.hp; if (e.blocked) n.block[e.targetId] = Math.max(0, (n.block[e.targetId] || 0) - e.blocked); }
         else if (e.type === 'block') n.block[e.unitId] = e.total;
         else if (e.type === 'heal' || e.type === 'regen') n.hp[e.targetId ?? e.unitId] = e.hp;
         return n; });
-      if (e.type === 'damage') { const net = e.amount - (e.blocked || 0); spawnFx(e.targetId, net > 0 ? 'dmg' : 'blocked', net > 0 ? `-${net}` : '🛡'); }
+      if (e.type === 'damage') { const net = e.amount - (e.blocked || 0); spawnFx(e.targetId, net > 0 ? 'dmg' : 'blocked', net > 0 ? `-${net}` : '🛡', from); }
       else if (e.type === 'block') spawnFx(e.unitId, 'block', `+${e.amount}`);
-      else if (e.type === 'heal' || e.type === 'regen') spawnFx(e.targetId ?? e.unitId, 'heal', `+${e.amount ?? ''}`);
-      else if (e.type === 'miss') spawnFx(e.targetId, 'miss', 'MISS');
-      else if (e.type === 'death') spawnFx(e.unitId, 'death', '💀');
-      timers.current.push(setTimeout(run, e.type === 'play' ? 190 : 350));
+      else if (e.type === 'heal' || e.type === 'regen') spawnFx(e.targetId ?? e.unitId, 'heal', `+${e.amount ?? ''}`, from);
+      else if (e.type === 'miss') spawnFx(e.targetId, 'miss', 'MISS', from);
+      else if (e.type === 'death') spawnFx(e.unitId, 'death', '☠');
+      schedule(run, HIT_MS / sp);
     };
     run();
   };
@@ -357,6 +378,18 @@ export default function BattleScreen() {
         ) : (anim && ticker ? (
           <div className={`bActionText ${ticker.side === 'e' ? 'foe' : 'ally'}`}>{ticker.text}</div>
         ) : null)}
+
+        {/* live playback SPEED controls (pause / slow / normal / fast) during resolution */}
+        {anim && (
+          <div className="bSpeed">
+            <button className={playPaused ? 'on' : ''} title={playPaused ? 'Resume' : 'Pause'} onClick={() => setPlayPaused((v) => !v)}>
+              <Icon icon={playPaused ? 'tabler:player-play-filled' : 'tabler:player-pause-filled'} />
+            </button>
+            {[0.5, 1, 2].map((sp) => (
+              <button key={sp} className={!playPaused && playSpeed === sp ? 'on' : ''} onClick={() => { setPlaySpeed(sp); setPlayPaused(false); }}>{sp}×</button>
+            ))}
+          </div>
+        )}
       </div>
 
       {/* BOTTOM HUD — the hand toggle (only on your squad), the CENTRED selection pill

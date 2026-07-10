@@ -34,6 +34,14 @@
   box-shadow: 0 8px 26px #000b; font: 600 15px var(--font-body); color: var(--cream, #f6e7b0); animation: bTickIn .22s ease-out; pointer-events: none; }
 .bActionText.foe { color: #ffb9a6; border-color: #7a3226; } .bActionText.ally { color: #bfe6c4; border-color: var(--good-line); }
 .bOutcome.center { position: absolute; left: 50%; top: 42%; transform: translate(-50%, -50%); z-index: 8; }
+/* live playback speed controls during resolution (top-centre) */
+.bSpeed { position: absolute; left: 50%; top: 50px; transform: translateX(-50%); z-index: 8; display: flex; gap: 5px;
+  padding: 4px 6px; border-radius: 999px; background: linear-gradient(#1a120bE8, #120c07E8); border: 1px solid var(--gold-deep); box-shadow: 0 4px 14px #0009; }
+.bSpeed button { min-width: 34px; height: 30px; padding: 0 8px; border-radius: 999px; border: 1px solid transparent; background: none;
+  color: var(--ink-dim); cursor: pointer; font: 700 12px var(--font-display); display: inline-flex; align-items: center; justify-content: center; }
+.bSpeed button iconify-icon { font-size: 17px; }
+.bSpeed button:hover { color: var(--gold-bright); }
+.bSpeed button.on { background: linear-gradient(#f0c84a, #c9922e); color: #16110a; border-color: var(--gold-bright); }
 
 /* ── (legacy DOM board — kept for reference/fallback) perspective play surface ── */
 .bArena { flex: 1 1 0; position: relative; min-height: 0; overflow: hidden;
