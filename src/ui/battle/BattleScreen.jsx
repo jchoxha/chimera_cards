@@ -84,7 +84,10 @@ export default function BattleScreen() {
   const [selId2, setSelId2] = useState(null);        // selected hand-card iid (click-to-target)
   const [anim, setAnim] = useState(null);    // resolution playback
   const [fx, setFx] = useState([]);
-  const [armedId, setArmedId] = useState(null);   // squad tapped once (arm) → tap again opens info
+  // hierarchical selection: Field › Side › Squad › Unit. A click drills DOWN one level
+  // toward what was clicked (you must select a SIDE before a squad, a squad before a
+  // unit); clicking empty space steps UP one level. Each level gets its own camera framing.
+  const [sel, setSel] = useState({ level: 'field', side: null, squadId: null, unitId: null });
   const [inspect, setInspect] = useState(null);   // pile-inspection overlay { title, cards, note? }
   const [ticker, setTicker] = useState(null);     // latest combat-log line (middle bar)
   const [logOpen, setLogOpen] = useState(false);  // full combat log overlay
@@ -120,12 +123,13 @@ export default function BattleScreen() {
     if (anim?.acting) dropEls.current.get(anim.acting)?.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
   }, [anim?.acting]);
 
-  // board carousel: pan to the focused squad (either side)
+  // planning squad: whichever PLAYER squad the selection has drilled into (store-tracked)
   const selId = snap?.selectedSquadId;
-  const focusId = armedId || selId;
+  const focusId = sel.squadId;   // the highlighted squad (either side), for the dock header
+  // keep the store's active planning squad in sync with the selection
   useEffect(() => {
-    if (focusId) document.querySelector(`.bSquad[data-sqid="${focusId}"]`)?.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' });
-  }, [focusId]);
+    if (sel.side === 'p' && sel.squadId && sel.squadId !== selId) selectSquad(sel.squadId);
+  }, [sel.side, sel.squadId, selId, selectSquad]);
 
   if (!snap) return <div className="battleScreen empty">Loading…</div>;
 
@@ -135,41 +139,63 @@ export default function BattleScreen() {
   const dockIdx = Math.max(0, dockList.findIndex((sq) => sq.id === focusId));
   const dockSquad = dockList[dockIdx];
   const squadOfUnit = (uid) => allSquads.find((sq) => sq.units.some((u) => u.id === uid));
+  const sideOfSquad = (sq) => (snap.enemy.includes(sq) ? 'e' : 'p');
   const totalQueued = snap.player.reduce((n, sq) => n + (sq.plan?.length || 0), 0);
   const hasUnspent = snap.player.some((sq) => sq.energyLeft > 0);
-  const selectedSquad = snap.player.find((sq) => sq.id === selId);
+  // the hand belongs to the player squad the selection is inside (squad OR unit level)
+  const planSquadId = (sel.side === 'p' && sel.squadId) ? sel.squadId : selId;
+  const selectedSquad = snap.player.find((sq) => sq.id === planSquadId);
   const selectedCard = selId2 ? (selectedSquad?.hand || []).find((c) => c.iid === selId2) : null;
-  // press a 3D hand card (native pointer event): a tap selects it (or opens detail if
-  // already selected); a drag past the threshold raycasts onto a board creature to PLAY.
-  // Handled by the window pressing-effect above; the drag ghost follows the cursor.
+  // hand shows only once you've drilled into one of YOUR squads (or a unit in it)
+  const showHand = !dockHidden && !anim && sel.side === 'p' && !!sel.squadId;
+
   const startHandDrag = (card, ne) => {
     if (anim) return;
     drag.current = { iid: card.iid, card, x0: ne.clientX, y0: ne.clientY, x: ne.clientX, y: ne.clientY, moved: false, over: null, tapSel: selId2 === card.iid };
-
   };
 
   const disp = (u) => (anim ? { ...u, hp: anim.hp[u.id] ?? u.hp, block: anim.block[u.id] ?? u.block, dead: (anim.hp[u.id] ?? u.hp) <= 0 } : u);
 
-  // focus a squad: arm it (for info-open) + make it the planning squad if it's yours
-  const focusSquad = (sqId, side) => { if (sqId !== selId) setSelId2(null); setArmedId(sqId); if (side === 'p') selectSquad(sqId); };
+  // step UP one level in the hierarchy (Unit → Squad → Side → Field)
+  const stepUp = () => setSel((s) => {
+    if (s.level === 'unit') return { level: 'squad', side: s.side, squadId: s.squadId, unitId: null };
+    if (s.level === 'squad') return { level: 'side', side: s.side, squadId: null, unitId: null };
+    if (s.level === 'side') return { level: 'field', side: null, squadId: null, unitId: null };
+    return { level: 'field', side: null, squadId: null, unitId: null };
+  });
+  const selectSquadLvl = (side, squadId) => setSel({ level: 'squad', side, squadId, unitId: null });
   const cycleSquad = (dir) => {
     if (dockList.length < 2) return;
-    const i = (((dockIdx + dir) % dockList.length) + dockList.length) % dockList.length;
-    focusSquad(dockList[i].id, dockList[i].side);
+    const base = focusId ? dockIdx : 0;
+    const i = (((base + dir) % dockList.length) + dockList.length) % dockList.length;
+    const sq = dockList[i];
+    selectSquadLvl(sideOfSquad(sq), sq.id);
   };
-  // click a token: (1) if a card is SELECTED, the click plays it at this target;
-  // (2) else its squad must be FOCUSED first; (3) a second tap opens the info card.
+  // click a creature token: if a card is SELECTED it plays at this target; otherwise the
+  // click DRILLS DOWN one level toward the creature (Field→Side→Squad→Unit). Clicking a
+  // creature outside the current selection re-drills to the appropriate level.
   const onTok = (u, side) => {
     if (anim) return;
     const sq = squadOfUnit(u.id); if (!sq) return;
     if (selectedCard) {
-      // offensive cards must target the ENEMY side; friendly cards your OWN side
       const wantSide = isOffensiveCard(selectedCard) ? 'e' : 'p';
       if (side === wantSide) { queueCard(selectedCard.iid, u.id); setSelId2(null); }
       return;
     }
-    if (armedId === sq.id) setZoom({ u: disp(u), side });
-    else focusSquad(sq.id, side);
+    setSelId2(null);
+    setSel((s) => {
+      if (s.level === 'field') return { level: 'side', side, squadId: null, unitId: null };
+      if (s.level === 'side') return (s.side === side)
+        ? { level: 'squad', side, squadId: sq.id, unitId: null }
+        : { level: 'side', side, squadId: null, unitId: null };            // switch side
+      if (s.level === 'squad') return (s.squadId === sq.id)
+        ? { level: 'unit', side, squadId: sq.id, unitId: u.id }
+        : { level: 'squad', side, squadId: sq.id, unitId: null };          // sibling squad
+      // unit level: another creature → select it; SAME creature → open its info card
+      if (s.unitId !== u.id) return { level: 'unit', side, squadId: sq.id, unitId: u.id };
+      setZoom({ u: disp(u), side });
+      return s;
+    });
   };
 
   // in-SCENE FX: push a floating label anchored to a unit's 3D card (Board3D renders it)
@@ -226,13 +252,13 @@ export default function BattleScreen() {
         <Board3D
           enemy={snap.enemy.map((sq) => ({ ...sq, units: sq.units.map(disp) }))}
           player={snap.player.map((sq) => ({ ...sq, units: sq.units.map(disp) }))}
-          focusId={focusId} actingId={anim?.acting} onPick={onTok} pickRef={pickRef} fx={fx} drag={d}
-          hand={dockHidden || anim ? null : {
-            station: snap.player.find((sq) => sq.id === selId) || snap.player[0],
+          sel={sel} onStepUp={stepUp} actingId={anim?.acting} onPick={onTok} pickRef={pickRef} fx={fx} drag={d}
+          hand={showHand ? {
+            station: selectedSquad || snap.player[0],
             selectedIid: selId2, dealKey: snap.dealKey,
-            squadIndex: Math.max(0, snap.player.findIndex((sq) => sq.id === selId)),
+            squadIndex: Math.max(0, snap.player.findIndex((sq) => sq.id === planSquadId)),
             onCardPointerDown: startHandDrag, onInspect: setInspect,
-          }} />
+          } : null} />
 
         {/* ONE set of squad arrows — cycles through ALL squads (ally + enemy) and moves the camera */}
         {dockList.length > 1 && <>

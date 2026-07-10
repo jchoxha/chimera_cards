@@ -215,7 +215,7 @@ function useOrbit() {
 /** Navigable camera: eases the LOOK-AT toward an overview, or a FOCUS point {x,z}
  *  (a squad, or the acting creature during resolution). The user's orbit angle + zoom
  *  are applied on top, so click-drag navigation and auto-movement coexist. */
-function CameraRig({ focus, orbit }) {
+function CameraRig({ view, orbit }) {
   const { camera, size } = useThree();
   const tgt = useRef(new THREE.Vector3(0, 0.2, -0.4));
   const dist = useRef(11);
@@ -242,9 +242,9 @@ function CameraRig({ focus, orbit }) {
     const aspect = size.width / Math.max(1, size.height);
     const fov = aspect < 1 ? 60 : 46;   // CONSTANT per aspect so the hand shelf never resizes
     if (Math.abs(camera.fov - fov) > 0.01) { camera.fov = fov; camera.updateProjectionMatrix(); }
-    const dt = focus ? new THREE.Vector3(focus.x, 0.3, focus.z) : new THREE.Vector3(0, 0.2, -0.4);
+    const dt = new THREE.Vector3(view.x, view.y ?? 0.3, view.z);
     dt.x += orbit.pan.current.x; dt.z += orbit.pan.current.z;   // WASD roam
-    const dd = (focus ? 8.2 : (aspect < 1 ? 12 : 10.6)) * orbit.zoom.current;
+    const dd = view.dist * (aspect < 1 ? 1.2 : 1) * orbit.zoom.current;
     tgt.current.lerp(dt, 0.1);
     dist.current += (dd - dist.current) * 0.1;
     const r = dist.current, pol = orbit.pol.current, az = orbit.az.current;
@@ -331,6 +331,25 @@ function squadSlots(side, i, n) {
     cx,
   };
 }
+// where a squad's units actually sit (front on the Vanguard slot, supports behind) —
+// shared by the renderer AND the camera so unit-level focus lines up with the card.
+function squadPlacements(sq, side, i, n) {
+  const s = squadSlots(side, i, n);
+  const front = sq.units.find((u) => u.isFront);
+  const supp = sq.units.filter((u) => !u.isFront);
+  const out = [];
+  if (front) out.push({ u: front, ...s.front });
+  if (supp[0]) out.push({ u: supp[0], ...s.supp0 });
+  if (supp[1]) out.push({ u: supp[1], ...s.supp1 });
+  return out;
+}
+// centre z of a whole side (used by the SIDE-level camera framing)
+const SIDE_Z = { e: (LAYOUT.frontZ.e + LAYOUT.backZ.e) / 2, p: (LAYOUT.frontZ.p + LAYOUT.backZ.p) / 2 };
+// a squad is highlighted when its side / itself / one of its units is the selection
+function squadIsOn(sel, side, sqId) {
+  return (sel.level === 'side' && sel.side === side)
+    || ((sel.level === 'squad' || sel.level === 'unit') && sel.squadId === sqId);
+}
 // A soft ROUND radial glow (white → transparent) — tinted per material. Rounded, not
 // rectangular, and its alpha fades to ~0 before it reaches the role labels in the gap.
 let _glowTex = null;
@@ -367,8 +386,7 @@ function GroundLabel({ text, x, z, w, color, px, opacity = 1 }) {
     </mesh>
   );
 }
-function SquadPlaymat({ side, squads, sq, i, focusId }) {
-  const on = sq.id === focusId;
+function SquadPlaymat({ side, squads, sq, i, on }) {
   const col = side === 'e' ? '#d68f74' : '#e6c079';
   const border = useSlotBorder(col);
   const s = squadSlots(side, i, squads.length);
@@ -402,42 +420,38 @@ function SquadPlaymat({ side, squads, sq, i, focusId }) {
     </group>
   );
 }
-function Playmat({ enemy, player, focusId }) {
+function Playmat({ enemy, player, sel }) {
   return (
     <group>
-      {enemy.map((sq, i) => <SquadPlaymat key={sq.id} side="e" squads={enemy} sq={sq} i={i} focusId={focusId} />)}
-      {player.map((sq, i) => <SquadPlaymat key={sq.id} side="p" squads={player} sq={sq} i={i} focusId={focusId} />)}
+      {enemy.map((sq, i) => <SquadPlaymat key={sq.id} side="e" squads={enemy} sq={sq} i={i} on={squadIsOn(sel, 'e', sq.id)} />)}
+      {player.map((sq, i) => <SquadPlaymat key={sq.id} side="p" squads={player} sq={sq} i={i} on={squadIsOn(sel, 'p', sq.id)} />)}
     </group>
   );
 }
 
 /** Squads laid out on the table on their FIXED slots; a ground AURA (below the slot
  *  labels) highlights the selected squad / hovered creature. */
-function Side({ squads, side, focusId, actingId, hoverId, onPick, onOver, registerMesh }) {
+function Side({ squads, side, sel, actingId, hoverId, onPick, onOver, registerMesh }) {
   return squads.map((sq, i) => {
-    const s = squadSlots(side, i, squads.length);
-    const front = sq.units.find((u) => u.isFront);
-    const supp = sq.units.filter((u) => !u.isFront);
-    const placed = [];
-    if (front) placed.push({ u: front, ...s.front });
-    if (supp[0]) placed.push({ u: supp[0], ...s.supp0 });
-    if (supp[1]) placed.push({ u: supp[1], ...s.supp1 });
-    const on = sq.id === focusId;
+    const placed = squadPlacements(sq, side, i, squads.length);
+    const on = squadIsOn(sel, side, sq.id);
     return (
       <group key={sq.id}>
         {placed.map(({ u, x, z }) => {
-          const glow = on ? '#f0c84a' : (hoverId === u.id ? '#cfe0ff' : null);
+          const unitSel = sel.level === 'unit' && sel.unitId === u.id;
+          const glow = unitSel ? '#ffd873' : (on ? '#f0c84a' : (hoverId === u.id ? '#cfe0ff' : null));
+          const strength = unitSel ? 0.85 : (on ? 0.6 : 0.42);
           return (
             <group key={u.id}>
               {glow && (   // ROUND radial aura pooled under the card; its soft edge fades
                            // before the gap labels, and labels draw on top (depthTest off)
                 <mesh position={[x, 0.010, z]} rotation={[-Math.PI / 2, 0, 0]}>
-                  <planeGeometry args={[SLOT_W + 0.9, SLOT_H + 0.9]} />
-                  <meshBasicMaterial map={glowTexture()} color={glow} transparent opacity={on ? 0.7 : 0.45} blending={THREE.AdditiveBlending} depthWrite={false} />
+                  <planeGeometry args={[SLOT_W + (unitSel ? 1.1 : 0.9), SLOT_H + (unitSel ? 1.1 : 0.9)]} />
+                  <meshBasicMaterial map={glowTexture()} color={glow} transparent opacity={strength} blending={THREE.AdditiveBlending} depthWrite={false} />
                 </mesh>
               )}
               <Card3D u={u} side={side} x={x} z={z}
-                selected={on} acting={actingId === u.id} hovered={hoverId === u.id}
+                selected={on || unitSel} acting={actingId === u.id} hovered={hoverId === u.id}
                 onPick={onPick} onOver={onOver} registerMesh={registerMesh} />
             </group>
           );
@@ -487,43 +501,58 @@ function DragCard3D({ card, sx, sy, over }) {
   );
 }
 
-export default function Board3D({ enemy, player, focusId, actingId, onPick, pickRef, hand, fx, drag }) {
+// per-LEVEL camera framing (position derived from selection; distance + tilt per level).
+// az stays 0 at every level — the angle differences come from tilt (pol) + distance +
+// where the camera is looking, never a yaw (that yaw was the "leans right" bug).
+const FIELD_POL = 0.66, SIDE_POL = 0.62, SQUAD_POL = 0.58, UNIT_POL = 0.7;
+function viewFor(sel, maps, actingId) {
+  if (actingId) { const p = maps.unitPos.get(actingId); if (p) return { x: p.x, y: 0.3, z: p.z, dist: 5.4, pol: 0.62 }; }
+  if (sel.level === 'unit') { const p = maps.unitPos.get(sel.unitId); if (p) return { x: p.x, y: 0.55, z: p.z + 0.35, dist: 3.9, pol: UNIT_POL }; }
+  if (sel.level === 'squad') { const c = maps.squadCenterById.get(sel.squadId); if (c) return { x: c.x, y: 0.3, z: c.z, dist: 7.2, pol: SQUAD_POL }; }
+  if (sel.level === 'side' && sel.side) return { x: 0, y: 0.3, z: SIDE_Z[sel.side], dist: 10.4, pol: SIDE_POL };
+  return { x: 0, y: 0.2, z: -0.2, dist: 12.4, pol: FIELD_POL };   // whole field
+}
+
+export default function Board3D({ enemy, player, sel, actingId, onPick, onStepUp, pickRef, hand, fx, drag }) {
   const [hoverId, setHoverId] = useState(null);
   const orbit = useOrbit();
   const meshes = useRef(new Map());
   const registerMesh = (id, m) => { if (m) meshes.current.set(id, m); else meshes.current.delete(id); };
 
-  // unit → its squad center (auto-follow the acting creature) + squadId → center / side
-  const { unitCenter, squadCenterById, squadSideById } = useMemo(() => {
-    const uc = new Map(); const sc = new Map(); const ss = new Map();
+  // squadId → centre/side, and unitId → its actual card position (for unit-level focus)
+  const maps = useMemo(() => {
+    const sc = new Map(); const ss = new Map(); const up = new Map();
     [[enemy, 'e'], [player, 'p']].forEach(([arr, side]) =>
-      arr.forEach((sq, i) => { const c = squadCenter(side, i, arr.length); sc.set(sq.id, c); ss.set(sq.id, side); sq.units.forEach((u) => uc.set(u.id, c)); }));
-    return { unitCenter: uc, squadCenterById: sc, squadSideById: ss };
+      arr.forEach((sq, i) => {
+        sc.set(sq.id, squadCenter(side, i, arr.length)); ss.set(sq.id, side);
+        squadPlacements(sq, side, i, arr.length).forEach(({ u, x, z }) => up.set(u.id, { x, z }));
+      }));
+    return { squadCenterById: sc, squadSideById: ss, unitPos: up };
   }, [enemy, player]);
-  // the camera FOLLOWS the selected squad (or the acting creature during resolution)
-  const focus = actingId ? (unitCenter.get(actingId) || squadCenterById.get(focusId)) : (squadCenterById.get(focusId) || null);
-  // on focus change: recentre WASD roam AND reframe the camera (angle + zoom, not just
-  // position) — a proper dolly toward the chosen squad, enemy viewed from a small angle.
+
+  const view = viewFor(sel, maps, actingId);
+  // on selection change: recentre WASD roam + reframe the camera (tilt + zoom reset for
+  // the new level). az always eases to 0 — no yaw. Keyed on the selection SIGNATURE.
+  const selKey = `${sel.level}:${sel.side || ''}:${sel.squadId || ''}:${sel.unitId || ''}`;
   useEffect(() => {
     orbit.pan.current.x = 0; orbit.pan.current.z = 0;
-    if (focusId) orbit.frameTo({ pol: 0.6, zoom: 0.82, az: squadSideById.get(focusId) === 'e' ? -0.16 : 0 });
-    else orbit.frameTo({ pol: 0.72, zoom: 1.1, az: 0 });
-  }, [focusId, orbit, squadSideById]);
+    orbit.frameTo({ az: 0, pol: view.pol, zoom: 1 });
+  }, [selKey, orbit, view.pol]);
 
   return (
     <Canvas dpr={[1, 2]} gl={{ antialias: true, alpha: false }} camera={{ position: [0, 8, 7], fov: 46, near: 0.1, far: 120 }}
-      onPointerMissed={() => setHoverId(null)}>
+      onPointerMissed={() => setHoverId(null)}>{/* table tap (onStepUp) handles stepping up */}
       <color attach="background" args={['#0c0805']} />
       <fog attach="fog" args={['#0c0805', 18, 52]} />
-      <CameraRig focus={focus} orbit={orbit} />
+      <CameraRig view={view} orbit={orbit} />
       <Picker pickRef={pickRef} meshes={meshes} />
       <ambientLight intensity={0.82} />
       <directionalLight position={[4, 9, 7]} intensity={1.1} />
       <directionalLight position={[-5, 4, 2]} intensity={0.35} color="#8fb4ff" />
-      <Table onOrbitStart={(ne) => orbit.start(ne)} />
-      <Playmat enemy={enemy} player={player} focusId={focusId} />
-      <Side squads={enemy} side="e" focusId={focusId} actingId={actingId} hoverId={hoverId} onPick={onPick} onOver={setHoverId} registerMesh={registerMesh} />
-      <Side squads={player} side="p" focusId={focusId} actingId={actingId} hoverId={hoverId} onPick={onPick} onOver={setHoverId} registerMesh={registerMesh} />
+      <Table onOrbitStart={(ne) => orbit.start(ne, onStepUp)} />
+      <Playmat enemy={enemy} player={player} sel={sel} />
+      <Side squads={enemy} side="e" sel={sel} actingId={actingId} hoverId={hoverId} onPick={onPick} onOver={setHoverId} registerMesh={registerMesh} />
+      <Side squads={player} side="p" sel={sel} actingId={actingId} hoverId={hoverId} onPick={onPick} onOver={setHoverId} registerMesh={registerMesh} />
       {hand && <HandDock3D {...hand} draggingIid={drag?.iid || null} />}
       {drag?.card && <DragCard3D card={drag.card} sx={drag.x} sy={drag.y} over={!!drag.over} />}
       <FxLayer items={fx} meshes={meshes} />
