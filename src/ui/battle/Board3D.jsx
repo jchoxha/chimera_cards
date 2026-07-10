@@ -12,12 +12,13 @@ import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Canvas, useFrame, useThree } from '@react-three/fiber';
 import * as THREE from 'three';
 import HandDock3D, { useActionCardTexture, HAND_CARD_W, HAND_CARD_H } from './HandDock3D.jsx';
-import { creatureColor } from '../../data/axisIcons.js';
+import { creatureColor, ATTUNEMENT_COLOR } from '../../data/axisIcons.js';
 import { creatureArt } from '../../data/artPool.js';
 import { sizedPortrait } from '../../data/sizeArt.js';
 import { drawCreatureFace, makeFaceTexture } from './cardArt3d.js';
 
 const CARD_W = 1.12, CARD_H = 1.54;
+const elColor = (el) => ATTUNEMENT_COLOR[el] || '#c9a66b';
 
 // Shared squad layout (used by the board AND the camera rig so focusing lines up).
 // Cards lie FLAT so the front/back rows need generous Z separation (a card is CARD_H
@@ -506,6 +507,34 @@ function Side({ squads, side, effSel, hover, actingId, onPick, onOver, registerM
   });
 }
 
+/** Queued PLAYS shown on their targets: a fanned row of small element-tinted chips (one
+ *  per card played, with its cost) laid just beyond each targeted creature's card, so you
+ *  can see at a glance what has been committed and on whom. */
+function PlayedMarkers({ plays, unitPos }) {
+  const byTarget = new Map();
+  (plays || []).forEach((pl) => { const a = byTarget.get(pl.targetId) || []; a.push(pl); byTarget.set(pl.targetId, a); });
+  const out = [];
+  byTarget.forEach((cards, tid) => {
+    const pos = unitPos.get(tid); if (!pos) return;
+    out.push(
+      <group key={tid} position={[pos.x, 0.06, pos.z]} rotation={[-Math.PI / 2, 0, 0]}>
+        {cards.map((c, i) => {
+          const off = i - (cards.length - 1) / 2;
+          return (
+            <group key={i} position={[off * 0.4, -(CARD_H * 0.5 + 0.32), 0.02]}>
+              <mesh renderOrder={5}><planeGeometry args={[0.5, 0.36]} /><meshBasicMaterial color="#0c0805" transparent opacity={0.9} depthTest={false} depthWrite={false} toneMapped={false} /></mesh>
+              <mesh position={[0, 0, 0.001]} renderOrder={6}><planeGeometry args={[0.5, 0.11]} /><meshBasicMaterial color={elColor(c.element)} depthTest={false} depthWrite={false} toneMapped={false} /></mesh>
+              <mesh position={[0, 0, 0.0005]} renderOrder={6}><planeGeometry args={[0.5, 0.36]} /><meshBasicMaterial color={elColor(c.element)} transparent opacity={0.18} depthTest={false} depthWrite={false} toneMapped={false} /></mesh>
+              <Label text={`${c.cost}`} position={[0, -0.05, 0.004]} width={0.28} color="#ffffff" px={40} />
+            </group>
+          );
+        })}
+      </group>,
+    );
+  });
+  return out;
+}
+
 /** The lifted 3D Action Card during a hand drag: a real world-space card mesh that
  *  follows the pointer THROUGH the scene (unprojected onto a plane above the table),
  *  faces the camera, and draws over everything. Green-tinted while over a valid target. */
@@ -558,7 +587,7 @@ function viewFor(sel, maps, actingId) {
   return { x: 0, y: 0.2, z: -0.2, dist: 12.4, pol: FIELD_POL };   // whole field
 }
 
-export default function Board3D({ enemy, player, sel, actingId, onPick, onZone, onStepUp, pickRef, hand, fx, drag }) {
+export default function Board3D({ enemy, player, sel, actingId, onPick, onZone, onStepUp, pickRef, hand, fx, drag, plays }) {
   const [hover, setHover] = useState(null);   // { level, side, squadId?, unitId? } under the pointer
   const orbit = useOrbit();
   const meshes = useRef(new Map());
@@ -618,6 +647,7 @@ export default function Board3D({ enemy, player, sel, actingId, onPick, onZone, 
       <Zones enemy={enemy} player={player} effSel={effSel} hover={hover} onZone={onZone} onHover={setHover} />
       <Side squads={enemy} side="e" effSel={effSel} hover={hover} actingId={actingId} onPick={onPick} onOver={onOverUnit} registerMesh={registerMesh} />
       <Side squads={player} side="p" effSel={effSel} hover={hover} actingId={actingId} onPick={onPick} onOver={onOverUnit} registerMesh={registerMesh} />
+      {!dragging && <PlayedMarkers plays={plays} unitPos={maps.unitPos} />}
       {hand && <HandDock3D {...hand} draggingIid={drag?.iid || null} />}
       {drag?.card && <DragCard3D card={drag.card} sx={drag.x} sy={drag.y} over={!!drag.over} />}
       <FxLayer items={fx} meshes={meshes} />
