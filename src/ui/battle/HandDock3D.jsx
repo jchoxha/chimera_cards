@@ -159,7 +159,7 @@ function CamShelf({ children, aspect, slideRef }) {
   // face the camera FLAT (no slant); the hand plane is distinct from the board table.
   // Raised a touch so the bottom row clears the dock bar; sits close to the camera so a
   // zoomed-in board never pokes in front of it (its meshes also skip the depth test).
-  return <group ref={ref} position={[0, -0.86, -3.5]} rotation={[0.08, 0, 0]} scale={s}>{children}</group>;
+  return <group ref={ref} position={[0, -0.8, -3.5]} rotation={[0.08, 0, 0]} scale={s}>{children}</group>;
 }
 
 export default function HandDock3D({ station, selectedIid, dealKey, squadIndex = 0, draggingIid = null, faceDown = false, onCardPointerDown, onInspect }) {

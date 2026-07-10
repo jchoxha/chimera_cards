@@ -139,6 +139,14 @@ function Card3D({ u, side, x, z, selected, acting, hovered, onPick, onOver, regi
       </group>
       {/* block pip */}
       {u.block > 0 && <Label text={`+${u.block}`} position={[CARD_W / 2 - 0.22, hpY + 0.26, 0.05]} width={0.5} color="#bcd4ff" px={40} />}
+      {/* DEFEATED: the card stays on the field but is greyed with a red wash + skull mark */}
+      {u.dead && (
+        <group>
+          <mesh position={[0, 0, 0.06]}><planeGeometry args={[CARD_W, CARD_H]} /><meshBasicMaterial color="#1a0606" transparent opacity={0.62} depthWrite={false} /></mesh>
+          <Label text="☠" position={[0, 0.1, 0.08]} width={0.9} color="#ff6a5a" px={150} />
+          <Label text="DEFEATED" position={[0, -0.35, 0.08]} width={1.0} color="#ff8a7a" px={44} />
+        </group>
+      )}
     </group>
   );
 }
@@ -299,6 +307,39 @@ function FxLayer({ items, meshes }) {
   return (items || []).map((it) => <FxItem key={it.key} it={it} meshes={meshes} />);
 }
 
+// A rounded polygon → THREE.Shape (each corner filleted by radius r). Used for the squad
+// selection ZONE (a padded, rounded TRAPEZOID hugging the slots — never a sharp rectangle)
+// and rounded highlight tints, so no selection aura has sharp right angles.
+function roundedPolyShape(pts, r) {
+  const shape = new THREE.Shape();
+  const n = pts.length;
+  const sub = (a, b) => ({ x: a.x - b.x, y: a.y - b.y });
+  const len = (a) => Math.hypot(a.x, a.y) || 1;
+  for (let i = 0; i < n; i++) {
+    const cur = pts[i], prev = pts[(i - 1 + n) % n], next = pts[(i + 1) % n];
+    const v1 = sub(prev, cur), v2 = sub(next, cur);
+    const r1 = Math.min(r, len(v1) / 2), r2 = Math.min(r, len(v2) / 2);
+    const p1 = { x: cur.x + (v1.x / len(v1)) * r1, y: cur.y + (v1.y / len(v1)) * r1 };
+    const p2 = { x: cur.x + (v2.x / len(v2)) * r2, y: cur.y + (v2.y / len(v2)) * r2 };
+    if (i === 0) shape.moveTo(p1.x, p1.y); else shape.lineTo(p1.x, p1.y);
+    shape.quadraticCurveTo(cur.x, cur.y, p2.x, p2.y);
+  }
+  shape.closePath();
+  return shape;
+}
+// the squad ZONE shape (local XY, rotated flat later): a rounded trapezoid — NARROW across
+// the front Vanguard row, WIDE across the back Support row — so the field between the front
+// vanguards stays clickable (you're not stuck selecting a squad everywhere).
+function squadZoneShape(side) {
+  const cz = (LAYOUT.frontZ[side] + LAYOUT.backZ[side]) / 2;
+  const narrowY = cz - LAYOUT.frontZ[side];   // local +y = world -z; front row
+  const wideY = cz - LAYOUT.backZ[side];
+  const pad = SLOT_H / 2 + 0.12;
+  const nY = narrowY + Math.sign(narrowY) * pad, wY = wideY + Math.sign(wideY) * pad;
+  const nH = SLOT_W / 2 + 0.28, wH = SUPP_DX + SLOT_W / 2 + 0.28;
+  return roundedPolyShape([{ x: -nH, y: nY }, { x: nH, y: nY }, { x: wH, y: wY }, { x: -wH, y: wY }], 0.4);
+}
+
 // ── Playmat (Yu-Gi-Oh-style): labelled slot outlines under every squad + creature ──
 function roundRect(ctx, x, y, w, h, r) {
   ctx.beginPath();
@@ -383,34 +424,31 @@ function SquadPlaymat({ side, squads, sq, i, on }) {
   const col = side === 'e' ? '#d68f74' : '#e6c079';
   const border = useSlotBorder(col);
   const s = squadSlots(side, i, squads.length);
-  const slots = [s.front, s.supp0, s.supp1];
-  // role + squad labels live OUTSIDE the slots so a card on the slot never covers them.
-  // Role labels sit in the GAP between the front and back rows; the squad label sits
-  // beyond the back row. Selected → high-contrast WHITE (reads over the gold aura).
+  // ONLY render slots that hold a creature (no empty slots / labels)
+  const front = sq.units.find((u) => u.isFront);
+  const supp = sq.units.filter((u) => !u.isFront);
   const dir = side === 'e' ? -1 : 1;                 // front → back direction along z
   const lblCol = on ? '#ffffff' : col;
-  const vanZ = LAYOUT.frontZ[side] + dir * 1.12;      // in the gap, pushed further off the card
-  const supZ = LAYOUT.backZ[side] - dir * 1.12;       // in the gap, pushed further off the card
-  // squad name: ENEMY beyond its back row (far edge); ALLY toward table centre (clear of
-  // the hand). Kept on opposite sides so the two sides' labels never collide at centre.
+  const vanZ = LAYOUT.frontZ[side] + dir * 1.12;
+  const supZ = LAYOUT.backZ[side] - dir * 1.12;
   const squadZ = side === 'e' ? LAYOUT.backZ[side] - 1.25 : LAYOUT.frontZ[side] - 1.3;
+  const occupied = [];
+  if (front) occupied.push({ ...s.front, role: 'Vanguard', z0: vanZ });
+  if (supp[0]) occupied.push({ ...s.supp0, role: 'Support', z0: supZ });
+  if (supp[1]) occupied.push({ ...s.supp1, role: 'Support', z0: supZ });
   return (
     <group>
-      {slots.map((sl, j) => (
+      {occupied.map((sl, j) => (
         <group key={j}>
-          {/* OPAQUE fill blocks the grid behind the slot */}
           <mesh position={[sl.x, 0.004, sl.z]} rotation={[-Math.PI / 2, 0, 0]}>
             <planeGeometry args={[SLOT_W, SLOT_H]} /><meshBasicMaterial color={on ? '#2a1c11' : '#20160d'} />
           </mesh>
-          {/* dashed rounded border ON TOP */}
           <mesh position={[sl.x, 0.016, sl.z]} rotation={[-Math.PI / 2, 0, 0]}>
             <planeGeometry args={[SLOT_W, SLOT_H]} /><meshBasicMaterial map={border} transparent depthWrite={false} opacity={on ? 1 : 0.5} />
           </mesh>
+          <GroundLabel text={sl.role} x={sl.x} z={sl.z0} w={sl.role === 'Vanguard' ? 1.9 : 1.6} color={lblCol} px={sl.role === 'Vanguard' ? 46 : 42} opacity={on ? 1 : 0.72} />
         </group>
       ))}
-      <GroundLabel text="Vanguard" x={s.cx} z={vanZ} w={1.9} color={lblCol} px={46} opacity={on ? 1 : 0.72} />
-      <GroundLabel text="Support" x={s.supp0.x} z={supZ} w={1.6} color={lblCol} px={42} opacity={on ? 1 : 0.72} />
-      <GroundLabel text="Support" x={s.supp1.x} z={supZ} w={1.6} color={lblCol} px={42} opacity={on ? 1 : 0.72} />
       <GroundLabel text={`${side === 'e' ? 'Enemy' : 'Ally'} Squad ${i + 1}`} x={s.cx} z={squadZ} w={2.5} color={on ? '#ffdf8a' : col} px={48} opacity={on ? 1 : 0.75} />
     </group>
   );
@@ -433,30 +471,46 @@ const fieldExtent = (side, n) => {
  *  drill-down). A subtle tint shows the selected field; a brighter CYAN tint shows the
  *  hovered sub-section (a squad within the selected field, or a hovered field). Creatures
  *  sit above these planes so a creature click/hover wins (nearest-first + stopPropagation). */
+const _sqGeo = {};
+function squadZoneGeo(side) { if (!_sqGeo[side]) _sqGeo[side] = new THREE.ShapeGeometry(squadZoneShape(side)); return _sqGeo[side]; }
+const _fieldGeo = {};
+function fieldTintGeo(side, n) {
+  const k = `${side}${n}`;
+  if (!_fieldGeo[k]) { const fe = fieldExtent(side, n); const hx = fe.halfX, hz = fe.dz / 2;
+    _fieldGeo[k] = new THREE.ShapeGeometry(roundedPolyShape([{ x: -hx, y: -hz }, { x: hx, y: -hz }, { x: hx, y: hz }, { x: -hx, y: hz }], 0.9)); }
+  return _fieldGeo[k];
+}
 function Zones({ enemy, player, effSel, hover, onZone, onHover }) {
   return [['e', enemy], ['p', player]].map(([side, squads]) => {
     const n = squads.length; const fe = fieldExtent(side, n);
+    const cz = (LAYOUT.frontZ[side] + LAYOUT.backZ[side]) / 2;
     const fieldSel = effSel.level === 'side' && effSel.side === side;
     const fieldHov = hover?.level === 'side' && hover.side === side;
     return (
       <group key={side}>
-        <mesh position={[0, 0.006, fe.cz]} rotation={[-Math.PI / 2, 0, 0]}
+        {/* big invisible field CLICK plane (fills the gaps the squad zones don't cover) */}
+        <mesh position={[0, 0.005, fe.cz]} rotation={[-Math.PI / 2, 0, 0]}
           onPointerDown={(e) => { e.stopPropagation(); onZone({ level: 'side', side }); }}
           onPointerOver={(e) => { e.stopPropagation(); onHover({ level: 'side', side }); }}
           onPointerOut={() => onHover(null)}>
           <planeGeometry args={[fe.halfX * 2, fe.dz]} />
-          <meshBasicMaterial color={fieldHov ? '#7fe3ff' : '#f0c84a'} transparent opacity={fieldHov ? 0.09 : (fieldSel ? 0.05 : 0)} depthWrite={false} />
+          <meshBasicMaterial transparent opacity={0} depthWrite={false} />
         </mesh>
+        {/* ROUNDED field tint (selected / hovered) — no sharp corners */}
+        {(fieldSel || fieldHov) && (
+          <mesh position={[0, 0.007, fe.cz]} rotation={[-Math.PI / 2, 0, 0]} geometry={fieldTintGeo(side, n)}>
+            <meshBasicMaterial color={fieldHov ? '#7fe3ff' : '#f0c84a'} transparent opacity={fieldHov ? 0.09 : 0.05} depthWrite={false} />
+          </mesh>
+        )}
+        {/* squad zones: rounded TRAPEZOIDS hugging the slots (padded, non-rectangular) */}
         {squads.map((sq, i) => {
-          const cx = squadX(i, n); const z0 = LAYOUT.frontZ[side], z1 = LAYOUT.backZ[side];
-          const cz = (z0 + z1) / 2, dz = Math.abs(z1 - z0) + SLOT_H + 0.2, w = SUPP_DX * 2 + SLOT_W + 0.3;
+          const cx = squadX(i, n);
           const sqHov = hover?.level === 'squad' && hover.squadId === sq.id;
           return (
-            <mesh key={sq.id} position={[cx, 0.009, cz]} rotation={[-Math.PI / 2, 0, 0]}
+            <mesh key={sq.id} position={[cx, 0.009, cz]} rotation={[-Math.PI / 2, 0, 0]} geometry={squadZoneGeo(side)}
               onPointerDown={(e) => { e.stopPropagation(); onZone({ level: 'squad', side, squadId: sq.id }); }}
               onPointerOver={(e) => { e.stopPropagation(); onHover({ level: 'squad', side, squadId: sq.id }); }}
               onPointerOut={() => onHover(null)}>
-              <planeGeometry args={[w, dz]} />
               <meshBasicMaterial color="#7fe3ff" transparent opacity={sqHov ? 0.13 : 0} depthWrite={false} />
             </mesh>
           );
@@ -579,15 +633,18 @@ function DragCard3D({ card, sx, sy, over }) {
 // az stays 0 at every level — the angle differences come from tilt (pol) + distance +
 // where the camera is looking, never a yaw (that yaw was the "leans right" bug).
 const FIELD_POL = 0.66, SIDE_POL = 0.62, SQUAD_POL = 0.58, UNIT_POL = 0.7;
-function viewFor(sel, maps, actingId) {
+function viewFor(sel, maps, actingId, handV) {
+  // when the hand is visible, a focused squad/creature is pushed a little further + toward
+  // the camera so it sits ABOVE the hand shelf (the group's bottom clears the top card).
+  const hz = handV ? 2.6 : 0, hd = handV ? 1.4 : 0;
   if (actingId) { const p = maps.unitPos.get(actingId); if (p) return { x: p.x, y: 0.3, z: p.z, dist: 5.4, pol: 0.62 }; }
-  if (sel.level === 'unit') { const p = maps.unitPos.get(sel.unitId); if (p) return { x: p.x, y: 0.55, z: p.z + 0.35, dist: 3.9, pol: UNIT_POL }; }
-  if (sel.level === 'squad') { const c = maps.squadCenterById.get(sel.squadId); if (c) return { x: c.x, y: 0.3, z: c.z, dist: 7.2, pol: SQUAD_POL }; }
+  if (sel.level === 'unit') { const p = maps.unitPos.get(sel.unitId); if (p) return { x: p.x, y: 0.55, z: p.z + 0.35 + hz, dist: 3.9 + hd, pol: UNIT_POL }; }
+  if (sel.level === 'squad') { const c = maps.squadCenterById.get(sel.squadId); if (c) return { x: c.x, y: 0.3, z: c.z + hz, dist: 7.2 + hd, pol: SQUAD_POL }; }
   if (sel.level === 'side' && sel.side) return { x: 0, y: 0.3, z: SIDE_Z[sel.side], dist: 10.4, pol: SIDE_POL };
   return { x: 0, y: 0.2, z: -0.2, dist: 12.4, pol: FIELD_POL };   // whole field
 }
 
-export default function Board3D({ enemy, player, sel, actingId, onPick, onZone, onStepUp, pickRef, hand, fx, drag, plays }) {
+export default function Board3D({ enemy, player, sel, actingId, onPick, onZone, onStepUp, pickRef, hand, fx, drag, plays, handVisible }) {
   const [hover, setHover] = useState(null);   // { level, side, squadId?, unitId? } under the pointer
   const orbit = useOrbit();
   const meshes = useRef(new Map());
@@ -624,7 +681,7 @@ export default function Board3D({ enemy, player, sel, actingId, onPick, onZone, 
     ? (drag.scopeLevel === 'board' ? { level: 'field' } : { level: 'side', side: drag.wantSide || 'e' })
     : sel;
   const effSel = dragging ? (drag.hi || { level: 'side', side: drag.wantSide || 'e' }) : sel;
-  const view = viewFor(camSel, maps, actingId);
+  const view = viewFor(camSel, maps, actingId, handVisible && !dragging);
   // on camera-selection change: recentre WASD roam + reframe (tilt + zoom reset). az → 0.
   const selKey = `${camSel.level}:${camSel.side || ''}:${camSel.squadId || ''}:${camSel.unitId || ''}`;
   useEffect(() => {

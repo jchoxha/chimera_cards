@@ -178,22 +178,6 @@ export default function BattleScreen() {
   const showHand = !dockHidden && !anim && !!handSquad;
   const handIsEnemy = handSquad ? sideOfSquad(handSquad) === 'e' : false;
 
-  // bridge current values into the once-bound window drag handler (drag-driven selection)
-  liveRef.current.updateDragSel = (card, overUnitId) => {
-    const offensive = isOffensiveCard(card);
-    const wantSide = offensive ? 'e' : 'p';
-    const sc = scopeOf(card);
-    const over = overUnitId ? squadOfUnit(overUnitId) : null;
-    let next;
-    if (over && sideOfSquad(over) === wantSide) {
-      next = (sc === 'squad' || sc === 'field')
-        ? { level: 'squad', side: wantSide, squadId: over.id, unitId: null }
-        : { level: 'unit', side: wantSide, squadId: over.id, unitId: overUnitId };
-    } else {
-      next = { level: 'side', side: wantSide, squadId: null, unitId: null };
-    }
-    setSel((s) => (s.level === next.level && s.side === next.side && s.squadId === next.squadId && s.unitId === next.unitId ? s : next));
-  };
   const frontOf = (sq) => sq?.units.find((u) => u.isFront)?.id || sq?.units[0]?.id || null;
   // during a drag: set the scope HIGHLIGHT (drag.hi) + which field the camera holds on.
   const scopeLevelOf = (card) => { const s = scopeOf(card); return s === 'field' ? 'field' : (s === 'squad' ? 'squad' : 'unit'); };
@@ -333,7 +317,7 @@ export default function BattleScreen() {
   const canCycle = !!pill && (pill.kind === 'side'
     || (pill.kind === 'squad' && (sel.side === 'e' ? snap.enemy : snap.player).length > 1)
     || (pill.kind === 'unit' && selSquad && selSquad.units.length > 1));
-  const canToggleHand = sel.side === 'p' && !!sel.squadId;   // hand toggle only on your squad/creature
+  const canToggleHand = !!sel.squadId;   // hand toggle shows on ANY selected squad (ally or enemy)
 
   return (
     <div className={`battleScreen${d ? ' dragging' : ''}${anim ? ' resolving' : ''}${dockHidden ? ' dockHidden' : ''}${selectedCard ? ' picking' : ''}`}
@@ -346,6 +330,7 @@ export default function BattleScreen() {
           player={snap.player.map((sq) => ({ ...sq, units: sq.units.map(disp) }))}
           sel={sel} onStepUp={stepUp} actingId={anim?.acting} onPick={onTok} onZone={onZone} pickRef={pickRef} fx={fx} drag={d}
           plays={anim ? [] : snap.player.flatMap((sq) => (sq.plan || []).map((a) => ({ targetId: a.targetId, element: a.card.element, cost: a.card.cost })))}
+          handVisible={showHand}
           hand={showHand ? {
             station: handSquad,
             selectedIid: selId2, dealKey: snap.dealKey, faceDown: handIsEnemy,
