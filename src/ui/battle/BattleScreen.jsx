@@ -109,21 +109,20 @@ export default function BattleScreen() {
       if (!g.moved && Math.hypot(e.clientX - g.x0, e.clientY - g.y0) > 6) g.moved = true;
       if (g.moved) {
         g.over = (pickRef.current && pickRef.current(e.clientX, e.clientY)) || null;
-        // DRAG-DRIVEN SELECTION: follow the card's scope. Its floor is the "relevant"
-        // side (attack→enemy, else your side); over a valid-side creature it drills to
-        // that creature's SQUAD (squad/field scope) or the UNIT (single-target scope).
+        // DRAG HIGHLIGHT: the camera holds on the relative FIELD; the gold highlight
+        // follows the card's SCOPE level under the pointer (unit / squad / whole field).
         const L = liveRef.current;
-        if (L.updateDragSel) L.updateDragSel(g.card, g.over);
+        if (L.updateDragHi) L.updateDragHi(g);
         setD({ ...g });
       }
     };
     const onUp = () => {
       const g = drag.current; if (!g) return; drag.current = null; setD(null);
       if (g.moved) {
-        // drop target = the creature under the pointer, else the DRILLED selection
-        // (unit / squad-vanguard / side-vanguard) — robust to the camera moving mid-drag.
+        // drop target derives from the scope HIGHLIGHT (unit / squad-vanguard /
+        // field-vanguard), falling back to the creature under the pointer.
         const L = liveRef.current;
-        const target = g.over || (L.resolveDropTarget && L.resolveDropTarget());
+        const target = (L.resolveDropFromHi && L.resolveDropFromHi(g.hi)) || g.over;
         if (target) { queueCard(g.iid, target); setSelId2(null); }
       }
       else if (g.tapSel) setCardZoom(g.card);   // tap a selected card → detail
@@ -196,32 +195,52 @@ export default function BattleScreen() {
     setSel((s) => (s.level === next.level && s.side === next.side && s.squadId === next.squadId && s.unitId === next.unitId ? s : next));
   };
   const frontOf = (sq) => sq?.units.find((u) => u.isFront)?.id || sq?.units[0]?.id || null;
-  liveRef.current.resolveDropTarget = () => {
-    if (sel.level === 'unit' && sel.unitId) return sel.unitId;
-    if (sel.squadId) return frontOf(allSquads.find((sq) => sq.id === sel.squadId));
-    if (sel.side) return frontOf((sel.side === 'e' ? snap.enemy : snap.player)[0]);
+  // during a drag: set the scope HIGHLIGHT (drag.hi) + which field the camera holds on.
+  const scopeLevelOf = (card) => { const s = scopeOf(card); return s === 'field' ? 'field' : (s === 'squad' ? 'squad' : 'unit'); };
+  liveRef.current.updateDragHi = (g) => {
+    const wantSide = isOffensiveCard(g.card) ? 'e' : 'p';
+    const scopeLevel = scopeLevelOf(g.card);
+    g.wantSide = wantSide; g.scopeLevel = scopeLevel;
+    const over = g.over ? squadOfUnit(g.over) : null;
+    if (scopeLevel === 'field' || !over || sideOfSquad(over) !== wantSide) { g.hi = { level: 'side', side: wantSide }; return; }
+    g.hi = scopeLevel === 'squad'
+      ? { level: 'squad', side: wantSide, squadId: over.id }
+      : { level: 'unit', side: wantSide, squadId: over.id, unitId: g.over };
+  };
+  liveRef.current.resolveDropFromHi = (hi) => {
+    if (!hi) return null;
+    if (hi.level === 'unit') return hi.unitId;
+    if (hi.level === 'squad') return frontOf(allSquads.find((sq) => sq.id === hi.squadId));
+    if (hi.level === 'side') return frontOf((hi.side === 'e' ? snap.enemy : snap.player)[0]);
     return null;
   };
 
   const startHandDrag = (card, ne) => {
     if (anim) return;
-    // originSel = the selection at grab time → the camera freezes HERE during the drag
-    // (drag-driven selection still updates the highlight, but the view holds still).
-    drag.current = { iid: card.iid, card, x0: ne.clientX, y0: ne.clientY, x: ne.clientX, y: ne.clientY, moved: false, over: null, tapSel: selId2 === card.iid, originSel: sel };
+    drag.current = { iid: card.iid, card, x0: ne.clientX, y0: ne.clientY, x: ne.clientX, y: ne.clientY, moved: false, over: null, hi: null, tapSel: selId2 === card.iid };
   };
 
   const disp = (u) => (anim ? { ...u, hp: anim.hp[u.id] ?? u.hp, block: anim.block[u.id] ?? u.block, dead: (anim.hp[u.id] ?? u.hp) <= 0 } : u);
 
-  // step UP one level in the hierarchy (Unit → Squad → Side → Field)
+  // step UP one level (Unit → Squad → Side → Field) — clicking empty table
   const stepUp = () => setSel((s) => {
     if (s.level === 'unit') return { level: 'squad', side: s.side, squadId: s.squadId, unitId: null };
     if (s.level === 'squad') return { level: 'side', side: s.side, squadId: null, unitId: null };
     if (s.level === 'side') return { level: 'field', side: null, squadId: null, unitId: null };
     return { level: 'field', side: null, squadId: null, unitId: null };
   });
-  // click a creature token: if a card is SELECTED it plays at this target; otherwise the
-  // click DRILLS DOWN one level toward the creature (Field→Side→Squad→Unit). Clicking a
-  // creature outside the current selection re-drills to the appropriate level.
+  // click a ZONE (field / squad ground plane) → select it DIRECTLY (or play a selected
+  // card at it). Clicking a creature selects that UNIT (a 2nd click opens its card).
+  const onZone = (z) => {
+    if (anim) return;
+    if (selectedCard) {
+      const t = z.level === 'squad' ? frontOf(allSquads.find((sq) => sq.id === z.squadId)) : frontOf((z.side === 'e' ? snap.enemy : snap.player)[0]);
+      if (t) { queueCard(selectedCard.iid, t); setSelId2(null); }
+      return;
+    }
+    setSelId2(null);
+    setSel({ level: z.level, side: z.side, squadId: z.squadId || null, unitId: null });
+  };
   const onTok = (u, side) => {
     if (anim) return;
     const sq = squadOfUnit(u.id); if (!sq) return;
@@ -231,19 +250,8 @@ export default function BattleScreen() {
       return;
     }
     setSelId2(null);
-    setSel((s) => {
-      if (s.level === 'field') return { level: 'side', side, squadId: null, unitId: null };
-      if (s.level === 'side') return (s.side === side)
-        ? { level: 'squad', side, squadId: sq.id, unitId: null }
-        : { level: 'side', side, squadId: null, unitId: null };            // switch side
-      if (s.level === 'squad') return (s.squadId === sq.id)
-        ? { level: 'unit', side, squadId: sq.id, unitId: u.id }
-        : { level: 'squad', side, squadId: sq.id, unitId: null };          // sibling squad
-      // unit level: another creature → select it; SAME creature → open its info card
-      if (s.unitId !== u.id) return { level: 'unit', side, squadId: sq.id, unitId: u.id };
-      setZoom({ u: disp(u), side });
-      return s;
-    });
+    if (sel.level === 'unit' && sel.unitId === u.id) { setZoom({ u: disp(u), side }); return; }  // 2nd click = detail
+    setSel({ level: 'unit', side, squadId: sq.id, unitId: u.id });
   };
 
   // in-SCENE FX: push a floating label anchored to a unit's 3D card (Board3D renders it)
@@ -336,7 +344,7 @@ export default function BattleScreen() {
         <Board3D
           enemy={snap.enemy.map((sq) => ({ ...sq, units: sq.units.map(disp) }))}
           player={snap.player.map((sq) => ({ ...sq, units: sq.units.map(disp) }))}
-          sel={sel} onStepUp={stepUp} actingId={anim?.acting} onPick={onTok} pickRef={pickRef} fx={fx} drag={d}
+          sel={sel} onStepUp={stepUp} actingId={anim?.acting} onPick={onTok} onZone={onZone} pickRef={pickRef} fx={fx} drag={d}
           hand={showHand ? {
             station: handSquad,
             selectedIid: selId2, dealKey: snap.dealKey, faceDown: handIsEnemy,
