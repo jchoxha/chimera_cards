@@ -55,8 +55,8 @@ function handGlowTexture() {
   if (_hglow) return _hglow;
   const c = document.createElement('canvas'); c.width = c.height = 128;
   const ctx = c.getContext('2d');
-  const g = ctx.createRadialGradient(64, 64, 8, 64, 64, 62);
-  g.addColorStop(0, 'rgba(255,224,120,0.95)'); g.addColorStop(0.5, 'rgba(240,200,74,0.5)'); g.addColorStop(1, 'rgba(240,200,74,0)');
+  const g = ctx.createRadialGradient(64, 64, 30, 64, 64, 64);
+  g.addColorStop(0, 'rgba(255,224,120,0.5)'); g.addColorStop(0.6, 'rgba(240,200,74,0.28)'); g.addColorStop(1, 'rgba(240,200,74,0)');
   ctx.fillStyle = g; ctx.fillRect(0, 0, 128, 128);
   _hglow = new THREE.CanvasTexture(c); _hglow.colorSpace = THREE.SRGBColorSpace;
   return _hglow;
@@ -93,26 +93,24 @@ function HandCard3D({ card, index, count, dealKey, selected, faceDown, onCardPoi
   const ro = 30 + index;
   return (
     <group ref={grp} position={[baseX, baseY - 0.6, 0]}>
-      {/* rounded, GLOWING selection halo behind the card (soft radial, not a solid plane) */}
+      {/* subtle rounded GLOW halo — sits BEHIND the card (depthTest on, so the opaque card
+          occludes it: only a soft rim shows around the edges, never over the art). */}
       {selected && (
-        <mesh position={[0, 0, -0.02]} renderOrder={ro - 2}>
-          <planeGeometry args={[CARD_W + 0.7, CARD_H + 0.7]} />
-          <meshBasicMaterial map={handGlowTexture()} transparent depthTest={false} depthWrite={false} blending={THREE.AdditiveBlending} toneMapped={false} />
+        <mesh position={[0, 0, -0.03]} renderOrder={ro - 2}>
+          <planeGeometry args={[CARD_W + 0.34, CARD_H + 0.34]} />
+          <meshBasicMaterial map={handGlowTexture()} transparent depthWrite={false} blending={THREE.AdditiveBlending} toneMapped={false} />
         </mesh>
       )}
-      {/* opaque backing so nothing shows through the card face */}
-      <mesh position={[0, 0, -0.005]} renderOrder={ro - 1}>
-        <planeGeometry args={[CARD_W, CARD_H]} />
-        <meshBasicMaterial color="#0a0705" depthTest={false} depthWrite={false} toneMapped={false} />
-      </mesh>
+      {/* OPAQUE face — depthTest off (a zoomed board can't cover it) but depthWrite ON so
+          nothing (ground tints / piles / auras in the transparent pass) blends over it. */}
       <mesh renderOrder={ro}
         onPointerDown={faceDown ? undefined : (e) => { e.stopPropagation(); onCardPointerDown(card, e.nativeEvent); }}
         onPointerOver={faceDown ? undefined : (e) => { e.stopPropagation(); hov.current = true; }}
         onPointerOut={faceDown ? undefined : () => { hov.current = false; }}>
         <planeGeometry args={[CARD_W, CARD_H]} />
         {tex
-          ? <meshBasicMaterial key="t" map={tex} depthTest={false} depthWrite={false} toneMapped={false} />
-          : <meshBasicMaterial key="c" color={elColor(card.element)} depthTest={false} depthWrite={false} toneMapped={false} />}
+          ? <meshBasicMaterial key="t" map={tex} transparent={false} depthTest={false} toneMapped={false} />
+          : <meshBasicMaterial key="c" color={elColor(card.element)} transparent={false} depthTest={false} toneMapped={false} />}
       </mesh>
     </group>
   );
@@ -143,13 +141,13 @@ function Pile3D({ x, color, count, label, onTap }) {
         <mesh key={i} position={[0, i * lift, 0]} renderOrder={22 + i}
           onPointerDown={i === n - 1 ? (e) => { e.stopPropagation(); if (count) onTap(); } : undefined}>
           <boxGeometry args={[pw, 0.02, ph]} />
-          <meshStandardMaterial color={count ? '#3a2a18' : '#20160d'} roughness={0.7} metalness={0.15} transparent={!count} opacity={count ? 1 : 0.4} depthTest={false} depthWrite={false} />
+          <meshStandardMaterial color={count ? '#3a2a18' : '#20160d'} roughness={0.7} metalness={0.15} transparent={!count} opacity={count ? 1 : 0.4} depthTest={false} />
         </mesh>
       ))}
       {/* the TOP card's face-down back (so the deck reads as a stack of real cards) */}
       <mesh position={[0, top + 0.012, 0]} rotation={[-Math.PI / 2, 0, 0]} renderOrder={22 + n}>
         <planeGeometry args={[pw, ph]} />
-        <meshBasicMaterial map={count ? back : null} color={count ? '#ffffff' : '#241a10'} depthTest={false} toneMapped={false} />
+        <meshBasicMaterial map={count ? back : null} color={count ? '#ffffff' : '#241a10'} transparent={false} depthTest={false} toneMapped={false} />
       </mesh>
       {/* count · label plate, stood back up to face the camera in front of the stack */}
       {tex && <mesh position={[0, 0.02, ph * 0.5 + 0.12]} rotation={[-1.24, 0, 0]} renderOrder={48}><planeGeometry args={[0.66, 0.3]} /><meshBasicMaterial map={tex} transparent depthTest={false} toneMapped={false} /></mesh>}
@@ -197,17 +195,18 @@ export default function HandDock3D({ station, selectedIid, dealKey, squadIndex =
   const hand = faceDown
     ? Array.from({ length: station.handCount || 0 }, (_, i) => ({ iid: `back-${i}`, known: false }))
     : (station.hand || []).filter((c) => c.iid !== draggingIid);
-  // piles toward the shelf edges but pulled IN + lifted so they clear the bottom-corner
-  // HUD buttons (fight / plan / hand-toggle) instead of being cut off by them.
-  const px = aspect < 1 ? 2.35 : 2.85;
+  // piles flank the hand (hand in the MIDDLE): left = Deck · In Play, right = Discard ·
+  // Exhaust. Pulled IN + lifted so the bottom-corner HUD buttons don't cut them off.
+  const px = aspect < 1 ? 2.5 : 3.0, gap = 0.82;
+  const inPlay = (station.plan || []).map((a) => a.card);
   return (
     <CamShelf aspect={aspect} slideRef={slideRef}>
-      {/* deck (left, lifted above the bottom buttons) */}
       <group position={[0, 0.5, 0]}>
         <Pile3D x={-px} color="#33240f" count={station.deckCount || 0} label="Deck"
           onTap={() => onInspect({ title: 'Draw Pile', cards: station.deck, note: 'Contents known · order hidden' })} />
-        {/* discard + exhaust (right, lifted) */}
-        <Pile3D x={px - 0.6} color="#241528" count={station.discardCount || 0} label="Discard"
+        <Pile3D x={-px + gap} color="#243a1a" count={inPlay.length} label="In Play"
+          onTap={() => onInspect({ title: 'In Play — this turn', cards: inPlay })} />
+        <Pile3D x={px - gap} color="#241528" count={station.discardCount || 0} label="Discard"
           onTap={() => onInspect({ title: 'Discard', cards: station.discard })} />
         <Pile3D x={px} color="#241228" count={station.exhaustCount || 0} label="Exhaust"
           onTap={() => onInspect({ title: 'Exhaust', cards: station.exhaust })} />

@@ -261,21 +261,36 @@ function CameraRig({ view, orbit, stage }) {
 
 /** Exposes a screen→creature raycast picker so the DOM hand-drag can find a drop
  *  target over the canvas (returns a unitId or null). */
-function Picker({ pickRef, meshes }) {
+function Picker({ pickRef, validRef, meshes, unitMeta, fieldBoundsOf }) {
   const { camera, gl } = useThree();
   useEffect(() => {
-    if (!pickRef) return undefined;
     const ray = new THREE.Raycaster();
     const v = new THREE.Vector2();
-    pickRef.current = (cx, cy) => {
+    const groundPlane = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0);
+    const setRay = (cx, cy) => {
       const rect = gl.domElement.getBoundingClientRect();
       v.set(((cx - rect.left) / rect.width) * 2 - 1, -((cy - rect.top) / rect.height) * 2 + 1);
       ray.setFromCamera(v, camera);
+    };
+    if (pickRef) pickRef.current = (cx, cy) => {
+      setRay(cx, cy);
       const hits = ray.intersectObjects([...meshes.current.values()], false);
       return hits[0]?.object?.userData?.unitId || null;
     };
-    return () => { pickRef.current = null; };
-  }, [camera, gl, pickRef, meshes]);
+    // is (cx,cy) over a VALID drop for wantSide? — over a creature of that side, OR the
+    // ground within that side's field bounds. (Used to reject drops in empty space.)
+    if (validRef) validRef.current = (cx, cy, wantSide) => {
+      setRay(cx, cy);
+      const hits = ray.intersectObjects([...meshes.current.values()], false);
+      const uid = hits[0]?.object?.userData?.unitId;
+      if (uid) return unitMeta.get(uid)?.side === wantSide;
+      const pt = new THREE.Vector3();
+      if (!ray.ray.intersectPlane(groundPlane, pt)) return false;
+      const b = fieldBoundsOf(wantSide);
+      return pt.x >= b.xMin && pt.x <= b.xMax && pt.z >= b.zMin && pt.z <= b.zMax;
+    };
+    return () => { if (pickRef) pickRef.current = null; if (validRef) validRef.current = null; };
+  }, [camera, gl, pickRef, validRef, meshes, unitMeta, fieldBoundsOf]);
   return null;
 }
 
@@ -756,11 +771,11 @@ function viewFor(sel, maps, actingId, handV) {
   if (actingId) { const p = maps.unitPos.get(actingId); if (p) return { x: p.x, y: 0.3, z: p.z, dist: 5.4, pol: 0.62 }; }
   if (sel.level === 'unit') { const p = maps.unitPos.get(sel.unitId); if (p) return { x: p.x, y: 0.55, z: p.z + 0.35 + hz, dist: 3.9 + hd, pol: UNIT_POL }; }
   if (sel.level === 'squad') { const c = maps.squadCenterById.get(sel.squadId); if (c) return { x: c.x, y: 0.3, z: c.z + hz, dist: 7.2 + hd, pol: SQUAD_POL }; }
-  if (sel.level === 'side' && sel.side) return { x: 0, y: 0.3, z: SIDE_Z[sel.side], dist: 10.4, pol: SIDE_POL };
+  if (sel.level === 'side' && sel.side) return { x: 0, y: 0.3, z: SIDE_Z[sel.side] + hz * 0.9, dist: 10.4 + hd, pol: SIDE_POL };
   return { x: 0, y: 0.2, z: -0.2, dist: 12.4, pol: FIELD_POL };   // whole field
 }
 
-export default function Board3D({ enemy, player, sel, actingId, onPick, onZone, onStepUp, pickRef, hand, fx, drag, plays, handVisible, handSquadId, cardFocusSide }) {
+export default function Board3D({ enemy, player, sel, actingId, onPick, onZone, onStepUp, pickRef, validRef, hand, fx, drag, plays, handVisible, handSquadId, cardFocusSide }) {
   const [hover, setHover] = useState(null);   // { level, side, squadId?, unitId? } under the pointer
   const orbit = useOrbit();
   const meshes = useRef(new Map());
@@ -777,6 +792,10 @@ export default function Board3D({ enemy, player, sel, actingId, onPick, onZone, 
     return { squadCenterById: sc, squadSideById: ss, unitPos: up, unitMeta: um };
   }, [enemy, player]);
   const onOverUnit = (id) => setHover(id ? { level: 'unit', ...maps.unitMeta.get(id), unitId: id } : null);
+  const fieldBoundsOf = (side) => {
+    const n = side === 'e' ? enemy.length : player.length; const fe = fieldExtent(side, n);
+    return { xMin: -fe.halfX - 0.6, xMax: fe.halfX + 0.6, zMin: fe.cz - fe.dz / 2 - 0.6, zMax: fe.cz + fe.dz / 2 + 0.6 };
+  };
 
   // ABSOLUTE stage bounds (derived from the board, NOT the current selection) — the
   // camera look-at is clamped to these so panning can never leave the combat stage.
@@ -797,7 +816,7 @@ export default function Board3D({ enemy, player, sel, actingId, onPick, onZone, 
     ? (drag.scopeLevel === 'board' ? { level: 'field' } : { level: 'side', side: drag.wantSide || 'e' })
     : (cardFocusSide ? { level: 'side', side: cardFocusSide } : sel);   // selecting a card frames the target field
   const effSel = dragging ? (drag.hi || { level: 'side', side: drag.wantSide || 'e' }) : sel;
-  const view = viewFor(camSel, maps, actingId, handVisible && !dragging && !cardFocusSide);
+  const view = viewFor(camSel, maps, actingId, handVisible && !dragging);
   // on camera-selection change: recentre WASD roam + reframe (tilt + zoom reset). az → 0.
   const selKey = `${camSel.level}:${camSel.side || ''}:${camSel.squadId || ''}:${camSel.unitId || ''}`;
   useEffect(() => {
@@ -811,7 +830,7 @@ export default function Board3D({ enemy, player, sel, actingId, onPick, onZone, 
       <color attach="background" args={['#0c0805']} />
       <fog attach="fog" args={['#0c0805', 18, 52]} />
       <CameraRig view={view} orbit={orbit} stage={stage} />
-      <Picker pickRef={pickRef} meshes={meshes} />
+      <Picker pickRef={pickRef} validRef={validRef} meshes={meshes} unitMeta={maps.unitMeta} fieldBoundsOf={fieldBoundsOf} />
       <ambientLight intensity={0.82} />
       <directionalLight position={[4, 9, 7]} intensity={1.1} />
       <directionalLight position={[-5, 4, 2]} intensity={0.35} color="#8fb4ff" />

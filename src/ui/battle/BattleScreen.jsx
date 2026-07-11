@@ -78,6 +78,7 @@ export default function BattleScreen() {
 
   const dropEls = useRef(new Map());   // (reserved for in-scene FX anchoring)
   const pickRef = useRef(null);        // Board3D raycast picker: (clientX,clientY) → unitId | null
+  const validRef = useRef(null);       // (cx,cy,wantSide) → is this a valid drop location?
   const drag = useRef(null);
   const liveRef = useRef({});          // bridge for the once-bound window drag handler → current render values
   const [d, setD] = useState(null);          // active hand-card DRAG (only once moved past threshold)
@@ -125,11 +126,13 @@ export default function BattleScreen() {
     const onUp = () => {
       const g = drag.current; if (!g) return; drag.current = null; setD(null);
       if (g.moved) {
-        // drop target derives from the scope HIGHLIGHT (unit / squad-vanguard /
-        // field-vanguard), falling back to the creature under the pointer.
+        // only play if the release is over a VALID target (a creature/field of the right
+        // side); dropping in empty space just returns the card to hand.
         const L = liveRef.current;
-        const target = (L.resolveDropFromHi && L.resolveDropFromHi(g.hi)) || g.over;
-        if (target) { queueCard(g.iid, target); setSelId2(null); }
+        if (g.valid) {
+          const target = (L.resolveDropFromHi && L.resolveDropFromHi(g.hi)) || g.over;
+          if (target) { queueCard(g.iid, target); setSelId2(null); }
+        }
       }
       else if (g.tapSel) setCardZoom(g.card);   // tap a selected card → detail
       else setSelId2(g.iid);                     // tap → select
@@ -191,6 +194,7 @@ export default function BattleScreen() {
     const wantSide = isOffensiveCard(g.card) ? 'e' : 'p';
     const scopeLevel = scopeLevelOf(g.card);
     g.wantSide = wantSide; g.scopeLevel = scopeLevel;
+    g.valid = validRef.current ? validRef.current(g.x, g.y, wantSide) : true;   // over a real target?
     const over = g.over ? squadOfUnit(g.over) : null;
     if (scopeLevel === 'field' || !over || sideOfSquad(over) !== wantSide) { g.hi = { level: 'side', side: wantSide }; return; }
     g.hi = scopeLevel === 'squad'
@@ -212,13 +216,14 @@ export default function BattleScreen() {
 
   const disp = (u) => (anim ? { ...u, hp: anim.hp[u.id] ?? u.hp, block: anim.block[u.id] ?? u.block, dead: (anim.hp[u.id] ?? u.hp) <= 0 } : u);
 
-  // step UP one level (Unit → Squad → Side → Field) — clicking empty table
-  const stepUp = () => setSel((s) => {
+  // step UP one level (Unit → Squad → Side → Field) — clicking empty table.
+  // Also DESELECT any armed card so the camera returns to normal (fixes a stuck view).
+  const stepUp = () => { setSelId2(null); setSel((s) => {
     if (s.level === 'unit') return { level: 'squad', side: s.side, squadId: s.squadId, unitId: null };
     if (s.level === 'squad') return { level: 'side', side: s.side, squadId: null, unitId: null };
     if (s.level === 'side') return { level: 'field', side: null, squadId: null, unitId: null };
     return { level: 'field', side: null, squadId: null, unitId: null };
-  });
+  }); };
   // click a ZONE (field / squad ground plane) → select it DIRECTLY (or play a selected
   // card at it). Clicking a creature selects that UNIT (a 2nd click opens its card).
   const onZone = (z) => {
@@ -226,7 +231,7 @@ export default function BattleScreen() {
     if (selectedCard) {
       // targeting rule: offensive cards hit the ENEMY field, beneficial cards your OWN
       const wantSide = isOffensiveCard(selectedCard) ? 'e' : 'p';
-      if (z.side !== wantSide) return;
+      if (z.side !== wantSide) { setSelId2(null); return; }   // wrong side → cancel selection
       const t = z.level === 'squad' ? frontOf(allSquads.find((sq) => sq.id === z.squadId)) : frontOf((z.side === 'e' ? snap.enemy : snap.player)[0]);
       if (t) { queueCard(selectedCard.iid, t); setSelId2(null); }
       return;
@@ -358,7 +363,7 @@ export default function BattleScreen() {
         <Board3D
           enemy={snap.enemy.map((sq) => ({ ...sq, units: sq.units.map(disp) }))}
           player={snap.player.map((sq) => ({ ...sq, units: sq.units.map(disp) }))}
-          sel={sel} onStepUp={stepUp} actingId={anim?.acting} onPick={onTok} onZone={onZone} pickRef={pickRef} fx={fx} drag={d}
+          sel={sel} onStepUp={stepUp} actingId={anim?.acting} onPick={onTok} onZone={onZone} pickRef={pickRef} validRef={validRef} fx={fx} drag={d}
           plays={anim ? [] : snap.player.flatMap((sq) => (sq.plan || []).map((a) => ({ targetId: a.targetId, iid: a.card.iid, card: a.card })))}
           handVisible={showHand} handSquadId={handSquad?.id || null}
           cardFocusSide={selectedCard ? (isOffensiveCard(selectedCard) ? 'e' : 'p') : null}
@@ -421,15 +426,25 @@ export default function BattleScreen() {
             <div className={`bHudSquad${pill.side === 'e' ? ' foe' : ''}`}>
               <span className="bHudSquadName">{pill.title}</span>
               {(pill.kind === 'squad' || pill.kind === 'unit') && pill.energy && (
-                <span className="bEnergy" title={`${pill.energy.energyLeft} of ${pill.energy.maxEnergy} energy`}>
-                  <Icon icon="tabler:bolt" /><b>{pill.energy.energyLeft}/{pill.energy.maxEnergy}</b>
+                <span className="bEnergy" title={`${pill.energy.energyLeft} of ${pill.energy.maxEnergy} AP`}>
+                  <Icon icon="tabler:bolt" /><b>{pill.energy.energyLeft}/{pill.energy.maxEnergy}</b><em className="bEnergyLbl">AP</em>
                 </span>
-              )}
-              {pill.kind === 'side' && pill.unspent != null && (
-                <span className="bEnergy" title="Squads with energy left"><Icon icon="tabler:bolt" /><b>{pill.unspent}</b><em className="bEnergyLbl">squad{pill.unspent === 1 ? '' : 's'} unspent</em></span>
               )}
             </div>
             <button className="bHudBtn" title="Next" disabled={!canCycle} onClick={() => cycleSel(1)}><Icon icon="tabler:chevron-right" /></button>
+          </div>
+        )}
+
+        {/* ally FIELD selected → a line per squad with its AP ratio; click one to select it */}
+        {pill && pill.kind === 'side' && pill.side === 'p' && (
+          <div className="bFieldPop">
+            <div className="bFieldPopHead"><Icon icon="tabler:users-group" /> Ally Squads</div>
+            {snap.player.map((sq, i) => (
+              <button key={sq.id} className="bEnergyLink" onClick={() => { setSelId2(null); setSel({ level: 'squad', side: 'p', squadId: sq.id, unitId: null }); }}>
+                <span><Icon icon="tabler:chevron-right" /> Squad {i + 1}</span>
+                <em className={sq.energyLeft > 0 ? 'has' : ''}><Icon icon="tabler:bolt" /> {sq.energyLeft}/{sq.maxEnergy} AP</em>
+              </button>
+            ))}
           </div>
         )}
 
@@ -507,14 +522,14 @@ export default function BattleScreen() {
         <div className="bInspect" onClick={() => setConfirmFight(false)}>
           <div className="bConfirm" onClick={(e) => e.stopPropagation()}>
             <h3><Icon icon="game-icons:crossed-swords" /> Fight now?</h3>
-            <p>These squads still have <b>energy to spend</b>. Click one to go plan it, or fight anyway:</p>
+            <p>These squads still have <b>AP (Action Points) to spend</b>. Click one to go plan it, or fight anyway:</p>
             <div className="bEnergyList">
               {unspentSquads.map((sq) => {
                 const n = snap.player.indexOf(sq) + 1;
                 return (
                   <button key={sq.id} className="bEnergyLink" onClick={() => { setConfirmFight(false); setSelId2(null); setSel({ level: 'squad', side: 'p', squadId: sq.id, unitId: null }); }}>
                     <span><Icon icon="tabler:chevron-right" /> Ally Squad {n}</span>
-                    <em><Icon icon="game-icons:lightning-arc" /> {sq.energyLeft}/{sq.maxEnergy}</em>
+                    <em><Icon icon="tabler:bolt" /> {sq.energyLeft}/{sq.maxEnergy} AP</em>
                   </button>
                 );
               })}
