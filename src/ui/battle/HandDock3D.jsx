@@ -49,6 +49,19 @@ export function useActionCardTexture(card) {
 export const HAND_CARD_W = 0.74, HAND_CARD_H = 1.03;
 const CARD_W = HAND_CARD_W, CARD_H = HAND_CARD_H;
 
+// soft radial glow (for the rounded, glowing hand-card selection halo)
+let _hglow = null;
+function handGlowTexture() {
+  if (_hglow) return _hglow;
+  const c = document.createElement('canvas'); c.width = c.height = 128;
+  const ctx = c.getContext('2d');
+  const g = ctx.createRadialGradient(64, 64, 8, 64, 64, 62);
+  g.addColorStop(0, 'rgba(255,224,120,0.95)'); g.addColorStop(0.5, 'rgba(240,200,74,0.5)'); g.addColorStop(1, 'rgba(240,200,74,0)');
+  ctx.fillStyle = g; ctx.fillRect(0, 0, 128, 128);
+  _hglow = new THREE.CanvasTexture(c); _hglow.colorSpace = THREE.SRGBColorSpace;
+  return _hglow;
+}
+
 
 /** One fanned hand card (a mesh). Pointer-down starts a press the shell resolves
  *  into a TAP (select / detail) or a DRAG-to-play (raycast onto a board creature). */
@@ -80,21 +93,27 @@ function HandCard3D({ card, index, count, dealKey, selected, faceDown, onCardPoi
   const ro = 30 + index;
   return (
     <group ref={grp} position={[baseX, baseY - 0.6, 0]}>
+      {/* rounded, GLOWING selection halo behind the card (soft radial, not a solid plane) */}
+      {selected && (
+        <mesh position={[0, 0, -0.02]} renderOrder={ro - 2}>
+          <planeGeometry args={[CARD_W + 0.7, CARD_H + 0.7]} />
+          <meshBasicMaterial map={handGlowTexture()} transparent depthTest={false} depthWrite={false} blending={THREE.AdditiveBlending} toneMapped={false} />
+        </mesh>
+      )}
+      {/* opaque backing so nothing shows through the card face */}
+      <mesh position={[0, 0, -0.005]} renderOrder={ro - 1}>
+        <planeGeometry args={[CARD_W, CARD_H]} />
+        <meshBasicMaterial color="#0a0705" depthTest={false} depthWrite={false} toneMapped={false} />
+      </mesh>
       <mesh renderOrder={ro}
         onPointerDown={faceDown ? undefined : (e) => { e.stopPropagation(); onCardPointerDown(card, e.nativeEvent); }}
         onPointerOver={faceDown ? undefined : (e) => { e.stopPropagation(); hov.current = true; }}
         onPointerOut={faceDown ? undefined : () => { hov.current = false; }}>
         <planeGeometry args={[CARD_W, CARD_H]} />
         {tex
-          ? <meshBasicMaterial key="t" map={tex} depthTest={false} toneMapped={false} />
-          : <meshBasicMaterial key="c" color={elColor(card.element)} depthTest={false} toneMapped={false} />}
+          ? <meshBasicMaterial key="t" map={tex} depthTest={false} depthWrite={false} toneMapped={false} />
+          : <meshBasicMaterial key="c" color={elColor(card.element)} depthTest={false} depthWrite={false} toneMapped={false} />}
       </mesh>
-      {selected && (
-        <mesh position={[0, 0, -0.01]} renderOrder={ro - 1}>
-          <planeGeometry args={[CARD_W + 0.06, CARD_H + 0.06]} />
-          <meshBasicMaterial color="#f0c84a" depthTest={false} toneMapped={false} />
-        </mesh>
-      )}
     </group>
   );
 }
@@ -178,13 +197,21 @@ export default function HandDock3D({ station, selectedIid, dealKey, squadIndex =
   const hand = faceDown
     ? Array.from({ length: station.handCount || 0 }, (_, i) => ({ iid: `back-${i}`, known: false }))
     : (station.hand || []).filter((c) => c.iid !== draggingIid);
-  // piles pushed to the OUTER edges of the shelf; deck far-left, discard/exhaust far-right
-  const px = aspect < 1 ? 2.7 : 3.25;
+  // piles toward the shelf edges but pulled IN + lifted so they clear the bottom-corner
+  // HUD buttons (fight / plan / hand-toggle) instead of being cut off by them.
+  const px = aspect < 1 ? 2.35 : 2.85;
   return (
     <CamShelf aspect={aspect} slideRef={slideRef}>
-      {/* deck (far left) */}
-      <Pile3D x={-px} color="#33240f" count={station.deckCount || 0} label="Deck"
-        onTap={() => onInspect({ title: 'Draw Pile', cards: station.deck, note: 'Contents known · order hidden' })} />
+      {/* deck (left, lifted above the bottom buttons) */}
+      <group position={[0, 0.5, 0]}>
+        <Pile3D x={-px} color="#33240f" count={station.deckCount || 0} label="Deck"
+          onTap={() => onInspect({ title: 'Draw Pile', cards: station.deck, note: 'Contents known · order hidden' })} />
+        {/* discard + exhaust (right, lifted) */}
+        <Pile3D x={px - 0.6} color="#241528" count={station.discardCount || 0} label="Discard"
+          onTap={() => onInspect({ title: 'Discard', cards: station.discard })} />
+        <Pile3D x={px} color="#241228" count={station.exhaustCount || 0} label="Exhaust"
+          onTap={() => onInspect({ title: 'Exhaust', cards: station.exhaust })} />
+      </group>
       {/* hand (centre) */}
       <group position={[0, 0.1, 0.2]}>
         {hand.map((card, i) => (
@@ -192,11 +219,6 @@ export default function HandDock3D({ station, selectedIid, dealKey, squadIndex =
             selected={!faceDown && selectedIid === card.iid} faceDown={faceDown} onCardPointerDown={onCardPointerDown} />
         ))}
       </group>
-      {/* discard + exhaust (far right) */}
-      <Pile3D x={px - 0.62} color="#241528" count={station.discardCount || 0} label="Discard"
-        onTap={() => onInspect({ title: 'Discard', cards: station.discard })} />
-      <Pile3D x={px} color="#241228" count={station.exhaustCount || 0} label="Exhaust"
-        onTap={() => onInspect({ title: 'Exhaust', cards: station.exhaust })} />
     </CamShelf>
   );
 }

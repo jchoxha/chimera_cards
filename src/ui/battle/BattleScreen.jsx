@@ -72,6 +72,7 @@ export default function BattleScreen() {
   const selectSquad = useBattle((s) => s.selectSquad);
   const queueCard = useBattle((s) => s.queueCard);
   const undoLast = useBattle((s) => s.undoLast);
+  const redoLast = useBattle((s) => s.redoLast);
   const resetPlans = useBattle((s) => s.resetPlans);
   const resolve = useBattle((s) => s.resolve);
 
@@ -98,6 +99,7 @@ export default function BattleScreen() {
   const [logOpen, setLogOpen] = useState(false);  // full combat log overlay
   const [confirmFight, setConfirmFight] = useState(false);   // "energy left" confirmation
   const [confirmReset, setConfirmReset] = useState(false);   // "reset all moves?" confirmation
+  const [planOpen, setPlanOpen] = useState(false);           // "Plan" popup (queued actions + undo/redo/reset)
   const [dockHidden, setDockHidden] = useState(false);       // Action Cards shown/hidden
   const fxSeq = useRef(0);
   const timers = useRef([]);
@@ -222,6 +224,9 @@ export default function BattleScreen() {
   const onZone = (z) => {
     if (anim) return;
     if (selectedCard) {
+      // targeting rule: offensive cards hit the ENEMY field, beneficial cards your OWN
+      const wantSide = isOffensiveCard(selectedCard) ? 'e' : 'p';
+      if (z.side !== wantSide) return;
       const t = z.level === 'squad' ? frontOf(allSquads.find((sq) => sq.id === z.squadId)) : frontOf((z.side === 'e' ? snap.enemy : snap.player)[0]);
       if (t) { queueCard(selectedCard.iid, t); setSelId2(null); }
       return;
@@ -305,6 +310,10 @@ export default function BattleScreen() {
     run();
   };
 
+  // flat list of queued actions this turn (for the Plan popup)
+  const unitName = (id) => allSquads.flatMap((s) => s.units).find((u) => u.id === id)?.name || '—';
+  const plannedActions = snap.player.flatMap((sq, i) => (sq.plan || []).map((a) => ({ squadLabel: `Squad ${i + 1}`, card: a.card, targetName: unitName(a.targetId) })));
+
   // ── selection PILL: content is relevant to the current selection level ──
   const sideName = (s) => (s === 'e' ? 'Enemy' : 'Ally');
   const selSquad = sel.squadId ? allSquads.find((sq) => sq.id === sel.squadId) : null;
@@ -313,7 +322,7 @@ export default function BattleScreen() {
   let pill = null;
   if (sel.level === 'unit' && selUnit && selSquad) {
     const arr = sel.side === 'e' ? snap.enemy : snap.player;
-    pill = { kind: 'unit', side: sel.side, title: `${sideName(sel.side)} Squad ${arr.indexOf(selSquad) + 1} ${roleName(selUnit)}` };
+    pill = { kind: 'unit', side: sel.side, title: `${sideName(sel.side)} Squad ${arr.indexOf(selSquad) + 1} ${roleName(selUnit)}`, energy: sel.side === 'p' ? selSquad : null };
   } else if (sel.level === 'squad' && selSquad) {
     const arr = sel.side === 'e' ? snap.enemy : snap.player;
     pill = { kind: 'squad', side: sel.side, title: `${sideName(sel.side)} Squad (${arr.indexOf(selSquad) + 1} of ${arr.length})`, energy: sel.side === 'p' ? selSquad : null };
@@ -350,8 +359,9 @@ export default function BattleScreen() {
           enemy={snap.enemy.map((sq) => ({ ...sq, units: sq.units.map(disp) }))}
           player={snap.player.map((sq) => ({ ...sq, units: sq.units.map(disp) }))}
           sel={sel} onStepUp={stepUp} actingId={anim?.acting} onPick={onTok} onZone={onZone} pickRef={pickRef} fx={fx} drag={d}
-          plays={anim ? [] : snap.player.flatMap((sq) => (sq.plan || []).map((a) => ({ targetId: a.targetId, element: a.card.element, cost: a.card.cost })))}
+          plays={anim ? [] : snap.player.flatMap((sq) => (sq.plan || []).map((a) => ({ targetId: a.targetId, iid: a.card.iid, card: a.card })))}
           handVisible={showHand} handSquadId={handSquad?.id || null}
+          cardFocusSide={selectedCard ? (isOffensiveCard(selectedCard) ? 'e' : 'p') : null}
           hand={showHand ? {
             station: handSquad,
             selectedIid: selId2, dealKey: snap.dealKey, faceDown: handIsEnemy,
@@ -410,11 +420,9 @@ export default function BattleScreen() {
             <button className="bHudBtn" title="Previous" disabled={!canCycle} onClick={() => cycleSel(-1)}><Icon icon="tabler:chevron-left" /></button>
             <div className={`bHudSquad${pill.side === 'e' ? ' foe' : ''}`}>
               <span className="bHudSquadName">{pill.title}</span>
-              {pill.kind === 'squad' && pill.energy && (
+              {(pill.kind === 'squad' || pill.kind === 'unit') && pill.energy && (
                 <span className="bEnergy" title={`${pill.energy.energyLeft} of ${pill.energy.maxEnergy} energy`}>
-                  <Icon icon="tabler:bolt" />
-                  <span className="bEnergyPips">{Array.from({ length: pill.energy.maxEnergy }).map((_, k) => <i key={k} className={k < pill.energy.energyLeft ? 'on' : ''} />)}</span>
-                  <b>{pill.energy.energyLeft}</b>
+                  <Icon icon="tabler:bolt" /><b>{pill.energy.energyLeft}/{pill.energy.maxEnergy}</b>
                 </span>
               )}
               {pill.kind === 'side' && pill.unspent != null && (
@@ -426,10 +434,37 @@ export default function BattleScreen() {
         )}
 
         <div className="bHudCluster right">
-          <button className="bHudBtn" title="Undo last move" disabled={!totalQueued || !!anim} onClick={undoLast}><Icon icon="tabler:arrow-back-up" /></button>
-          <button className="bHudBtn" title="Reset all moves this turn" disabled={!totalQueued || !!anim} onClick={() => setConfirmReset(true)}><Icon icon="tabler:refresh" /></button>
+          <button className={`bHudBtn plan${planOpen ? ' on' : ''}`} title="Planned actions" disabled={!!anim} onClick={() => setPlanOpen((v) => !v)}>
+            <Icon icon="tabler:list-check" /><span>Plan</span>{totalQueued > 0 && <span className="bPlanCount">{totalQueued}</span>}
+          </button>
           <button className="bHudBtn fight" title="Fight — resolve the round" disabled={!!anim || !!snap.outcome} onClick={requestFight}><Icon icon="game-icons:crossed-swords" /><span>Fight</span></button>
         </div>
+
+        {/* PLAN popup — the queued actions this turn + Undo / Redo / Reset (above the buttons) */}
+        {planOpen && !anim && (
+          <div className="bPlanPop" onClick={(e) => e.stopPropagation()}>
+            <div className="bPlanHead">
+              <span><Icon icon="tabler:list-check" /> Planned Actions <em>{totalQueued}</em></span>
+              <button className="bZoomClose sm" onClick={() => setPlanOpen(false)}><Icon icon="tabler:x" /></button>
+            </div>
+            <div className="bPlanList">
+              {plannedActions.length === 0 && <div className="bPlanEmpty">No actions queued. Drag or select a card to plan one.</div>}
+              {plannedActions.map((pa, k) => (
+                <div key={k} className="bPlanRow">
+                  <span className="bPlanSq">{pa.squadLabel}</span>
+                  <span className="bPlanCard" style={{ '--el': elColor(pa.card.element) }}>{pa.card.name}</span>
+                  <Icon icon="tabler:arrow-right" />
+                  <span className="bPlanTgt">{pa.targetName}</span>
+                </div>
+              ))}
+            </div>
+            <div className="bPlanBtns">
+              <button className="bCtl" title="Undo last" disabled={!totalQueued} onClick={undoLast}><Icon icon="tabler:arrow-back-up" /> Undo</button>
+              <button className="bCtl" title="Redo" disabled={!snap.canRedo} onClick={redoLast}><Icon icon="tabler:arrow-forward-up" /> Redo</button>
+              <button className="bCtl danger" title="Reset all" disabled={!totalQueued} onClick={() => { setPlanOpen(false); setConfirmReset(true); }}><Icon icon="tabler:refresh" /> Reset</button>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* the dragged Action Card is now a REAL 3D card mesh in Board3D (DragCard3D),

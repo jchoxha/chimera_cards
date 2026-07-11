@@ -130,7 +130,7 @@ function publish(store) {
     version: (store.version || 0) + 1,
     phase: store.phase, outcome: store.outcome, log: store.log, dealKey: store.dealKey || 0,
     turn: store.turn || 1, logHistory: store.logHistory || [],
-    selectedSquadId,
+    selectedSquadId, canRedo: (store.undone || []).length > 0,
     enemy: state.sides.e.map((id) => squadSnap(store, id, 'e')),
     player: state.sides.p.map((id) => squadSnap(store, id, 'p')),
   };
@@ -204,7 +204,7 @@ function enemyPlan(state, cards) {
 }
 
 export const useBattle = create((set, get) => ({
-  snapshot: null, state: null, plans: {}, cards: {}, seen: new Set(), queueOrder: [], selectedSquadId: null,
+  snapshot: null, state: null, plans: {}, cards: {}, seen: new Set(), queueOrder: [], undone: [], selectedSquadId: null,
   phase: 'plan', outcome: null, log: [], version: 0, dealKey: 0, turn: 1, logHistory: [],
   opponent: aiOpponent,   // multiplayer seam: swap for a network provider (see aiOpponent)
 
@@ -214,7 +214,7 @@ export const useBattle = create((set, get) => ({
   startBattle({ player, enemy }) {
     const { state, cards } = buildBattle(player, enemy);
     startRound(state);
-    const base = { state, cards, seen: new Set(), plans: {}, queueOrder: [], selectedSquadId: state.sides.p[0], phase: 'plan', outcome: null, log: [], version: 0, dealKey: 1, turn: 1, logHistory: [] };
+    const base = { state, cards, seen: new Set(), plans: {}, queueOrder: [], undone: [], selectedSquadId: state.sides.p[0], phase: 'plan', outcome: null, log: [], version: 0, dealKey: 1, turn: 1, logHistory: [] };
     set({ ...base, snapshot: publish({ ...get(), ...base }) });
   },
 
@@ -233,7 +233,7 @@ export const useBattle = create((set, get) => ({
     const plans = { ...s.plans, [sqId]: [...plan, { ownerId: front.id, targetId, card }] };
     const cards = { ...s.cards, [sqId]: { ...pile, hand: pile.hand.filter((c) => c.iid !== handIid) } };
     const queueOrder = [...s.queueOrder, sqId];
-    set({ plans, cards, queueOrder, snapshot: publish({ ...s, plans, cards }) });
+    set({ plans, cards, queueOrder, undone: [], snapshot: publish({ ...s, plans, cards, undone: [] }) });   // a fresh play clears the redo stack
   },
 
   /** Undo the MOST RECENT queued move across all squads (returns its card to hand). */
@@ -247,7 +247,26 @@ export const useBattle = create((set, get) => ({
     const pile = s.cards[sqId] || { hand: [] };
     const plans = { ...s.plans, [sqId]: plan.slice(0, -1) };
     const cards = { ...s.cards, [sqId]: { ...pile, hand: [...pile.hand, last.card] } };
-    set({ plans, cards, queueOrder, snapshot: publish({ ...s, plans, cards }) });
+    const undone = [...(s.undone || []), { sqId, iid: last.card.iid, targetId: last.targetId }];   // remember for REDO
+    set({ plans, cards, queueOrder, undone, snapshot: publish({ ...s, plans, cards, undone }) });
+  },
+
+  /** Redo the most recently undone move (re-queue it onto its original target). */
+  redoLast() {
+    const s = get();
+    if (!(s.undone || []).length) return;
+    const u = s.undone[s.undone.length - 1];
+    const undone = s.undone.slice(0, -1);
+    const squad = s.state.squadsById[u.sqId];
+    const pile = s.cards[u.sqId] || { hand: [] };
+    const card = pile.hand.find((c) => c.iid === u.iid);
+    const plan = s.plans[u.sqId] || [];
+    if (!squad || !card || planCost(plan) + (card.cost ?? 1) > squad.energy) { set({ undone }); return; }
+    const front = liveFrontUnit(s.state, squad);
+    const plans = { ...s.plans, [u.sqId]: [...plan, { ownerId: front.id, targetId: u.targetId, card }] };
+    const cards = { ...s.cards, [u.sqId]: { ...pile, hand: pile.hand.filter((c) => c.iid !== u.iid) } };
+    const queueOrder = [...s.queueOrder, u.sqId];
+    set({ plans, cards, queueOrder, undone, snapshot: publish({ ...s, plans, cards, undone }) });
   },
 
   /** Reset ALL of this turn's queued moves (return every card to its hand). */
@@ -258,7 +277,7 @@ export const useBattle = create((set, get) => ({
     for (const [sqId, plan] of Object.entries(s.plans)) {
       if (plan?.length) { const pile = cards[sqId] || { hand: [] }; cards[sqId] = { ...pile, hand: [...pile.hand, ...plan.map((a) => a.card)] }; }
     }
-    set({ plans: {}, cards, queueOrder: [], snapshot: publish({ ...s, plans: {}, cards }) });
+    set({ plans: {}, cards, queueOrder: [], undone: [], snapshot: publish({ ...s, plans: {}, cards, undone: [] }) });
   },
 
   /** Commit the plan (+ enemy AI) and resolve one simultaneous round. Returns the log

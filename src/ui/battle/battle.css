@@ -361,6 +361,28 @@
 .bHudX { position: absolute; right: -5px; top: -5px; width: 17px; height: 17px; border-radius: 50%;
   background: #b5341f; color: #fff; display: grid; place-items: center; box-shadow: 0 1px 3px #000a; }
 .bHudX iconify-icon { font-size: 11px; }
+.bHudBtn.plan span { font-family: var(--font-display); font-size: 13px; letter-spacing: .04em; }
+.bHudBtn.plan.on { border-color: var(--gold); color: var(--gold-bright); }
+.bPlanCount { position: absolute; right: -5px; top: -5px; min-width: 17px; height: 17px; padding: 0 4px; border-radius: 999px;
+  background: var(--gold-bright); color: #16110a; font: 800 10px var(--font-display); display: grid; place-items: center; box-shadow: 0 1px 3px #000a; }
+/* Plan popup — queued actions above the bottom buttons */
+.bPlanPop { position: absolute; right: 14px; bottom: 62px; z-index: 9; width: min(360px, 82vw); max-height: 46vh; display: flex; flex-direction: column;
+  background: linear-gradient(170deg, #221812, #140d08); border: 1px solid var(--gold-deep); border-radius: 14px; box-shadow: 0 18px 44px #000c;
+  pointer-events: auto; animation: bZoomPop .16s cubic-bezier(.2,1.1,.3,1); overflow: hidden; }
+.bPlanHead { display: flex; align-items: center; gap: 8px; padding: 9px 12px; border-bottom: 1px solid var(--line); font: 700 13px var(--font-display); color: var(--gold-bright); }
+.bPlanHead span { display: inline-flex; align-items: center; gap: 6px; flex: 1; }
+.bPlanHead em { font-style: normal; color: var(--ink-faint); }
+.bPlanList { display: flex; flex-direction: column; gap: 4px; padding: 8px; overflow-y: auto; }
+.bPlanEmpty { color: var(--ink-faint); font-style: italic; font-size: 12px; padding: 10px; text-align: center; }
+.bPlanRow { display: flex; align-items: center; gap: 6px; padding: 6px 9px; border-radius: 8px; background: #ffffff06; font-size: 12px; color: var(--ink-dim); }
+.bPlanRow iconify-icon { color: var(--ink-faint); }
+.bPlanSq { font: 700 10px var(--font-display); text-transform: uppercase; letter-spacing: .04em; color: var(--gold); flex: none; }
+.bPlanCard { font-weight: 700; color: var(--el, var(--cream)); flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.bPlanTgt { color: #e8a893; white-space: nowrap; }
+.bPlanBtns { display: flex; gap: 6px; padding: 8px; border-top: 1px solid var(--line); }
+.bPlanBtns .bCtl { flex: 1; height: 34px; width: auto; font: 700 12px var(--font-display); gap: 4px; display: inline-flex; align-items: center; justify-content: center; }
+.bCtl.danger { color: #f2b3a6; border-color: #7a3226; }
+.bCtl.danger:hover:not(:disabled) { border-color: var(--bad); color: #fff; }
 .bHudBtn.fight { background: linear-gradient(#f0c84a, #c9922e); color: #16110a; border-color: var(--gold-bright);
   box-shadow: 0 3px 0 #7a5a12, 0 5px 12px #0008; padding: 0 15px; }
 .bHudBtn.fight span { font-family: var(--font-display); font-size: 15px; letter-spacing: .04em; }

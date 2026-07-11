@@ -362,17 +362,31 @@ function roundedPolyShape(pts, r) {
   shape.closePath();
   return shape;
 }
-// the squad ZONE shape (local XY, rotated flat later): a rounded trapezoid — NARROW across
-// the front Vanguard row, WIDE across the back Support row — so the field between the front
-// vanguards stays clickable (you're not stuck selecting a squad everywhere).
-function squadZoneShape(side) {
+// convex hull (Andrew's monotone chain) of {x,y} points
+function convexHull(points) {
+  const p = points.slice().sort((a, b) => (a.x - b.x) || (a.y - b.y));
+  if (p.length < 3) return p;
+  const cross = (o, a, b) => (a.x - o.x) * (b.y - o.y) - (a.y - o.y) * (b.x - o.x);
+  const lower = []; for (const q of p) { while (lower.length >= 2 && cross(lower[lower.length - 2], lower[lower.length - 1], q) <= 0) lower.pop(); lower.push(q); }
+  const upper = []; for (let i = p.length - 1; i >= 0; i--) { const q = p[i]; while (upper.length >= 2 && cross(upper[upper.length - 2], upper[upper.length - 1], q) <= 0) upper.pop(); upper.push(q); }
+  lower.pop(); upper.pop();
+  return lower.concat(upper);
+}
+// The squad ZONE shape (local XY, rotated flat later): the rounded convex HULL of the
+// squad's OCCUPIED slots (+padding). A 1-creature squad is a small rounded rect; a full
+// squad is the wide vanguard→supports hull — so the shape reflects its actual members.
+function squadZoneShapeFor(side, occ) {
   const cz = (LAYOUT.frontZ[side] + LAYOUT.backZ[side]) / 2;
-  const narrowY = cz - LAYOUT.frontZ[side];   // local +y = world -z; front row
-  const wideY = cz - LAYOUT.backZ[side];
-  const pad = SLOT_H / 2 + 0.12;
-  const nY = narrowY + Math.sign(narrowY) * pad, wY = wideY + Math.sign(wideY) * pad;
-  const nH = SLOT_W / 2 + 0.28, wH = SUPP_DX + SLOT_W / 2 + 0.28;
-  return roundedPolyShape([{ x: -nH, y: nY }, { x: nH, y: nY }, { x: wH, y: wY }, { x: -wH, y: wY }], 0.4);
+  const fY = cz - LAYOUT.frontZ[side], bY = cz - LAYOUT.backZ[side];   // local +y = world -z
+  const px = SLOT_W / 2 + 0.26, py = SLOT_H / 2 + 0.22;
+  const centers = [];
+  if (occ.front) centers.push([0, fY]);
+  if (occ.supp0) centers.push([-SUPP_DX, bY]);
+  if (occ.supp1) centers.push([SUPP_DX, bY]);
+  if (!centers.length) centers.push([0, fY]);
+  const pts = [];
+  centers.forEach(([x, y]) => { pts.push({ x: x - px, y: y - py }, { x: x + px, y: y - py }, { x: x + px, y: y + py }, { x: x - px, y: y + py }); });
+  return roundedPolyShape(convexHull(pts), 0.4);
 }
 
 // ── Playmat (Yu-Gi-Oh-style): labelled slot outlines under every squad + creature ──
@@ -563,7 +577,16 @@ const fieldExtent = (side, n) => {
  *  hovered sub-section (a squad within the selected field, or a hovered field). Creatures
  *  sit above these planes so a creature click/hover wins (nearest-first + stopPropagation). */
 const _sqGeo = {};
-function squadZoneGeo(side) { if (!_sqGeo[side]) _sqGeo[side] = new THREE.ShapeGeometry(squadZoneShape(side)); return _sqGeo[side]; }
+function occupancyOf(sq) {
+  const front = sq.units.some((u) => u.isFront);
+  const supp = sq.units.filter((u) => !u.isFront);
+  return { front, supp0: !!supp[0], supp1: !!supp[1] };
+}
+function squadZoneGeo(side, occ) {
+  const key = `${side}${occ.front ? 1 : 0}${occ.supp0 ? 1 : 0}${occ.supp1 ? 1 : 0}`;
+  if (!_sqGeo[key]) _sqGeo[key] = new THREE.ShapeGeometry(squadZoneShapeFor(side, occ));
+  return _sqGeo[key];
+}
 const _fieldGeo = {};
 function fieldTintGeo(side, n) {
   const k = `${side}${n}`;
@@ -598,7 +621,7 @@ function Zones({ enemy, player, effSel, hover, onZone, onHover }) {
           const cx = squadX(i, n);
           const sqHov = hover?.level === 'squad' && hover.squadId === sq.id;
           return (
-            <mesh key={sq.id} position={[cx, 0.009, cz]} rotation={[-Math.PI / 2, 0, 0]} geometry={squadZoneGeo(side)}
+            <mesh key={sq.id} position={[cx, 0.009, cz]} rotation={[-Math.PI / 2, 0, 0]} geometry={squadZoneGeo(side, occupancyOf(sq))}
               onPointerDown={(e) => { e.stopPropagation(); onZone({ level: 'squad', side, squadId: sq.id }); }}
               onPointerOver={(e) => { e.stopPropagation(); onHover({ level: 'squad', side, squadId: sq.id }); }}
               onPointerOut={() => onHover(null)}>
@@ -652,9 +675,21 @@ function Side({ squads, side, effSel, hover, actingId, onPick, onOver, registerM
   });
 }
 
-/** Queued PLAYS shown on their targets: a fanned row of small element-tinted chips (one
- *  per card played, with its cost) laid just beyond each targeted creature's card, so you
- *  can see at a glance what has been committed and on whom. */
+/** One queued PLAY shown as a small REAL card face (baked) laid in front of its target. */
+function PlayedChip({ card, x }) {
+  const tex = useActionCardTexture(card);
+  const w = 0.58, h = w * (HAND_CARD_H / HAND_CARD_W);
+  return (
+    <mesh position={[x, -(CARD_H * 0.5) - h / 2 - 0.02, 0]} renderOrder={7}>
+      <planeGeometry args={[w, h]} />
+      {tex
+        ? <meshBasicMaterial key="t" map={tex} depthTest={false} toneMapped={false} />
+        : <meshBasicMaterial key="c" color={elColor(card.element)} depthTest={false} toneMapped={false} />}
+    </mesh>
+  );
+}
+/** Queued PLAYS on their targets: a fanned row of small REAL card faces laid just in front
+ *  of each targeted creature, so you can see what's been committed and on whom. */
 function PlayedMarkers({ plays, unitPos }) {
   const byTarget = new Map();
   (plays || []).forEach((pl) => { const a = byTarget.get(pl.targetId) || []; a.push(pl); byTarget.set(pl.targetId, a); });
@@ -662,18 +697,8 @@ function PlayedMarkers({ plays, unitPos }) {
   byTarget.forEach((cards, tid) => {
     const pos = unitPos.get(tid); if (!pos) return;
     out.push(
-      <group key={tid} position={[pos.x, 0.06, pos.z]} rotation={[-Math.PI / 2, 0, 0]}>
-        {cards.map((c, i) => {
-          const off = i - (cards.length - 1) / 2;
-          return (
-            <group key={i} position={[off * 0.4, -(CARD_H * 0.5 + 0.32), 0.02]}>
-              <mesh renderOrder={5}><planeGeometry args={[0.5, 0.36]} /><meshBasicMaterial color="#0c0805" transparent opacity={0.9} depthTest={false} depthWrite={false} toneMapped={false} /></mesh>
-              <mesh position={[0, 0, 0.001]} renderOrder={6}><planeGeometry args={[0.5, 0.11]} /><meshBasicMaterial color={elColor(c.element)} depthTest={false} depthWrite={false} toneMapped={false} /></mesh>
-              <mesh position={[0, 0, 0.0005]} renderOrder={6}><planeGeometry args={[0.5, 0.36]} /><meshBasicMaterial color={elColor(c.element)} transparent opacity={0.18} depthTest={false} depthWrite={false} toneMapped={false} /></mesh>
-              <Label text={`${c.cost}`} position={[0, -0.05, 0.004]} width={0.28} color="#ffffff" px={40} />
-            </group>
-          );
-        })}
+      <group key={tid} position={[pos.x, 0.07, pos.z]} rotation={[-Math.PI / 2, 0, 0]}>
+        {cards.map((c, i) => <PlayedChip key={c.iid || i} card={c.card || c} x={(i - (cards.length - 1) / 2) * 0.46} />)}
       </group>,
     );
   });
@@ -735,7 +760,7 @@ function viewFor(sel, maps, actingId, handV) {
   return { x: 0, y: 0.2, z: -0.2, dist: 12.4, pol: FIELD_POL };   // whole field
 }
 
-export default function Board3D({ enemy, player, sel, actingId, onPick, onZone, onStepUp, pickRef, hand, fx, drag, plays, handVisible, handSquadId }) {
+export default function Board3D({ enemy, player, sel, actingId, onPick, onZone, onStepUp, pickRef, hand, fx, drag, plays, handVisible, handSquadId, cardFocusSide }) {
   const [hover, setHover] = useState(null);   // { level, side, squadId?, unitId? } under the pointer
   const orbit = useOrbit();
   const meshes = useRef(new Map());
@@ -770,9 +795,9 @@ export default function Board3D({ enemy, player, sel, actingId, onPick, onZone, 
   // it does NOT zoom to squads/creatures. The gold highlight follows the scope (drag.hi).
   const camSel = dragging
     ? (drag.scopeLevel === 'board' ? { level: 'field' } : { level: 'side', side: drag.wantSide || 'e' })
-    : sel;
+    : (cardFocusSide ? { level: 'side', side: cardFocusSide } : sel);   // selecting a card frames the target field
   const effSel = dragging ? (drag.hi || { level: 'side', side: drag.wantSide || 'e' }) : sel;
-  const view = viewFor(camSel, maps, actingId, handVisible && !dragging);
+  const view = viewFor(camSel, maps, actingId, handVisible && !dragging && !cardFocusSide);
   // on camera-selection change: recentre WASD roam + reframe (tilt + zoom reset). az → 0.
   const selKey = `${camSel.level}:${camSel.side || ''}:${camSel.squadId || ''}:${camSel.unitId || ''}`;
   useEffect(() => {
