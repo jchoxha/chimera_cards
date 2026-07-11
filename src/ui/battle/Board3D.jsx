@@ -500,8 +500,12 @@ function SquadPlaymat({ side, squads, sq, i, on }) {
   if (front) occupied.push({ ...s.front, role: 'Vanguard', z0: vanZ });
   if (supp[0]) occupied.push({ ...s.supp0, role: 'Support', z0: supZ });
   if (supp[1]) occupied.push({ ...s.supp1, role: 'Support', z0: supZ });
+  const zoneShape = useMemo(() => squadZoneShapeFor(side, { front: !!front, supp0: !!supp[0], supp1: !!supp[1] }), [side, front, supp]);
+  const cz = (LAYOUT.frontZ[side] + LAYOUT.backZ[side]) / 2;
   return (
     <group>
+      {/* dashed SQUAD outline (matches the creature-slot dashes) */}
+      <DashedOutline shape={zoneShape} cx={s.cx} cz={cz} color={col} opacity={on ? 0.75 : 0.32} />
       {occupied.map((sl, j) => (
         <group key={j}>
           <mesh position={[sl.x, 0.004, sl.z]} rotation={[-Math.PI / 2, 0, 0]}>
@@ -520,13 +524,17 @@ function SquadPlaymat({ side, squads, sq, i, on }) {
 function Playmat({ enemy, player, sel }) {
   return (
     <group>
+      {[['e', enemy], ['p', player]].map(([side, squads]) => {
+        const fe = fieldExtent(side, squads.length);
+        const on = sel.level === 'side' && sel.side === side;
+        return <DashedOutline key={`f${side}`} shape={fieldShapeOf(side, squads.length)} cx={0} cz={fe.cz} color={side === 'e' ? '#d68f74' : '#e6c079'} opacity={on ? 0.6 : 0.2} />;
+      })}
       {enemy.map((sq, i) => <SquadPlaymat key={sq.id} side="e" squads={enemy} sq={sq} i={i} on={squadIsOn(sel, 'e', sq.id)} />)}
       {player.map((sq, i) => <SquadPlaymat key={sq.id} side="p" squads={player} sq={sq} i={i} on={squadIsOn(sel, 'p', sq.id)} />)}
     </group>
   );
 }
 
-const pileSlotGeo = new THREE.ShapeGeometry(roundedPolyShape([{ x: -1.75, y: -0.55 }, { x: 1.75, y: -0.55 }, { x: 1.75, y: 0.55 }, { x: -1.75, y: 0.55 }], 0.3));
 // A small flat card STACK lying on the table (deck/discard/exhaust) with a count label.
 function MiniStack({ x, z, count, color, top, label, dir }) {
   const n = Math.max(1, Math.min(14, count));
@@ -552,30 +560,30 @@ function FieldPiles({ enemy, player, skipId }) {
   return [['e', enemy], ['p', player]].map(([side, squads]) => {
     const n = squads.length;
     const dir = side === 'p' ? 1 : -1;                 // "behind" = away from the field centre
-    const bz = LAYOUT.backZ[side] + dir * 1.35;
+    const bz = LAYOUT.backZ[side] + dir * 2.5;         // well behind the back row (clears the squad label)
     return squads.map((sq, i) => {
       if (sq.id === skipId) return null;
       const cx = squadX(i, n);
       const handN = side === 'p' ? (sq.hand?.length || 0) : (sq.handCount || 0);
+      const inPlayN = (sq.plan?.length) || 0;
+      // laid out like the hand overlay: Deck · In-Play on the left, HAND in the middle,
+      // Discard · Exhaust on the right.
       return (
         <group key={sq.id}>
-          {/* labelled slot backing */}
-          <mesh position={[cx, 0.028, bz]} rotation={[-Math.PI / 2, 0, 0]} geometry={pileSlotGeo}>
-            <meshBasicMaterial color="#150d07" transparent opacity={0.5} depthWrite={false} />
-          </mesh>
-          <MiniStack x={cx - 1.0} z={bz} count={sq.deckCount || 0} color="#33240f" top={back} label="Deck" dir={dir} />
-          <MiniStack x={cx - 0.38} z={bz} count={sq.discardCount || 0} color="#241528" top={null} label="Disc" dir={dir} />
-          <MiniStack x={cx + 0.24} z={bz} count={sq.exhaustCount || 0} color="#241228" top={null} label="Exh" dir={dir} />
-          {/* a small face-down hand fan */}
+          <MiniStack x={cx - 1.7} z={bz} count={sq.deckCount || 0} color="#33240f" top={back} label="Deck" dir={dir} />
+          <MiniStack x={cx - 1.1} z={bz} count={inPlayN} color="#243a1a" top={null} label="Play" dir={dir} />
+          {/* face-down HAND fan in the middle */}
           {Array.from({ length: Math.min(6, handN) }).map((_, k) => {
-            const off = k - (Math.min(6, handN) - 1) / 2;
+            const m = Math.min(6, handN); const off = k - (m - 1) / 2;
             return (
-              <mesh key={k} position={[cx + 1.0 + off * 0.12, 0.05 + k * 0.004, bz]} rotation={[-Math.PI / 2, 0, off * 0.12]}>
+              <mesh key={k} position={[cx + off * 0.16, 0.05 + k * 0.004, bz]} rotation={[-Math.PI / 2, 0, off * 0.14]}>
                 <planeGeometry args={[0.42, 0.58]} /><meshBasicMaterial map={back} toneMapped={false} />
               </mesh>
             );
           })}
-          <GroundLabel text={`Hand ${handN}`} x={cx + 1.0} z={bz + dir * 0.62} w={1.0} color="#c9a66b" px={34} opacity={0.85} />
+          <GroundLabel text={`Hand ${handN}`} x={cx} z={bz + dir * 0.6} w={1.0} color="#c9a66b" px={34} opacity={0.85} />
+          <MiniStack x={cx + 1.1} z={bz} count={sq.discardCount || 0} color="#241528" top={null} label="Disc" dir={dir} />
+          <MiniStack x={cx + 1.7} z={bz} count={sq.exhaustCount || 0} color="#241228" top={null} label="Exh" dir={dir} />
         </group>
       );
     });
@@ -608,6 +616,28 @@ function fieldTintGeo(side, n) {
   if (!_fieldGeo[k]) { const fe = fieldExtent(side, n); const hx = fe.halfX, hz = fe.dz / 2;
     _fieldGeo[k] = new THREE.ShapeGeometry(roundedPolyShape([{ x: -hx, y: -hz }, { x: hx, y: -hz }, { x: hx, y: hz }, { x: -hx, y: hz }], 0.9)); }
   return _fieldGeo[k];
+}
+/** A dashed outline of a THREE.Shape laid flat on the table (for squad + field borders,
+ *  matching the creature-slot dashes). Shape local (x,y) → world (cx+x, y, cz - y). */
+function DashedOutline({ shape, cx, cz, color, opacity = 0.5 }) {
+  const ref = useRef();
+  const geo = useMemo(() => {
+    const pts = shape.getPoints(80).map((p) => new THREE.Vector3(p.x, 0, -p.y));
+    return new THREE.BufferGeometry().setFromPoints(pts);
+  }, [shape]);
+  useEffect(() => { ref.current?.computeLineDistances(); }, [geo]);
+  return (
+    <lineLoop ref={ref} geometry={geo} position={[cx, 0.02, cz]}>
+      <lineDashedMaterial color={color} dashSize={0.16} gapSize={0.12} transparent opacity={opacity} depthWrite={false} />
+    </lineLoop>
+  );
+}
+const _fieldShape = {};
+function fieldShapeOf(side, n) {
+  const k = `${side}${n}`;
+  if (!_fieldShape[k]) { const fe = fieldExtent(side, n); const hx = fe.halfX, hz = fe.dz / 2;
+    _fieldShape[k] = roundedPolyShape([{ x: -hx, y: -hz }, { x: hx, y: -hz }, { x: hx, y: hz }, { x: -hx, y: hz }], 0.9); }
+  return _fieldShape[k];
 }
 function Zones({ enemy, player, effSel, hover, onZone, onHover }) {
   return [['e', enemy], ['p', player]].map(([side, squads]) => {
@@ -690,30 +720,44 @@ function Side({ squads, side, effSel, hover, actingId, onPick, onOver, registerM
   });
 }
 
-/** One queued PLAY shown as a small REAL card face (baked) laid in front of its target. */
-function PlayedChip({ card, x }) {
+const PLAY_W = 0.62, PLAY_H = PLAY_W * (HAND_CARD_H / HAND_CARD_W);
+/** One queued PLAY as a small REAL card face (baked). */
+function PlayedChip({ card, x, z }) {
   const tex = useActionCardTexture(card);
-  const w = 0.58, h = w * (HAND_CARD_H / HAND_CARD_W);
   return (
-    <mesh position={[x, -(CARD_H * 0.5) - h / 2 - 0.02, 0]} renderOrder={7}>
-      <planeGeometry args={[w, h]} />
+    <mesh position={[x, 0, z]} renderOrder={8}>
+      <planeGeometry args={[PLAY_W, PLAY_H]} />
       {tex
         ? <meshBasicMaterial key="t" map={tex} depthTest={false} toneMapped={false} />
         : <meshBasicMaterial key="c" color={elColor(card.element)} depthTest={false} toneMapped={false} />}
     </mesh>
   );
 }
-/** Queued PLAYS on their targets: a fanned row of small REAL card faces laid just in front
- *  of each targeted creature, so you can see what's been committed and on whom. */
-function PlayedMarkers({ plays, unitPos }) {
+/** Queued PLAYS on their targets: a semi-overlapping HAND of the real card faces piled in
+ *  front of the targeted creature, an ARROW pointing at the creature, and clickable to
+ *  inspect the full list. */
+function PlayedMarkers({ plays, unitPos, onInspect }) {
   const byTarget = new Map();
   (plays || []).forEach((pl) => { const a = byTarget.get(pl.targetId) || []; a.push(pl); byTarget.set(pl.targetId, a); });
   const out = [];
   byTarget.forEach((cards, tid) => {
     const pos = unitPos.get(tid); if (!pos) return;
+    const list = cards.map((c) => c.card || c);
+    const baseY = -(CARD_H * 0.5) - PLAY_H / 2 - 0.06;   // just in front of the target card
     out.push(
       <group key={tid} position={[pos.x, 0.07, pos.z]} rotation={[-Math.PI / 2, 0, 0]}>
-        {cards.map((c, i) => <PlayedChip key={c.iid || i} card={c.card || c} x={(i - (cards.length - 1) / 2) * 0.46} />)}
+        {/* arrow pointing from the pile up to the target creature */}
+        <mesh position={[0, baseY + PLAY_H / 2 + 0.14, 0]}><boxGeometry args={[0.05, 0.22, 0.01]} /><meshBasicMaterial color="#ffd24a" depthTest={false} /></mesh>
+        <mesh position={[0, baseY + PLAY_H / 2 + 0.3, 0]} rotation={[0, 0, 0]}><coneGeometry args={[0.1, 0.16, 3]} /><meshBasicMaterial color="#ffd24a" depthTest={false} /></mesh>
+        {/* the semi-overlapping card fan */}
+        <group position={[0, baseY, 0]}>
+          {list.map((card, i) => <PlayedChip key={i} card={card} x={(i - (list.length - 1) / 2) * 0.26} z={i * 0.002} />)}
+        </group>
+        {/* clickable hitbox → inspect the pile */}
+        <mesh position={[0, baseY, 0.02]} renderOrder={9}
+          onPointerDown={(e) => { e.stopPropagation(); onInspect?.({ title: 'Played on this creature', cards: list }); }}>
+          <planeGeometry args={[list.length * 0.26 + PLAY_W, PLAY_H + 0.1]} /><meshBasicMaterial transparent opacity={0} depthTest={false} depthWrite={false} />
+        </mesh>
       </group>,
     );
   });
@@ -775,7 +819,7 @@ function viewFor(sel, maps, actingId, handV) {
   return { x: 0, y: 0.2, z: -0.2, dist: 12.4, pol: FIELD_POL };   // whole field
 }
 
-export default function Board3D({ enemy, player, sel, actingId, onPick, onZone, onStepUp, pickRef, validRef, hand, fx, drag, plays, handVisible, handSquadId, cardFocusSide }) {
+export default function Board3D({ enemy, player, sel, actingId, onPick, onZone, onStepUp, pickRef, validRef, hand, fx, drag, plays, handVisible, handSquadId, cardFocusSide, onInspectPlays }) {
   const [hover, setHover] = useState(null);   // { level, side, squadId?, unitId? } under the pointer
   const orbit = useOrbit();
   const meshes = useRef(new Map());
@@ -840,7 +884,7 @@ export default function Board3D({ enemy, player, sel, actingId, onPick, onZone, 
       <Zones enemy={enemy} player={player} effSel={effSel} hover={hover} onZone={onZone} onHover={setHover} />
       <Side squads={enemy} side="e" effSel={effSel} hover={hover} actingId={actingId} onPick={onPick} onOver={onOverUnit} registerMesh={registerMesh} />
       <Side squads={player} side="p" effSel={effSel} hover={hover} actingId={actingId} onPick={onPick} onOver={onOverUnit} registerMesh={registerMesh} />
-      {!dragging && <PlayedMarkers plays={plays} unitPos={maps.unitPos} />}
+      {!dragging && <PlayedMarkers plays={plays} unitPos={maps.unitPos} onInspect={onInspectPlays} />}
       {hand && <HandDock3D {...hand} draggingIid={drag?.iid || null} />}
       {drag?.card && <DragCard3D card={drag.card} sx={drag.x} sy={drag.y} over={!!drag.over} />}
       <FxLayer items={fx} meshes={meshes} />

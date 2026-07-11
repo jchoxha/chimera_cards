@@ -367,6 +367,7 @@ export default function BattleScreen() {
           plays={anim ? [] : snap.player.flatMap((sq) => (sq.plan || []).map((a) => ({ targetId: a.targetId, iid: a.card.iid, card: a.card })))}
           handVisible={showHand} handSquadId={handSquad?.id || null}
           cardFocusSide={selectedCard ? (isOffensiveCard(selectedCard) ? 'e' : 'p') : null}
+          onInspectPlays={setInspect}
           hand={showHand ? {
             station: handSquad,
             selectedIid: selId2, dealKey: snap.dealKey, faceDown: handIsEnemy,
