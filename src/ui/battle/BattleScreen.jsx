@@ -364,10 +364,8 @@ export default function BattleScreen() {
           enemy={snap.enemy.map((sq) => ({ ...sq, units: sq.units.map(disp) }))}
           player={snap.player.map((sq) => ({ ...sq, units: sq.units.map(disp) }))}
           sel={sel} onStepUp={stepUp} actingId={anim?.acting} onPick={onTok} onZone={onZone} pickRef={pickRef} validRef={validRef} fx={fx} drag={d}
-          plays={anim ? [] : snap.player.flatMap((sq) => (sq.plan || []).map((a) => ({ targetId: a.targetId, iid: a.card.iid, card: a.card })))}
           handVisible={showHand} handSquadId={handSquad?.id || null}
           cardFocusSide={selectedCard ? (isOffensiveCard(selectedCard) ? 'e' : 'p') : null}
-          onInspectPlays={setInspect}
           hand={showHand ? {
             station: handSquad,
             selectedIid: selId2, dealKey: snap.dealKey, faceDown: handIsEnemy,

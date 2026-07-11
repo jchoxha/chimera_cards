@@ -11,14 +11,13 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Canvas, useFrame, useThree } from '@react-three/fiber';
 import * as THREE from 'three';
-import HandDock3D, { useActionCardTexture, HAND_CARD_W, HAND_CARD_H } from './HandDock3D.jsx';
-import { creatureColor, ATTUNEMENT_COLOR } from '../../data/axisIcons.js';
+import HandDock3D, { useActionCardTexture, HAND_CARD_W, HAND_CARD_H, RO_OVERLAY } from './HandDock3D.jsx';
+import { creatureColor } from '../../data/axisIcons.js';
 import { creatureArt } from '../../data/artPool.js';
 import { sizedPortrait } from '../../data/sizeArt.js';
 import { drawCreatureFace, makeFaceTexture, cardBackTexture } from './cardArt3d.js';
 
 const CARD_W = 1.12, CARD_H = 1.54;
-const elColor = (el) => ATTUNEMENT_COLOR[el] || '#c9a66b';
 
 // Shared squad layout (used by the board AND the camera rig so focusing lines up).
 // Cards lie FLAT so the front/back rows need generous Z separation (a card is CARD_H
@@ -536,18 +535,21 @@ function Playmat({ enemy, player, sel }) {
 }
 
 // A small flat card STACK lying on the table (deck/discard/exhaust) with a count label.
+// depthTest off + a renderOrder above the ground labels/dashes so the on-field cards always
+// sit OVER the section labels + outlines (they must never be hidden behind them).
+const RO_FIELDPILE = 12;
 function MiniStack({ x, z, count, color, top, label, dir }) {
   const n = Math.max(1, Math.min(14, count));
   const w = 0.5, h = 0.68;
   return (
     <group position={[x, 0.04, z]}>
       {Array.from({ length: n }).map((_, i) => (
-        <mesh key={i} position={[0, i * 0.013, 0]} rotation={[-Math.PI / 2, 0, 0]}>
+        <mesh key={i} position={[0, i * 0.013, 0]} rotation={[-Math.PI / 2, 0, 0]} renderOrder={RO_FIELDPILE + i}>
           <boxGeometry args={[w, h, 0.012]} />
-          <meshStandardMaterial color={count ? color : '#20160d'} roughness={0.7} metalness={0.12} transparent={!count} opacity={count ? 1 : 0.4} />
+          <meshStandardMaterial color={count ? color : '#20160d'} roughness={0.7} metalness={0.12} transparent opacity={count ? 1 : 0.4} depthTest={false} depthWrite={false} />
         </mesh>
       ))}
-      {top && count > 0 && <mesh position={[0, n * 0.013 + 0.006, 0]} rotation={[-Math.PI / 2, 0, 0]}><planeGeometry args={[w, h]} /><meshBasicMaterial map={top} toneMapped={false} /></mesh>}
+      {top && count > 0 && <mesh position={[0, n * 0.013 + 0.006, 0]} rotation={[-Math.PI / 2, 0, 0]} renderOrder={RO_FIELDPILE + n + 1}><planeGeometry args={[w, h]} /><meshBasicMaterial map={top} transparent depthTest={false} depthWrite={false} toneMapped={false} /></mesh>}
       <GroundLabel text={`${label} ${count}`} x={x} z={z + dir * 0.62} w={1.0} color="#c9a66b" px={34} opacity={0.85} />
     </group>
   );
@@ -576,8 +578,8 @@ function FieldPiles({ enemy, player, skipId }) {
           {Array.from({ length: Math.min(6, handN) }).map((_, k) => {
             const m = Math.min(6, handN); const off = k - (m - 1) / 2;
             return (
-              <mesh key={k} position={[cx + off * 0.16, 0.05 + k * 0.004, bz]} rotation={[-Math.PI / 2, 0, off * 0.14]}>
-                <planeGeometry args={[0.42, 0.58]} /><meshBasicMaterial map={back} toneMapped={false} />
+              <mesh key={k} position={[cx + off * 0.16, 0.05 + k * 0.004, bz]} rotation={[-Math.PI / 2, 0, off * 0.14]} renderOrder={RO_FIELDPILE + k}>
+                <planeGeometry args={[0.42, 0.58]} /><meshBasicMaterial map={back} transparent depthTest={false} depthWrite={false} toneMapped={false} />
               </mesh>
             );
           })}
@@ -590,10 +592,16 @@ function FieldPiles({ enemy, player, skipId }) {
   });
 }
 
+// The field must strictly CONTAIN every squad zone (a lower-level border must never poke
+// outside a higher-level one). Squad zones pad each slot by (pxSq,pySq) around the hull, so
+// the field is that same padding + an extra margin bigger than the rounded-corner pull-in.
+const SQ_PX = SLOT_W / 2 + 0.26, SQ_PY = SLOT_H / 2 + 0.22;   // squad-zone slot padding (see squadZoneShapeFor)
+const FIELD_MARGIN = 0.55;
 const fieldExtent = (side, n) => {
-  const halfX = squadX(n - 1, n) + SUPP_DX + SLOT_W * 0.6;
+  const halfX = squadX(n - 1, n) + SUPP_DX + SQ_PX + FIELD_MARGIN;   // widest squad hull + margin
   const z0 = LAYOUT.frontZ[side], z1 = LAYOUT.backZ[side];
-  return { halfX, cz: (z0 + z1) / 2, dz: Math.abs(z1 - z0) + SLOT_H + 0.9 };
+  const halfZ = Math.abs(z1 - z0) / 2 + SQ_PY + FIELD_MARGIN;        // front/back slot padding + margin
+  return { halfX, cz: (z0 + z1) / 2, dz: halfZ * 2 };
 };
 /** Invisible ground ZONES you click to DIRECTLY select a whole field or a squad (no
  *  drill-down). A subtle tint shows the selected field; a brighter CYAN tint shows the
@@ -720,50 +728,6 @@ function Side({ squads, side, effSel, hover, actingId, onPick, onOver, registerM
   });
 }
 
-const PLAY_W = 0.62, PLAY_H = PLAY_W * (HAND_CARD_H / HAND_CARD_W);
-/** One queued PLAY as a small REAL card face (baked). */
-function PlayedChip({ card, x, z }) {
-  const tex = useActionCardTexture(card);
-  return (
-    <mesh position={[x, 0, z]} renderOrder={8}>
-      <planeGeometry args={[PLAY_W, PLAY_H]} />
-      {tex
-        ? <meshBasicMaterial key="t" map={tex} depthTest={false} toneMapped={false} />
-        : <meshBasicMaterial key="c" color={elColor(card.element)} depthTest={false} toneMapped={false} />}
-    </mesh>
-  );
-}
-/** Queued PLAYS on their targets: a semi-overlapping HAND of the real card faces piled in
- *  front of the targeted creature, an ARROW pointing at the creature, and clickable to
- *  inspect the full list. */
-function PlayedMarkers({ plays, unitPos, onInspect }) {
-  const byTarget = new Map();
-  (plays || []).forEach((pl) => { const a = byTarget.get(pl.targetId) || []; a.push(pl); byTarget.set(pl.targetId, a); });
-  const out = [];
-  byTarget.forEach((cards, tid) => {
-    const pos = unitPos.get(tid); if (!pos) return;
-    const list = cards.map((c) => c.card || c);
-    const baseY = -(CARD_H * 0.5) - PLAY_H / 2 - 0.06;   // just in front of the target card
-    out.push(
-      <group key={tid} position={[pos.x, 0.07, pos.z]} rotation={[-Math.PI / 2, 0, 0]}>
-        {/* arrow pointing from the pile up to the target creature */}
-        <mesh position={[0, baseY + PLAY_H / 2 + 0.14, 0]}><boxGeometry args={[0.05, 0.22, 0.01]} /><meshBasicMaterial color="#ffd24a" depthTest={false} /></mesh>
-        <mesh position={[0, baseY + PLAY_H / 2 + 0.3, 0]} rotation={[0, 0, 0]}><coneGeometry args={[0.1, 0.16, 3]} /><meshBasicMaterial color="#ffd24a" depthTest={false} /></mesh>
-        {/* the semi-overlapping card fan */}
-        <group position={[0, baseY, 0]}>
-          {list.map((card, i) => <PlayedChip key={i} card={card} x={(i - (list.length - 1) / 2) * 0.26} z={i * 0.002} />)}
-        </group>
-        {/* clickable hitbox → inspect the pile */}
-        <mesh position={[0, baseY, 0.02]} renderOrder={9}
-          onPointerDown={(e) => { e.stopPropagation(); onInspect?.({ title: 'Played on this creature', cards: list }); }}>
-          <planeGeometry args={[list.length * 0.26 + PLAY_W, PLAY_H + 0.1]} /><meshBasicMaterial transparent opacity={0} depthTest={false} depthWrite={false} />
-        </mesh>
-      </group>,
-    );
-  });
-  return out;
-}
-
 /** The lifted 3D Action Card during a hand drag: a real world-space card mesh that
  *  follows the pointer THROUGH the scene (unprojected onto a plane above the table),
  *  faces the camera, and draws over everything. Green-tinted while over a valid target. */
@@ -788,13 +752,14 @@ function DragCard3D({ card, sx, sy, over }) {
     g.quaternion.copy(camera.quaternion);   // billboard toward the camera
   });
   const tint = over ? new THREE.Color(0.6, 1, 0.72) : new THREE.Color(1, 1, 1);
+  const RO = RO_OVERLAY + 40;   // the lifted drag card floats above even the hand shelf
   return (
-    <group ref={grp} renderOrder={60}>
-      <mesh position={[0, 0, -0.01]} renderOrder={59}>
+    <group ref={grp} renderOrder={RO}>
+      <mesh position={[0, 0, -0.01]} renderOrder={RO - 1}>
         <planeGeometry args={[HAND_CARD_W * 1.62, HAND_CARD_H * 1.62]} />
         <meshBasicMaterial color={over ? '#7CFF9B' : '#f0c84a'} transparent opacity={0.9} depthTest={false} depthWrite={false} toneMapped={false} />
       </mesh>
-      <mesh renderOrder={60}>
+      <mesh renderOrder={RO}>
         <planeGeometry args={[HAND_CARD_W * 1.5, HAND_CARD_H * 1.5]} />
         {tex
           ? <meshBasicMaterial map={tex} color={tint} transparent depthTest={false} depthWrite={false} toneMapped={false} />
@@ -819,7 +784,7 @@ function viewFor(sel, maps, actingId, handV) {
   return { x: 0, y: 0.2, z: -0.2, dist: 12.4, pol: FIELD_POL };   // whole field
 }
 
-export default function Board3D({ enemy, player, sel, actingId, onPick, onZone, onStepUp, pickRef, validRef, hand, fx, drag, plays, handVisible, handSquadId, cardFocusSide, onInspectPlays }) {
+export default function Board3D({ enemy, player, sel, actingId, onPick, onZone, onStepUp, pickRef, validRef, hand, fx, drag, handVisible, handSquadId, cardFocusSide }) {
   const [hover, setHover] = useState(null);   // { level, side, squadId?, unitId? } under the pointer
   const orbit = useOrbit();
   const meshes = useRef(new Map());
@@ -884,7 +849,6 @@ export default function Board3D({ enemy, player, sel, actingId, onPick, onZone, 
       <Zones enemy={enemy} player={player} effSel={effSel} hover={hover} onZone={onZone} onHover={setHover} />
       <Side squads={enemy} side="e" effSel={effSel} hover={hover} actingId={actingId} onPick={onPick} onOver={onOverUnit} registerMesh={registerMesh} />
       <Side squads={player} side="p" effSel={effSel} hover={hover} actingId={actingId} onPick={onPick} onOver={onOverUnit} registerMesh={registerMesh} />
-      {!dragging && <PlayedMarkers plays={plays} unitPos={maps.unitPos} onInspect={onInspectPlays} />}
       {hand && <HandDock3D {...hand} draggingIid={drag?.iid || null} />}
       {drag?.card && <DragCard3D card={drag.card} sx={drag.x} sy={drag.y} over={!!drag.over} />}
       <FxLayer items={fx} meshes={meshes} />

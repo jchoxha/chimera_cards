@@ -48,6 +48,9 @@ export function useActionCardTexture(card) {
 
 export const HAND_CARD_W = 0.74, HAND_CARD_H = 1.03;
 const CARD_W = HAND_CARD_W, CARD_H = HAND_CARD_H;
+// The camera-shelf overlay renders ABOVE every board element. Board FX peak at renderOrder
+// ~82, so the overlay base sits well above that; the drag card (Board3D) goes higher still.
+export const RO_OVERLAY = 90;
 
 // soft radial glow (for the rounded, glowing hand-card selection halo)
 let _hglow = null;
@@ -89,28 +92,31 @@ function HandCard3D({ card, index, count, dealKey, selected, faceDown, onCardPoi
     const s = (selected ? 1.16 : 1) * ease;
     g.scale.setScalar(THREE.MathUtils.lerp(g.scale.x, Math.max(0.001, s), 0.25));
   });
-  // draw above the board (depthTest off) — a zoomed-in board must not poke over the hand
-  const ro = 30 + index;
+  // The board's labels / dashes / tints are in the TRANSPARENT pass, which always renders
+  // AFTER the opaque pass regardless of renderOrder — so an OPAQUE hand card gets painted
+  // over by them (the recurring "see-through" bug). Fix: the hand is transparent too, with a
+  // renderOrder ABOVE every board element (RO_OVERLAY), so it draws LAST and fully occludes.
+  const ro = RO_OVERLAY + index * 2;
   return (
     <group ref={grp} position={[baseX, baseY - 0.6, 0]}>
-      {/* subtle rounded GLOW halo — sits BEHIND the card (depthTest on, so the opaque card
-          occludes it: only a soft rim shows around the edges, never over the art). */}
+      {/* subtle rounded GLOW halo — sits BEHIND the card (lower renderOrder), so the opaque
+          card texture paints over its centre and only a soft rim shows around the edges. */}
       {selected && (
-        <mesh position={[0, 0, -0.03]} renderOrder={ro - 2}>
+        <mesh position={[0, 0, -0.03]} renderOrder={ro}>
           <planeGeometry args={[CARD_W + 0.34, CARD_H + 0.34]} />
-          <meshBasicMaterial map={handGlowTexture()} transparent depthWrite={false} blending={THREE.AdditiveBlending} toneMapped={false} />
+          <meshBasicMaterial map={handGlowTexture()} transparent depthTest={false} depthWrite={false} blending={THREE.AdditiveBlending} toneMapped={false} />
         </mesh>
       )}
-      {/* OPAQUE face — depthTest off (a zoomed board can't cover it) but depthWrite ON so
-          nothing (ground tints / piles / auras in the transparent pass) blends over it. */}
-      <mesh renderOrder={ro}
+      {/* face — transparent pass, high renderOrder, depthTest+depthWrite off: draws last and
+          over EVERYTHING (its baked texture is fully opaque, so it reads solid, not glassy). */}
+      <mesh renderOrder={ro + 1}
         onPointerDown={faceDown ? undefined : (e) => { e.stopPropagation(); onCardPointerDown(card, e.nativeEvent); }}
         onPointerOver={faceDown ? undefined : (e) => { e.stopPropagation(); hov.current = true; }}
         onPointerOut={faceDown ? undefined : () => { hov.current = false; }}>
         <planeGeometry args={[CARD_W, CARD_H]} />
         {tex
-          ? <meshBasicMaterial key="t" map={tex} transparent={false} depthTest={false} toneMapped={false} />
-          : <meshBasicMaterial key="c" color={elColor(card.element)} transparent={false} depthTest={false} toneMapped={false} />}
+          ? <meshBasicMaterial key="t" map={tex} transparent depthTest={false} depthWrite={false} toneMapped={false} />
+          : <meshBasicMaterial key="c" color={elColor(card.element)} transparent depthTest={false} depthWrite={false} toneMapped={false} />}
       </mesh>
     </group>
   );
@@ -121,11 +127,13 @@ function HandCard3D({ card, index, count, dealKey, selected, faceDown, onCardPoi
 function Pile3D({ x, color, count, label, onTap }) {
   const [tex, setTex] = useState(null);
   useEffect(() => {
-    const c = document.createElement('canvas'); c.width = 160; c.height = 72;
-    const ctx = c.getContext('2d'); ctx.font = 'bold 34px Georgia'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-    ctx.lineWidth = 6; ctx.strokeStyle = '#000'; ctx.strokeText(`${count}`, 80, 26); ctx.fillStyle = '#f6e7b0'; ctx.fillText(`${count}`, 80, 26);
-    ctx.font = '16px Georgia'; ctx.fillStyle = '#c9a66b'; ctx.fillText(label, 80, 56);
-    const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; setTex(t);
+    // ONE-LINE label sitting ABOVE the pile, e.g. "Draw Pile: 7" / "In Play: 0".
+    const c = document.createElement('canvas'); c.width = 384; c.height = 64;
+    const ctx = c.getContext('2d'); ctx.font = 'bold 30px Georgia'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.lineJoin = 'round'; ctx.lineWidth = 6; ctx.strokeStyle = 'rgba(0,0,0,0.9)';
+    const txt = `${label}: ${count}`;
+    ctx.strokeText(txt, 192, 34); ctx.fillStyle = '#f6e7b0'; ctx.fillText(txt, 192, 34);
+    const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; t.anisotropy = 4; setTex(t);
     return () => t.dispose();
   }, [count, label]);
   const n = Math.max(1, Math.min(20, count));      // number of card layers to draw
@@ -133,24 +141,26 @@ function Pile3D({ x, color, count, label, onTap }) {
   const lift = 0.03;                               // per-card vertical rise → visible stack height
   const top = (n - 1) * lift;
   const back = cardBackTexture();
+  const RO = RO_OVERLAY;
   // the pile lies almost FLAT (tilted right back toward horizontal) so it reads as a real
-  // 3-D stack of cards seen from a shallow top angle — never a single upright card.
+  // 3-D stack of cards seen from a shallow top angle — never a single upright card. All meshes
+  // are transparent + high renderOrder so the board's transparent labels never paint over them.
   return (
     <group position={[x, -0.02, 0.02]} rotation={[1.24, 0, 0]}>
       {Array.from({ length: n }).map((_, i) => (
-        <mesh key={i} position={[0, i * lift, 0]} renderOrder={22 + i}
+        <mesh key={i} position={[0, i * lift, 0]} renderOrder={RO + i}
           onPointerDown={i === n - 1 ? (e) => { e.stopPropagation(); if (count) onTap(); } : undefined}>
           <boxGeometry args={[pw, 0.02, ph]} />
-          <meshStandardMaterial color={count ? '#3a2a18' : '#20160d'} roughness={0.7} metalness={0.15} transparent={!count} opacity={count ? 1 : 0.4} depthTest={false} />
+          <meshStandardMaterial color={count ? '#3a2a18' : '#20160d'} roughness={0.7} metalness={0.15} transparent opacity={count ? 1 : 0.4} depthTest={false} depthWrite={false} />
         </mesh>
       ))}
       {/* the TOP card's face-down back (so the deck reads as a stack of real cards) */}
-      <mesh position={[0, top + 0.012, 0]} rotation={[-Math.PI / 2, 0, 0]} renderOrder={22 + n}>
+      <mesh position={[0, top + 0.012, 0]} rotation={[-Math.PI / 2, 0, 0]} renderOrder={RO + n + 1}>
         <planeGeometry args={[pw, ph]} />
-        <meshBasicMaterial map={count ? back : null} color={count ? '#ffffff' : '#241a10'} transparent={false} depthTest={false} toneMapped={false} />
+        <meshBasicMaterial map={count ? back : null} color={count ? '#ffffff' : '#241a10'} transparent depthTest={false} depthWrite={false} toneMapped={false} />
       </mesh>
-      {/* count · label plate, stood back up to face the camera in front of the stack */}
-      {tex && <mesh position={[0, 0.02, ph * 0.5 + 0.12]} rotation={[-1.24, 0, 0]} renderOrder={48}><planeGeometry args={[0.66, 0.3]} /><meshBasicMaterial map={tex} transparent depthTest={false} toneMapped={false} /></mesh>}
+      {/* one-line label plate, stood up to face the camera ABOVE (behind) the stack */}
+      {tex && <mesh position={[0, 0.02, -(ph * 0.5 + 0.22)]} rotation={[-1.24, 0, 0]} renderOrder={RO + n + 3}><planeGeometry args={[1.15, 0.19]} /><meshBasicMaterial map={tex} transparent depthTest={false} depthWrite={false} toneMapped={false} /></mesh>}
     </group>
   );
 }
@@ -201,15 +211,16 @@ export default function HandDock3D({ station, selectedIid, dealKey, squadIndex =
   const inPlay = (station.plan || []).map((a) => a.card);
   return (
     <CamShelf aspect={aspect} slideRef={slideRef}>
-      <group position={[0, 0.5, 0]}>
-        <Pile3D x={-px} color="#33240f" count={station.deckCount || 0} label="Deck"
+      {/* piles sit LOW (near the hand row) with their one-line label above each */}
+      <group position={[0, -0.15, 0]}>
+        <Pile3D x={-px} color="#33240f" count={station.deckCount || 0} label="Draw Pile"
           onTap={() => onInspect({ title: 'Draw Pile', cards: station.deck, note: 'Contents known · order hidden' })} />
         <Pile3D x={-px + gap} color="#243a1a" count={inPlay.length} label="In Play"
           onTap={() => onInspect({ title: 'In Play — this turn', cards: inPlay })} />
-        <Pile3D x={px - gap} color="#241528" count={station.discardCount || 0} label="Discard"
-          onTap={() => onInspect({ title: 'Discard', cards: station.discard })} />
-        <Pile3D x={px} color="#241228" count={station.exhaustCount || 0} label="Exhaust"
-          onTap={() => onInspect({ title: 'Exhaust', cards: station.exhaust })} />
+        <Pile3D x={px - gap} color="#241528" count={station.discardCount || 0} label="Discard Pile"
+          onTap={() => onInspect({ title: 'Discard Pile', cards: station.discard })} />
+        <Pile3D x={px} color="#241228" count={station.exhaustCount || 0} label="Exhaust Pile"
+          onTap={() => onInspect({ title: 'Exhaust Pile', cards: station.exhaust })} />
       </group>
       {/* hand (centre) */}
       <group position={[0, 0.1, 0.2]}>
