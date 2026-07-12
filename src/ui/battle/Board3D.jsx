@@ -167,7 +167,7 @@ function Table({ onOrbitStart }) {
   return (
     <group>
       <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.02, -0.5]}
-        onPointerDown={(e) => { e.stopPropagation(); onOrbitStart(e.nativeEvent); }}>
+        onPointerDown={(e) => { if ((e.nativeEvent?.button ?? 0) !== 0) return; e.stopPropagation(); onOrbitStart(e.nativeEvent); }}>
         <planeGeometry args={[80, 80]} />
         <meshStandardMaterial color="#2a1d10" roughness={1} />
       </mesh>
@@ -197,7 +197,12 @@ function useOrbit() {
       pol.current = polT.current = Math.max(0.12, Math.min(1.2, d.pol - (e.clientY - d.y) * 0.005));
       if (!d.moved && Math.hypot(e.clientX - d.x, e.clientY - d.y) > 4) d.moved = true;
     };
-    const onUp = () => { const d = drag.current; drag.current = null; if (d && !d.moved && d.onTap) d.onTap(); };
+    // button-aware release: only end the drag when ITS button is lifted (so a card-drag's
+    // left-release doesn't cancel a simultaneous right-button orbit, and vice-versa).
+    const onUp = (e) => { const d = drag.current; if (!d) return; if (d.button != null && e && e.button !== d.button) return; drag.current = null; if (!d.moved && d.onTap) d.onTap(); };
+    // RIGHT mouse button anywhere on the board starts an orbit — even while a card is being
+    // dragged with the left button held — so the player can re-angle the camera mid-drag.
+    const onDown = (e) => { if (e.button === 2 && e.target?.tagName === 'CANVAS') drag.current = { x: e.clientX, y: e.clientY, az: az.current, pol: pol.current, moved: false, onTap: null, button: 2 }; };
     // don't zoom the camera when the wheel is scrolling an open DOM modal / popup overlay
     const overModal = (e) => (e.target?.closest?.('.bInspect, .bZoom, .bPlanPop, .bFieldPop, .bRotateGate'));
     const onWheel = (e) => { if (overModal(e)) return; zoomT.current = Math.max(0.72, Math.min(1.8, zoomT.current + Math.sign(e.deltaY) * 0.08)); };
@@ -208,15 +213,16 @@ function useOrbit() {
       keys.current[k] = down; if (down) e.preventDefault();
     };
     const kd = onKey(true), ku = onKey(false);
+    window.addEventListener('pointerdown', onDown);
     window.addEventListener('pointermove', onMove);
     window.addEventListener('pointerup', onUp);
     window.addEventListener('wheel', onWheel, { passive: true });
     window.addEventListener('keydown', kd);
     window.addEventListener('keyup', ku);
-    return () => { window.removeEventListener('pointermove', onMove); window.removeEventListener('pointerup', onUp); window.removeEventListener('wheel', onWheel); window.removeEventListener('keydown', kd); window.removeEventListener('keyup', ku); };
+    return () => { window.removeEventListener('pointerdown', onDown); window.removeEventListener('pointermove', onMove); window.removeEventListener('pointerup', onUp); window.removeEventListener('wheel', onWheel); window.removeEventListener('keydown', kd); window.removeEventListener('keyup', ku); };
   }, []);
-  // right-drag (button 2) orbits WITHOUT a tap action (never steps up / selects)
-  const start = (e, onTap) => { drag.current = { x: e.clientX, y: e.clientY, az: az.current, pol: pol.current, moved: false, onTap: e.button === 2 ? null : onTap }; };
+  // left-drag on the table orbits (+ tap = step-up); right-drag (button 2) orbits with no tap
+  const start = (e, onTap) => { drag.current = { x: e.clientX, y: e.clientY, az: az.current, pol: pol.current, moved: false, button: e.button, onTap: e.button === 2 ? null : onTap }; };
   // selection reframing: ease the angle + zoom toward a nicer framing (drag still overrides)
   const frameTo = ({ az: a, pol: p, zoom: z }) => { if (a != null) azT.current = a; if (p != null) polT.current = p; if (z != null) zoomT.current = z; };
   return useMemo(() => ({ az, pol, zoom, azT, polT, zoomT, pan, keys, edge, start, frameTo }), []);
@@ -901,19 +907,16 @@ function DragCard3D({ card, sx, sy, over }) {
     }
     g.quaternion.copy(camera.quaternion);   // billboard toward the camera
   });
-  const tint = over ? new THREE.Color(0.6, 1, 0.72) : new THREE.Color(1, 1, 1);
+  // green tint on the card itself when over a valid target (no separate border plate)
+  const tint = over ? new THREE.Color(0.62, 1, 0.74) : new THREE.Color(1, 1, 1);
   const RO = RO_OVERLAY + 40;   // the lifted drag card floats above even the hand shelf
   return (
     <group ref={grp} renderOrder={RO}>
-      <mesh position={[0, 0, -0.01]} renderOrder={RO - 1}>
-        <planeGeometry args={[HAND_CARD_W * 1.62, HAND_CARD_H * 1.62]} />
-        <meshBasicMaterial color={over ? '#7CFF9B' : '#f0c84a'} transparent opacity={0.9} depthTest={false} depthWrite={false} toneMapped={false} />
-      </mesh>
       <mesh renderOrder={RO}>
         <planeGeometry args={[HAND_CARD_W * 1.5, HAND_CARD_H * 1.5]} />
         {tex
           ? <meshBasicMaterial map={tex} color={tint} transparent depthTest={false} depthWrite={false} toneMapped={false} />
-          : <meshBasicMaterial color="#c9a66b" depthTest={false} depthWrite={false} toneMapped={false} />}
+          : <meshBasicMaterial color={over ? '#7CFF9B' : '#c9a66b'} depthTest={false} depthWrite={false} toneMapped={false} />}
       </mesh>
     </group>
   );
@@ -979,14 +982,21 @@ export default function Board3D({ enemy, player, sel, actingId, focusId, targetH
     ? (drag.scopeLevel === 'board' ? { level: 'field' } : { level: 'side', side: drag.wantSide || 'e' })
     : (cardFocusSide ? { level: 'side', side: cardFocusSide } : sel);   // selecting a card frames the target field
   const effSel = (dragging && drag.lifted) ? (drag.hi || { level: 'side', side: drag.wantSide || 'e' }) : sel;
-  // camera focus during playback follows the FX: actor while casting, TARGET while landing.
-  const view = viewFor(camSel, maps, focusId ?? actingId, handVisible && !aiming);
+  // camera focus during playback follows the FX (actor→target) — but ONLY when autoCam is on.
+  const liveView = viewFor(camSel, maps, autoCam ? (focusId ?? actingId) : null, handVisible && !aiming);
+  // AUTO-CAMERA OFF → freeze the look-at at wherever it was, so NOTHING (selection, drag
+  // release, playback…) moves it automatically; only the manual controls do.
+  const frozenView = useRef(liveView);
+  if (autoCam) frozenView.current = liveView;
+  const view = autoCam ? liveView : frozenView.current;
   // on camera-selection change: recentre WASD roam + reframe (tilt + zoom reset). az → 0.
+  // Skipped entirely while autoCam is off (no automatic reframing at all).
   const selKey = `${camSel.level}:${camSel.side || ''}:${camSel.squadId || ''}:${camSel.unitId || ''}`;
   useEffect(() => {
+    if (!autoCam) return;
     orbit.pan.current.x = 0; orbit.pan.current.z = 0;
     orbit.frameTo({ az: 0, pol: view.pol, zoom: 1 });
-  }, [selKey, orbit, view.pol]);
+  }, [selKey, orbit, view.pol, autoCam]);
 
   // expose imperative camera controls (DOM buttons in BattleScreen) — cross-platform, so
   // touch users get rotate/tilt/zoom/recenter without a keyboard. WASD panning still works.

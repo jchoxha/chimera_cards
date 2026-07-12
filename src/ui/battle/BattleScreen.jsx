@@ -110,6 +110,8 @@ export default function BattleScreen() {
   const [planOpen, setPlanOpen] = useState(false);           // "Plan" popup (queued actions + undo/redo/reset + speed)
   const [camOpen, setCamOpen] = useState(false);             // camera-control pad shown/hidden
   const [autoCam, setAutoCam] = useState(true);              // auto-frame the camera on card interaction
+  const autoCamRef = useRef(true);                           // live mirror for the once-bound drag handlers
+  autoCamRef.current = autoCam;
   const [collapsedTurns, setCollapsedTurns] = useState(() => new Set());   // combat-log turn folding
   const [dockHidden, setDockHidden] = useState(false);       // Action Cards shown/hidden
   const fxSeq = useRef(0);
@@ -126,7 +128,8 @@ export default function BattleScreen() {
     const onMove = (e) => {
       const g = drag.current; if (!g) return;
       g.x = e.clientX; g.y = e.clientY;
-      if (!g.moved && Math.hypot(e.clientX - g.x0, e.clientY - g.y0) > 6) g.moved = true;
+      // dragging a card SUPERSEDES any previously click-selected card → deselect it
+      if (!g.moved && Math.hypot(e.clientX - g.x0, e.clientY - g.y0) > 6) { g.moved = true; setSelId2(null); }
       if (g.moved) {
         const W = window.innerWidth, H = window.innerHeight, m = 70;
         // LIFTED = dragged above the hand zone → the card is being AIMED (camera frames the
@@ -136,6 +139,8 @@ export default function BattleScreen() {
         g.over = g.lifted ? ((pickRef.current && pickRef.current(e.clientX, e.clientY)) || null) : null;
         const L = liveRef.current;
         if (L.updateDragHi) L.updateDragHi(g);   // (clears hi/valid when not lifted)
+        // live REORDER GAP: while the card is down in the hand, where would it slot in?
+        g.insertIdx = (!g.lifted && L.handInsertIdx) ? L.handInsertIdx(g.iid, e.clientX) : null;
         // EDGE-PAN: top/left/right pan only while LIFTED; the EXTREME bottom always pans down
         // (past where you'd be reordering the hand).
         if (camRef.current?.setEdge) {
@@ -150,9 +155,12 @@ export default function BattleScreen() {
         setD({ ...g });
       }
     };
-    const onUp = () => {
+    const onUp = (e) => {
+      if (e && e.button !== 0) return;   // only a LEFT release ends the card drag (right = orbit)
       const g = drag.current; if (!g) return; drag.current = null; setD(null);
-      camRef.current?.resetDragCam();   // undo any drag-time camera movement (back to pickup framing)
+      // autoCam ON → snap the camera back to its pickup framing; OFF → keep the player's
+      // manual view (just stop the edge-pan velocity).
+      if (autoCamRef.current) camRef.current?.resetDragCam(); else camRef.current?.setEdge?.(0, 0);
       if (g.moved) {
         const L = liveRef.current;
         // 1) dropped over the HAND band → reorganise the hand (or just return the card)
@@ -237,14 +245,18 @@ export default function BattleScreen() {
       : { level: 'unit', side: wantSide, squadId: over.id, unitId: g.over };
   };
   liveRef.current.affords = (card) => (selectedSquad?.energyLeft ?? 0) >= (card?.cost ?? 1);
+  // where in the current squad's hand would a drop at screen-x insert (0..N-1)?
+  liveRef.current.handInsertIdx = (iid, x) => {
+    const sq = selectedSquad; if (!sq) return null;
+    const N = (sq.hand || []).length; if (N <= 1) return 0;
+    const W = window.innerWidth, left = W * 0.30, span = W * 0.40;
+    return Math.max(0, Math.min(N - 1, Math.round(((x - left) / span) * (N - 1))));
+  };
   // dropped over the bottom HAND band → reorganise the hand (persisted) or just return the card
   liveRef.current.handReorder = (iid, x, y) => {
-    if (y < window.innerHeight * 0.72) return false;   // not in the hand band → let play/return handle it
-    const sq = selectedSquad; if (!sq) return true;    // return the card (no reorder)
-    const N = (sq.hand || []).length; if (N <= 1) return true;
-    const W = window.innerWidth, left = W * 0.30, span = W * 0.40;
-    const idx = Math.max(0, Math.min(N - 1, Math.round(((x - left) / span) * (N - 1))));
-    reorderHand(sq.id, iid, idx);
+    if (y < window.innerHeight * 0.58) return false;   // not in the hand zone → let play/return handle it
+    const sq = selectedSquad; if (!sq || (sq.hand || []).length <= 1) return true;   // return the card (no reorder)
+    reorderHand(sq.id, iid, liveRef.current.handInsertIdx(iid, x) ?? 0);
     return true;
   };
   liveRef.current.resolveDropFromHi = (hi) => {
@@ -515,6 +527,7 @@ export default function BattleScreen() {
             station: handSquad,
             selectedIid: selId2, dealKey: snap.dealKey, faceDown: handIsEnemy,
             squadIndex: Math.max(0, dockList.findIndex((sq) => sq.id === handSquad.id)),
+            insertIdx: (d && d.insertIdx != null) ? d.insertIdx : null,
             onCardPointerDown: startHandDrag, onInspect: setInspect,
           } : null} />
 

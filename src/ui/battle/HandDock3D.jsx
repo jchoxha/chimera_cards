@@ -226,7 +226,7 @@ function CamShelf({ children, aspect, slideRef, riseRef }) {
   return <group ref={ref} position={[0, baseY, baseZ]} rotation={[0.08, 0, 0]} scale={s}>{children}</group>;
 }
 
-export default function HandDock3D({ station, selectedIid, dealKey, squadIndex = 0, draggingIid = null, faceDown = false, onCardPointerDown, onInspect }) {
+export default function HandDock3D({ station, selectedIid, dealKey, squadIndex = 0, draggingIid = null, faceDown = false, insertIdx = null, onCardPointerDown, onInspect }) {
   const { size } = useThree();
   const aspect = size.width / Math.max(1, size.height);
   // carousel: on squad switch, start the shelf off-screen on the side we came FROM
@@ -261,13 +261,21 @@ export default function HandDock3D({ station, selectedIid, dealKey, squadIndex =
         <Pile3D x={px} color="#241228" count={station.exhaustCount || 0} label="Banished"
           onTap={() => onInspect({ title: 'Banished', cards: station.exhaust })} />
       </group>
-      {/* hand (centre) */}
+      {/* hand (centre). While a card is being REORDERED in the hand, reserve an empty SLOT at
+          insertIdx so the neighbours physically part to make room (lerp = smooth). */}
       <group position={[0, 0.1, 0.2]}>
-        {hand.map((card, i) => (
-          <HandCard3D key={`${dealKey}-${card.iid}`} card={card} index={i} count={hand.length} dealKey={dealKey}
-            selected={!faceDown && selectedIid === card.iid} faceDown={faceDown}
-            affordable={faceDown || (station.energyLeft ?? 99) >= (card.cost ?? 1)} onCardPointerDown={onCardPointerDown} />
-        ))}
+        {(() => {
+          const gap = insertIdx != null && !faceDown;
+          const slots = gap ? hand.length + 1 : hand.length;
+          return hand.map((card, i) => {
+            const slot = gap && i >= insertIdx ? i + 1 : i;
+            return (
+              <HandCard3D key={`${dealKey}-${card.iid}`} card={card} index={slot} count={slots} dealKey={dealKey}
+                selected={!faceDown && selectedIid === card.iid} faceDown={faceDown}
+                affordable={faceDown || (station.energyLeft ?? 99) >= (card.cost ?? 1)} onCardPointerDown={onCardPointerDown} />
+            );
+          });
+        })()}
       </group>
     </CamShelf>
   );
