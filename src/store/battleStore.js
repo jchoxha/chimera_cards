@@ -109,7 +109,7 @@ function squadSnap(store, sqId, side) {
     id: sqId, side, maxEnergy: squad.maxEnergy, energy: squad.energy,
     energyLeft: Math.max(0, squad.energy - planCost(plan)),
     frontId: liveFrontUnit(state, squad)?.id || null, units,
-    plan: plan.map((a) => ({ card: a.card, targetId: a.targetId })),
+    plan: plan.map((a) => ({ card: a.card, targetId: a.targetId, ownerId: a.ownerId })),
   };
   const c = cards[sqId] || { deck: [], hand: [], discard: [], exhaust: [] };
   snap.deckCount = c.deck.length; snap.discardCount = c.discard.length; snap.exhaustCount = c.exhaust.length;
@@ -129,7 +129,7 @@ function publish(store) {
   return {
     version: (store.version || 0) + 1,
     phase: store.phase, outcome: store.outcome, log: store.log, dealKey: store.dealKey || 0,
-    turn: store.turn || 1, logHistory: store.logHistory || [],
+    turn: store.turn || 1, logHistory: store.logHistory || [], startedAt: store.startedAt || null,
     selectedSquadId, canRedo: (store.undone || []).length > 0,
     enemy: state.sides.e.map((id) => squadSnap(store, id, 'e')),
     player: state.sides.p.map((id) => squadSnap(store, id, 'p')),
@@ -221,7 +221,7 @@ export const useBattle = create((set, get) => ({
   startBattle({ player, enemy }) {
     const { state, cards } = buildBattle(player, enemy);
     startRound(state);
-    const base = { state, cards, seen: new Set(), plans: {}, queueOrder: [], undone: [], selectedSquadId: state.sides.p[0], phase: 'plan', outcome: null, log: [], version: 0, dealKey: 1, turn: 1, logHistory: [] };
+    const base = { state, cards, seen: new Set(), plans: {}, queueOrder: [], undone: [], selectedSquadId: state.sides.p[0], phase: 'plan', outcome: null, log: [], version: 0, dealKey: 1, turn: 1, logHistory: [], startedAt: Date.now() };
     set({ ...base, snapshot: publish({ ...get(), ...base }) });
   },
 
@@ -311,6 +311,10 @@ export const useBattle = create((set, get) => ({
       }
     }
     const entries = formatRoundLog(s.state, log, s.turn);
+    // stamp each entry with the battle clock (mm:ss since start) for the combat log
+    const elapsed = Math.max(0, Math.floor((Date.now() - (s.startedAt || Date.now())) / 1000));
+    const clk = `${Math.floor(elapsed / 60)}:${String(elapsed % 60).padStart(2, '0')}`;
+    for (const en of entries) en.at = clk;
     const logHistory = [...(s.logHistory || []), ...entries];
     const turn = outcome ? s.turn : s.turn + 1;
     const dealKey = (s.dealKey || 0) + 1;

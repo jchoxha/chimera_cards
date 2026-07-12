@@ -68,7 +68,7 @@ function handGlowTexture() {
 
 /** One fanned hand card (a mesh). Pointer-down starts a press the shell resolves
  *  into a TAP (select / detail) or a DRAG-to-play (raycast onto a board creature). */
-function HandCard3D({ card, index, count, dealKey, selected, faceDown, onCardPointerDown }) {
+function HandCard3D({ card, index, count, dealKey, selected, faceDown, affordable = true, onCardPointerDown }) {
   const faceTex = useActionCardTexture(card);
   const tex = (faceDown && card.known !== true) ? cardBackTexture() : faceTex;
   const grp = useRef();
@@ -114,9 +114,11 @@ function HandCard3D({ card, index, count, dealKey, selected, faceDown, onCardPoi
         onPointerOver={faceDown ? undefined : (e) => { e.stopPropagation(); hov.current = true; }}
         onPointerOut={faceDown ? undefined : () => { hov.current = false; }}>
         <planeGeometry args={[CARD_W, CARD_H]} />
+        {/* unaffordable (costs more AP than the squad has left) → desaturated grey tint (kept
+            bright enough to stay clearly visible, just visibly "greyed out") */}
         {tex
-          ? <meshBasicMaterial key="t" map={tex} transparent depthTest={false} depthWrite={false} toneMapped={false} />
-          : <meshBasicMaterial key="c" color={elColor(card.element)} transparent depthTest={false} depthWrite={false} toneMapped={false} />}
+          ? <meshBasicMaterial key="t" map={tex} color={affordable ? '#ffffff' : '#9b95a4'} transparent opacity={affordable ? 1 : 0.86} depthTest={false} depthWrite={false} toneMapped={false} />
+          : <meshBasicMaterial key="c" color={affordable ? elColor(card.element) : '#6b6478'} transparent depthTest={false} depthWrite={false} toneMapped={false} />}
       </mesh>
     </group>
   );
@@ -245,15 +247,15 @@ export default function HandDock3D({ station, selectedIid, dealKey, squadIndex =
   // piles flank the hand (hand in the MIDDLE): left = Deck · In Play, right = Discard ·
   // Exhaust. Pulled IN + lifted so the bottom-corner HUD buttons don't cut them off.
   const px = aspect < 1 ? 2.5 : 3.0, gap = 0.82;
-  const inPlay = (station.plan || []).map((a) => a.card);
+  const inPlay = station.plan || [];   // [{ card, targetId, ownerId }]
   return (
     <CamShelf aspect={aspect} slideRef={slideRef} riseRef={riseRef}>
       {/* piles sit LOW (near the hand row) with their one-line label above each */}
       <group position={[0, -0.15, 0]}>
         <Pile3D x={-px} color="#33240f" count={station.deckCount || 0} label="Draw Pile"
           onTap={() => onInspect({ title: 'Draw Pile', cards: station.deck, note: 'Contents known · order hidden' })} />
-        <Pile3D x={-px + gap} color="#243a1a" count={inPlay.length} label="In Play" topCard={inPlay[inPlay.length - 1] || null}
-          onTap={() => onInspect({ title: 'In Play — this turn', cards: inPlay })} />
+        <Pile3D x={-px + gap} color="#243a1a" count={inPlay.length} label="In Play" topCard={inPlay[inPlay.length - 1]?.card || null}
+          onTap={() => onInspect({ title: 'In Play — this turn', plays: inPlay })} />
         <Pile3D x={px - gap} color="#241528" count={station.discardCount || 0} label="Discarded"
           onTap={() => onInspect({ title: 'Discarded', cards: station.discard })} />
         <Pile3D x={px} color="#241228" count={station.exhaustCount || 0} label="Banished"
@@ -263,7 +265,8 @@ export default function HandDock3D({ station, selectedIid, dealKey, squadIndex =
       <group position={[0, 0.1, 0.2]}>
         {hand.map((card, i) => (
           <HandCard3D key={`${dealKey}-${card.iid}`} card={card} index={i} count={hand.length} dealKey={dealKey}
-            selected={!faceDown && selectedIid === card.iid} faceDown={faceDown} onCardPointerDown={onCardPointerDown} />
+            selected={!faceDown && selectedIid === card.iid} faceDown={faceDown}
+            affordable={faceDown || (station.energyLeft ?? 99) >= (card.cost ?? 1)} onCardPointerDown={onCardPointerDown} />
         ))}
       </group>
     </CamShelf>

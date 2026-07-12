@@ -29,7 +29,8 @@ import { useBattle } from '../../store/battleStore.js';
 import Board3D from './Board3D.jsx';
 import { CardFace, elementBadge } from '../combat/creatureVisuals.jsx';
 import { ATTUNEMENT_COLOR } from '../../data/axisIcons.js';
-import { cardArt } from '../../data/artPool.js';
+import { cardArt, creatureArt } from '../../data/artPool.js';
+import { sizedPortrait } from '../../data/sizeArt.js';
 import '../combat/combat.css';   // CardFace styling for the enlarged info card
 import './battle.css';
 
@@ -111,6 +112,9 @@ export default function BattleScreen() {
   const fxSeq = useRef(0);
   const timers = useRef([]);
   useEffect(() => () => timers.current.forEach(clearTimeout), []);
+  // battle clock — ticks every second (mirrors the store's log timestamps)
+  const [nowTs, setNowTs] = useState(() => Date.now());
+  useEffect(() => { const id = setInterval(() => setNowTs(Date.now()), 1000); return () => clearInterval(id); }, []);
 
   // Hand card press → TAP (select / detail) vs DRAG-to-play. Listeners are bound ONCE
   // on mount and gate on the drag.current ref — binding lazily on a `pressing` state
@@ -137,7 +141,8 @@ export default function BattleScreen() {
         const L = liveRef.current;
         if (g.valid) {
           const target = (L.resolveDropFromHi && L.resolveDropFromHi(g.hi)) || g.over;
-          if (target) { queueCard(g.iid, target); setSelId2(null); setFly({ key: (flySeq.current += 1), card: g.card, targetId: target, x: g.x, y: g.y, kind: 'drag' }); }
+          // only queue + fly if the squad can actually AFFORD the card (else it snaps back)
+          if (target && (!L.affords || L.affords(g.card))) { queueCard(g.iid, target); setSelId2(null); setFly({ key: (flySeq.current += 1), card: g.card, targetId: target, x: g.x, y: g.y, kind: 'drag' }); }
         }
       }
       else if (g.tapSel) setCardZoom(g.card);   // tap a selected card → detail
@@ -211,6 +216,7 @@ export default function BattleScreen() {
       ? { level: 'squad', side: wantSide, squadId: over.id }
       : { level: 'unit', side: wantSide, squadId: over.id, unitId: g.over };
   };
+  liveRef.current.affords = (card) => (selectedSquad?.energyLeft ?? 0) >= (card?.cost ?? 1);
   liveRef.current.resolveDropFromHi = (hi) => {
     if (!hi) return null;
     if (hi.level === 'unit') return hi.unitId;
@@ -245,7 +251,7 @@ export default function BattleScreen() {
       const wantSide = isOffensiveCard(selectedCard) ? 'e' : 'p';
       if (z.side !== wantSide) { setSelId2(null); return; }   // wrong side → cancel selection
       const t = z.level === 'squad' ? frontOf(allSquads.find((sq) => sq.id === z.squadId)) : frontOf((z.side === 'e' ? snap.enemy : snap.player)[0]);
-      if (t) { queueCard(selectedCard.iid, t); flyFromHand(selectedCard, t); setSelId2(null); }
+      if (t) { if (affordCard(selectedCard)) { queueCard(selectedCard.iid, t); flyFromHand(selectedCard, t); } setSelId2(null); }
       return;
     }
     setSelId2(null);
@@ -256,7 +262,7 @@ export default function BattleScreen() {
     const sq = squadOfUnit(u.id); if (!sq) return;
     if (selectedCard) {
       const wantSide = isOffensiveCard(selectedCard) ? 'e' : 'p';
-      if (side === wantSide) { queueCard(selectedCard.iid, u.id); flyFromHand(selectedCard, u.id); setSelId2(null); }
+      if (side === wantSide) { if (affordCard(selectedCard)) { queueCard(selectedCard.iid, u.id); flyFromHand(selectedCard, u.id); } setSelId2(null); }
       return;
     }
     setSelId2(null);
@@ -376,9 +382,14 @@ export default function BattleScreen() {
     ? { side: isOffensiveCard(armedCard) ? 'e' : 'p', scope: scopeOf(armedCard), offensive: isOffensiveCard(armedCard) }
     : null;
 
-  // ── clickable log / ticker / plan helpers ──
+  // battle clock (mm:ss since start) shown in the topbar; log rows carry their own stamp (en.at)
+  const battleSecs = snap.startedAt ? Math.max(0, Math.floor((nowTs - snap.startedAt) / 1000)) : 0;
+  const battleClock = `${Math.floor(battleSecs / 60)}:${String(battleSecs % 60).padStart(2, '0')}`;
+
+  // ── clickable log / ticker / plan helpers — render the ACTUAL cards involved ──
   const unitById = (id) => allSquads.flatMap((s) => s.units).find((u) => u.id === id) || null;
   const sideOfUnit = (id) => (snap.enemy.some((sq) => sq.units.some((u) => u.id === id)) ? 'e' : 'p');
+  const affordCard = (card) => (selectedSquad?.energyLeft ?? 0) >= (card?.cost ?? 1);
   // opening an inspect modal DURING playback auto-pauses; closing it resumes (unless the
   // player had paused manually). autoPauseRef tracks that we were the one who paused.
   const pauseForModal = () => { if (anim && !pausedRef.current) { autoPauseRef.current = true; setPlayPaused(true); } };
@@ -393,26 +404,39 @@ export default function BattleScreen() {
     for (const s of arr || []) { const mt = /^(\d+)\s+(.*)$/.exec(s); if (mt) m.set(mt[2], (m.get(mt[2]) || 0) + Number(mt[1])); else m.set(s, m.get(s) || 0); }
     return [...m.entries()].map(([lbl, n]) => (n ? `${n} ${lbl}` : lbl));
   };
-  // one clickable creature crest chip (inspects the unit on the battlefield). NO key — these
-  // are rendered inline (positional), and a changing key amid unkeyed siblings makes React
-  // fail to remove stale chips in the in-place-updated ticker (names would pile up).
-  const UnitChip = (id, name, side) => (unitById(id)
-    ? <button className={`bChip unit ${side === 'e' ? 'foe' : 'ally'}`} title={`Inspect ${name}`} onClick={() => inspectUnit(id)}><Icon icon="tabler:paw" />{name}</button>
-    : <span className={`bChip unit ${side === 'e' ? 'foe' : 'ally'} dead`}><Icon icon="tabler:skull" />{name}</span>);
-  // a structured, tinted combat-log / ticker line (actor → card → target + effects)
-  const renderEntry = (en, withTurn) => {
+  const creaturePortrait = (u) => (u && (sizedPortrait(u.portrait, u.form)
+    || (u.axes?.biology ? creatureArt({ id: u.id, biology: u.axes.biology, family: u.axes.family, subtypes: u.axes.subtypes }) : null)));
+  // the ACTUAL creature card as a small clickable token (art + name → inspect on the battlefield).
+  // NO key — rendered inline (positional); a changing key amid unkeyed siblings makes React fail
+  // to remove stale nodes in the in-place-updated ticker (they would pile up).
+  const CreatureTok = (id, name, side) => {
+    const u = unitById(id); const cls = `bCardTok cre ${side === 'e' ? 'foe' : 'ally'}`;
+    if (!u) return <span className={`${cls} dead`}><Icon icon="tabler:skull" /><em>{name}</em></span>;
+    const art = creaturePortrait(u);
+    return <button className={cls} title={`Inspect ${name}`} onClick={() => inspectUnit(id)}>
+      <span className="bCardTokArt">{art ? <img src={art} alt="" /> : <Icon icon="tabler:paw" />}</span><em>{name}</em>
+    </button>;
+  };
+  // the ACTUAL action card as a small clickable token (art + cost + name → open the full card).
+  const CardTok = (card) => {
+    if (!card) return null;
+    const art = cardArt({ ...card, attunement: card.element });
+    return <button className="bCardTok act" style={{ '--el': elColor(card.element) }} title={`${card.name} — view card`} onClick={() => openCard(card)}>
+      <span className="bCardTokArt">{art ? <img src={art} alt="" /> : <Icon icon="game-icons:card-play" />}</span>
+      {card.cost != null && <span className="bCardTokCost">{card.cost}</span>}<em>{card.name}</em>
+    </button>;
+  };
+  // a structured combat-log / ticker line using the real cards: actor → action → target + effects
+  const renderEntry = (en, withStamp) => {
     const eff = mergeEffects(en.effects);
-    const cardChip = en.cardObj
-      ? <button className="bChip card" style={{ '--el': elColor(en.element) }} title="View card" onClick={() => openCard(en.cardObj)}><Icon icon="game-icons:card-play" />{en.card}</button>
-      : <span className="bChip card" style={{ '--el': elColor(en.element) }}><Icon icon="game-icons:card-play" />{en.card}</span>;
     return (
       <span className="bLogLine">
-        {withTurn && <span className="bLogTurn">T{en.turn}</span>}
-        {UnitChip(en.ownerId, en.actor, en.side)}
+        {withStamp && <span className="bLogTurn">{en.at || `T${en.turn}`}</span>}
+        {CreatureTok(en.ownerId, en.actor, en.side)}
         <span className={`bLogVerb ${en.offensive ? 'atk' : 'buf'}`}><Icon icon={en.offensive ? 'game-icons:crossed-swords' : 'game-icons:sparkles'} /></span>
-        {cardChip}
+        {CardTok(en.cardObj || { name: en.card, element: en.element, cost: null })}
         <span className="bLogArrow"><Icon icon="tabler:arrow-right" /></span>
-        {UnitChip(en.targetId, en.target, sideOfUnit(en.targetId))}
+        {CreatureTok(en.targetId, en.target, sideOfUnit(en.targetId))}
         {eff.length ? <span className="bLogEff">{eff.join(' · ')}</span> : null}
       </span>
     );
@@ -429,7 +453,7 @@ export default function BattleScreen() {
           player={snap.player.map((sq) => ({ ...sq, units: sq.units.map(disp) }))}
           sel={sel} onStepUp={stepUp} actingId={anim?.acting} focusId={anim?.focus} onPick={onTok} onZone={onZone} pickRef={pickRef} validRef={validRef} fx={fx} drag={d}
           handVisible={showHand} handSquadId={handSquad?.id || null}
-          cardFocusSide={selectedCard ? (isOffensiveCard(selectedCard) ? 'e' : 'p') : null}
+          cardFocusSide={selectedCard ? (isOffensiveCard(selectedCard) ? 'e' : 'p') : (fly ? sideOfUnit(fly.targetId) : null)}
           targetHint={targetHint} onInspect={setInspect} camRef={camRef}
           fly={fly} onFlyDone={() => setFly(null)}
           hand={showHand ? {
@@ -439,8 +463,11 @@ export default function BattleScreen() {
             onCardPointerDown: startHandDrag, onInspect: setInspect,
           } : null} />
 
-        {/* TOP-LEFT: turn tracker — holds until a fight fully resolves */}
-        <div className="bTurn"><b>Turn {displayTurn}</b></div>
+        {/* TOP-LEFT: turn tracker (holds until a fight fully resolves) + battle clock */}
+        <div className="bTopLeft">
+          <div className="bTurn"><b>Turn {displayTurn}</b></div>
+          <div className="bTimer" title="Battle time"><Icon icon="tabler:clock" />{battleClock}</div>
+        </div>
 
         {/* TOP-RIGHT: a single camera button opens the control pad (hidden by default;
             touch-friendly — WASD still pans). rotate ↺/↻ · tilt · zoom · recenter. */}
@@ -554,9 +581,9 @@ export default function BattleScreen() {
                   {plannedActions.map((pa, k) => (
                     <div key={k} className="bPlanRow">
                       <span className="bPlanSq">{pa.squadLabel}</span>
-                      <button className="bChip card" style={{ '--el': elColor(pa.card.element) }} title="View card" onClick={() => openCard(pa.card)}><Icon icon="game-icons:card-play" />{pa.card.name}</button>
+                      {CardTok(pa.card)}
                       <span className="bLogArrow"><Icon icon="tabler:arrow-right" /></span>
-                      {UnitChip(pa.targetId, pa.targetName, sideOfUnit(pa.targetId))}
+                      {CreatureTok(pa.targetId, pa.targetName, sideOfUnit(pa.targetId))}
                     </div>
                   ))}
                 </div>
@@ -584,15 +611,30 @@ export default function BattleScreen() {
       {inspect && (
         <div className="bInspect" onClick={() => { setInspect(null); resumeIfAuto(); }} onWheel={(e) => e.stopPropagation()}>
           <div className="bInspectPanel" onClick={(e) => e.stopPropagation()}>
-            <div className="bInspectHead"><span>{inspect.title} <em>· {inspect.cards.length}</em></span>
+            <div className="bInspectHead"><span>{inspect.title} <em>· {(inspect.plays || inspect.cards).length}</em></span>
               {inspect.note && <small>{inspect.note}</small>}
               <button className="bZoomClose sm" onClick={() => { setInspect(null); resumeIfAuto(); }}><Icon icon="tabler:x" /></button>
             </div>
-            <div className="bInspectGrid">
-              {inspect.cards.map((card, i) => (card.known === false
-                ? <div key={i} className="bCardBack big" title="Unknown card"><Icon icon="game-icons:card-random" /><span>?</span></div>
-                : <ActionCard key={card.iid || i} card={card} onDoubleClick={() => setCardZoom(card)} />))}
-            </div>
+            {inspect.plays ? (
+              // In Play / queued: one row per card showing who CAST it and who it TARGETED
+              <div className="bPlayRows">
+                {inspect.plays.map((pl, i) => (
+                  <div key={i} className="bPlayRow">
+                    {CreatureTok(pl.ownerId, unitName(pl.ownerId), sideOfUnit(pl.ownerId))}
+                    <span className="bLogVerb"><Icon icon="tabler:arrow-right" /></span>
+                    {CardTok(pl.card)}
+                    <span className="bLogVerb"><Icon icon="tabler:arrow-right" /></span>
+                    {CreatureTok(pl.targetId, unitName(pl.targetId), sideOfUnit(pl.targetId))}
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="bInspectGrid">
+                {inspect.cards.map((card, i) => (card.known === false
+                  ? <div key={i} className="bCardBack big" title="Unknown card"><Icon icon="game-icons:card-random" /><span>?</span></div>
+                  : <ActionCard key={card.iid || i} card={card} onDoubleClick={() => setCardZoom(card)} />))}
+              </div>
+            )}
           </div>
         </div>
       )}

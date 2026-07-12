@@ -775,15 +775,18 @@ function landingAnchor(card, targetId, maps) {
   const p = maps.unitPos.get(targetId); if (!p) return null;
   return { key: `u-${targetId}`, x: p.x, z: p.z };
 }
-// the resting spot is just IN FRONT of the anchor (toward the board centre) so it doesn't cover it
-const landingRest = (anc) => { const toward = anc.z > 0 ? -1 : 1; return { x: anc.x, z: anc.z + toward * 1.05, y: 0.5 }; };
-const PL_W = 0.62, PL_H = PL_W * (HAND_CARD_H / HAND_CARD_W);
+// the resting spot is IN FRONT of the anchor (toward board centre) AND floated well ABOVE the
+// table so a queued card sits over — and is clickable without also hitting — the creature below.
+const landingRest = (anc) => { const toward = anc.z > 0 ? -1 : 1; return { x: anc.x, z: anc.z + toward * 1.15, y: 0.62 }; };
+const PL_W = 0.66, PL_H = PL_W * (HAND_CARD_H / HAND_CARD_W);
 
-/** One queued card left flat & face-up on the field. */
-function PlannedChip({ card, x, z, rotZ }) {
+/** One queued card, face-up, FLOATING above the field and tilted toward the camera. Clickable
+ *  (its own mesh is the hit target, and being raised it wins the raycast over the flat creature). */
+function PlannedChip({ card, x, y, z, rotZ, onTap }) {
   const tex = useActionCardTexture(card);
   return (
-    <mesh position={[x, 0.06, z]} rotation={[-Math.PI / 2, 0, rotZ]} renderOrder={RO_FIELDPILE + 6}>
+    <mesh position={[x, y, z]} rotation={[-Math.PI / 2 + 0.5, 0, rotZ]} renderOrder={RO_FIELDPILE + 6}
+      onPointerDown={onTap ? (e) => { e.stopPropagation(); onTap(); } : undefined}>
       <planeGeometry args={[PL_W, PL_H]} />
       {tex
         ? <meshBasicMaterial key="t" map={tex} transparent depthTest={false} depthWrite={false} toneMapped={false} />
@@ -791,29 +794,23 @@ function PlannedChip({ card, x, z, rotZ }) {
     </mesh>
   );
 }
-/** All of the PLAYER's queued cards, laid out on the field at their scope anchors (fanned
- *  when several share an anchor). Only shown while planning (plans clear when the fight runs). */
+/** All of the PLAYER's queued cards, floated at their scope anchors (fanned when several share
+ *  an anchor). Only shown while planning (plans clear when the fight runs). Each card is
+ *  clickable → inspect the queued cards at that spot. */
 function PlannedCards({ player, maps, onInspect }) {
   const groups = new Map();
   player.forEach((sq) => (sq.plan || []).forEach((a) => {
     const anc = landingAnchor(a.card, a.targetId, maps); if (!anc) return;
-    const g = groups.get(anc.key) || { anc, cards: [] }; g.cards.push(a.card); groups.set(anc.key, g);
+    const g = groups.get(anc.key) || { anc, plays: [] }; g.plays.push(a); groups.set(anc.key, g);
   }));
   const out = [];
   groups.forEach((g, key) => {
     const rest = landingRest(g.anc);
-    g.cards.forEach((card, i) => {
-      const off = (i - (g.cards.length - 1) / 2) * 0.3;
-      out.push(<PlannedChip key={`${key}-${i}`} card={card} x={rest.x + off} z={rest.z} rotZ={0} />);
+    const tap = () => onInspect?.({ title: 'Queued here', plays: g.plays });
+    g.plays.forEach((a, i) => {
+      const off = (i - (g.plays.length - 1) / 2) * 0.32;
+      out.push(<PlannedChip key={`${key}-${i}`} card={a.card} x={rest.x + off} y={rest.y + i * 0.02} z={rest.z} rotZ={0} onTap={tap} />);
     });
-    // clickable hitbox over the group → inspect the queued cards
-    out.push(
-      <mesh key={`${key}-hit`} position={[rest.x, 0.065, rest.z]} rotation={[-Math.PI / 2, 0, 0]} renderOrder={RO_FIELDPILE + 7}
-        onPointerDown={(e) => { e.stopPropagation(); onInspect?.({ title: 'Queued here', cards: g.cards }); }}>
-        <planeGeometry args={[PL_W + Math.abs(g.cards.length - 1) * 0.3, PL_H]} />
-        <meshBasicMaterial transparent opacity={0} depthTest={false} depthWrite={false} />
-      </mesh>,
-    );
   });
   return out;
 }

@@ -453,7 +453,7 @@
 }
 
 /* ── full combat log ── */
-.bInspectPanel.log { width: min(560px, 92vw); }
+.bInspectPanel.log { width: min(720px, 94vw); }
 .bLogList { display: flex; flex-direction: column; gap: 6px; padding: 12px 16px; overflow-y: auto; }
 .bLogRow { font-size: 13px; line-height: 1.35; padding: 7px 11px; border-radius: 8px; border-left: 3px solid var(--line-strong);
   background: #ffffff06; color: var(--ink-dim); display: flex; align-items: center; }
@@ -474,8 +474,37 @@ button.bChip:hover { border-color: var(--gold); transform: translateY(-1px); }
 .bLogVerb { display: inline-flex; }
 .bLogVerb.atk { color: #ff9c86; } .bLogVerb.buf { color: #9fe0b4; }
 .bLogArrow { color: var(--ink-faint); display: inline-flex; }
-.bLogTurn { font: 800 10px var(--font-display); letter-spacing: .04em; color: var(--gold); background: #ffffff12; border-radius: 6px; padding: 2px 6px; margin-right: 4px; flex: none; }
+.bLogTurn { font: 800 10px var(--font-display); letter-spacing: .04em; color: var(--gold); background: #ffffff12; border-radius: 6px; padding: 2px 6px; margin-right: 4px; flex: none; white-space: nowrap; }
 .bLogEff { font-size: 11px; color: var(--ink-dim); font-style: italic; }
+
+/* ── CARD TOKENS: the ACTUAL creature / action card as a small clickable pill (art + name).
+   NB: named bCardTok* (NOT bTok*) to avoid colliding with the legacy DOM battle-token styles. ── */
+.bCardTok { display: inline-flex; align-items: center; gap: 6px; padding: 2px 10px 2px 2px; border-radius: 999px; border: 1px solid var(--line);
+  background: #ffffff0a; color: var(--cream, #f6e7b0); cursor: pointer; white-space: nowrap; font: 700 12px var(--font-body); position: relative; flex: none; }
+.bCardTok em { font-style: normal; white-space: nowrap; }
+.bCardTokArt { width: 22px; height: 22px; min-width: 22px; border-radius: 999px; overflow: hidden; flex: none; display: inline-flex; align-items: center; justify-content: center; background: #0d0906; border: 1px solid var(--line); }
+.bCardTokArt img { width: 22px; height: 22px; min-width: 22px; object-fit: cover; display: block; }
+.bCardTokArt iconify-icon { font-size: 14px; color: var(--gold); }
+button.bCardTok:hover { border-color: var(--gold); transform: translateY(-1px); }
+.bCardTok.cre.foe { border-color: #7a3226; color: #f2cdc2; }
+.bCardTok.cre.ally { border-color: var(--good-line); color: #cde8d2; }
+.bCardTok.cre.dead { opacity: .55; text-decoration: line-through; cursor: default; }
+.bCardTok.act { border-color: var(--el, var(--gold-deep)); }
+.bCardTok.act .bCardTokArt { border-color: var(--el, var(--line)); }
+.bCardTokCost { position: absolute; left: -3px; top: -4px; min-width: 16px; height: 16px; padding: 0 3px; border-radius: 999px;
+  background: var(--el, var(--gold)); color: #12100a; font: 800 10px var(--font-display); display: grid; place-items: center; border: 1px solid #000a; box-shadow: 0 1px 3px #0008; }
+
+/* battle clock next to the turn tracker */
+.bTopLeft { position: absolute; left: 12px; top: 10px; z-index: 7; display: flex; align-items: center; gap: 8px; }
+.bTopLeft .bTurn { position: static; left: auto; top: auto; }
+.bTimer { display: inline-flex; align-items: center; gap: 5px; padding: 5px 12px; border-radius: 999px; background: linear-gradient(#1a120bE0, #120c07E0);
+  border: 1px solid var(--line); box-shadow: 0 4px 14px #0008; font: 700 13px var(--font-display); letter-spacing: .04em; color: var(--gold-bright); }
+.bTimer iconify-icon { font-size: 15px; }
+
+/* In Play / queued inspect: caster → card → target rows */
+.bPlayRows { display: flex; flex-direction: column; gap: 8px; padding: 12px 16px; overflow-y: auto; }
+.bPlayRow { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; padding: 8px 10px; border-radius: 10px; background: #ffffff06; border: 1px solid var(--line); }
+.bPlayRow .bLogVerb { color: var(--ink-faint); }
 
 /* ── fight-phase bottom bar: live action line + speed/skip (replaces all planning UI) ── */
 .bHud.resolving { display: flex; justify-content: center; }
