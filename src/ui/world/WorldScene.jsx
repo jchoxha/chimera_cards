@@ -16,6 +16,7 @@ import { useWorld } from '../../store/worldStore.js';
 import { skyTexture, grassTexture, PROP_TEX, PROP_SIZE, shadowTexture } from '../battle/SceneEnv.jsx';
 import { sizedPortrait } from '../../data/sizeArt.js';
 import { creatureArt } from '../../data/artPool.js';
+import { enterLandscapeFullscreen, wantsLandscape } from '../mobile.js';
 import './world.css';
 
 const CHUNK = 9;                             // world units per chunk
@@ -201,6 +202,15 @@ export default function WorldScene() {
     return () => window.removeEventListener('keydown', onKey);
   }, [move]);
 
+  // mobile: on the first touch, go fullscreen + lock landscape (the portrait gate button is
+  // the explicit fallback if it's denied).
+  useEffect(() => {
+    if (!wantsLandscape()) return undefined;
+    const go = () => { enterLandscapeFullscreen(); window.removeEventListener('pointerdown', go); };
+    window.addEventListener('pointerdown', go, { once: true });
+    return () => window.removeEventListener('pointerdown', go);
+  }, []);
+
   return (
     <div className="worldScreen">
       <Canvas dpr={[1, 2]} gl={{ antialias: true, alpha: false }} camera={{ position: [0, 10, 14], fov: 52, near: 0.1, far: 240 }}>
@@ -229,6 +239,17 @@ export default function WorldScene() {
         <button className="wLeft" onClick={() => move(-1, 0)}><iconify-icon icon="tabler:chevron-left" /></button>
         <button className="wRight" onClick={() => move(1, 0)}><iconify-icon icon="tabler:chevron-right" /></button>
         <button className="wDown" onClick={() => move(0, 1)}><iconify-icon icon="tabler:chevron-down" /></button>
+      </div>
+
+      {/* mobile portrait gate — same fullscreen+landscape button as combat (battle.css owns
+          the .bRotateGate styles; it is always loaded in this shell). */}
+      <div className="bRotateGate">
+        <iconify-icon icon="tabler:device-mobile-rotated" />
+        <p>This game plays in <b>landscape</b>.</p>
+        <button className="bRotateBtn" onClick={enterLandscapeFullscreen}>
+          <iconify-icon icon="tabler:maximize" /> Enter fullscreen &amp; rotate
+        </button>
+        <small>If your device doesn't rotate on its own, turn it sideways.</small>
       </div>
     </div>
   );

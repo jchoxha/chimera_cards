@@ -475,8 +475,14 @@
 @media (orientation: portrait) {
   .bRotateGate { position: fixed; inset: 0; z-index: 2000; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 16px;
     background: radial-gradient(120% 80% at 50% 20%, #241a10, #0a0705); color: var(--gold-bright); text-align: center; padding: 24px; }
-  .bRotateGate iconify-icon { font-size: 64px; animation: bRot 2s ease-in-out infinite; }
+  .bRotateGate > iconify-icon { font-size: 64px; animation: bRot 2s ease-in-out infinite; }
   .bRotateGate p { font: 500 16px var(--font-body); color: var(--cream, #f6e7b0); max-width: 320px; margin: 0; }
+  .bRotateGate small { font: 500 12px var(--font-body); color: var(--ink-dim); max-width: 300px; }
+  .bRotateBtn { display: inline-flex; align-items: center; gap: 8px; padding: 14px 22px; border-radius: 12px; cursor: pointer;
+    border: 1px solid var(--gold-bright); color: #16110a; font: 700 16px var(--font-display); letter-spacing: .5px;
+    background: linear-gradient(#f0c84a, #c9922e); box-shadow: 0 5px 0 #7a5a12, 0 8px 18px #0009; -webkit-tap-highlight-color: transparent; }
+  .bRotateBtn:active { transform: translateY(2px); box-shadow: 0 3px 0 #7a5a12, 0 5px 12px #0009; }
+  .bRotateBtn iconify-icon { font-size: 22px; }
 }
 @keyframes bRot { 0%, 100% { transform: rotate(-12deg); } 50% { transform: rotate(78deg); } }
 /* responsive: shrink the HUD on small viewports */

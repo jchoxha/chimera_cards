@@ -31,6 +31,7 @@ import { CardFace, elementBadge } from '../combat/creatureVisuals.jsx';
 import { ATTUNEMENT_COLOR } from '../../data/axisIcons.js';
 import { cardArt, creatureArt } from '../../data/artPool.js';
 import { sizedPortrait } from '../../data/sizeArt.js';
+import { enterLandscapeFullscreen, wantsLandscape } from '../mobile.js';
 import '../combat/combat.css';   // CardFace styling for the enlarged info card
 import './battle.css';
 
@@ -220,16 +221,12 @@ export default function BattleScreen({ onFlee, onBattleEnd } = {}) {
   // snap.turn at resolve() time, but the playback runs after — so hold the shown value).
   useEffect(() => { if (!anim && snap?.turn) setDisplayTurn(snap.turn); }, [anim, snap?.turn]);
 
-  // mobile: request FULLSCREEN on the first touch (best-effort — needs a user gesture and
-  // is only attempted on coarse-pointer / small screens so desktop is unaffected).
+  // mobile: on the first touch, go FULLSCREEN + lock LANDSCAPE (best-effort — needs a user
+  // gesture, only on coarse-pointer / small screens so desktop is unaffected). The portrait
+  // gate's button is the explicit fallback if this is denied.
   useEffect(() => {
-    const wantsFs = window.matchMedia?.('(pointer: coarse)')?.matches || window.innerWidth < 900;
-    if (!wantsFs) return undefined;
-    const go = () => {
-      const el = document.documentElement;
-      if (!document.fullscreenElement && el.requestFullscreen) el.requestFullscreen().catch(() => {});
-      window.removeEventListener('pointerdown', go);
-    };
+    if (!wantsLandscape()) return undefined;
+    const go = () => { enterLandscapeFullscreen(); window.removeEventListener('pointerdown', go); };
     window.addEventListener('pointerdown', go, { once: true });
     return () => window.removeEventListener('pointerdown', go);
   }, []);
@@ -912,10 +909,15 @@ export default function BattleScreen({ onFlee, onBattleEnd } = {}) {
         </div>
       )}
 
-      {/* mobile: require landscape (a portrait gate) — the 3-D board needs the width */}
+      {/* mobile: portrait gate — a BUTTON that forces fullscreen + landscape (the 3-D board
+          needs the width). Tapping it is the user gesture the orientation lock requires. */}
       <div className="bRotateGate">
         <Icon icon="tabler:device-mobile-rotated" />
-        <p>Rotate your device to <b>landscape</b> to play.</p>
+        <p>This game plays in <b>landscape</b>.</p>
+        <button className="bRotateBtn" onClick={enterLandscapeFullscreen}>
+          <Icon icon="tabler:maximize" /> Enter fullscreen &amp; rotate
+        </button>
+        <small>If your device doesn't rotate on its own, turn it sideways.</small>
       </div>
 
       {/* full combat log */}
