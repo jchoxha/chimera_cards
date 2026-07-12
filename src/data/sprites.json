@@ -11,6 +11,15 @@
       "anchor": "bottom"
     },
     {
+      "id": "tree-mushroom",
+      "file": "art/sprites/tree-mushroom.png",
+      "kind": "tree",
+      "w": 640,
+      "h": 635,
+      "aspect": 1.0079,
+      "anchor": "bottom"
+    },
+    {
       "id": "tree-oak",
       "file": "art/sprites/tree-oak.png",
       "kind": "tree",
