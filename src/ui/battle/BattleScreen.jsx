@@ -79,6 +79,7 @@ export default function BattleScreen() {
   const dropEls = useRef(new Map());   // (reserved for in-scene FX anchoring)
   const pickRef = useRef(null);        // Board3D raycast picker: (clientX,clientY) → unitId | null
   const validRef = useRef(null);       // (cx,cy,wantSide) → is this a valid drop location?
+  const camRef = useRef(null);         // Board3D imperative camera controls (yaw/tilt/zoom/reset)
   const drag = useRef(null);
   const liveRef = useRef({});          // bridge for the once-bound window drag handler → current render values
   const [d, setD] = useState(null);          // active hand-card DRAG (only once moved past threshold)
@@ -291,16 +292,18 @@ export default function BattleScreen() {
       const e = steps[i++];
       const sp = Math.max(0.25, speedRef.current);
       if (e.type === 'play') {
-        // 1) show the ACTOR doing the action first (it lifts/glows via acting), then pause
+        // 1) show the ACTOR doing the action first (it lifts/glows via acting), camera on it
         if (lines[entryIdx]) setTicker(lines[entryIdx++]);
         actingRef.current = e.ownerId;
-        setAnim((a) => (a ? { ...a, acting: e.ownerId } : a));
+        setAnim((a) => (a ? { ...a, acting: e.ownerId, focus: e.ownerId } : a));
         schedule(run, CAST_MS / sp);
         return;
       }
-      // 2) effect lands on the TARGET — fly an FX from the actor to the target, then apply
+      // 2) effect lands on the TARGET — fly an FX from the actor to the target, then apply.
+      // The CAMERA also follows to the receiving creature (focus = target) so you see impact.
       const from = actingRef.current;
-      setAnim((a) => { if (!a) return a; const n = { hp: { ...a.hp }, block: { ...a.block }, acting: a.acting };
+      const recv = e.targetId ?? e.unitId;
+      setAnim((a) => { if (!a) return a; const n = { hp: { ...a.hp }, block: { ...a.block }, acting: a.acting, focus: recv ?? a.focus };
         if (e.type === 'damage') { n.hp[e.targetId] = e.hp; if (e.blocked) n.block[e.targetId] = Math.max(0, (n.block[e.targetId] || 0) - e.blocked); }
         else if (e.type === 'block') n.block[e.unitId] = e.total;
         else if (e.type === 'heal' || e.type === 'regen') n.hp[e.targetId ?? e.unitId] = e.hp;
@@ -354,6 +357,13 @@ export default function BattleScreen() {
     || (pill.kind === 'unit' && selSquad && selSquad.units.length > 1));
   const canToggleHand = !!sel.squadId;   // hand toggle shows on ANY selected squad (ally or enemy)
 
+  // when a card is ARMED (selected OR mid-drag) highlight its valid TARGETS on the board:
+  // offensive → enemy side (red), beneficial → your side (green); front/self scopes = vanguards.
+  const armedCard = selectedCard || (d && d.card) || null;
+  const targetHint = (armedCard && !anim)
+    ? { side: isOffensiveCard(armedCard) ? 'e' : 'p', scope: scopeOf(armedCard), offensive: isOffensiveCard(armedCard) }
+    : null;
+
   return (
     <div className={`battleScreen${d ? ' dragging' : ''}${anim ? ' resolving' : ''}${dockHidden ? ' dockHidden' : ''}${selectedCard ? ' picking' : ''}`}
       onContextMenu={(e) => e.preventDefault()}>
@@ -363,9 +373,10 @@ export default function BattleScreen() {
         <Board3D
           enemy={snap.enemy.map((sq) => ({ ...sq, units: sq.units.map(disp) }))}
           player={snap.player.map((sq) => ({ ...sq, units: sq.units.map(disp) }))}
-          sel={sel} onStepUp={stepUp} actingId={anim?.acting} onPick={onTok} onZone={onZone} pickRef={pickRef} validRef={validRef} fx={fx} drag={d}
+          sel={sel} onStepUp={stepUp} actingId={anim?.acting} focusId={anim?.focus} onPick={onTok} onZone={onZone} pickRef={pickRef} validRef={validRef} fx={fx} drag={d}
           handVisible={showHand} handSquadId={handSquad?.id || null}
           cardFocusSide={selectedCard ? (isOffensiveCard(selectedCard) ? 'e' : 'p') : null}
+          targetHint={targetHint} onInspect={setInspect} camRef={camRef}
           hand={showHand ? {
             station: handSquad,
             selectedIid: selId2, dealKey: snap.dealKey, faceDown: handIsEnemy,
@@ -376,12 +387,20 @@ export default function BattleScreen() {
         {/* TOP-LEFT: turn tracker (just "Turn X") */}
         <div className="bTurn"><b>Turn {snap.turn}</b></div>
 
-        {/* TOP-RIGHT: combat log button */}
-        {snap.logHistory?.length ? (
-          <button className="bLogBtn" title="View combat log" onClick={() => setLogOpen(true)}>
-            <Icon icon="game-icons:scroll-quill" /><span>Log</span>
-          </button>
-        ) : null}
+        {/* TOP-RIGHT: camera / movement controls (touch-friendly; WASD still pans).
+            rotate ↺/↻ · tilt up/down · zoom in/out · recenter. */}
+        <div className="bCamCtl">
+          <div className="bCamRow">
+            <button title="Rotate left" onClick={() => camRef.current?.yaw(-0.35)}><Icon icon="tabler:rotate" /></button>
+            <button title="Tilt up (more overhead)" onClick={() => camRef.current?.tilt(-0.14)}><Icon icon="tabler:angle" /></button>
+            <button title="Rotate right" onClick={() => camRef.current?.yaw(0.35)}><Icon icon="tabler:rotate-clockwise" /></button>
+          </div>
+          <div className="bCamRow">
+            <button title="Zoom in" onClick={() => camRef.current?.zoom(-0.22)}><Icon icon="tabler:zoom-in" /></button>
+            <button title="Recenter camera" onClick={() => camRef.current?.reset()}><Icon icon="tabler:focus-centered" /></button>
+            <button title="Zoom out" onClick={() => camRef.current?.zoom(0.22)}><Icon icon="tabler:zoom-out" /></button>
+          </div>
+        </div>
 
         {/* CENTRE: the action currently resolving (roughly under its target), or the outcome */}
         {snap.outcome ? (
@@ -448,6 +467,11 @@ export default function BattleScreen() {
         )}
 
         <div className="bHudCluster right">
+          {snap.logHistory?.length ? (
+            <button className="bHudBtn log" title="View combat log" onClick={() => setLogOpen(true)}>
+              <Icon icon="game-icons:scroll-quill" /><span>Log</span>
+            </button>
+          ) : null}
           <button className={`bHudBtn plan${planOpen ? ' on' : ''}`} title="Planned actions" disabled={!!anim} onClick={() => setPlanOpen((v) => !v)}>
             <Icon icon="tabler:list-check" /><span>Plan</span>{totalQueued > 0 && <span className="bPlanCount">{totalQueued}</span>}
           </button>

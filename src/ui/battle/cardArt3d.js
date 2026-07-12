@@ -94,27 +94,30 @@ function ribbon(ctx, W, top, accent, text) {
   return top + h;
 }
 
-function textBox(ctx, W, top, bottom, lines, { size = 21, color = '#d8c7a2' } = {}) {
-  const x = 26, w = W - 52;
+function textBox(ctx, W, top, bottom, lines, { size = 27, color = '#e6d8b8' } = {}) {
+  const x = 24, w = W - 48;
   roundRect(ctx, x, top, w, bottom - top, 9); ctx.fillStyle = '#0c0805cc'; ctx.fill();
   ctx.lineWidth = 1.5; ctx.strokeStyle = '#5a431f88'; ctx.stroke();
-  ctx.fillStyle = color; ctx.font = `${size}px Georgia`; ctx.textAlign = 'left'; ctx.textBaseline = 'top';
-  const words = String(lines || '').split(/\s+/); let line = ''; let yy = top + 12;
+  ctx.fillStyle = color; ctx.font = `600 ${size}px Georgia`; ctx.textAlign = 'left'; ctx.textBaseline = 'top';
+  const words = String(lines || '').split(/\s+/); let line = ''; let yy = top + 13;
+  const lh = size + 7, pad = 14;
   for (const word of words) {
-    if (ctx.measureText(line + word).width > w - 20 && line) { ctx.fillText(line, x + 10, yy); line = word + ' '; yy += size + 6; if (yy > bottom - size) break; }
+    if (ctx.measureText(line + word).width > w - pad * 2 && line) { ctx.fillText(line, x + pad, yy); line = word + ' '; yy += lh; if (yy > bottom - size) break; }
     else line += word + ' ';
   }
-  if (line && yy <= bottom - size + 4) ctx.fillText(line, x + 10, yy);
+  if (line && yy <= bottom - size + 4) ctx.fillText(line, x + pad, yy);
 }
 
-/** Bake an ACTION card face (cost gem · name · art · scope ribbon · rules). */
+/** Bake an ACTION card face (cost gem · name · art · scope ribbon · rules).
+ *  The art window is smaller than a creature card's so the RULES text can be set MUCH
+ *  larger (readable at hand size without inspecting) — the trade-off cards can afford. */
 export function drawActionFace(ctx, card, img, { W = 384, H = 540, scopeWord = 'Vanguard', typeWord = 'Attack' } = {}) {
   const accent = elColor(card.element);
   drawShell(ctx, W, H, accent);
   const hb = header(ctx, W, accent, card.name, card.cost ?? '', accent);
-  const artBottom = artWindow(ctx, W, hb + 12, 250, accent, img);
-  const rb = ribbon(ctx, W, artBottom + 12, accent, `${scopeWord} · ${typeWord}`);
-  textBox(ctx, W, rb + 12, H - 26, card.text || '');
+  const artBottom = artWindow(ctx, W, hb + 10, 184, accent, img);
+  const rb = ribbon(ctx, W, artBottom + 10, accent, `${scopeWord} · ${typeWord}`);
+  textBox(ctx, W, rb + 10, H - 22, card.text || '', { size: 27 });
 }
 
 /** Bake a CREATURE card face (HP is drawn LIVE as a mesh over the reserved bottom band). */

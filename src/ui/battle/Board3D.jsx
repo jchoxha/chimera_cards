@@ -536,56 +536,75 @@ function Playmat({ enemy, player, sel }) {
 
 // A small flat card STACK lying on the table (deck/discard/exhaust) with a count label.
 // depthTest off + a renderOrder above the ground labels/dashes so the on-field cards always
-// sit OVER the section labels + outlines (they must never be hidden behind them).
+// sit OVER the section labels + outlines (they must never be hidden behind them). Clickable
+// (onTap) → the same inspect overlay the hand-overlay piles open. `hot` → white stack.
 const RO_FIELDPILE = 12;
-function MiniStack({ x, z, count, color, top, label, dir }) {
+function MiniStack({ x, z, count, color, top, label, dir, onTap, hot = false }) {
+  const empty = count <= 0;
   const n = Math.max(1, Math.min(14, count));
   const w = 0.5, h = 0.68;
+  const boxCol = empty ? '#20160d' : (hot ? '#efe7cf' : color);
   return (
     <group position={[x, 0.04, z]}>
       {Array.from({ length: n }).map((_, i) => (
-        <mesh key={i} position={[0, i * 0.013, 0]} rotation={[-Math.PI / 2, 0, 0]} renderOrder={RO_FIELDPILE + i}>
+        <mesh key={i} position={[0, i * 0.013, 0]} rotation={[-Math.PI / 2, 0, 0]} renderOrder={RO_FIELDPILE + i}
+          onPointerDown={i === n - 1 && !empty && onTap ? (e) => { e.stopPropagation(); onTap(); } : undefined}>
           <boxGeometry args={[w, h, 0.012]} />
-          <meshStandardMaterial color={count ? color : '#20160d'} roughness={0.7} metalness={0.12} transparent opacity={count ? 1 : 0.4} depthTest={false} depthWrite={false} />
+          <meshStandardMaterial color={boxCol} roughness={0.7} metalness={0.12} transparent opacity={empty ? 0.4 : 1} depthTest={false} depthWrite={false} />
         </mesh>
       ))}
-      {top && count > 0 && <mesh position={[0, n * 0.013 + 0.006, 0]} rotation={[-Math.PI / 2, 0, 0]} renderOrder={RO_FIELDPILE + n + 1}><planeGeometry args={[w, h]} /><meshBasicMaterial map={top} transparent depthTest={false} depthWrite={false} toneMapped={false} /></mesh>}
-      <GroundLabel text={`${label} ${count}`} x={x} z={z + dir * 0.62} w={1.0} color="#c9a66b" px={34} opacity={0.85} />
+      {top && count > 0 && <mesh position={[0, n * 0.013 + 0.006, 0]} rotation={[-Math.PI / 2, 0, 0]} renderOrder={RO_FIELDPILE + n + 1}><planeGeometry args={[w, h]} /><meshBasicMaterial map={top} color={hot ? '#ffffff' : '#ffffff'} transparent depthTest={false} depthWrite={false} toneMapped={false} /></mesh>}
+      <GroundLabel text={`${label} (${count})`} x={x} z={z + dir * 0.62} w={1.2} color={empty ? '#7a6b4f' : '#c9a66b'} px={32} opacity={empty ? 0.6 : 0.9} />
     </group>
   );
 }
-/** Each squad's DECK · DISCARD · EXHAUST · HAND rendered PHYSICALLY on the field, directly
- *  behind the squad (with a labelled slot). Shown for every squad EXCEPT the one whose cards
- *  are currently lifted into the hand overlay (skipId). */
-function FieldPiles({ enemy, player, skipId }) {
+/** Each squad's DRAW · IN-PLAY · HAND · DISCARDED · BANISHED rendered PHYSICALLY on the field,
+ *  directly behind the squad. Shown for every squad EXCEPT the one whose cards are currently
+ *  lifted into the hand overlay (skipId). Enemy squads have NO In Play pile. Every pile/hand
+ *  is clickable → the same inspect overlay the hand-overlay piles open (onInspect). */
+function FieldPiles({ enemy, player, skipId, onInspect }) {
   const back = cardBackTexture();
+  const inspectHand = (sq, side) => {
+    if (side === 'p') return onInspect?.({ title: 'Hand', cards: sq.hand || [] });
+    return onInspect?.({ title: 'Enemy Hand', cards: Array.from({ length: sq.handCount || 0 }, () => ({ known: false })), note: 'Face-down' });
+  };
   return [['e', enemy], ['p', player]].map(([side, squads]) => {
     const n = squads.length;
     const dir = side === 'p' ? 1 : -1;                 // "behind" = away from the field centre
     const bz = LAYOUT.backZ[side] + dir * 2.5;         // well behind the back row (clears the squad label)
+    const isP = side === 'p';
     return squads.map((sq, i) => {
       if (sq.id === skipId) return null;
       const cx = squadX(i, n);
-      const handN = side === 'p' ? (sq.hand?.length || 0) : (sq.handCount || 0);
+      const handN = isP ? (sq.hand?.length || 0) : (sq.handCount || 0);
       const inPlayN = (sq.plan?.length) || 0;
-      // laid out like the hand overlay: Deck · In-Play on the left, HAND in the middle,
-      // Discard · Exhaust on the right.
+      const inPlayCards = (sq.plan || []).map((a) => a.card);
+      // laid out like the hand overlay: Draw · In-Play (ally only) on the left, HAND in the
+      // middle, Discarded · Banished on the right. Each pile clickable → inspect.
       return (
         <group key={sq.id}>
-          <MiniStack x={cx - 1.7} z={bz} count={sq.deckCount || 0} color="#33240f" top={back} label="Deck" dir={dir} />
-          <MiniStack x={cx - 1.1} z={bz} count={inPlayN} color="#243a1a" top={null} label="Play" dir={dir} />
-          {/* face-down HAND fan in the middle */}
-          {Array.from({ length: Math.min(6, handN) }).map((_, k) => {
-            const m = Math.min(6, handN); const off = k - (m - 1) / 2;
-            return (
-              <mesh key={k} position={[cx + off * 0.16, 0.05 + k * 0.004, bz]} rotation={[-Math.PI / 2, 0, off * 0.14]} renderOrder={RO_FIELDPILE + k}>
-                <planeGeometry args={[0.42, 0.58]} /><meshBasicMaterial map={back} transparent depthTest={false} depthWrite={false} toneMapped={false} />
-              </mesh>
-            );
-          })}
-          <GroundLabel text={`Hand ${handN}`} x={cx} z={bz + dir * 0.6} w={1.0} color="#c9a66b" px={34} opacity={0.85} />
-          <MiniStack x={cx + 1.1} z={bz} count={sq.discardCount || 0} color="#241528" top={null} label="Disc" dir={dir} />
-          <MiniStack x={cx + 1.7} z={bz} count={sq.exhaustCount || 0} color="#241228" top={null} label="Exh" dir={dir} />
+          <MiniStack x={cx - 1.7} z={bz} count={sq.deckCount || 0} color="#33240f" top={back} label="Draw" dir={dir}
+            onTap={() => onInspect?.({ title: 'Draw Pile', cards: sq.deck || [], note: 'Contents known · order hidden' })} />
+          {isP && (
+            <MiniStack x={cx - 1.1} z={bz} count={inPlayN} color="#243a1a" top={inPlayN ? back : null} label="In Play" dir={dir} hot={inPlayN > 0}
+              onTap={() => onInspect?.({ title: 'In Play — this turn', cards: inPlayCards })} />
+          )}
+          {/* face-down HAND fan in the middle (clickable) */}
+          <group onPointerDown={handN ? (e) => { e.stopPropagation(); inspectHand(sq, side); } : undefined}>
+            {Array.from({ length: Math.min(6, handN) }).map((_, k) => {
+              const m = Math.min(6, handN); const off = k - (m - 1) / 2;
+              return (
+                <mesh key={k} position={[cx + off * 0.16, 0.05 + k * 0.004, bz]} rotation={[-Math.PI / 2, 0, off * 0.14]} renderOrder={RO_FIELDPILE + k}>
+                  <planeGeometry args={[0.42, 0.58]} /><meshBasicMaterial map={back} transparent depthTest={false} depthWrite={false} toneMapped={false} />
+                </mesh>
+              );
+            })}
+          </group>
+          <GroundLabel text={`Hand (${handN})`} x={cx} z={bz + dir * 0.6} w={1.2} color="#c9a66b" px={32} opacity={0.9} />
+          <MiniStack x={cx + 1.1} z={bz} count={sq.discardCount || 0} color="#241528" top={sq.discardCount ? back : null} label="Discarded" dir={dir}
+            onTap={() => onInspect?.({ title: 'Discarded', cards: sq.discard || [] })} />
+          <MiniStack x={cx + 1.7} z={bz} count={sq.exhaustCount || 0} color="#241228" top={sq.exhaustCount ? back : null} label="Banished" dir={dir}
+            onTap={() => onInspect?.({ title: 'Banished', cards: sq.exhaust || [] })} />
         </group>
       );
     });
@@ -687,24 +706,42 @@ function Zones({ enemy, player, effSel, hover, onZone, onHover }) {
   });
 }
 
+/** Is `u` a valid TARGET for the active card's scope (target highlighting)? */
+function isCardTarget(targetHint, side, u) {
+  if (!targetHint || side !== targetHint.side) return false;
+  const s = targetHint.scope;
+  if (s === 'front' || s === 'self') return u.isFront;   // vanguard-only scopes
+  return true;                                           // targeted / squad / field → any creature
+}
 /** Squads laid out on the table on their FIXED slots; a ground AURA (below the slot
- *  labels) highlights the selected squad / hovered creature. */
-function Side({ squads, side, effSel, hover, actingId, onPick, onOver, registerMesh }) {
+ *  labels) highlights the SELECTED squad/creature, a hovered creature, or — when a card is
+ *  armed — every valid TARGET for that card (red = offensive, green = friendly). A whole
+ *  SIDE selection no longer lights its creatures (only the field outline shows). */
+function Side({ squads, side, effSel, hover, actingId, targetHint, onPick, onOver, registerMesh }) {
   const hoverUnit = hover?.level === 'unit' ? hover.unitId : null;
   return squads.map((sq, i) => {
     const placed = squadPlacements(sq, side, i, squads.length);
-    const on = squadIsOn(effSel, side, sq.id);
+    // selection-driven creature glow only at SQUAD/UNIT level — never for a whole side/field
+    const on = squadIsOn(effSel, side, sq.id) && effSel.level !== 'side';
     return (
       <group key={sq.id}>
         {placed.map(({ u, x, z }) => {
           const unitSel = effSel.level === 'unit' && effSel.unitId === u.id;
           const isHov = hoverUnit === u.id;
+          const isTarget = isCardTarget(targetHint, side, u);
           // SELECTED = gold; a hovered sub-section = distinct CYAN (drawn even over a
           // gold-selected squad so the hovered creature stands out).
           const gold = unitSel ? '#ffd873' : (on ? '#f0c84a' : null);
           const strength = unitSel ? 0.85 : 0.55;
           return (
             <group key={u.id}>
+              {/* TARGET highlight (card armed) — sits UNDER selection/hover glows */}
+              {isTarget && !unitSel && (
+                <mesh position={[x, 0.009, z]} rotation={[-Math.PI / 2, 0, 0]}>
+                  <planeGeometry args={[SLOT_W + 0.8, SLOT_H + 0.8]} />
+                  <meshBasicMaterial map={glowTexture()} color={targetHint.offensive ? '#ff6a5a' : '#6ee7a0'} transparent opacity={0.62} blending={THREE.AdditiveBlending} depthWrite={false} />
+                </mesh>
+              )}
               {gold && (
                 <mesh position={[x, 0.010, z]} rotation={[-Math.PI / 2, 0, 0]}>
                   <planeGeometry args={[SLOT_W + (unitSel ? 1.1 : 0.9), SLOT_H + (unitSel ? 1.1 : 0.9)]} />
@@ -718,7 +755,7 @@ function Side({ squads, side, effSel, hover, actingId, onPick, onOver, registerM
                 </mesh>
               )}
               <Card3D u={u} side={side} x={x} z={z}
-                selected={on || unitSel} acting={actingId === u.id} hovered={isHov}
+                selected={on || unitSel} acting={actingId === u.id} hovered={isHov || isTarget}
                 onPick={onPick} onOver={onOver} registerMesh={registerMesh} />
             </group>
           );
@@ -772,19 +809,21 @@ function DragCard3D({ card, sx, sy, over }) {
 // per-LEVEL camera framing (position derived from selection; distance + tilt per level).
 // az stays 0 at every level — the angle differences come from tilt (pol) + distance +
 // where the camera is looking, never a yaw (that yaw was the "leans right" bug).
-const FIELD_POL = 0.66, SIDE_POL = 0.62, SQUAD_POL = 0.58, UNIT_POL = 0.7;
-function viewFor(sel, maps, actingId, handV) {
+const FIELD_POL = 0.72, SIDE_POL = 0.62, SQUAD_POL = 0.58, UNIT_POL = 0.7;
+function viewFor(sel, maps, focusId, handV) {
   // when the hand is visible, a focused squad/creature is pushed a little further + toward
   // the camera so it sits ABOVE the hand shelf (the group's bottom clears the top card).
   const hz = handV ? 2.6 : 0, hd = handV ? 1.4 : 0;
-  if (actingId) { const p = maps.unitPos.get(actingId); if (p) return { x: p.x, y: 0.3, z: p.z, dist: 5.4, pol: 0.62 }; }
+  if (focusId) { const p = maps.unitPos.get(focusId); if (p) return { x: p.x, y: 0.3, z: p.z, dist: 5.4, pol: 0.62 }; }
   if (sel.level === 'unit') { const p = maps.unitPos.get(sel.unitId); if (p) return { x: p.x, y: 0.55, z: p.z + 0.35 + hz, dist: 3.9 + hd, pol: UNIT_POL }; }
   if (sel.level === 'squad') { const c = maps.squadCenterById.get(sel.squadId); if (c) return { x: c.x, y: 0.3, z: c.z + hz, dist: 7.2 + hd, pol: SQUAD_POL }; }
   if (sel.level === 'side' && sel.side) return { x: 0, y: 0.3, z: SIDE_Z[sel.side] + hz * 0.9, dist: 10.4 + hd, pol: SIDE_POL };
-  return { x: 0, y: 0.2, z: -0.2, dist: 12.4, pol: FIELD_POL };   // whole field
+  // whole field: bias toward the FRIENDLY side + pull back so the near (friendly) card
+  // piles/hands behind the player squads aren't cut off the bottom of the view.
+  return { x: 0, y: 0.2, z: 1.7, dist: 14.2, pol: FIELD_POL };
 }
 
-export default function Board3D({ enemy, player, sel, actingId, onPick, onZone, onStepUp, pickRef, validRef, hand, fx, drag, handVisible, handSquadId, cardFocusSide }) {
+export default function Board3D({ enemy, player, sel, actingId, focusId, targetHint, onPick, onZone, onStepUp, pickRef, validRef, hand, fx, drag, handVisible, handSquadId, cardFocusSide, onInspect, camRef }) {
   const [hover, setHover] = useState(null);   // { level, side, squadId?, unitId? } under the pointer
   const orbit = useOrbit();
   const meshes = useRef(new Map());
@@ -825,13 +864,28 @@ export default function Board3D({ enemy, player, sel, actingId, onPick, onZone, 
     ? (drag.scopeLevel === 'board' ? { level: 'field' } : { level: 'side', side: drag.wantSide || 'e' })
     : (cardFocusSide ? { level: 'side', side: cardFocusSide } : sel);   // selecting a card frames the target field
   const effSel = dragging ? (drag.hi || { level: 'side', side: drag.wantSide || 'e' }) : sel;
-  const view = viewFor(camSel, maps, actingId, handVisible && !dragging);
+  // camera focus during playback follows the FX: actor while casting, TARGET while landing.
+  const view = viewFor(camSel, maps, focusId ?? actingId, handVisible && !dragging);
   // on camera-selection change: recentre WASD roam + reframe (tilt + zoom reset). az → 0.
   const selKey = `${camSel.level}:${camSel.side || ''}:${camSel.squadId || ''}:${camSel.unitId || ''}`;
   useEffect(() => {
     orbit.pan.current.x = 0; orbit.pan.current.z = 0;
     orbit.frameTo({ az: 0, pol: view.pol, zoom: 1 });
   }, [selKey, orbit, view.pol]);
+
+  // expose imperative camera controls (DOM buttons in BattleScreen) — cross-platform, so
+  // touch users get rotate/tilt/zoom/recenter without a keyboard. WASD panning still works.
+  const viewPolRef = useRef(view.pol); viewPolRef.current = view.pol;
+  useEffect(() => {
+    if (!camRef) return undefined;
+    camRef.current = {
+      yaw: (d) => { orbit.azT.current += d; },
+      tilt: (d) => { orbit.polT.current = clamp(orbit.polT.current + d, 0.12, 1.2); },
+      zoom: (d) => { orbit.zoomT.current = clamp(orbit.zoomT.current + d, 0.72, 1.8); },
+      reset: () => { orbit.pan.current.x = 0; orbit.pan.current.z = 0; orbit.frameTo({ az: 0, pol: viewPolRef.current, zoom: 1 }); },
+    };
+    return () => { if (camRef) camRef.current = null; };
+  }, [camRef, orbit]);
 
   return (
     <Canvas dpr={[1, 2]} gl={{ antialias: true, alpha: false }} camera={{ position: [0, 8, 7], fov: 46, near: 0.1, far: 120 }}
@@ -845,10 +899,10 @@ export default function Board3D({ enemy, player, sel, actingId, onPick, onZone, 
       <directionalLight position={[-5, 4, 2]} intensity={0.35} color="#8fb4ff" />
       <Table onOrbitStart={(ne) => orbit.start(ne, onStepUp)} />
       <Playmat enemy={enemy} player={player} sel={effSel} />
-      <FieldPiles enemy={enemy} player={player} skipId={handVisible ? handSquadId : null} />
+      <FieldPiles enemy={enemy} player={player} skipId={handVisible ? handSquadId : null} onInspect={onInspect} />
       <Zones enemy={enemy} player={player} effSel={effSel} hover={hover} onZone={onZone} onHover={setHover} />
-      <Side squads={enemy} side="e" effSel={effSel} hover={hover} actingId={actingId} onPick={onPick} onOver={onOverUnit} registerMesh={registerMesh} />
-      <Side squads={player} side="p" effSel={effSel} hover={hover} actingId={actingId} onPick={onPick} onOver={onOverUnit} registerMesh={registerMesh} />
+      <Side squads={enemy} side="e" effSel={effSel} hover={hover} actingId={actingId} targetHint={targetHint} onPick={onPick} onOver={onOverUnit} registerMesh={registerMesh} />
+      <Side squads={player} side="p" effSel={effSel} hover={hover} actingId={actingId} targetHint={targetHint} onPick={onPick} onOver={onOverUnit} registerMesh={registerMesh} />
       {hand && <HandDock3D {...hand} draggingIid={drag?.iid || null} />}
       {drag?.card && <DragCard3D card={drag.card} sx={drag.x} sy={drag.y} over={!!drag.over} />}
       <FxLayer items={fx} meshes={meshes} />
