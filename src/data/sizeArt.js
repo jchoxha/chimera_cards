@@ -18,7 +18,7 @@ import SIZE_MANIFEST from './creatureArtSizes.json';
 // — adjectives alone don't move the model. Mirrored in scripts/gen_roster.py
 // SIZE_DESC (the fuller pipeline wording).
 export const FORM_ART_DESC = {
-  baby: 'as a tiny, adorable hatchling (this overrides any size words above) — oversized head and eyes, stubby limbs, occupying only the middle of the frame, dwarfed by oversized environment details',
+  baby: 'as a cute juvenile / baby version (this overrides any size words above) — rounded chunky proportions, an oversized head and big eyes, short stubby limbs — but still filling most of the frame like a normal portrait; a simple flat background at normal scale, NO oversized props, giant grass, or footprints (it reads as young from its proportions, not from being tiny in a huge world)',
   small: 'as a small, half-grown young specimen (this overrides any size words above) — lean, compact and slightly gangly, filling about half the frame',
   regular: 'at its typical adult size — balanced, characteristic proportions',
   large: 'as an unusually large, powerful adult, visibly bigger than a typical member of its kind (this overrides any size words above) — low camera angle, its body filling the frame edge to edge',

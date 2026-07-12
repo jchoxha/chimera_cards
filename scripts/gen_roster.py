@@ -30,9 +30,10 @@ STYLE = ("Flat 2D hand-drawn cartoon illustration in the spirit of Adventure Tim
 # COMPOSITION (camera angle + how much of the frame the body fills + environment
 # scale cues), not adjectives alone.
 SIZE_DESC = {
-    "baby": ("SIZE (overrides any size words in the subject): a TINY, adorable HATCHLING/JUVENILE version. Soft rounded body, "
-             "oversized head and eyes, stubby limbs, small and unthreatening. Camera looks slightly DOWN at it; it occupies only "
-             "the MIDDLE THIRD of the frame, dwarfed by oversized environment details (grass, pebbles, its parent's footprint)."),
+    "baby": ("SIZE (overrides any size words in the subject): a cute BABY/JUVENILE version. Rounded chunky proportions, an "
+             "oversized head and big eyes, short stubby limbs, endearing and young. It STILL FILLS MOST OF THE FRAME like a normal "
+             "portrait (do NOT shrink it into a tiny speck or hide it in grass). Simple flat background at normal scale — NO oversized "
+             "grass/pebbles, and NO footprints. It reads as a baby from its youthful proportions, not from the environment scale."),
     "small": ("SIZE (overrides any size words in the subject): a SMALL, young, half-grown specimen. Lean, compact, slightly gangly "
               "— not yet grown into its features. Eye-level camera; it fills about HALF the frame height."),
     "regular": "SIZE: its typical ADULT form — balanced, characteristic proportions, filling most of the frame.",
