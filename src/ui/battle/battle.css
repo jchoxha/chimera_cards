@@ -358,6 +358,38 @@
 .bConfirm p { margin: 0 0 16px; font-size: 13px; color: var(--ink-dim); line-height: 1.4; }
 .bConfirmBtns { display: flex; gap: 10px; justify-content: center; }
 .bCtl.wide { width: auto; height: 40px; padding: 0 18px; font: 700 13px var(--font-display); letter-spacing: .5px; }
+
+/* ── Run Away button + dice modal ── */
+.bHudBtn.run { color: #f2b3a6; border-color: #7a3226; }
+.bHudBtn.run:hover:not(:disabled) { border-color: var(--bad); color: #fff; background: #2a1418; }
+.bPlanHeadBtns { display: inline-flex; gap: 6px; align-items: center; }
+.bStun { display: inline-flex; align-items: center; gap: 4px; font: 700 12px var(--font-display); color: #ffd07a;
+  padding: 2px 8px; border-radius: 999px; background: #3a2a10; border: 1px solid #7a5a1e; }
+.bOutcomeBtn { display: inline-flex; align-items: center; gap: 7px; padding: 8px 14px; border-radius: 10px; cursor: pointer;
+  border: 1px solid var(--gold-deep); background: var(--surface-2); color: var(--gold-bright); font: 700 13px var(--font-display); letter-spacing: .5px; }
+.bOutcomeBtn:hover { border-color: var(--gold); background: linear-gradient(#2e2114, #201509); }
+.bConfirm.run { width: min(440px, 92vw); }
+.bRunList { display: flex; flex-direction: column; gap: 8px; margin: 4px 0 14px; }
+.bRunRow { display: grid; grid-template-columns: 1fr auto auto; align-items: center; gap: 12px; padding: 8px 12px;
+  border-radius: 10px; background: #1c130bC0; border: 1px solid var(--line); }
+.bRunRow.pass { border-color: var(--good-line); background: #12261a; }
+.bRunRow.fail { border-color: var(--bad-line); background: #2a1418; }
+.bRunSq { font: 700 13px var(--font-display); color: var(--ink); text-align: left; }
+.bRunTag { font: 700 12px var(--font-display); letter-spacing: .04em; min-width: 62px; text-align: right; }
+.bRunTag.ok { color: var(--good); } .bRunTag.no { color: var(--bad); } .bRunTag.rolling { color: var(--ink-dim); }
+.bRunVerdict { display: flex; align-items: center; justify-content: center; gap: 7px; margin: 4px 0 14px !important; font: 700 14px var(--font-display) !important; }
+.bRunVerdict.ok { color: var(--good) !important; } .bRunVerdict.no { color: #ffb08a !important; }
+/* a d6 face drawn from CSS pips */
+.bDie { width: 46px; height: 46px; display: grid; grid-template-columns: repeat(3, 1fr); grid-template-rows: repeat(3, 1fr);
+  padding: 6px; gap: 2px; border-radius: 10px; background: linear-gradient(150deg, #f4ecd8, #d8c8a4); border: 1px solid #b59a63;
+  box-shadow: inset 0 -3px 6px #0003, 0 3px 8px #0007; }
+.bDie .bPip { border-radius: 50%; background: transparent; }
+.bDie .bPip.on { background: radial-gradient(circle at 40% 35%, #4a3d28, #14100a); box-shadow: inset 0 1px 1px #fff5; }
+.bDie.pass { border-color: var(--good); box-shadow: 0 0 12px var(--good-line), inset 0 -3px 6px #0003; }
+.bDie.fail { border-color: var(--bad); box-shadow: 0 0 12px var(--bad-line), inset 0 -3px 6px #0003; }
+.bDie.rolling { animation: bDieShake .18s linear infinite; }
+@keyframes bDieShake { 0% { transform: translate(0,0) rotate(-6deg); } 25% { transform: translate(1px,-2px) rotate(5deg); }
+  50% { transform: translate(-2px,1px) rotate(-4deg); } 75% { transform: translate(2px,1px) rotate(6deg); } 100% { transform: translate(0,0) rotate(-6deg); } }
 /* fight-modal: squads with leftover energy, each a link that selects it + closes */
 .bEnergyList { display: flex; flex-direction: column; gap: 6px; margin: 0 0 16px; text-align: left; }
 .bEnergyLink { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 8px 12px; border-radius: 10px;

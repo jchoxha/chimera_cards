@@ -6,6 +6,25 @@ a single-file Claude artifact now split into ES modules.
 
 ## ⚑ Project state — read this first (updated 2026-06-18)
 
+**🗺️ OPEN-WORLD EXPLORATION + RUN AWAY (v3.144.0, 2026-07-12, Jeton).** `battle.html` is now a
+SHELL (`src/battle-v2/main.jsx`) that switches between combat and a new **overworld** off
+`worldStore.mode`. **Exploration** (`src/ui/world/WorldScene.jsx`) reuses the billboard scene tech: a
+grid of **stitched CHUNKS** on a grass plane, a **party portrait billboard** that walks chunk-to-chunk
+(WASD / arrows / on-screen D-pad, eased follow-camera), scattered flora per chunk, a **minimap**, and
+**battleground chunks** (red ring + enemy marker). Walking into an uncleared battleground hands off to
+combat (`worldStore.move → enterBattle`); **winning** clears the chunk, **fleeing/losing** bumps the
+party back — either way you return to explore. `src/store/worldStore.js` owns the mode + persistent
+world (6×6 grid, 6 battlegrounds); `battleStore` stays combat-only. **RUN AWAY:** a **Run** button
+(left of Plan; the **Log** button moved INTO the Plan popup) opens a confirm → **per-squad d6 roll**
+modal (animated CSS-pip dice). Each living squad must roll **≥3** to escape; **ALL must pass** → flee to
+the overworld. Any fail → the turn is **forfeit** (queued cards return, the round resolves with the
+player idle) and each **failed squad is Stunned** (can't plan) next round (`battleStore.attemptRunAway`
++ `pendingStun`→`stunnedSquads`, enforced in `queueCard`/`autoPlan`, shown as a pill badge). Art is the
+same **procedural placeholder** billboards (`SceneEnv` bakers exported + reused). **NEXT** (Jeton's north
+star): richer chunk biomes, persistent party HP/deck across the run, generated enemy/party portraits,
+and a seamless (non-cut) battlefield↔chunk transition.
+
+
 **🌲 BATTLEFIELD SCENES — pluggable backdrop layer (v3.142.0, 2026-07-12, Jeton).** The combat-v2
 board (`battle.html`) is no longer a bare grid: a new **`src/ui/battle/SceneEnv.jsx`** supplies the
 sky/ground/props/lighting for a named SCENE that layers UNDER the scene-agnostic squads/cards/playmat.

@@ -1,41 +1,38 @@
-// Entry for the COMBAT-V2 squad-battle demo (battle.html). Builds a demo battle
-// from real roster creatures and mounts the new BattleScreen. Runs ALONGSIDE the
-// v1 app — nothing here touches the live game.
-import React, { useEffect } from 'react';
+// Entry for the COMBAT-V2 squad-battle + OPEN-WORLD demo (battle.html). A thin SHELL
+// switches between the 3D exploration WorldScene and the BattleScreen off worldStore.mode.
+// Boots straight into a battle (the long-standing combat demo); RUN AWAY from it (or win)
+// drops you into the overworld, and walking into a battleground chunk starts a new battle.
+// Runs ALONGSIDE the v1 app — nothing here touches the live game.
+import React, { useEffect, useRef } from 'react';
 import { createRoot } from 'react-dom/client';
 import '../ui/theme.css';
 import BattleScreen from '../ui/battle/BattleScreen.jsx';
+import WorldScene from '../ui/world/WorldScene.jsx';
 import { useBattle } from '../store/battleStore.js';
-import { buildRoster, ROSTER as ROSTER_ENTRIES } from '../data/roster.js';
-import { POOLS, rosterPool } from '../app/pools.js';
+import { useWorld, enemyFor } from '../store/worldStore.js';
 
-const ROSTER = buildRoster(POOLS, POOLS.Warrior || [], rosterPool);
-const byId = (id) => ROSTER.find((c) => c.id === id) || ROSTER[0];
+if (import.meta.env.DEV && typeof window !== 'undefined') { window.__battle = useBattle; window.__world = useWorld; }
 
-// A demo: three player squads vs three enemy squads (mix of front + support) —
-// enough to exercise the field carousel + per-squad card piles on both sides.
-function demo() {
-  const ids = ROSTER_ENTRIES.map((r) => r.id);
-  const pick = (i) => byId(ids[i % ids.length]);
-  return {
-    player: [
-      { creatures: [pick(0), pick(1), pick(2)] },   // full squad (Vanguard + 2 Support)
-      { creatures: [pick(3)] },                      // solo squad
-      { creatures: [pick(9), pick(10)] },            // duo squad
-    ],
-    enemy: [
-      { creatures: [pick(4), pick(5)] },
-      { creatures: [pick(6), pick(7), pick(8)] },
-      { creatures: [pick(11)] },
-    ],
-  };
+function Shell() {
+  const mode = useWorld((s) => s.mode);
+  const pendingEnemy = useWorld((s) => s.pendingEnemy);
+  const battleChunk = useWorld((s) => s.battleChunk);
+  const party = useWorld((s) => s.party);
+  const winBattle = useWorld((s) => s.winBattle);
+  const fleeBattle = useWorld((s) => s.fleeBattle);
+  const startedFor = useRef(null);
+
+  // (re)start a battle whenever we ENTER battle mode for a new encounter.
+  useEffect(() => {
+    if (mode !== 'battle') { startedFor.current = null; return; }
+    const key = `${battleChunk || 'demo'}`;
+    if (startedFor.current === key) return;
+    startedFor.current = key;
+    useBattle.getState().startBattle({ player: party, enemy: pendingEnemy || enemyFor(0) });
+  }, [mode, pendingEnemy, battleChunk, party]);
+
+  if (mode === 'explore') return <WorldScene />;
+  return <BattleScreen onFlee={fleeBattle} onBattleEnd={(r) => (r === 'win' ? winBattle() : fleeBattle())} />;
 }
 
-if (import.meta.env.DEV && typeof window !== 'undefined') window.__battle = useBattle;
-
-function App() {
-  useEffect(() => { useBattle.getState().startBattle(demo()); }, []);
-  return <BattleScreen />;
-}
-
-createRoot(document.getElementById('root')).render(<App />);
+createRoot(document.getElementById('root')).render(<Shell />);

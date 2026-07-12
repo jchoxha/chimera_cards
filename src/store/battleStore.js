@@ -115,6 +115,7 @@ function squadSnap(store, sqId, side) {
   snap.deckCount = c.deck.length; snap.discardCount = c.discard.length; snap.exhaustCount = c.exhaust.length;
   snap.discard = pileHidden(c.discard); snap.exhaust = pileHidden(c.exhaust);   // piles are visible to the player on BOTH sides
   if (side === 'p') {
+    snap.stunned = (store.stunnedSquads || []).includes(sqId);   // failed a run-away roll → can't plan this round
     snap.hand = c.hand;                       // your own hand, face-up + draggable
     snap.deck = pileHidden(c.deck);           // your draw pile — contents known, order hidden
   } else {
@@ -215,6 +216,7 @@ function enemyPlan(state, cards) {
 export const useBattle = create((set, get) => ({
   snapshot: null, state: null, plans: {}, cards: {}, seen: new Set(), queueOrder: [], undone: [], selectedSquadId: null,
   phase: 'plan', outcome: null, log: [], version: 0, dealKey: 0, turn: 1, logHistory: [],
+  stunnedSquads: [], pendingStun: null,   // run-away failure: squads locked out of the NEXT plan phase
   opponent: aiOpponent,   // multiplayer seam: swap for a network provider (see aiOpponent)
 
   /** Replace the opponent provider (AI ↔ remote player). Netcode entry point. */
@@ -223,7 +225,7 @@ export const useBattle = create((set, get) => ({
   startBattle({ player, enemy }) {
     const { state, cards } = buildBattle(player, enemy);
     startRound(state);
-    const base = { state, cards, seen: new Set(), plans: {}, queueOrder: [], undone: [], selectedSquadId: state.sides.p[0], phase: 'plan', outcome: null, log: [], version: 0, dealKey: 1, turn: 1, logHistory: [], startedAt: Date.now() };
+    const base = { state, cards, seen: new Set(), plans: {}, queueOrder: [], undone: [], selectedSquadId: state.sides.p[0], phase: 'plan', outcome: null, log: [], version: 0, dealKey: 1, turn: 1, logHistory: [], startedAt: Date.now(), stunnedSquads: [], pendingStun: null };
     set({ ...base, snapshot: publish({ ...get(), ...base }) });
   },
 
@@ -248,6 +250,7 @@ export const useBattle = create((set, get) => ({
   queueCard(handIid, targetId) {
     const s = get();
     const sqId = s.selectedSquadId; if (!sqId) return;
+    if ((s.stunnedSquads || []).includes(sqId)) return;   // stunned by a failed run-away → can't plan
     const squad = s.state.squadsById[sqId]; if (!squad || squad.side !== 'p') return;
     const front = liveFrontUnit(s.state, squad); if (!front) return;
     const pile = s.cards[sqId] || { hand: [] };
@@ -308,6 +311,7 @@ export const useBattle = create((set, get) => ({
     const queueOrder = [...s.queueOrder];
     let added = false;
     for (const sqId of s.state.sides.p) {
+      if ((s.stunnedSquads || []).includes(sqId)) continue;   // stunned squads can't be auto-planned
       const squad = s.state.squadsById[sqId];
       const front = liveFrontUnit(s.state, squad);
       const pile = cards[sqId];
@@ -373,8 +377,31 @@ export const useBattle = create((set, get) => ({
     const logHistory = [...(s.logHistory || []), ...entries];
     const turn = outcome ? s.turn : s.turn + 1;
     const dealKey = (s.dealKey || 0) + 1;
-    const next = { ...s, plans: {}, cards, seen, queueOrder: [], log, outcome, phase: outcome ? 'over' : 'plan', dealKey, turn, logHistory };
-    set({ plans: {}, cards, seen, queueOrder: [], log, outcome, phase: next.phase, dealKey, turn, logHistory, snapshot: publish(next) });
+    // promote any PENDING stun (set by a failed run-away this round) into effect for the NEXT
+    // plan phase, and clear whatever stun was active this round (it's now spent).
+    const stunnedSquads = s.pendingStun || [];
+    const next = { ...s, plans: {}, cards, seen, queueOrder: [], log, outcome, phase: outcome ? 'over' : 'plan', dealKey, turn, logHistory, stunnedSquads, pendingStun: null };
+    set({ plans: {}, cards, seen, queueOrder: [], log, outcome, phase: next.phase, dealKey, turn, logHistory, stunnedSquads, pendingStun: null, snapshot: publish(next) });
     return { log, outcome, entries };
+  },
+
+  /** RUN AWAY. Given each living player squad's d6 roll, decide the escape:
+   *  - ALL squads ≥ threshold → success (the caller transitions to exploration).
+   *  - ANY squad below → failure: the party FORFEITS this turn (queued cards return to hand,
+   *    the round then resolves with the player idle), and each FAILED squad is STUNNED for the
+   *    following plan phase. Returns { success, failed } so the UI can react + animate.  */
+  attemptRunAway(rolls, threshold = 3) {
+    const s = get();
+    if (s.phase !== 'plan' || s.outcome) return { success: false, failed: [] };
+    const livingIds = s.state.sides.p.filter((id) => liveFrontUnit(s.state, s.state.squadsById[id]));
+    const failed = livingIds.filter((id) => (rolls[id] ?? 6) < threshold);
+    if (!failed.length) return { success: true, failed: [] };
+    // escape failed → forfeit the turn: return queued cards to hand + arm the stun for next round
+    const cards = { ...s.cards };
+    for (const [sqId, plan] of Object.entries(s.plans)) {
+      if (plan?.length) { const pile = cards[sqId] || { hand: [] }; cards[sqId] = { ...pile, hand: [...pile.hand, ...plan.map((a) => a.card)] }; }
+    }
+    set({ plans: {}, cards, queueOrder: [], undone: [], pendingStun: failed, snapshot: publish({ ...s, plans: {}, cards, undone: [] }) });
+    return { success: false, failed };
   },
 }));

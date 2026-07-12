@@ -1,0 +1,32 @@
+/* Open-world exploration HUD — overlays the WebGL WorldScene canvas. */
+.worldScreen { position: fixed; inset: 0; overflow: hidden; background: #0c0805; user-select: none; touch-action: none; }
+.worldScreen canvas { display: block; width: 100% !important; height: 100% !important; }
+
+.wTop { position: absolute; top: 12px; left: 12px; display: flex; flex-direction: column; gap: 4px; pointer-events: none; }
+.wTitle { display: inline-flex; align-items: center; gap: 7px; padding: 6px 12px; border-radius: 10px;
+  background: linear-gradient(#1a120bE6, #120c07E6); border: 1px solid var(--gold-deep); color: var(--gold-bright);
+  font: 700 15px var(--font-display); letter-spacing: .04em; box-shadow: 0 4px 14px #0009; width: fit-content; }
+.wTitle iconify-icon { font-size: 18px; }
+.wHint { padding: 4px 10px; border-radius: 8px; background: #120c07C0; border: 1px solid var(--line);
+  color: var(--ink-dim); font: 600 12px var(--font-body); width: fit-content; }
+.wHint b { color: #ff8a6a; }
+
+.wMap { position: absolute; top: 12px; right: 12px; display: grid; gap: 3px; padding: 8px;
+  border-radius: 10px; background: linear-gradient(#1a120bE6, #120c07E6); border: 1px solid var(--gold-deep); box-shadow: 0 4px 14px #0009; }
+.wCell { width: 16px; height: 16px; border-radius: 4px; background: #2c3a22; border: 1px solid #0006; }
+.wCell.field { background: #3f5a30; }
+.wCell.battle { background: #7a2a1c; box-shadow: 0 0 5px #ff5a3c88; }
+.wCell.cleared { background: #4a6b38; opacity: .7; }
+.wCell.here { background: var(--gold-bright); box-shadow: 0 0 8px var(--gold-bright); }
+
+.wPad { position: absolute; right: 20px; bottom: 20px; width: 150px; height: 150px; display: grid;
+  grid-template-columns: repeat(3, 1fr); grid-template-rows: repeat(3, 1fr); gap: 4px; opacity: .92; }
+.wPad button { border: 1px solid var(--gold-deep); background: linear-gradient(#241a10, #191009); color: var(--gold-bright);
+  border-radius: 12px; font-size: 24px; display: flex; align-items: center; justify-content: center; cursor: pointer; }
+.wPad button:hover { border-color: var(--gold); background: linear-gradient(#2e2114, #201509); }
+.wPad button:active { transform: translateY(1px); }
+.wPad .wUp { grid-column: 2; grid-row: 1; }
+.wPad .wLeft { grid-column: 1; grid-row: 2; }
+.wPad .wRight { grid-column: 3; grid-row: 2; }
+.wPad .wDown { grid-column: 2; grid-row: 3; }
+@media (min-width: 900px) and (pointer: fine) { .wPad { opacity: .5; } .wPad:hover { opacity: .92; } }

@@ -34,7 +34,7 @@ function bake(w, h, draw) {
 
 // ── cached textures (module-level so scene toggles don't re-bake) ──
 let _sky = null;
-function skyTexture() {
+export function skyTexture() {
   if (_sky) return _sky;
   _sky = bake(8, 256, (ctx) => {
     const g = ctx.createLinearGradient(0, 0, 0, 256);
@@ -47,7 +47,7 @@ function skyTexture() {
   return _sky;
 }
 let _grass = null;
-function grassTexture() {
+export function grassTexture() {
   if (_grass) return _grass;
   _grass = bake(256, 256, (ctx) => {
     ctx.fillStyle = '#3f6a33'; ctx.fillRect(0, 0, 256, 256);
@@ -64,7 +64,7 @@ function grassTexture() {
 }
 // soft round ground shadow (dark → transparent) for grounding billboards
 let _shadow = null;
-function shadowTexture() {
+export function shadowTexture() {
   if (_shadow) return _shadow;
   _shadow = bake(64, 64, (ctx) => {
     const g = ctx.createRadialGradient(32, 32, 2, 32, 32, 30);
@@ -123,11 +123,11 @@ function bushTexture() {
   });
   return _props.bush;
 }
-const PROP_TEX = { tree: treeRoundTexture, pine: pineTexture, rock: rockTexture, bush: bushTexture };
-const PROP_SIZE = { tree: [3.0, 4.2], pine: [2.6, 4.4], rock: [1.7, 1.3], bush: [1.5, 1.05] };
+export const PROP_TEX = { tree: treeRoundTexture, pine: pineTexture, rock: rockTexture, bush: bushTexture };
+export const PROP_SIZE = { tree: [3.0, 4.2], pine: [2.6, 4.4], rock: [1.7, 1.3], bush: [1.5, 1.05] };
 
 // ── an upright CYLINDRICAL billboard (yaw-to-camera; stays standing on tilt) ──
-function Billboard({ kind, x, z, s = 1 }) {
+export function Billboard({ kind, x, z, s = 1 }) {
   const ref = useRef();
   const tex = useMemo(() => PROP_TEX[kind](), [kind]);
   const [w, h] = PROP_SIZE[kind]; const W = w * s, H = h * s;

@@ -68,7 +68,19 @@ function ActionCard({ card, dragSrc, selected, big, onPointerDown, onDoubleClick
   );
 }
 
-export default function BattleScreen() {
+// A d6 face rendered as CSS pips (reliable — no icon dependency). `rolling` shakes it.
+const DIE_PIPS = { 1: [4], 2: [0, 8], 3: [0, 4, 8], 4: [0, 2, 6, 8], 5: [0, 2, 4, 6, 8], 6: [0, 2, 3, 5, 6, 8] };
+function DieFace({ value = 1, rolling = false, pass = null }) {
+  const on = new Set(DIE_PIPS[value] || DIE_PIPS[1]);
+  const cls = `bDie${rolling ? ' rolling' : ''}${pass === true ? ' pass' : ''}${pass === false ? ' fail' : ''}`;
+  return (
+    <div className={cls}>
+      {Array.from({ length: 9 }).map((_, i) => <span key={i} className={`bPip${on.has(i) ? ' on' : ''}`} />)}
+    </div>
+  );
+}
+
+export default function BattleScreen({ onFlee, onBattleEnd } = {}) {
   const snap = useBattle((s) => s.snapshot);
   const selectSquad = useBattle((s) => s.selectSquad);
   const queueCard = useBattle((s) => s.queueCard);
@@ -77,6 +89,7 @@ export default function BattleScreen() {
   const redoLast = useBattle((s) => s.redoLast);
   const resetPlans = useBattle((s) => s.resetPlans);
   const autoPlan = useBattle((s) => s.autoPlan);
+  const attemptRunAway = useBattle((s) => s.attemptRunAway);
   const resolve = useBattle((s) => s.resolve);
 
   const dropEls = useRef(new Map());   // (reserved for in-scene FX anchoring)
@@ -112,6 +125,14 @@ export default function BattleScreen() {
   const [confirmFight, setConfirmFight] = useState(false);   // "energy left" confirmation
   const [confirmReset, setConfirmReset] = useState(false);   // "reset all moves?" confirmation
   const [planOpen, setPlanOpen] = useState(false);           // "Plan" popup (queued actions + undo/redo/reset + speed)
+  const RUN_THRESHOLD = 3;                                    // d6 result a squad must MEET or beat to escape
+  const [runAway, setRunAway] = useState(null);              // { stage:'confirm'|'roll'|'result', rolls:{sqId}, success }
+  const [dieSpin, setDieSpin] = useState(0);                 // ticker: cycles the shown face while a die rolls
+  useEffect(() => {
+    if (runAway?.stage !== 'roll') return undefined;
+    const id = setInterval(() => setDieSpin((v) => (v + 1) % 6), 80);
+    return () => clearInterval(id);
+  }, [runAway?.stage]);
   const [camOpen, setCamOpen] = useState(false);             // camera-control pad shown/hidden
   const [autoCam, setAutoCam] = useState(true);              // auto-frame the camera on card interaction
   const [scene, setScene] = useState('forest');              // battlefield backdrop (forest | grid=admin)
@@ -492,6 +513,26 @@ export default function BattleScreen() {
     nextMoveRef.current = true; pausedRef.current = false; setPlayPaused(false);
     runRef.current();
   };
+
+  // ── RUN AWAY: each living squad rolls a d6; ALL must roll ≥ RUN_THRESHOLD to escape ──
+  const runSquads = snap ? snap.player.filter((sq) => sq.units.some((u) => !u.dead)) : [];
+  const openRunAway = () => { if (anim || snap.outcome) return; setPlanOpen(false); setLogOpen(false); setRunAway({ stage: 'confirm', rolls: {} }); };
+  const rollSquad = (sqId) => setRunAway((r) => {
+    if (!r || r.rolls[sqId]) return r;                    // already rolled/rolling
+    const value = 1 + Math.floor(Math.random() * 6);
+    timers.current.push(setTimeout(() => setRunAway((rr) => (rr ? { ...rr, rolls: { ...rr.rolls, [sqId]: { rolling: false, value } } } : rr)), 850));
+    return { ...r, rolls: { ...r.rolls, [sqId]: { rolling: true, value } } };
+  });
+  const rollAllSquads = () => runSquads.forEach((sq, i) => timers.current.push(setTimeout(() => rollSquad(sq.id), i * 170)));
+  const runDone = !!runAway && runAway.stage === 'roll' && runSquads.length > 0 && runSquads.every((sq) => runAway.rolls[sq.id] && !runAway.rolls[sq.id].rolling);
+  const runSuccess = runDone && runSquads.every((sq) => runAway.rolls[sq.id].value >= RUN_THRESHOLD);
+  const finishRunAway = () => {
+    const rolls = {}; runSquads.forEach((sq) => { rolls[sq.id] = runAway.rolls[sq.id]?.value ?? 6; });
+    const res = attemptRunAway(rolls, RUN_THRESHOLD);
+    setRunAway(null);
+    if (res.success) { onFlee?.(); }        // escaped → the shell switches to exploration
+    else { doFight(); }                     // caught → the forfeited round resolves (enemy acts free)
+  };
   // merge same-type effects so a multi-hit reads "18 Damage", not "6 · 6 · 6" (no runaway list).
   // keeps the number even when it sums to 0 (→ "0 Damage", not a bare "Damage").
   const mergeEffects = (arr) => {
@@ -610,7 +651,11 @@ export default function BattleScreen() {
         {snap.outcome && (
           <div className={`bOutcome center ${snap.outcome === 'p' ? 'win' : 'lose'}`}>
             {snap.outcome === 'p' ? 'Victory' : snap.outcome === 'e' ? 'Defeat' : 'Draw'}
-            <span className="bNew" onClick={() => window.location.reload()} title="New battle"><Icon icon="tabler:refresh" /></span>
+            {onBattleEnd
+              ? <button className="bOutcomeBtn" onClick={() => onBattleEnd(snap.outcome === 'p' ? 'win' : 'lose')}>
+                  <Icon icon="tabler:map-2" /> {snap.outcome === 'p' ? 'To the overworld' : 'Retreat'}
+                </button>
+              : <span className="bNew" onClick={() => window.location.reload()} title="New battle"><Icon icon="tabler:refresh" /></span>}
           </div>
         )}
       </div>
@@ -654,9 +699,11 @@ export default function BattleScreen() {
                 <div className={`bHudSquad${pill.side === 'e' ? ' foe' : ''}`}>
                   <span className="bHudSquadName">{pill.title}</span>
                   {(pill.kind === 'squad' || pill.kind === 'unit') && pill.energy && (
-                    <span className="bEnergy" title={`${pill.energy.energyLeft} of ${pill.energy.maxEnergy} AP`}>
-                      <Icon icon="tabler:bolt" /><b>{pill.energy.energyLeft}/{pill.energy.maxEnergy}</b><em className="bEnergyLbl">AP</em>
-                    </span>
+                    pill.energy.stunned
+                      ? <span className="bStun" title="Stunned by a failed escape — can't act this round"><Icon icon="tabler:bolt-off" /> Stunned</span>
+                      : <span className="bEnergy" title={`${pill.energy.energyLeft} of ${pill.energy.maxEnergy} AP`}>
+                          <Icon icon="tabler:bolt" /><b>{pill.energy.energyLeft}/{pill.energy.maxEnergy}</b><em className="bEnergyLbl">AP</em>
+                        </span>
                   )}
                 </div>
                 <button className="bHudBtn" title="Next" disabled={!canCycle} onClick={() => cycleSel(1)}><Icon icon="tabler:chevron-right" /></button>
@@ -677,11 +724,9 @@ export default function BattleScreen() {
             )}
 
             <div className="bHudCluster right">
-              {snap.logHistory?.length ? (
-                <button className="bHudBtn log" title="View combat log" onClick={() => setLogOpen(true)}>
-                  <Icon icon="game-icons:scroll-quill" /><span>Log</span>
-                </button>
-              ) : null}
+              <button className="bHudBtn run" title="Attempt to flee this battle" disabled={!!snap.outcome} onClick={openRunAway}>
+                <Icon icon="tabler:run" /><span>Run</span>
+              </button>
               <button className={`bHudBtn plan${planOpen ? ' on' : ''}`} title="Planned actions" onClick={() => setPlanOpen((v) => !v)}>
                 <Icon icon="tabler:list-check" /><span>Plan</span>{totalQueued > 0 && <span className="bPlanCount">{totalQueued}</span>}
               </button>
@@ -693,7 +738,12 @@ export default function BattleScreen() {
               <div className="bPlanPop" onClick={(e) => e.stopPropagation()}>
                 <div className="bPlanHead">
                   <span><Icon icon="tabler:list-check" /> Planned Actions <em>{totalQueued}</em></span>
-                  <button className="bZoomClose sm" onClick={() => setPlanOpen(false)}><Icon icon="tabler:x" /></button>
+                  <div className="bPlanHeadBtns">
+                    {snap.logHistory?.length ? (
+                      <button className="bCtl sm" title="View combat log" onClick={() => { setPlanOpen(false); setLogOpen(true); }}><Icon icon="game-icons:scroll-quill" /></button>
+                    ) : null}
+                    <button className="bZoomClose sm" onClick={() => setPlanOpen(false)}><Icon icon="tabler:x" /></button>
+                  </div>
                 </div>
                 <div className="bPlanList">
                   {plannedActions.length === 0 && <div className="bPlanEmpty">No actions queued. Drag or select a card to plan one.</div>}
@@ -803,6 +853,61 @@ export default function BattleScreen() {
               <button className="bCtl wide" onClick={() => setConfirmReset(false)}>Keep them</button>
               <button className="bCtl fight wide" onClick={() => { resetPlans(); setConfirmReset(false); }}>Reset all</button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* RUN AWAY — confirm, then roll a d6 per squad (need ≥ RUN_THRESHOLD to escape) */}
+      {runAway && (
+        <div className="bInspect" onClick={() => runAway.stage === 'confirm' && setRunAway(null)}>
+          <div className="bConfirm run" onClick={(e) => e.stopPropagation()}>
+            {runAway.stage === 'confirm' ? (
+              <>
+                <h3><Icon icon="tabler:run" /> Run away?</h3>
+                <p>Each squad must roll <b>{RUN_THRESHOLD} or higher</b> on a d6 to escape. This <b>forfeits the turn</b>, and any squad that <b>fails</b> is <b>Stunned</b> next round. Flee only if <b>every</b> squad makes it.</p>
+                <div className="bConfirmBtns">
+                  <button className="bCtl wide" onClick={() => setRunAway(null)}>Stay and fight</button>
+                  <button className="bCtl fight wide" onClick={() => setRunAway({ stage: 'roll', rolls: {} })}><Icon icon="tabler:dice" /> Roll to flee</button>
+                </div>
+              </>
+            ) : (
+              <>
+                <h3><Icon icon="tabler:dice" /> Rolling to flee <em>· need {RUN_THRESHOLD}+</em></h3>
+                <div className="bRunList">
+                  {runSquads.map((sq, i) => {
+                    const r = runAway.rolls[sq.id];
+                    const rolled = r && !r.rolling;
+                    const pass = rolled ? r.value >= RUN_THRESHOLD : null;
+                    const shown = r ? (r.rolling ? ((dieSpin + i) % 6) + 1 : r.value) : 1;
+                    return (
+                      <div key={sq.id} className={`bRunRow${rolled ? (pass ? ' pass' : ' fail') : ''}`}>
+                        <span className="bRunSq">Ally Squad {snap.player.findIndex((p) => p.id === sq.id) + 1}</span>
+                        <DieFace value={shown} rolling={!!r?.rolling} pass={pass} />
+                        {!r ? <button className="bCtl sm" onClick={() => rollSquad(sq.id)}>Roll</button>
+                          : r.rolling ? <span className="bRunTag rolling">…</span>
+                            : <span className={`bRunTag ${pass ? 'ok' : 'no'}`}>{pass ? 'Escaped' : 'Caught'}</span>}
+                      </div>
+                    );
+                  })}
+                </div>
+                {!runDone && Object.keys(runAway.rolls).length === 0 && (
+                  <div className="bConfirmBtns">
+                    <button className="bCtl wide" onClick={() => setRunAway(null)}>Cancel</button>
+                    <button className="bCtl fight wide" onClick={rollAllSquads}><Icon icon="tabler:dice" /> Roll all</button>
+                  </div>
+                )}
+                {runDone && (
+                  <>
+                    <p className={`bRunVerdict ${runSuccess ? 'ok' : 'no'}`}>
+                      {runSuccess ? <><Icon icon="tabler:check" /> The party slips away!</> : <><Icon icon="tabler:alert-triangle" /> Some squads were caught — brace for a free enemy round.</>}
+                    </p>
+                    <div className="bConfirmBtns">
+                      <button className="bCtl fight wide" onClick={finishRunAway}>{runSuccess ? 'Escape to the overworld' : 'Take the hit'}</button>
+                    </div>
+                  </>
+                )}
+              </>
+            )}
           </div>
         </div>
       )}
