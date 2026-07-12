@@ -186,7 +186,9 @@ function useOrbit() {
       if (!d.moved && Math.hypot(e.clientX - d.x, e.clientY - d.y) > 4) d.moved = true;
     };
     const onUp = () => { const d = drag.current; drag.current = null; if (d && !d.moved && d.onTap) d.onTap(); };
-    const onWheel = (e) => { zoomT.current = Math.max(0.72, Math.min(1.8, zoomT.current + Math.sign(e.deltaY) * 0.08)); };
+    // don't zoom the camera when the wheel is scrolling an open DOM modal / popup overlay
+    const overModal = (e) => (e.target?.closest?.('.bInspect, .bZoom, .bPlanPop, .bFieldPop, .bRotateGate'));
+    const onWheel = (e) => { if (overModal(e)) return; zoomT.current = Math.max(0.72, Math.min(1.8, zoomT.current + Math.sign(e.deltaY) * 0.08)); };
     const isText = (t) => t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA' || t.isContentEditable);
     const onKey = (down) => (e) => {
       const k = e.key.toLowerCase();
@@ -577,18 +579,12 @@ function FieldPiles({ enemy, player, skipId, onInspect }) {
       if (sq.id === skipId) return null;
       const cx = squadX(i, n);
       const handN = isP ? (sq.hand?.length || 0) : (sq.handCount || 0);
-      const inPlayN = (sq.plan?.length) || 0;
-      const inPlayCards = (sq.plan || []).map((a) => a.card);
-      // laid out like the hand overlay: Draw · In-Play (ally only) on the left, HAND in the
-      // middle, Discarded · Banished on the right. Each pile clickable → inspect.
+      // laid out like the hand overlay: Draw pile on the left, HAND in the middle, Discarded ·
+      // Banished on the right. (In Play lives ONLY in the hand overlay, not on the battlefield.)
       return (
         <group key={sq.id}>
-          <MiniStack x={cx - 1.7} z={bz} count={sq.deckCount || 0} color="#33240f" top={back} label="Draw" dir={dir}
+          <MiniStack x={cx - 1.4} z={bz} count={sq.deckCount || 0} color="#33240f" top={back} label="Draw" dir={dir}
             onTap={() => onInspect?.({ title: 'Draw Pile', cards: sq.deck || [], note: 'Contents known · order hidden' })} />
-          {isP && (
-            <MiniStack x={cx - 1.1} z={bz} count={inPlayN} color="#243a1a" top={inPlayN ? back : null} label="In Play" dir={dir}
-              onTap={() => onInspect?.({ title: 'In Play — this turn', cards: inPlayCards })} />
-          )}
           {/* face-down HAND fan in the middle (clickable) */}
           <group onPointerDown={handN ? (e) => { e.stopPropagation(); inspectHand(sq, side); } : undefined}>
             {Array.from({ length: Math.min(6, handN) }).map((_, k) => {
@@ -765,6 +761,106 @@ function Side({ squads, side, effSel, hover, actingId, targetHint, onPick, onOve
   });
 }
 
+// ── PLAYED / QUEUED action cards on the battlefield, placed by SCOPE ──
+const scopeOfCard = (c) => c.scope || (c.reachesBack ? 'targeted' : 'front');
+/** Where a queued card is LEFT on the field, by its scope: at the creature (targeted/front/
+ *  self), at the squad centre, at the field centre, or at the board centre (battleground). */
+function landingAnchor(card, targetId, maps) {
+  const scope = scopeOfCard(card);
+  if (scope === 'board') return { key: 'board', x: 0, z: 0 };
+  const meta = maps.unitMeta.get(targetId);
+  if (!meta) return null;
+  if (scope === 'field') return { key: `field-${meta.side}`, x: 0, z: SIDE_Z[meta.side] };
+  if (scope === 'squad') { const c = maps.squadCenterById.get(meta.squadId); return c ? { key: `sq-${meta.squadId}`, x: c.x, z: c.z } : null; }
+  const p = maps.unitPos.get(targetId); if (!p) return null;
+  return { key: `u-${targetId}`, x: p.x, z: p.z };
+}
+// the resting spot is just IN FRONT of the anchor (toward the board centre) so it doesn't cover it
+const landingRest = (anc) => { const toward = anc.z > 0 ? -1 : 1; return { x: anc.x, z: anc.z + toward * 1.05, y: 0.5 }; };
+const PL_W = 0.62, PL_H = PL_W * (HAND_CARD_H / HAND_CARD_W);
+
+/** One queued card left flat & face-up on the field. */
+function PlannedChip({ card, x, z, rotZ }) {
+  const tex = useActionCardTexture(card);
+  return (
+    <mesh position={[x, 0.06, z]} rotation={[-Math.PI / 2, 0, rotZ]} renderOrder={RO_FIELDPILE + 6}>
+      <planeGeometry args={[PL_W, PL_H]} />
+      {tex
+        ? <meshBasicMaterial key="t" map={tex} transparent depthTest={false} depthWrite={false} toneMapped={false} />
+        : <meshBasicMaterial key="c" color="#2a1d11" transparent depthTest={false} depthWrite={false} toneMapped={false} />}
+    </mesh>
+  );
+}
+/** All of the PLAYER's queued cards, laid out on the field at their scope anchors (fanned
+ *  when several share an anchor). Only shown while planning (plans clear when the fight runs). */
+function PlannedCards({ player, maps, onInspect }) {
+  const groups = new Map();
+  player.forEach((sq) => (sq.plan || []).forEach((a) => {
+    const anc = landingAnchor(a.card, a.targetId, maps); if (!anc) return;
+    const g = groups.get(anc.key) || { anc, cards: [] }; g.cards.push(a.card); groups.set(anc.key, g);
+  }));
+  const out = [];
+  groups.forEach((g, key) => {
+    const rest = landingRest(g.anc);
+    g.cards.forEach((card, i) => {
+      const off = (i - (g.cards.length - 1) / 2) * 0.3;
+      out.push(<PlannedChip key={`${key}-${i}`} card={card} x={rest.x + off} z={rest.z} rotZ={0} />);
+    });
+    // clickable hitbox over the group → inspect the queued cards
+    out.push(
+      <mesh key={`${key}-hit`} position={[rest.x, 0.065, rest.z]} rotation={[-Math.PI / 2, 0, 0]} renderOrder={RO_FIELDPILE + 7}
+        onPointerDown={(e) => { e.stopPropagation(); onInspect?.({ title: 'Queued here', cards: g.cards }); }}>
+        <planeGeometry args={[PL_W + Math.abs(g.cards.length - 1) * 0.3, PL_H]} />
+        <meshBasicMaterial transparent opacity={0} depthTest={false} depthWrite={false} />
+      </mesh>,
+    );
+  });
+  return out;
+}
+
+/** A card FLYING from where it was played (drag-release point, or the hand for a tap-select)
+ *  to its scope landing spot. Drag = a quick flat slide; select = a higher arced toss. */
+function FlyingCard({ fly, maps, onDone }) {
+  const { camera, gl } = useThree();
+  const grp = useRef();
+  const tex = useActionCardTexture(fly.card);
+  const t = useRef(0);
+  const from = useRef(null); const to = useRef(null);
+  const DUR = fly.kind === 'select' ? 0.5 : 0.4;
+  useFrame((_, dt) => {
+    const g = grp.current; if (!g) return;
+    if (!from.current) {
+      const rect = gl.domElement.getBoundingClientRect();
+      const v = new THREE.Vector2(((fly.x - rect.left) / rect.width) * 2 - 1, -((fly.y - rect.top) / rect.height) * 2 + 1);
+      const ray = new THREE.Raycaster(); ray.setFromCamera(v, camera);
+      const plane = new THREE.Plane(new THREE.Vector3(0, 1, 0), -1.2);
+      const hit = new THREE.Vector3(); ray.ray.intersectPlane(plane, hit);
+      from.current = hit.clone();
+      const anc = landingAnchor(fly.card, fly.targetId, maps);
+      const rest = anc ? landingRest(anc) : { x: hit.x, z: hit.z, y: 0.5 };
+      to.current = new THREE.Vector3(rest.x, rest.y, rest.z);
+    }
+    t.current += dt;
+    const k = Math.min(1, t.current / DUR);
+    const e = k * k * (3 - 2 * k);
+    g.position.lerpVectors(from.current, to.current, e);
+    g.position.y += Math.sin(e * Math.PI) * (fly.kind === 'select' ? 1.5 : 0.6);
+    g.quaternion.copy(camera.quaternion);
+    g.scale.setScalar(1 - e * 0.4);
+    if (k >= 1) onDone();
+  });
+  return (
+    <group ref={grp} renderOrder={70}>
+      <mesh renderOrder={70}>
+        <planeGeometry args={[HAND_CARD_W * 1.2, HAND_CARD_H * 1.2]} />
+        {tex
+          ? <meshBasicMaterial map={tex} transparent depthTest={false} depthWrite={false} toneMapped={false} />
+          : <meshBasicMaterial color="#c9a66b" depthTest={false} depthWrite={false} toneMapped={false} />}
+      </mesh>
+    </group>
+  );
+}
+
 /** The lifted 3D Action Card during a hand drag: a real world-space card mesh that
  *  follows the pointer THROUGH the scene (unprojected onto a plane above the table),
  *  faces the camera, and draws over everything. Green-tinted while over a valid target. */
@@ -823,7 +919,7 @@ function viewFor(sel, maps, focusId, handV) {
   return { x: 0, y: 0.2, z: 1.7, dist: 14.2, pol: FIELD_POL };
 }
 
-export default function Board3D({ enemy, player, sel, actingId, focusId, targetHint, onPick, onZone, onStepUp, pickRef, validRef, hand, fx, drag, handVisible, handSquadId, cardFocusSide, onInspect, camRef }) {
+export default function Board3D({ enemy, player, sel, actingId, focusId, targetHint, onPick, onZone, onStepUp, pickRef, validRef, hand, fx, drag, handVisible, handSquadId, cardFocusSide, onInspect, camRef, fly, onFlyDone }) {
   const [hover, setHover] = useState(null);   // { level, side, squadId?, unitId? } under the pointer
   const orbit = useOrbit();
   const meshes = useRef(new Map());
@@ -903,6 +999,8 @@ export default function Board3D({ enemy, player, sel, actingId, focusId, targetH
       <Zones enemy={enemy} player={player} effSel={effSel} hover={hover} onZone={onZone} onHover={setHover} />
       <Side squads={enemy} side="e" effSel={effSel} hover={hover} actingId={actingId} targetHint={targetHint} onPick={onPick} onOver={onOverUnit} registerMesh={registerMesh} />
       <Side squads={player} side="p" effSel={effSel} hover={hover} actingId={actingId} targetHint={targetHint} onPick={onPick} onOver={onOverUnit} registerMesh={registerMesh} />
+      {!dragging && !actingId && <PlannedCards player={player} maps={maps} onInspect={onInspect} />}
+      {fly && <FlyingCard key={fly.key} fly={fly} maps={maps} onDone={onFlyDone} />}
       {hand && <HandDock3D {...hand} draggingIid={drag?.iid || null} />}
       {drag?.card && <DragCard3D card={drag.card} sx={drag.x} sy={drag.y} over={!!drag.over} />}
       <FxLayer items={fx} meshes={meshes} />

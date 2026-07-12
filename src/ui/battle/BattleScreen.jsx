@@ -89,9 +89,12 @@ export default function BattleScreen() {
   const [anim, setAnim] = useState(null);    // resolution playback
   const [displayTurn, setDisplayTurn] = useState(1);   // top-left turn — only advances once a fight resolves
   const [fx, setFx] = useState([]);
+  const [fly, setFly] = useState(null);      // a card flying from hand/drop → its scope landing spot
+  const flySeq = useRef(0);
   const [playSpeed, setPlaySpeed] = useState(1);     // resolution playback speed (0.5 / 1 / 2)
   const [playPaused, setPlayPaused] = useState(false);
   const speedRef = useRef(1); const pausedRef = useRef(false); const actingRef = useRef(null);
+  const autoPauseRef = useRef(false);   // true when a modal auto-paused playback (resume on close)
   speedRef.current = playSpeed; pausedRef.current = playPaused;
   // hierarchical selection: Field › Side › Squad › Unit. A click drills DOWN one level
   // toward what was clicked (you must select a SIDE before a squad, a squad before a
@@ -134,7 +137,7 @@ export default function BattleScreen() {
         const L = liveRef.current;
         if (g.valid) {
           const target = (L.resolveDropFromHi && L.resolveDropFromHi(g.hi)) || g.over;
-          if (target) { queueCard(g.iid, target); setSelId2(null); }
+          if (target) { queueCard(g.iid, target); setSelId2(null); setFly({ key: (flySeq.current += 1), card: g.card, targetId: target, x: g.x, y: g.y, kind: 'drag' }); }
         }
       }
       else if (g.tapSel) setCardZoom(g.card);   // tap a selected card → detail
@@ -233,6 +236,8 @@ export default function BattleScreen() {
   }); };
   // click a ZONE (field / squad ground plane) → select it DIRECTLY (or play a selected
   // card at it). Clicking a creature selects that UNIT (a 2nd click opens its card).
+  // a select-then-target play flies the card up from the hand (screen bottom-centre) → target
+  const flyFromHand = (card, targetId) => setFly({ key: (flySeq.current += 1), card, targetId, x: window.innerWidth / 2, y: window.innerHeight - 90, kind: 'select' });
   const onZone = (z) => {
     if (anim) return;
     if (selectedCard) {
@@ -240,7 +245,7 @@ export default function BattleScreen() {
       const wantSide = isOffensiveCard(selectedCard) ? 'e' : 'p';
       if (z.side !== wantSide) { setSelId2(null); return; }   // wrong side → cancel selection
       const t = z.level === 'squad' ? frontOf(allSquads.find((sq) => sq.id === z.squadId)) : frontOf((z.side === 'e' ? snap.enemy : snap.player)[0]);
-      if (t) { queueCard(selectedCard.iid, t); setSelId2(null); }
+      if (t) { queueCard(selectedCard.iid, t); flyFromHand(selectedCard, t); setSelId2(null); }
       return;
     }
     setSelId2(null);
@@ -251,7 +256,7 @@ export default function BattleScreen() {
     const sq = squadOfUnit(u.id); if (!sq) return;
     if (selectedCard) {
       const wantSide = isOffensiveCard(selectedCard) ? 'e' : 'p';
-      if (side === wantSide) { queueCard(selectedCard.iid, u.id); setSelId2(null); }
+      if (side === wantSide) { queueCard(selectedCard.iid, u.id); flyFromHand(selectedCard, u.id); setSelId2(null); }
       return;
     }
     setSelId2(null);
@@ -374,26 +379,44 @@ export default function BattleScreen() {
   // ── clickable log / ticker / plan helpers ──
   const unitById = (id) => allSquads.flatMap((s) => s.units).find((u) => u.id === id) || null;
   const sideOfUnit = (id) => (snap.enemy.some((sq) => sq.units.some((u) => u.id === id)) ? 'e' : 'p');
-  const inspectUnit = (id) => { const u = unitById(id); if (u) setZoom({ u: disp(u), side: sideOfUnit(id) }); };
-  const openCard = (card) => card && setCardZoom(card);
+  // opening an inspect modal DURING playback auto-pauses; closing it resumes (unless the
+  // player had paused manually). autoPauseRef tracks that we were the one who paused.
+  const pauseForModal = () => { if (anim && !pausedRef.current) { autoPauseRef.current = true; setPlayPaused(true); } };
+  const resumeIfAuto = () => { if (autoPauseRef.current) { autoPauseRef.current = false; setPlayPaused(false); } };
+  const inspectUnit = (id) => { const u = unitById(id); if (u) { pauseForModal(); setZoom({ u: disp(u), side: sideOfUnit(id) }); } };
+  const openCard = (card) => { if (card) { pauseForModal(); setCardZoom(card); } };
   // skip the rest of the fight animation → jump straight to the resolved board.
-  const skipFight = () => { timers.current.forEach(clearTimeout); timers.current = []; setFx([]); setTicker(null); setPlayPaused(false); setAnim(null); };
-  // one clickable creature crest chip (inspects the unit on the battlefield)
+  const skipFight = () => { timers.current.forEach(clearTimeout); timers.current = []; setFx([]); setTicker(null); setPlayPaused(false); autoPauseRef.current = false; setAnim(null); };
+  // merge same-type effects so a multi-hit reads "18 Damage", not "6 · 6 · 6" (no runaway list)
+  const mergeEffects = (arr) => {
+    const m = new Map();
+    for (const s of arr || []) { const mt = /^(\d+)\s+(.*)$/.exec(s); if (mt) m.set(mt[2], (m.get(mt[2]) || 0) + Number(mt[1])); else m.set(s, m.get(s) || 0); }
+    return [...m.entries()].map(([lbl, n]) => (n ? `${n} ${lbl}` : lbl));
+  };
+  // one clickable creature crest chip (inspects the unit on the battlefield). NO key — these
+  // are rendered inline (positional), and a changing key amid unkeyed siblings makes React
+  // fail to remove stale chips in the in-place-updated ticker (names would pile up).
   const UnitChip = (id, name, side) => (unitById(id)
-    ? <button key={`${id}-${name}`} className={`bChip unit ${side === 'e' ? 'foe' : 'ally'}`} title={`Inspect ${name}`} onClick={() => inspectUnit(id)}><Icon icon="tabler:paw" />{name}</button>
+    ? <button className={`bChip unit ${side === 'e' ? 'foe' : 'ally'}`} title={`Inspect ${name}`} onClick={() => inspectUnit(id)}><Icon icon="tabler:paw" />{name}</button>
     : <span className={`bChip unit ${side === 'e' ? 'foe' : 'ally'} dead`}><Icon icon="tabler:skull" />{name}</span>);
   // a structured, tinted combat-log / ticker line (actor → card → target + effects)
-  const renderEntry = (en, withTurn) => (
-    <span className="bLogLine">
-      {withTurn && <span className="bLogTurn">T{en.turn}</span>}
-      {UnitChip(en.ownerId, en.actor, en.side)}
-      <span className={`bLogVerb ${en.offensive ? 'atk' : 'buf'}`}><Icon icon={en.offensive ? 'game-icons:crossed-swords' : 'game-icons:sparkles'} /></span>
-      <span className="bChip card" style={{ '--el': elColor(en.element) }}><Icon icon="game-icons:card-play" />{en.card}</span>
-      <span className="bLogArrow"><Icon icon="tabler:arrow-right" /></span>
-      {UnitChip(en.targetId, en.target, sideOfUnit(en.targetId))}
-      {en.effects?.length ? <span className="bLogEff">{en.effects.join(' · ')}</span> : null}
-    </span>
-  );
+  const renderEntry = (en, withTurn) => {
+    const eff = mergeEffects(en.effects);
+    const cardChip = en.cardObj
+      ? <button className="bChip card" style={{ '--el': elColor(en.element) }} title="View card" onClick={() => openCard(en.cardObj)}><Icon icon="game-icons:card-play" />{en.card}</button>
+      : <span className="bChip card" style={{ '--el': elColor(en.element) }}><Icon icon="game-icons:card-play" />{en.card}</span>;
+    return (
+      <span className="bLogLine">
+        {withTurn && <span className="bLogTurn">T{en.turn}</span>}
+        {UnitChip(en.ownerId, en.actor, en.side)}
+        <span className={`bLogVerb ${en.offensive ? 'atk' : 'buf'}`}><Icon icon={en.offensive ? 'game-icons:crossed-swords' : 'game-icons:sparkles'} /></span>
+        {cardChip}
+        <span className="bLogArrow"><Icon icon="tabler:arrow-right" /></span>
+        {UnitChip(en.targetId, en.target, sideOfUnit(en.targetId))}
+        {eff.length ? <span className="bLogEff">{eff.join(' · ')}</span> : null}
+      </span>
+    );
+  };
 
   return (
     <div className={`battleScreen${d ? ' dragging' : ''}${anim ? ' resolving' : ''}${dockHidden ? ' dockHidden' : ''}${selectedCard ? ' picking' : ''}`}
@@ -408,6 +431,7 @@ export default function BattleScreen() {
           handVisible={showHand} handSquadId={handSquad?.id || null}
           cardFocusSide={selectedCard ? (isOffensiveCard(selectedCard) ? 'e' : 'p') : null}
           targetHint={targetHint} onInspect={setInspect} camRef={camRef}
+          fly={fly} onFlyDone={() => setFly(null)}
           hand={showHand ? {
             station: handSquad,
             selectedIid: selId2, dealKey: snap.dealKey, faceDown: handIsEnemy,
@@ -551,18 +575,18 @@ export default function BattleScreen() {
           lifted out of the hand and followed through the scene — no DOM ghost. */}
 
       {zoom && (
-        <div className="bZoom" onClick={() => setZoom(null)}>
+        <div className="bZoom" onClick={() => { setZoom(null); resumeIfAuto(); }}>
           <div className="bZoomCard" onClick={(e) => e.stopPropagation()}><CardFace f={zoom.u} side={zoom.side === 'e' ? 'enemy' : 'ally'} /></div>
-          <button className="bZoomClose" onClick={() => setZoom(null)}><Icon icon="tabler:x" /></button>
+          <button className="bZoomClose" onClick={() => { setZoom(null); resumeIfAuto(); }}><Icon icon="tabler:x" /></button>
         </div>
       )}
 
       {inspect && (
-        <div className="bInspect" onClick={() => setInspect(null)}>
+        <div className="bInspect" onClick={() => { setInspect(null); resumeIfAuto(); }} onWheel={(e) => e.stopPropagation()}>
           <div className="bInspectPanel" onClick={(e) => e.stopPropagation()}>
             <div className="bInspectHead"><span>{inspect.title} <em>· {inspect.cards.length}</em></span>
               {inspect.note && <small>{inspect.note}</small>}
-              <button className="bZoomClose sm" onClick={() => setInspect(null)}><Icon icon="tabler:x" /></button>
+              <button className="bZoomClose sm" onClick={() => { setInspect(null); resumeIfAuto(); }}><Icon icon="tabler:x" /></button>
             </div>
             <div className="bInspectGrid">
               {inspect.cards.map((card, i) => (card.known === false
@@ -575,9 +599,9 @@ export default function BattleScreen() {
 
       {/* enlarged Action Card detail (like the creature card, but for a card) */}
       {cardZoom && (
-        <div className="bZoom" onClick={() => setCardZoom(null)}>
+        <div className="bZoom" onClick={() => { setCardZoom(null); resumeIfAuto(); }}>
           <div className="bZoomCard action" onClick={(e) => e.stopPropagation()}><ActionCard card={cardZoom} big /></div>
-          <button className="bZoomClose" onClick={() => setCardZoom(null)}><Icon icon="tabler:x" /></button>
+          <button className="bZoomClose" onClick={() => { setCardZoom(null); resumeIfAuto(); }}><Icon icon="tabler:x" /></button>
         </div>
       )}
 

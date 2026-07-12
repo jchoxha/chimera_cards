@@ -150,8 +150,10 @@ export function formatRoundLog(state, log, turn) {
       cur = { turn, side: state.unitsById[e.ownerId]?.side || 'p', actor: nameOf(e.ownerId), actorSide: sideLbl(e.ownerId),
         verb: e.offensive ? 'Attacked' : 'Buffed', target: nameOf(e.targetId), targetSide: sideLbl(e.targetId),
         card: e.cardName || 'a card', effects: [],
-        // ids + element so the UI can render clickable crests + tinted card chips
-        ownerId: e.ownerId, targetId: e.targetId, cardId: e.card, offensive: !!e.offensive, element: elOf(e.ownerId) };
+        // ids + element + the card spec so the UI can render clickable crests, tinted card
+        // chips, AND open the full card face on click.
+        ownerId: e.ownerId, targetId: e.targetId, cardId: e.card, cardObj: DEMO_CARDS[e.card] || null,
+        offensive: !!e.offensive, element: elOf(e.ownerId) };
       entries.push(cur);
     } else if (cur) {
       if (e.type === 'damage') { const net = e.amount - (e.blocked || 0); cur.effects.push(`${net} Damage`); }

@@ -124,7 +124,20 @@ function HandCard3D({ card, index, count, dealKey, selected, faceDown, onCardPoi
 
 /** A physical card PILE: a stack of thin card meshes (height ∝ count) + a count/label
  *  plate. Tapping the stack opens the inspect overlay. */
-function Pile3D({ x, color = '#3a2a18', count, label, onTap }) {
+/** A face-UP card baked onto the top of a pile (used by In Play to show the last card added). */
+function PileTopFace({ card, pw, ph, y, ro }) {
+  const tex = useActionCardTexture(card);
+  return (
+    <mesh position={[0, y, 0]} rotation={[-Math.PI / 2, 0, 0]} renderOrder={ro}>
+      <planeGeometry args={[pw, ph]} />
+      {tex
+        ? <meshBasicMaterial key="t" map={tex} transparent depthTest={false} depthWrite={false} toneMapped={false} />
+        : <meshBasicMaterial key="c" color="#2a1d11" transparent depthTest={false} depthWrite={false} toneMapped={false} />}
+    </mesh>
+  );
+}
+
+function Pile3D({ x, color = '#3a2a18', count, label, onTap, topCard = null }) {
   const empty = count <= 0;
   const [tex, setTex] = useState(null);
   useEffect(() => {
@@ -157,13 +170,17 @@ function Pile3D({ x, color = '#3a2a18', count, label, onTap }) {
           <meshStandardMaterial color={boxCol} roughness={0.7} metalness={0.15} transparent opacity={empty ? 0.32 : 1} depthTest={false} depthWrite={false} />
         </mesh>
       ))}
-      {/* the TOP card's face-down back (so the deck reads as a stack of real cards).
-          KEY on `empty` — going null→map (0→1 cards) won't recompile the shader to use the
-          map without a remount, so a pile that started empty would otherwise render white. */}
-      <mesh position={[0, top + 0.012, 0]} rotation={[-Math.PI / 2, 0, 0]} renderOrder={RO + n + 1}>
-        <planeGeometry args={[pw, ph]} />
-        <meshBasicMaterial key={empty ? 'e' : 'f'} map={empty ? null : back} color={empty ? '#241a10' : '#ffffff'} transparent opacity={empty ? 0.35 : 1} depthTest={false} depthWrite={false} toneMapped={false} />
-      </mesh>
+      {/* the TOP card: FACE-UP (last card) when a `topCard` is given (In Play), else the
+          face-down back. KEY on `empty` — going null→map (0→1 cards) won't recompile the
+          shader to use the map without a remount, so a pile that started empty would render white. */}
+      {(!empty && topCard)
+        ? <PileTopFace card={topCard} pw={pw} ph={ph} y={top + 0.012} ro={RO + n + 1} />
+        : (
+          <mesh position={[0, top + 0.012, 0]} rotation={[-Math.PI / 2, 0, 0]} renderOrder={RO + n + 1}>
+            <planeGeometry args={[pw, ph]} />
+            <meshBasicMaterial key={empty ? 'e' : 'f'} map={empty ? null : back} color={empty ? '#241a10' : '#ffffff'} transparent opacity={empty ? 0.35 : 1} depthTest={false} depthWrite={false} toneMapped={false} />
+          </mesh>
+        )}
       {/* one-line label plate, stood up to face the camera ABOVE (behind) the stack */}
       {tex && <mesh position={[0, 0.02, -(ph * 0.5 + 0.22)]} rotation={[-1.24, 0, 0]} renderOrder={RO + n + 3}><planeGeometry args={[1.15, 0.19]} /><meshBasicMaterial map={tex} transparent opacity={empty ? 0.7 : 1} depthTest={false} depthWrite={false} toneMapped={false} /></mesh>}
     </group>
@@ -171,27 +188,40 @@ function Pile3D({ x, color = '#3a2a18', count, label, onTap }) {
 }
 
 /** Ensures a group rides the camera (a fixed foreground shelf). `slideRef` carries a
- *  horizontal offset (set on squad switch) that eases back to 0 — the carousel slide. */
-function CamShelf({ children, aspect, slideRef }) {
+ *  horizontal offset (set on squad switch) that eases back to 0 — the carousel slide.
+ *  `riseRef` (0→1, set to 1 when the overlay appears / switches squad) eases back to 0 to
+ *  play the ENTRANCE: the whole shelf flies UP from below + grows into place, so the piles
+ *  and hand read as being lifted off the battlefield. */
+function CamShelf({ children, aspect, slideRef, riseRef }) {
   const camera = useThree((s) => s.camera);
   const scene = useThree((s) => s.scene);
   const ref = useRef();
   useEffect(() => {
     scene.add(camera);            // the default camera isn't in the graph by default; add it so its children render
     const node = ref.current; camera.add(node);
+    if (riseRef) riseRef.current = 1;   // play the rise entrance on mount
     return () => { camera.remove(node); };
-  }, [camera, scene]);
+  }, [camera, scene, riseRef]);
+  const baseY = -0.8, baseZ = -3.5, s = aspect < 1 ? 0.56 : 0.68;
   useFrame(() => {
-    if (!ref.current || !slideRef) return;
-    ref.current.position.x = slideRef.current;
-    slideRef.current += (0 - slideRef.current) * 0.16;   // ease to centre
-    if (Math.abs(slideRef.current) < 0.002) slideRef.current = 0;
+    const node = ref.current; if (!node) return;
+    if (slideRef) {
+      node.position.x = slideRef.current;
+      slideRef.current += (0 - slideRef.current) * 0.16;   // ease to centre
+      if (Math.abs(slideRef.current) < 0.002) slideRef.current = 0;
+    }
+    // ENTRANCE: rise from ~2.4 below + up-and-back (toward the board) + scale up, easing in.
+    const r = riseRef ? riseRef.current : 0;
+    const e = r * r * (3 - 2 * r);          // smoothstep
+    node.position.y = baseY - e * 2.4;
+    node.position.z = baseZ - e * 0.8;
+    node.scale.setScalar(s * (1 - e * 0.28));
+    if (riseRef) { riseRef.current += (0 - riseRef.current) * 0.14; if (riseRef.current < 0.002) riseRef.current = 0; }
   });
-  const s = aspect < 1 ? 0.56 : 0.68;
   // face the camera FLAT (no slant); the hand plane is distinct from the board table.
   // Raised a touch so the bottom row clears the dock bar; sits close to the camera so a
   // zoomed-in board never pokes in front of it (its meshes also skip the depth test).
-  return <group ref={ref} position={[0, -0.8, -3.5]} rotation={[0.08, 0, 0]} scale={s}>{children}</group>;
+  return <group ref={ref} position={[0, baseY, baseZ]} rotation={[0.08, 0, 0]} scale={s}>{children}</group>;
 }
 
 export default function HandDock3D({ station, selectedIid, dealKey, squadIndex = 0, draggingIid = null, faceDown = false, onCardPointerDown, onInspect }) {
@@ -199,9 +229,11 @@ export default function HandDock3D({ station, selectedIid, dealKey, squadIndex =
   const aspect = size.width / Math.max(1, size.height);
   // carousel: on squad switch, start the shelf off-screen on the side we came FROM
   const slideRef = useRef(0);
+  const riseRef = useRef(1);   // entrance rise (see CamShelf); replays on squad switch
   const prevIdx = useRef(squadIndex);
   if (squadIndex !== prevIdx.current) {
     slideRef.current = (squadIndex > prevIdx.current ? 1 : -1) * (aspect < 1 ? 6 : 9);
+    riseRef.current = 1;
     prevIdx.current = squadIndex;
   }
   if (!station) return null;
@@ -215,12 +247,12 @@ export default function HandDock3D({ station, selectedIid, dealKey, squadIndex =
   const px = aspect < 1 ? 2.5 : 3.0, gap = 0.82;
   const inPlay = (station.plan || []).map((a) => a.card);
   return (
-    <CamShelf aspect={aspect} slideRef={slideRef}>
+    <CamShelf aspect={aspect} slideRef={slideRef} riseRef={riseRef}>
       {/* piles sit LOW (near the hand row) with their one-line label above each */}
       <group position={[0, -0.15, 0]}>
         <Pile3D x={-px} color="#33240f" count={station.deckCount || 0} label="Draw Pile"
           onTap={() => onInspect({ title: 'Draw Pile', cards: station.deck, note: 'Contents known · order hidden' })} />
-        <Pile3D x={-px + gap} color="#243a1a" count={inPlay.length} label="In Play"
+        <Pile3D x={-px + gap} color="#243a1a" count={inPlay.length} label="In Play" topCard={inPlay[inPlay.length - 1] || null}
           onTap={() => onInspect({ title: 'In Play — this turn', cards: inPlay })} />
         <Pile3D x={px - gap} color="#241528" count={station.discardCount || 0} label="Discarded"
           onTap={() => onInspect({ title: 'Discarded', cards: station.discard })} />
