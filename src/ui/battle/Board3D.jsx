@@ -205,7 +205,7 @@ function useOrbit() {
     const onDown = (e) => { if (e.button === 2 && e.target?.tagName === 'CANVAS') drag.current = { x: e.clientX, y: e.clientY, az: az.current, pol: pol.current, moved: false, onTap: null, button: 2 }; };
     // don't zoom the camera when the wheel is scrolling an open DOM modal / popup overlay
     const overModal = (e) => (e.target?.closest?.('.bInspect, .bZoom, .bPlanPop, .bFieldPop, .bRotateGate'));
-    const onWheel = (e) => { if (overModal(e)) return; zoomT.current = Math.max(0.72, Math.min(1.8, zoomT.current + Math.sign(e.deltaY) * 0.08)); };
+    const onWheel = (e) => { if (overModal(e)) return; zoomT.current = Math.max(0.5, Math.min(1.8, zoomT.current + Math.sign(e.deltaY) * 0.08)); };
     const isText = (t) => t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA' || t.isContentEditable);
     const onKey = (down) => (e) => {
       const k = e.key.toLowerCase();
@@ -495,13 +495,15 @@ function useTextTexture(text, color, px = 44) {
     ctx.fillStyle = color; ctx.fillText(text, 256, 64);
   }), [text, color, px]);
 }
-/** A flat text plane laid on the table (role / squad labels). */
+/** A flat text plane laid on the table (role / squad labels). depthTest is ON so a creature
+ *  card standing between the camera and a label OCCLUDES it (labels must not bleed THROUGH
+ *  cards); depthWrite stays off so the flat labels don't fight the slot tints beneath them. */
 function GroundLabel({ text, x, z, w, color, px, opacity = 1 }) {
   const tex = useTextTexture(text, color, px);
   return (
     <mesh position={[x, 0.02, z]} rotation={[-Math.PI / 2, 0, 0]}>
       <planeGeometry args={[w, w * (128 / 512)]} />
-      <meshBasicMaterial map={tex} transparent depthWrite={false} depthTest={false} opacity={opacity} toneMapped={false} />
+      <meshBasicMaterial map={tex} transparent depthWrite={false} opacity={opacity} toneMapped={false} />
     </mesh>
   );
 }
@@ -576,7 +578,9 @@ function MiniStack({ x, z, count, color, top, label, dir, onTap }) {
         </mesh>
       ))}
       {top && count > 0 && <mesh position={[0, n * 0.013 + 0.006, 0]} rotation={[-Math.PI / 2, 0, 0]} renderOrder={RO_FIELDPILE + n + 1}><planeGeometry args={[w, h]} /><meshBasicMaterial map={top} transparent depthTest={false} depthWrite={false} toneMapped={false} /></mesh>}
-      <GroundLabel text={`${label} (${count})`} x={x} z={z + dir * 0.62} w={1.2} color={empty ? '#7a6b4f' : '#c9a66b'} px={32} opacity={empty ? 0.6 : 0.9} />
+      {/* label is LOCAL to this group (already translated to [x,·,z]) — using x/z here would
+          double the offset and fling the label to the field's edge. */}
+      <GroundLabel text={`${label} (${count})`} x={0} z={dir * 0.62} w={1.2} color={empty ? '#7a6b4f' : '#c9a66b'} px={32} opacity={empty ? 0.6 : 0.9} />
     </group>
   );
 }
@@ -977,11 +981,14 @@ export default function Board3D({ enemy, player, sel, actingId, focusId, targetH
   // AIMING = a lifted card while auto-camera is on → the camera frames the relative field and
   // the scope highlight follows drag.hi. A card still down in the hand (or autoCam off) leaves
   // the camera on the current selection so the hand can be reorganised undisturbed.
-  const aiming = dragging && !!drag.lifted && autoCam;
+  // STICKY: once a drag has lifted (aimed) at least once, the camera stays framed on the target
+  // field for the REST of the drag — even if the card dips back into the hand to reorder — and
+  // only returns to the selection view on release. (autoCam-on only.)
+  const aiming = dragging && !!drag.everLifted && autoCam;
   const camSel = aiming
     ? (drag.scopeLevel === 'board' ? { level: 'field' } : { level: 'side', side: drag.wantSide || 'e' })
     : (cardFocusSide ? { level: 'side', side: cardFocusSide } : sel);   // selecting a card frames the target field
-  const effSel = (dragging && drag.lifted) ? (drag.hi || { level: 'side', side: drag.wantSide || 'e' }) : sel;
+  const effSel = (dragging && drag.everLifted) ? (drag.hi || { level: 'side', side: drag.wantSide || 'e' }) : sel;
   // camera focus during playback follows the FX (actor→target) — but ONLY when autoCam is on.
   const liveView = viewFor(camSel, maps, autoCam ? (focusId ?? actingId) : null, handVisible && !aiming);
   // AUTO-CAMERA OFF → freeze the look-at at wherever it was, so NOTHING (selection, drag
@@ -1006,7 +1013,7 @@ export default function Board3D({ enemy, player, sel, actingId, focusId, targetH
     camRef.current = {
       yaw: (d) => { orbit.azT.current += d; },
       tilt: (d) => { orbit.polT.current = clamp(orbit.polT.current + d, 0.12, 1.2); },
-      zoom: (d) => { orbit.zoomT.current = clamp(orbit.zoomT.current + d, 0.72, 1.8); },
+      zoom: (d) => { orbit.zoomT.current = clamp(orbit.zoomT.current + d, 0.5, 1.8); },
       reset: () => { orbit.pan.current.x = 0; orbit.pan.current.z = 0; orbit.frameTo({ az: 0, pol: viewPolRef.current, zoom: 1 }); },
       // edge-pan while dragging a card (f/r in -1..1); resetDragCam undoes any drag movement
       setEdge: (f, r) => { orbit.edge.current.f = f; orbit.edge.current.r = r; },

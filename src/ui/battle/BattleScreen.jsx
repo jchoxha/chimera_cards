@@ -96,6 +96,8 @@ export default function BattleScreen() {
   const [playSpeed, setPlaySpeed] = useState(1);     // resolution playback speed (0.5 / 1 / 2)
   const [playPaused, setPlayPaused] = useState(false);
   const speedRef = useRef(1); const pausedRef = useRef(false); const actingRef = useRef(null);
+  const runRef = useRef(null);          // the active playback stepper (so "Next" can drive it)
+  const nextMoveRef = useRef(false);    // fast-forward: run w/o delays until the next move begins
   const autoPauseRef = useRef(false);   // true when a modal auto-paused playback (resume on close)
   speedRef.current = playSpeed; pausedRef.current = playPaused;
   // hierarchical selection: Field › Side › Squad › Unit. A click drills DOWN one level
@@ -136,6 +138,7 @@ export default function BattleScreen() {
         // target field + targets highlight). Below the line = still in the hand (reorder only,
         // camera undisturbed) so you can reorganise without moving the view.
         g.lifted = e.clientY < H * 0.58;
+        if (g.lifted) g.everLifted = true;   // sticky: once aimed, the camera stays on the field
         g.over = g.lifted ? ((pickRef.current && pickRef.current(e.clientX, e.clientY)) || null) : null;
         const L = liveRef.current;
         if (L.updateDragHi) L.updateDragHi(g);   // (clears hi/valid when not lifted)
@@ -233,7 +236,9 @@ export default function BattleScreen() {
   // during a drag: set the scope HIGHLIGHT (drag.hi) + which field the camera holds on.
   const scopeLevelOf = (card) => { const s = scopeOf(card); return s === 'field' ? 'field' : (s === 'squad' ? 'squad' : 'unit'); };
   liveRef.current.updateDragHi = (g) => {
-    if (!g.lifted) { g.hi = null; g.valid = false; g.wantSide = null; return; }   // in the hand → no aiming
+    // in the hand (dipped) → no target highlight, but KEEP the last aimed side/scope so the
+    // camera holds on that field until the card is actually released (autoCam-on drag).
+    if (!g.lifted) { g.hi = null; g.valid = false; return; }
     const wantSide = isOffensiveCard(g.card) ? 'e' : 'p';
     const scopeLevel = scopeLevelOf(g.card);
     g.wantSide = wantSide; g.scopeLevel = scopeLevel;
@@ -351,8 +356,12 @@ export default function BattleScreen() {
       if (i >= steps.length) { setAnim(null); return; }
       const e = steps[i++];
       const sp = Math.max(0.25, speedRef.current);
+      const ff = nextMoveRef.current;   // fast-forwarding (via "Next") to the start of the next move
       if (e.type === 'play') {
         // 1) show the ACTOR doing the action first (it lifts/glows via acting), camera on it.
+        // Reaching a play beat ENDS a fast-forward — this is the move the player skipped to, so
+        // it animates at the normal pace from here.
+        nextMoveRef.current = false;
         // Stamp the log entry with the battle time at the moment THIS action begins animating
         // (so a turn's actions get distinct timestamps, not one shared resolve-time).
         if (lines[entryIdx]) {
@@ -369,18 +378,23 @@ export default function BattleScreen() {
       // The CAMERA also follows to the receiving creature (focus = target) so you see impact.
       const from = actingRef.current;
       const recv = e.targetId ?? e.unitId;
-      setAnim((a) => { if (!a) return a; const n = { hp: { ...a.hp }, block: { ...a.block }, acting: a.acting, focus: recv ?? a.focus };
+      setAnim((a) => { if (!a) return a; const n = { hp: { ...a.hp }, block: { ...a.block }, acting: a.acting, focus: ff ? a.focus : (recv ?? a.focus) };
         if (e.type === 'damage') { n.hp[e.targetId] = e.hp; if (e.blocked) n.block[e.targetId] = Math.max(0, (n.block[e.targetId] || 0) - e.blocked); }
         else if (e.type === 'block') n.block[e.unitId] = e.total;
         else if (e.type === 'heal' || e.type === 'regen') n.hp[e.targetId ?? e.unitId] = e.hp;
         return n; });
-      if (e.type === 'damage') { const net = e.amount - (e.blocked || 0); spawnFx(e.targetId, net > 0 ? 'dmg' : 'blocked', net > 0 ? `-${net}` : '🛡', from); }
-      else if (e.type === 'block') spawnFx(e.unitId, 'block', `+${e.amount}`);
-      else if (e.type === 'heal' || e.type === 'regen') spawnFx(e.targetId ?? e.unitId, 'heal', `+${e.amount ?? ''}`, from);
-      else if (e.type === 'miss') spawnFx(e.targetId, 'miss', 'MISS', from);
-      else if (e.type === 'death') spawnFx(e.unitId, 'death', '☠');
-      schedule(run, HIT_MS / sp);
+      // while fast-forwarding through the current move we apply state but skip the floating FX
+      // (they would all pile up at once); the arrived move animates its FX normally.
+      if (!ff) {
+        if (e.type === 'damage') { const net = e.amount - (e.blocked || 0); spawnFx(e.targetId, net > 0 ? 'dmg' : 'blocked', net > 0 ? `-${net}` : '🛡', from); }
+        else if (e.type === 'block') spawnFx(e.unitId, 'block', `+${e.amount}`);
+        else if (e.type === 'heal' || e.type === 'regen') spawnFx(e.targetId ?? e.unitId, 'heal', `+${e.amount ?? ''}`, from);
+        else if (e.type === 'miss') spawnFx(e.targetId, 'miss', 'MISS', from);
+        else if (e.type === 'death') spawnFx(e.unitId, 'death', '☠');
+      }
+      schedule(run, ff ? 0 : HIT_MS / sp);
     };
+    runRef.current = run;
     run();
   };
 
@@ -454,7 +468,15 @@ export default function BattleScreen() {
   const inspectUnit = (id) => { const u = unitById(id); if (u) { pauseForModal(); setZoom({ u: disp(u), side: sideOfUnit(id) }); } };
   const openCard = (card) => { if (card) { pauseForModal(); setCardZoom(card); } };
   // skip the rest of the fight animation → jump straight to the resolved board.
-  const skipFight = () => { timers.current.forEach(clearTimeout); timers.current = []; setFx([]); setTicker(null); setPlayPaused(false); autoPauseRef.current = false; setAnim(null); };
+  const skipFight = () => { timers.current.forEach(clearTimeout); timers.current = []; setFx([]); setTicker(null); setPlayPaused(false); autoPauseRef.current = false; nextMoveRef.current = false; setAnim(null); };
+  // "Next": fast-forward the CURRENT move to completion (state only, no FX) and begin animating
+  // the next scheduled move at normal speed — unlike Skip, which jumps to the fully-resolved board.
+  const advanceToNextMove = () => {
+    if (!anim || !runRef.current) return;
+    timers.current.forEach(clearTimeout); timers.current = []; setFx([]);
+    nextMoveRef.current = true; pausedRef.current = false; setPlayPaused(false);
+    runRef.current();
+  };
   // merge same-type effects so a multi-hit reads "18 Damage", not "6 · 6 · 6" (no runaway list).
   // keeps the number even when it sums to 0 (→ "0 Damage", not a bare "Damage").
   const mergeEffects = (arr) => {
@@ -521,7 +543,7 @@ export default function BattleScreen() {
           handVisible={showHand} handSquadId={handSquad?.id || null}
           cardFocusSide={autoCam ? (selectedCard ? (isOffensiveCard(selectedCard) ? 'e' : 'p') : (fly ? sideOfUnit(fly.targetId) : null)) : null}
           autoCam={autoCam} targetHint={targetHint} onInspect={setInspect} camRef={camRef}
-          onSelectSquad={(side, squadId) => { setSelId2(null); setSel({ level: 'squad', side, squadId, unitId: null }); }}
+          onSelectSquad={(side, squadId) => { setSelId2(null); setDockHidden(false); setSel({ level: 'squad', side, squadId, unitId: null }); }}
           fly={fly} onFlyDone={() => setFly(null)}
           hand={showHand ? {
             station: handSquad,
@@ -580,6 +602,9 @@ export default function BattleScreen() {
           <div className="bFightBar">
             <div className="bFightText">{ticker ? renderEntry(ticker, false) : <span className="bFightIdle"><Icon icon="tabler:loader-2" /> Resolving…</span>}</div>
             <div className="bFightCtl">
+              <button className={`bCtl camToggle${autoCam ? ' on' : ''}`} title={`Auto-camera: ${autoCam ? 'On' : 'Off'}`} onClick={() => setAutoCam((v) => !v)}>
+                <Icon icon={autoCam ? 'tabler:camera-bolt' : 'tabler:camera-off'} />
+              </button>
               <div className="bSpeed inline">
                 <button className={playPaused ? 'on' : ''} title={playPaused ? 'Resume' : 'Pause'} onClick={() => setPlayPaused((v) => !v)}>
                   <Icon icon={playPaused ? 'tabler:player-play-filled' : 'tabler:player-pause-filled'} />
@@ -588,7 +613,8 @@ export default function BattleScreen() {
                   <button key={sp} className={!playPaused && playSpeed === sp ? 'on' : ''} onClick={() => { setPlaySpeed(sp); setPlayPaused(false); }}>{sp}×</button>
                 ))}
               </div>
-              <button className="bCtl skip" title="Skip the animation" onClick={skipFight}><Icon icon="tabler:player-track-next-filled" /> Skip</button>
+              <button className="bCtl next" title="Skip to the next move" onClick={advanceToNextMove}><Icon icon="tabler:player-skip-forward-filled" /> Next</button>
+              <button className="bCtl skip" title="Skip the whole animation" onClick={skipFight}><Icon icon="tabler:player-track-next-filled" /> Skip</button>
             </div>
           </div>
         ) : (

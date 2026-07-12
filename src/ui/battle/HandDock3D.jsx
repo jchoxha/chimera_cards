@@ -231,13 +231,17 @@ export default function HandDock3D({ station, selectedIid, dealKey, squadIndex =
   const aspect = size.width / Math.max(1, size.height);
   // carousel: on squad switch, start the shelf off-screen on the side we came FROM
   const slideRef = useRef(0);
-  const riseRef = useRef(1);   // entrance rise (see CamShelf); replays on squad switch
+  const riseRef = useRef(1);   // entrance rise (see CamShelf); replays on squad switch / re-open
   const prevIdx = useRef(squadIndex);
   if (squadIndex !== prevIdx.current) {
     slideRef.current = (squadIndex > prevIdx.current ? 1 : -1) * (aspect < 1 ? 6 : 9);
     riseRef.current = 1;
     prevIdx.current = squadIndex;
   }
+  // replay the fly-up-from-the-field entrance whenever the shown squad changes (covers opening
+  // the overlay from a hidden dock, where the component stays mounted but the station swaps).
+  const prevStation = useRef(station?.id);
+  if (station && station.id !== prevStation.current) { riseRef.current = 1; prevStation.current = station.id; }
   if (!station) return null;
   // enemy squads expose only a face-DOWN count (their cards are hidden) → render that many
   // backs; your own hand is the real face-up cards (minus whichever one is being dragged).
