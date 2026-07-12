@@ -293,6 +293,44 @@ export const useBattle = create((set, get) => ({
     set({ plans, cards, queueOrder, undone, snapshot: publish({ ...s, plans, cards, undone }) });
   },
 
+  /** AUTO-PLAN the player's turn — mirrors the enemy AI planner (enemyPlan): for every
+   *  player squad, greedily queue affordable hand cards, aiming offense at the enemy's front
+   *  and beneficial cards at the squad's own front. TOPS UP each squad's remaining energy, so
+   *  any moves you queued by hand are kept and only the leftover AP is filled. */
+  autoPlan() {
+    const s = get();
+    if (s.phase !== 'plan' || s.outcome) return;
+    // primary offense anchor = the first LIVE enemy vanguard (same idea as enemyPlan's targetFront)
+    let enemyFront = null;
+    for (const eId of s.state.sides.e) { const f = liveFrontUnit(s.state, s.state.squadsById[eId]); if (f) { enemyFront = f; break; } }
+    const plans = { ...s.plans };
+    const cards = { ...s.cards };
+    const queueOrder = [...s.queueOrder];
+    let added = false;
+    for (const sqId of s.state.sides.p) {
+      const squad = s.state.squadsById[sqId];
+      const front = liveFrontUnit(s.state, squad);
+      const pile = cards[sqId];
+      if (!front || !pile) continue;
+      const plan = [...(plans[sqId] || [])];
+      let energy = squad.energy - planCost(plan);
+      const remaining = [];
+      for (const card of pile.hand) {                    // hand order, like the AI
+        const cost = card.cost ?? 1;
+        const offensive = isOffensiveCard(card);
+        if (cost > energy || (offensive && !enemyFront)) { remaining.push(card); continue; }
+        const targetId = (offensive ? enemyFront : front).id;
+        plan.push({ ownerId: front.id, targetId, card });
+        queueOrder.push(sqId);
+        energy -= cost; added = true;
+      }
+      plans[sqId] = plan;
+      cards[sqId] = { ...pile, hand: remaining };         // queued cards leave the hand (like queueCard)
+    }
+    if (!added) return;
+    set({ plans, cards, queueOrder, undone: [], snapshot: publish({ ...s, plans, cards, queueOrder, undone: [] }) });
+  },
+
   /** Reset ALL of this turn's queued moves (return every card to its hand). */
   resetPlans() {
     const s = get();

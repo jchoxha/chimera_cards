@@ -76,6 +76,7 @@ export default function BattleScreen() {
   const undoLast = useBattle((s) => s.undoLast);
   const redoLast = useBattle((s) => s.redoLast);
   const resetPlans = useBattle((s) => s.resetPlans);
+  const autoPlan = useBattle((s) => s.autoPlan);
   const resolve = useBattle((s) => s.resolve);
 
   const dropEls = useRef(new Map());   // (reserved for in-scene FX anchoring)
@@ -706,6 +707,7 @@ export default function BattleScreen() {
                   ))}
                 </div>
                 <div className="bPlanBtns">
+                  <button className="bCtl auto" title="Auto-plan this turn (fills every squad's remaining AP like the AI)" disabled={!hasUnspent} onClick={autoPlan}><Icon icon="tabler:wand" /> Auto</button>
                   <button className="bCtl" title="Undo last" disabled={!totalQueued} onClick={undoLast}><Icon icon="tabler:arrow-back-up" /> Undo</button>
                   <button className="bCtl" title="Redo" disabled={!snap.canRedo} onClick={redoLast}><Icon icon="tabler:arrow-forward-up" /> Redo</button>
                   <button className="bCtl danger" title="Reset all" disabled={!totalQueued} onClick={() => { setPlanOpen(false); setConfirmReset(true); }}><Icon icon="tabler:refresh" /> Reset</button>

@@ -409,6 +409,8 @@
 .bPlanTgt { color: #e8a893; white-space: nowrap; }
 .bPlanBtns { display: flex; gap: 6px; padding: 8px; border-top: 1px solid var(--line); }
 .bPlanBtns .bCtl { flex: 1; height: 34px; width: auto; font: 700 12px var(--font-display); gap: 4px; display: inline-flex; align-items: center; justify-content: center; }
+.bPlanBtns .bCtl.auto { color: var(--gold-bright); border-color: var(--gold-deep); }
+.bPlanBtns .bCtl.auto:hover:not(:disabled) { background: linear-gradient(#3a2c12, #241809); border-color: var(--gold); }
 .bCtl.danger { color: #f2b3a6; border-color: #7a3226; }
 .bCtl.danger:hover:not(:disabled) { border-color: var(--bad); color: #fff; }
 .bHudBtn.fight { background: linear-gradient(#f0c84a, #c9922e); color: #16110a; border-color: var(--gold-bright);
