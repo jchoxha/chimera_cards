@@ -102,7 +102,12 @@ function Card3D({ u, side, x, z, selected, acting, hovered, onPick, onOver, regi
     g.scale.setScalar(cur);
   });
 
-  const hpFrac = Math.max(0, Math.min(1, u.hp / u.maxHp));
+  // block is TEMP HP shown past the health — scale the bar by max(maxHp, hp+block) so the
+  // block segment is always visible (even at full HP), each as its own proportion.
+  const blk = Math.max(0, u.block || 0);
+  const total = Math.max(1, u.maxHp, u.hp + blk);
+  const hpFrac = Math.max(0, u.hp) / total;
+  const blockFrac = blk / total;
   const dim = u.dead ? 0.4 : 1;
   const hpW = CARD_W - 0.26;          // HP bar width (over the reserved plate baked in the face)
   const hpY = -CARD_H / 2 + 0.18;     // sits on the bottom stat plate
@@ -127,17 +132,30 @@ function Card3D({ u, side, x, z, selected, acting, hovered, onPick, onOver, regi
           ? <meshBasicMaterial key="img" map={tex} color={new THREE.Color(dim, dim, dim)} toneMapped={false} />
           : <meshBasicMaterial key="col" color={art.color || '#8a6d3f'} toneMapped={false} />}
       </mesh>
-      {/* LIVE HP bar over the baked stat plate */}
+      {/* LIVE HP bar over the baked stat plate — green HP + a distinct BLUE block (temp-HP)
+          segment appended after it, each with its own number. */}
       <group position={[0, hpY, 0.02]}>
         <mesh><planeGeometry args={[hpW, 0.16]} /><meshBasicMaterial color="#0a0605" /></mesh>
         <mesh position={[-(hpW / 2) * (1 - hpFrac), 0, 0.002]} scale={[Math.max(0.0001, hpFrac), 1, 1]}>
           <planeGeometry args={[hpW, 0.12]} />
-          <meshBasicMaterial color={hpFrac <= 0.33 ? '#e6603a' : '#3fa860'} />
+          <meshBasicMaterial color={(u.hp / u.maxHp) <= 0.33 ? '#e6603a' : '#3fa860'} />
         </mesh>
+        {/* BLOCK segment (blue) starts right after the HP fill */}
+        {blockFrac > 0 && (
+          <mesh position={[-hpW / 2 + hpFrac * hpW + (blockFrac * hpW) / 2, 0, 0.003]} scale={[Math.max(0.0001, blockFrac), 1, 1]}>
+            <planeGeometry args={[hpW, 0.12]} />
+            <meshBasicMaterial color="#5aa9e6" />
+          </mesh>
+        )}
         <Label text={`${u.hp}/${u.maxHp}`} position={[0, 0, 0.004]} width={0.85} color="#ffffff" px={38} />
       </group>
-      {/* block pip */}
-      {u.block > 0 && <Label text={`+${u.block}`} position={[CARD_W / 2 - 0.22, hpY + 0.26, 0.05]} width={0.5} color="#bcd4ff" px={40} />}
+      {/* separate BLOCK number (blue shield) above the bar's right end */}
+      {u.block > 0 && (
+        <group position={[CARD_W / 2 - 0.24, hpY + 0.28, 0.05]}>
+          <mesh><planeGeometry args={[0.42, 0.24]} /><meshBasicMaterial color="#123049" transparent opacity={0.92} /></mesh>
+          <Label text={`🛡${u.block}`} position={[0, 0, 0.004]} width={0.5} color="#bce0ff" px={40} />
+        </group>
+      )}
       {/* DEFEATED: the card stays on the field but is greyed with a red wash + skull mark */}
       {u.dead && (
         <group>
@@ -564,12 +582,8 @@ function MiniStack({ x, z, count, color, top, label, dir, onTap }) {
  *  directly behind the squad. Shown for every squad EXCEPT the one whose cards are currently
  *  lifted into the hand overlay (skipId). Enemy squads have NO In Play pile. Every pile/hand
  *  is clickable → the same inspect overlay the hand-overlay piles open (onInspect). */
-function FieldPiles({ enemy, player, skipId, onInspect }) {
+function FieldPiles({ enemy, player, skipId, onInspect, onSelectSquad }) {
   const back = cardBackTexture();
-  const inspectHand = (sq, side) => {
-    if (side === 'p') return onInspect?.({ title: 'Hand', cards: sq.hand || [] });
-    return onInspect?.({ title: 'Enemy Hand', cards: Array.from({ length: sq.handCount || 0 }, () => ({ known: false })), note: 'Face-down' });
-  };
   return [['e', enemy], ['p', player]].map(([side, squads]) => {
     const n = squads.length;
     const dir = side === 'p' ? 1 : -1;                 // "behind" = away from the field centre
@@ -585,8 +599,8 @@ function FieldPiles({ enemy, player, skipId, onInspect }) {
         <group key={sq.id}>
           <MiniStack x={cx - 1.4} z={bz} count={sq.deckCount || 0} color="#33240f" top={back} label="Draw" dir={dir}
             onTap={() => onInspect?.({ title: 'Draw Pile', cards: sq.deck || [], note: 'Contents known · order hidden' })} />
-          {/* face-down HAND fan in the middle (clickable) */}
-          <group onPointerDown={handN ? (e) => { e.stopPropagation(); inspectHand(sq, side); } : undefined}>
+          {/* HAND fan in the middle — clicking it OPENS that squad's hand overlay (selects it) */}
+          <group onPointerDown={(e) => { e.stopPropagation(); onSelectSquad?.(side, sq.id); }}>
             {Array.from({ length: Math.min(6, handN) }).map((_, k) => {
               const m = Math.min(6, handN); const off = k - (m - 1) / 2;
               return (
@@ -775,17 +789,26 @@ function landingAnchor(card, targetId, maps) {
   const p = maps.unitPos.get(targetId); if (!p) return null;
   return { key: `u-${targetId}`, x: p.x, z: p.z };
 }
-// the resting spot is IN FRONT of the anchor (toward board centre) AND floated well ABOVE the
-// table so a queued card sits over — and is clickable without also hitting — the creature below.
-const landingRest = (anc) => { const toward = anc.z > 0 ? -1 : 1; return { x: anc.x, z: anc.z + toward * 1.15, y: 0.62 }; };
+// the resting spot sits on ~the creature's OWN plane, nudged toward that side's OUTER edge
+// (ally → toward the bottom/viewer, enemy → toward the top) so it peeks out just past the
+// creature card, raised a hair in Y so it reads as sitting just above the table.
+const CARD3D_BASE_Y = 0.05;
+const landingRest = (anc) => { const toward = anc.z >= 0 ? 1 : -1; return { x: anc.x, z: anc.z + toward * 0.62, y: CARD3D_BASE_Y + 0.07 }; };
+// a queued card raises WITH its target creature when that creature's squad/unit is selected
+// (matches Card3D's +0.16 select lift), so cards stay attached to a lifted creature.
+function planLift(anc, effSel, maps) {
+  if (!anc.key.startsWith('u-') && !anc.key.startsWith('sq-')) return 0;
+  const meta = anc.targetId ? maps.unitMeta.get(anc.targetId) : null;
+  const sqSel = (effSel.level === 'squad' || effSel.level === 'unit') && meta && effSel.squadId === meta.squadId;
+  return sqSel ? 0.16 : 0;
+}
 const PL_W = 0.66, PL_H = PL_W * (HAND_CARD_H / HAND_CARD_W);
 
-/** One queued card, face-up, FLOATING above the field and tilted toward the camera. Clickable
- *  (its own mesh is the hit target, and being raised it wins the raycast over the flat creature). */
-function PlannedChip({ card, x, y, z, rotZ, onTap }) {
+/** One queued card, face-up, laid FLAT on the field (just above the plane), clickable. */
+function PlannedChip({ card, x, y, z, onTap }) {
   const tex = useActionCardTexture(card);
   return (
-    <mesh position={[x, y, z]} rotation={[-Math.PI / 2 + 0.5, 0, rotZ]} renderOrder={RO_FIELDPILE + 6}
+    <mesh position={[x, y, z]} rotation={[-Math.PI / 2, 0, 0]} renderOrder={RO_FIELDPILE + 6}
       onPointerDown={onTap ? (e) => { e.stopPropagation(); onTap(); } : undefined}>
       <planeGeometry args={[PL_W, PL_H]} />
       {tex
@@ -794,22 +817,23 @@ function PlannedChip({ card, x, y, z, rotZ, onTap }) {
     </mesh>
   );
 }
-/** All of the PLAYER's queued cards, floated at their scope anchors (fanned when several share
- *  an anchor). Only shown while planning (plans clear when the fight runs). Each card is
- *  clickable → inspect the queued cards at that spot. */
-function PlannedCards({ player, maps, onInspect }) {
+/** All of the PLAYER's queued cards, laid on the field at their scope anchors (fanned when
+ *  several share an anchor). Raise with a selected/lifted target. Clickable → inspect. */
+function PlannedCards({ player, maps, effSel, onInspect }) {
   const groups = new Map();
   player.forEach((sq) => (sq.plan || []).forEach((a) => {
     const anc = landingAnchor(a.card, a.targetId, maps); if (!anc) return;
+    anc.targetId = a.targetId;
     const g = groups.get(anc.key) || { anc, plays: [] }; g.plays.push(a); groups.set(anc.key, g);
   }));
   const out = [];
   groups.forEach((g, key) => {
     const rest = landingRest(g.anc);
+    const lift = planLift(g.anc, effSel, maps);
     const tap = () => onInspect?.({ title: 'Queued here', plays: g.plays });
     g.plays.forEach((a, i) => {
-      const off = (i - (g.plays.length - 1) / 2) * 0.32;
-      out.push(<PlannedChip key={`${key}-${i}`} card={a.card} x={rest.x + off} y={rest.y + i * 0.02} z={rest.z} rotZ={0} onTap={tap} />);
+      const off = (i - (g.plays.length - 1) / 2) * 0.3;
+      out.push(<PlannedChip key={`${key}-${i}`} card={a.card} x={rest.x + off} y={rest.y + lift + i * 0.012} z={rest.z + i * 0.05} onTap={tap} />);
     });
   });
   return out;
@@ -916,7 +940,7 @@ function viewFor(sel, maps, focusId, handV) {
   return { x: 0, y: 0.2, z: 1.7, dist: 14.2, pol: FIELD_POL };
 }
 
-export default function Board3D({ enemy, player, sel, actingId, focusId, targetHint, onPick, onZone, onStepUp, pickRef, validRef, hand, fx, drag, handVisible, handSquadId, cardFocusSide, onInspect, camRef, fly, onFlyDone }) {
+export default function Board3D({ enemy, player, sel, actingId, focusId, targetHint, onPick, onZone, onStepUp, pickRef, validRef, hand, fx, drag, handVisible, handSquadId, cardFocusSide, onInspect, onSelectSquad, camRef, fly, onFlyDone }) {
   const [hover, setHover] = useState(null);   // { level, side, squadId?, unitId? } under the pointer
   const orbit = useOrbit();
   const meshes = useRef(new Map());
@@ -992,11 +1016,11 @@ export default function Board3D({ enemy, player, sel, actingId, focusId, targetH
       <directionalLight position={[-5, 4, 2]} intensity={0.35} color="#8fb4ff" />
       <Table onOrbitStart={(ne) => orbit.start(ne, onStepUp)} />
       <Playmat enemy={enemy} player={player} sel={effSel} />
-      <FieldPiles enemy={enemy} player={player} skipId={handVisible ? handSquadId : null} onInspect={onInspect} />
+      <FieldPiles enemy={enemy} player={player} skipId={handVisible ? handSquadId : null} onInspect={onInspect} onSelectSquad={onSelectSquad} />
       <Zones enemy={enemy} player={player} effSel={effSel} hover={hover} onZone={onZone} onHover={setHover} />
       <Side squads={enemy} side="e" effSel={effSel} hover={hover} actingId={actingId} targetHint={targetHint} onPick={onPick} onOver={onOverUnit} registerMesh={registerMesh} />
       <Side squads={player} side="p" effSel={effSel} hover={hover} actingId={actingId} targetHint={targetHint} onPick={onPick} onOver={onOverUnit} registerMesh={registerMesh} />
-      {!dragging && !actingId && <PlannedCards player={player} maps={maps} onInspect={onInspect} />}
+      {!dragging && !actingId && <PlannedCards player={player} maps={maps} effSel={effSel} onInspect={onInspect} />}
       {fly && <FlyingCard key={fly.key} fly={fly} maps={maps} onDone={onFlyDone} />}
       {hand && <HandDock3D {...hand} draggingIid={drag?.iid || null} />}
       {drag?.card && <DragCard3D card={drag.card} sx={drag.x} sy={drag.y} over={!!drag.over} />}

@@ -156,7 +156,9 @@ export function formatRoundLog(state, log, turn) {
         offensive: !!e.offensive, element: elOf(e.ownerId) };
       entries.push(cur);
     } else if (cur) {
-      if (e.type === 'damage') { const net = e.amount - (e.blocked || 0); cur.effects.push(`${net} Damage`); }
+      // show the FULL calculated damage regardless of block; if it didn't all get through,
+      // add a separate "N Blocked Damage" note.
+      if (e.type === 'damage') { cur.effects.push(`${e.amount || 0} Damage`); if (e.blocked > 0) cur.effects.push(`${e.blocked} Blocked Damage`); }
       else if (e.type === 'block') cur.effects.push(`${e.amount} Block`);
       else if (e.type === 'heal') cur.effects.push(`${e.amount} Heal`);
       else if (e.type === 'debuff') cur.effects.push(`${e.amount} ${cap(e.status || 'Debuff')}`);

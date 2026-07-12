@@ -310,8 +310,14 @@ export default function BattleScreen() {
       const e = steps[i++];
       const sp = Math.max(0.25, speedRef.current);
       if (e.type === 'play') {
-        // 1) show the ACTOR doing the action first (it lifts/glows via acting), camera on it
-        if (lines[entryIdx]) setTicker(lines[entryIdx++]);
+        // 1) show the ACTOR doing the action first (it lifts/glows via acting), camera on it.
+        // Stamp the log entry with the battle time at the moment THIS action begins animating
+        // (so a turn's actions get distinct timestamps, not one shared resolve-time).
+        if (lines[entryIdx]) {
+          const secs = snap.startedAt ? Math.max(0, Math.floor((Date.now() - snap.startedAt) / 1000)) : 0;
+          lines[entryIdx].at = `${Math.floor(secs / 60)}:${String(secs % 60).padStart(2, '0')}`;
+          setTicker(lines[entryIdx++]);
+        }
         actingRef.current = e.ownerId;
         setAnim((a) => (a ? { ...a, acting: e.ownerId, focus: e.ownerId } : a));
         schedule(run, CAST_MS / sp);
@@ -398,11 +404,16 @@ export default function BattleScreen() {
   const openCard = (card) => { if (card) { pauseForModal(); setCardZoom(card); } };
   // skip the rest of the fight animation → jump straight to the resolved board.
   const skipFight = () => { timers.current.forEach(clearTimeout); timers.current = []; setFx([]); setTicker(null); setPlayPaused(false); autoPauseRef.current = false; setAnim(null); };
-  // merge same-type effects so a multi-hit reads "18 Damage", not "6 · 6 · 6" (no runaway list)
+  // merge same-type effects so a multi-hit reads "18 Damage", not "6 · 6 · 6" (no runaway list).
+  // keeps the number even when it sums to 0 (→ "0 Damage", not a bare "Damage").
   const mergeEffects = (arr) => {
     const m = new Map();
-    for (const s of arr || []) { const mt = /^(\d+)\s+(.*)$/.exec(s); if (mt) m.set(mt[2], (m.get(mt[2]) || 0) + Number(mt[1])); else m.set(s, m.get(s) || 0); }
-    return [...m.entries()].map(([lbl, n]) => (n ? `${n} ${lbl}` : lbl));
+    for (const s of arr || []) {
+      const mt = /^(-?\d+)\s+(.*)$/.exec(s);
+      if (mt) { const e = m.get(mt[2]) || { sum: 0, num: true }; e.sum += Number(mt[1]); e.num = true; m.set(mt[2], e); }
+      else if (!m.has(s)) m.set(s, { sum: 0, num: false });
+    }
+    return [...m.entries()].map(([lbl, e]) => (e.num ? `${e.sum} ${lbl}` : lbl));
   };
   const creaturePortrait = (u) => (u && (sizedPortrait(u.portrait, u.form)
     || (u.axes?.biology ? creatureArt({ id: u.id, biology: u.axes.biology, family: u.axes.family, subtypes: u.axes.subtypes }) : null)));
@@ -455,6 +466,7 @@ export default function BattleScreen() {
           handVisible={showHand} handSquadId={handSquad?.id || null}
           cardFocusSide={selectedCard ? (isOffensiveCard(selectedCard) ? 'e' : 'p') : (fly ? sideOfUnit(fly.targetId) : null)}
           targetHint={targetHint} onInspect={setInspect} camRef={camRef}
+          onSelectSquad={(side, squadId) => { setSelId2(null); setSel({ level: 'squad', side, squadId, unitId: null }); }}
           fly={fly} onFlyDone={() => setFly(null)}
           hand={showHand ? {
             station: handSquad,
