@@ -1,3 +1,6 @@
 {
-  "ironhide": ["boss"]
+  "ironhide": ["baby", "young", "elite", "boss"],
+  "emberwisp": ["baby", "young", "elite", "boss"],
+  "voltfang": ["baby", "young", "elite", "boss"],
+  "nightveil": ["baby", "young"]
 }
