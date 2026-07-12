@@ -6,6 +6,22 @@ a single-file Claude artifact now split into ES modules.
 
 ## ⚑ Project state — read this first (updated 2026-06-18)
 
+**🌲 BATTLEFIELD SCENES — pluggable backdrop layer (v3.142.0, 2026-07-12, Jeton).** The combat-v2
+board (`battle.html`) is no longer a bare grid: a new **`src/ui/battle/SceneEnv.jsx`** supplies the
+sky/ground/props/lighting for a named SCENE that layers UNDER the scene-agnostic squads/cards/playmat.
+Two scenes: **`forest`** (the new DEFAULT — gradient sky dome + procedural grass ground + scattered
+2.5D **cylindrical-billboard** trees/pines/rocks/bushes, all **procedural canvas-baked placeholder art**
+per Jeton's pick) and **`grid`** (the ORIGINAL wooden-table + receding-grid, preserved as the
+**admin/testing** battlefield). `SCENES` registry carries per-scene `bg`/`fog`/`playmat` theme; the
+playmat is now **diegetically restyled** by scene (forest = worn-banner label plates + earth slot fills;
+grid = the old gold-on-black dashes). In-battle **debug toggle** in the camera pad (`Scene: Forest/Grid`).
+This is the seam the **roguelike open-world** grows from — new biomes = new `SCENES` entries; combat can
+transition between them without touching game logic. Art is placeholder (swap the texture bakers later;
+scatter/layout stays). NEXT (deferred, Jeton's north star): seamless transition between battlefields and
+explorable open-world stages. *(Also this session: face-up discard/banish piles, Exhaust→Banish wording,
+zone-aware drag targeting, fight-phase camera toggle + "Next" step button.)*
+
+
 **⚔️ NEXT-GEN COMBAT DIRECTION LOCKED (2026-07-08, Jeton) — the Squad-Round rework.** Combat is being
 rebuilt from the Vanguard/Peek model into a **Pokémon-style simultaneous blind-commit** engine: both
 sides commit hidden, everything **resolves at once in per-creature Speed order**; the single

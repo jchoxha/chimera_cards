@@ -12,6 +12,7 @@ import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Canvas, useFrame, useThree } from '@react-three/fiber';
 import * as THREE from 'three';
 import HandDock3D, { useActionCardTexture, HAND_CARD_W, HAND_CARD_H, RO_OVERLAY } from './HandDock3D.jsx';
+import SceneEnv, { SCENES } from './SceneEnv.jsx';
 import { creatureColor } from '../../data/axisIcons.js';
 import { creatureArt } from '../../data/artPool.js';
 import { sizedPortrait } from '../../data/sizeArt.js';
@@ -157,21 +158,6 @@ function Card3D({ u, side, x, z, selected, acting, hovered, onPick, onOver, regi
           <Label text="DEFEATED" position={[0, -0.35, 0.08]} width={1.0} color="#ff8a7a" px={44} />
         </group>
       )}
-    </group>
-  );
-}
-
-/** The wooden table + a receding grid. Dragging the table ORBITS the camera; a plain
- *  tap on it returns to the overview. */
-function Table({ onOrbitStart }) {
-  return (
-    <group>
-      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.02, -0.5]}
-        onPointerDown={(e) => { if ((e.nativeEvent?.button ?? 0) !== 0) return; e.stopPropagation(); onOrbitStart(e.nativeEvent); }}>
-        <planeGeometry args={[80, 80]} />
-        <meshStandardMaterial color="#2a1d10" roughness={1} />
-      </mesh>
-      <gridHelper args={[80, 80, '#5a4327', '#3a2a18']} position={[0, 0, -0.5]} />
     </group>
   );
 }
@@ -516,20 +502,42 @@ function useTextTexture(text, color, px = 44) {
     ctx.fillStyle = color; ctx.fillText(text, 256, 64);
   }), [text, color, px]);
 }
+// a "worn banner" plate baked once — a dark rounded strip with a gold rim, so scene labels
+// read as banners staked in the ground (diegetic forest look) rather than floating text.
+let _bannerTex = null;
+function bannerTexture() {
+  if (_bannerTex) return _bannerTex;
+  _bannerTex = bakeCanvas(384, 128, (ctx) => {
+    ctx.fillStyle = 'rgba(18,12,7,0.86)'; roundRect(ctx, 10, 28, 364, 72, 30); ctx.fill();
+    ctx.strokeStyle = 'rgba(201,166,107,0.55)'; ctx.lineWidth = 5; ctx.stroke();
+  });
+  return _bannerTex;
+}
 /** A flat text plane laid on the table (role / squad labels). depthTest is ON so a creature
  *  card standing between the camera and a label OCCLUDES it (labels must not bleed THROUGH
- *  cards); depthWrite stays off so the flat labels don't fight the slot tints beneath them. */
-function GroundLabel({ text, x, z, w, color, px, opacity = 1 }) {
+ *  cards); depthWrite stays off so the flat labels don't fight the slot tints beneath them.
+ *  `banner` draws a worn-banner plate behind the text (diegetic scenes). */
+function GroundLabel({ text, x, z, w, color, px, opacity = 1, banner = false }) {
   const tex = useTextTexture(text, color, px);
+  const th = w * (128 / 512);
   return (
-    <mesh position={[x, 0.02, z]} rotation={[-Math.PI / 2, 0, 0]}>
-      <planeGeometry args={[w, w * (128 / 512)]} />
-      <meshBasicMaterial map={tex} transparent depthWrite={false} opacity={opacity} toneMapped={false} />
-    </mesh>
+    <group>
+      {banner && (
+        <mesh position={[x, 0.018, z]} rotation={[-Math.PI / 2, 0, 0]}>
+          <planeGeometry args={[w * 1.1, th * 1.7]} />
+          <meshBasicMaterial map={bannerTexture()} transparent depthWrite={false} opacity={0.85 * opacity} toneMapped={false} />
+        </mesh>
+      )}
+      <mesh position={[x, 0.021, z]} rotation={[-Math.PI / 2, 0, 0]}>
+        <planeGeometry args={[w, th]} />
+        <meshBasicMaterial map={tex} transparent depthWrite={false} opacity={opacity} toneMapped={false} />
+      </mesh>
+    </group>
   );
 }
-function SquadPlaymat({ side, squads, sq, i, on }) {
-  const col = side === 'e' ? '#d68f74' : '#e6c079';
+function SquadPlaymat({ side, squads, sq, i, on, theme }) {
+  const col = side === 'e' ? theme.enemy : theme.ally;
+  const banner = !!theme.banner;
   const border = useSlotBorder(col);
   const s = squadSlots(side, i, squads.length);
   // ONLY render slots that hold a creature (no empty slots / labels)
@@ -553,28 +561,29 @@ function SquadPlaymat({ side, squads, sq, i, on }) {
       {occupied.map((sl, j) => (
         <group key={j}>
           <mesh position={[sl.x, 0.004, sl.z]} rotation={[-Math.PI / 2, 0, 0]}>
-            <planeGeometry args={[SLOT_W, SLOT_H]} /><meshBasicMaterial color={on ? '#2a1c11' : '#20160d'} />
+            <planeGeometry args={[SLOT_W, SLOT_H]} /><meshBasicMaterial color={theme.slotFill} transparent opacity={on ? 0.82 : 0.6} depthWrite={false} />
           </mesh>
           <mesh position={[sl.x, 0.016, sl.z]} rotation={[-Math.PI / 2, 0, 0]}>
             <planeGeometry args={[SLOT_W, SLOT_H]} /><meshBasicMaterial map={border} transparent depthWrite={false} opacity={on ? 1 : 0.5} />
           </mesh>
-          <GroundLabel text={sl.role} x={sl.x} z={sl.z0} w={sl.role === 'Vanguard' ? 1.9 : 1.6} color={lblCol} px={sl.role === 'Vanguard' ? 46 : 42} opacity={on ? 1 : 0.72} />
+          <GroundLabel text={sl.role} x={sl.x} z={sl.z0} w={sl.role === 'Vanguard' ? 1.9 : 1.6} color={lblCol} px={sl.role === 'Vanguard' ? 46 : 42} opacity={on ? 1 : 0.72} banner={banner} />
         </group>
       ))}
-      <GroundLabel text={`${side === 'e' ? 'Enemy' : 'Ally'} Squad ${i + 1}`} x={s.cx} z={squadZ} w={2.5} color={on ? '#ffdf8a' : col} px={48} opacity={on ? 1 : 0.75} />
+      <GroundLabel text={`${side === 'e' ? 'Enemy' : 'Ally'} Squad ${i + 1}`} x={s.cx} z={squadZ} w={2.5} color={on ? '#ffdf8a' : col} px={48} opacity={on ? 1 : 0.75} banner={banner} />
     </group>
   );
 }
-function Playmat({ enemy, player, sel }) {
+function Playmat({ enemy, player, sel, theme }) {
+  const t = theme || SCENES.forest.playmat;
   return (
     <group>
       {[['e', enemy], ['p', player]].map(([side, squads]) => {
         const fe = fieldExtent(side, squads.length);
         const on = sel.level === 'side' && sel.side === side;
-        return <DashedOutline key={`f${side}`} shape={fieldShapeOf(side, squads.length)} cx={0} cz={fe.cz} color={side === 'e' ? '#d68f74' : '#e6c079'} opacity={on ? 0.6 : 0.2} />;
+        return <DashedOutline key={`f${side}`} shape={fieldShapeOf(side, squads.length)} cx={0} cz={fe.cz} color={side === 'e' ? t.fieldEnemy : t.fieldAlly} opacity={on ? 0.6 : 0.2} />;
       })}
-      {enemy.map((sq, i) => <SquadPlaymat key={sq.id} side="e" squads={enemy} sq={sq} i={i} on={squadIsOn(sel, 'e', sq.id)} />)}
-      {player.map((sq, i) => <SquadPlaymat key={sq.id} side="p" squads={player} sq={sq} i={i} on={squadIsOn(sel, 'p', sq.id)} />)}
+      {enemy.map((sq, i) => <SquadPlaymat key={sq.id} side="e" squads={enemy} sq={sq} i={i} on={squadIsOn(sel, 'e', sq.id)} theme={t} />)}
+      {player.map((sq, i) => <SquadPlaymat key={sq.id} side="p" squads={player} sq={sq} i={i} on={squadIsOn(sel, 'p', sq.id)} theme={t} />)}
     </group>
   );
 }
@@ -964,7 +973,8 @@ function viewFor(sel, maps, focusId, handV) {
   return { x: 0, y: 0.2, z: 1.7, dist: 14.2, pol: FIELD_POL };
 }
 
-export default function Board3D({ enemy, player, sel, actingId, focusId, targetHint, onPick, onZone, onStepUp, pickRef, validRef, zoneRef, hand, fx, drag, handVisible, handSquadId, cardFocusSide, autoCam = true, onInspect, onSelectSquad, camRef, fly, onFlyDone }) {
+export default function Board3D({ enemy, player, sel, actingId, focusId, targetHint, onPick, onZone, onStepUp, pickRef, validRef, zoneRef, hand, fx, drag, handVisible, handSquadId, cardFocusSide, autoCam = true, scene = 'forest', onInspect, onSelectSquad, camRef, fly, onFlyDone }) {
+  const sc = SCENES[scene] || SCENES.forest;
   const [hover, setHover] = useState(null);   // { level, side, squadId?, unitId? } under the pointer
   const orbit = useOrbit();
   const meshes = useRef(new Map());
@@ -1050,16 +1060,13 @@ export default function Board3D({ enemy, player, sel, actingId, focusId, targetH
 
   return (
     <Canvas dpr={[1, 2]} gl={{ antialias: true, alpha: false }} camera={{ position: [0, 8, 7], fov: 46, near: 0.1, far: 120 }}
-      onPointerMissed={() => setHover(null)}>{/* table tap (onStepUp) handles stepping up */}
-      <color attach="background" args={['#0c0805']} />
-      <fog attach="fog" args={['#0c0805', 18, 52]} />
+      onPointerMissed={() => setHover(null)}>{/* ground tap (onStepUp) handles stepping up */}
+      <color attach="background" args={[sc.bg]} />
+      <fog attach="fog" args={[sc.fog[0], sc.fog[1], sc.fog[2]]} />
       <CameraRig view={view} orbit={orbit} stage={stage} />
       <Picker pickRef={pickRef} validRef={validRef} zoneRef={zoneRef} meshes={meshes} unitMeta={maps.unitMeta} fieldBoundsOf={fieldBoundsOf} squadListOf={squadListOf} />
-      <ambientLight intensity={0.82} />
-      <directionalLight position={[4, 9, 7]} intensity={1.1} />
-      <directionalLight position={[-5, 4, 2]} intensity={0.35} color="#8fb4ff" />
-      <Table onOrbitStart={(ne) => orbit.start(ne, onStepUp)} />
-      <Playmat enemy={enemy} player={player} sel={effSel} />
+      <SceneEnv scene={scene} stage={stage} onOrbitStart={(ne) => orbit.start(ne, onStepUp)} />
+      <Playmat enemy={enemy} player={player} sel={effSel} theme={sc.playmat} />
       <FieldPiles enemy={enemy} player={player} skipId={handVisible ? handSquadId : null} onInspect={onInspect} onSelectSquad={onSelectSquad} />
       <Zones enemy={enemy} player={player} effSel={effSel} hover={hover} onZone={onZone} onHover={setHover} />
       <Side squads={enemy} side="e" effSel={effSel} hover={hover} actingId={actingId} targetHint={targetHint} onPick={onPick} onOver={onOverUnit} registerMesh={registerMesh} />

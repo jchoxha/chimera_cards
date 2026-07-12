@@ -113,6 +113,7 @@ export default function BattleScreen() {
   const [planOpen, setPlanOpen] = useState(false);           // "Plan" popup (queued actions + undo/redo/reset + speed)
   const [camOpen, setCamOpen] = useState(false);             // camera-control pad shown/hidden
   const [autoCam, setAutoCam] = useState(true);              // auto-frame the camera on card interaction
+  const [scene, setScene] = useState('forest');              // battlefield backdrop (forest | grid=admin)
   const autoCamRef = useRef(true);                           // live mirror for the once-bound drag handlers
   autoCamRef.current = autoCam;
   const [collapsedTurns, setCollapsedTurns] = useState(() => new Set());   // combat-log turn folding
@@ -555,7 +556,7 @@ export default function BattleScreen() {
           sel={sel} onStepUp={stepUp} actingId={anim?.acting} focusId={anim?.focus} onPick={onTok} onZone={onZone} pickRef={pickRef} validRef={validRef} zoneRef={zoneRef} fx={fx} drag={d}
           handVisible={showHand} handSquadId={handSquad?.id || null}
           cardFocusSide={autoCam ? (selectedCard ? (isOffensiveCard(selectedCard) ? 'e' : 'p') : (fly ? sideOfUnit(fly.targetId) : null)) : null}
-          autoCam={autoCam} targetHint={targetHint} onInspect={setInspect} camRef={camRef}
+          autoCam={autoCam} scene={scene} targetHint={targetHint} onInspect={setInspect} camRef={camRef}
           onSelectSquad={(side, squadId) => { setSelId2(null); setDockHidden(false); setSel({ level: 'squad', side, squadId, unitId: null }); }}
           fly={fly} onFlyDone={() => setFly(null)}
           hand={showHand ? {
@@ -594,6 +595,11 @@ export default function BattleScreen() {
                 onClick={() => setAutoCam((v) => !v)}>
                 <Icon icon={autoCam ? 'tabler:camera-bolt' : 'tabler:camera-off'} />
                 <span>Auto-camera: {autoCam ? 'On' : 'Off'}</span>
+              </button>
+              <button className={`bCamAuto${scene === 'grid' ? ' on' : ''}`} title="Switch the battlefield backdrop (admin/testing)"
+                onClick={() => setScene((v) => (v === 'forest' ? 'grid' : 'forest'))}>
+                <Icon icon={scene === 'forest' ? 'tabler:trees' : 'tabler:grid-dots'} />
+                <span>Scene: {scene === 'forest' ? 'Forest' : 'Grid'}</span>
               </button>
             </div>
           )}
