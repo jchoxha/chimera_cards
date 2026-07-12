@@ -124,27 +124,27 @@ function HandCard3D({ card, index, count, dealKey, selected, faceDown, onCardPoi
 
 /** A physical card PILE: a stack of thin card meshes (height ∝ count) + a count/label
  *  plate. Tapping the stack opens the inspect overlay. */
-function Pile3D({ x, color = '#3a2a18', count, label, onTap, hot = false }) {
+function Pile3D({ x, color = '#3a2a18', count, label, onTap }) {
   const empty = count <= 0;
   const [tex, setTex] = useState(null);
   useEffect(() => {
     // ONE-LINE label ABOVE the pile as "Pile Name (n)". Empty piles → dim + grey text
-    // (still marginally legible); a "hot" pile (In Play with cards) → bright white text.
+    // (still marginally legible).
     const c = document.createElement('canvas'); c.width = 384; c.height = 64;
     const ctx = c.getContext('2d'); ctx.font = 'bold 30px Georgia'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
     ctx.lineJoin = 'round'; ctx.lineWidth = 6; ctx.strokeStyle = empty ? 'rgba(0,0,0,0.55)' : 'rgba(0,0,0,0.9)';
     const txt = `${label} (${count})`;
-    ctx.strokeText(txt, 192, 34); ctx.fillStyle = empty ? 'rgba(150,140,120,0.6)' : (hot ? '#ffffff' : '#f6e7b0'); ctx.fillText(txt, 192, 34);
+    ctx.strokeText(txt, 192, 34); ctx.fillStyle = empty ? 'rgba(150,140,120,0.6)' : '#f6e7b0'; ctx.fillText(txt, 192, 34);
     const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; t.anisotropy = 4; setTex(t);
     return () => t.dispose();
-  }, [count, label, empty, hot]);
+  }, [count, label, empty]);
   const n = Math.max(1, Math.min(20, count));      // number of card layers to draw
   const pw = CARD_W * 0.9, ph = CARD_H * 0.9;
   const lift = 0.03;                               // per-card vertical rise → visible stack height
   const top = (n - 1) * lift;
   const back = cardBackTexture();
   const RO = RO_OVERLAY;
-  const boxCol = empty ? '#20160d' : (hot ? '#efe7cf' : color);   // In Play with cards → white stack
+  const boxCol = empty ? '#20160d' : color;
   // the pile lies almost FLAT (tilted right back toward horizontal) so it reads as a real
   // 3-D stack of cards seen from a shallow top angle — never a single upright card. All meshes
   // are transparent + high renderOrder so the board's transparent labels never paint over them.
@@ -160,7 +160,7 @@ function Pile3D({ x, color = '#3a2a18', count, label, onTap, hot = false }) {
       {/* the TOP card's face-down back (so the deck reads as a stack of real cards) */}
       <mesh position={[0, top + 0.012, 0]} rotation={[-Math.PI / 2, 0, 0]} renderOrder={RO + n + 1}>
         <planeGeometry args={[pw, ph]} />
-        <meshBasicMaterial map={empty ? null : back} color={empty ? '#241a10' : (hot ? '#ffffff' : '#ffffff')} transparent opacity={empty ? 0.35 : 1} depthTest={false} depthWrite={false} toneMapped={false} />
+        <meshBasicMaterial map={empty ? null : back} color={empty ? '#241a10' : '#ffffff'} transparent opacity={empty ? 0.35 : 1} depthTest={false} depthWrite={false} toneMapped={false} />
       </mesh>
       {/* one-line label plate, stood up to face the camera ABOVE (behind) the stack */}
       {tex && <mesh position={[0, 0.02, -(ph * 0.5 + 0.22)]} rotation={[-1.24, 0, 0]} renderOrder={RO + n + 3}><planeGeometry args={[1.15, 0.19]} /><meshBasicMaterial map={tex} transparent opacity={empty ? 0.7 : 1} depthTest={false} depthWrite={false} toneMapped={false} /></mesh>}
@@ -218,7 +218,7 @@ export default function HandDock3D({ station, selectedIid, dealKey, squadIndex =
       <group position={[0, -0.15, 0]}>
         <Pile3D x={-px} color="#33240f" count={station.deckCount || 0} label="Draw Pile"
           onTap={() => onInspect({ title: 'Draw Pile', cards: station.deck, note: 'Contents known · order hidden' })} />
-        <Pile3D x={-px + gap} color="#243a1a" count={inPlay.length} label="In Play" hot={inPlay.length > 0}
+        <Pile3D x={-px + gap} color="#243a1a" count={inPlay.length} label="In Play"
           onTap={() => onInspect({ title: 'In Play — this turn', cards: inPlay })} />
         <Pile3D x={px - gap} color="#241528" count={station.discardCount || 0} label="Discarded"
           onTap={() => onInspect({ title: 'Discarded', cards: station.discard })} />

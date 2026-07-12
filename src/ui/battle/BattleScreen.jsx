@@ -101,7 +101,8 @@ export default function BattleScreen() {
   const [logOpen, setLogOpen] = useState(false);  // full combat log overlay
   const [confirmFight, setConfirmFight] = useState(false);   // "energy left" confirmation
   const [confirmReset, setConfirmReset] = useState(false);   // "reset all moves?" confirmation
-  const [planOpen, setPlanOpen] = useState(false);           // "Plan" popup (queued actions + undo/redo/reset)
+  const [planOpen, setPlanOpen] = useState(false);           // "Plan" popup (queued actions + undo/redo/reset + speed)
+  const [camOpen, setCamOpen] = useState(false);             // camera-control pad shown/hidden
   const [dockHidden, setDockHidden] = useState(false);       // Action Cards shown/hidden
   const fxSeq = useRef(0);
   const timers = useRef([]);
@@ -271,9 +272,10 @@ export default function BattleScreen() {
     if (hasUnspent) { setConfirmFight(true); return; }
     doFight();
   };
-  // slower, understandable DEFAULT timings (ms) — divided by the live speed multiplier.
-  const CAST_MS = 780;   // beat AFTER the actor casts, before the effect lands on the target
-  const HIT_MS = 620;    // beat after an effect resolves
+  // DEFAULT playback timings (ms) at 1× — divided by the live speed multiplier (0.5/1/2).
+  // Tuned SLOW so each action reads clearly (the old values ran ~4× too fast at "1×").
+  const CAST_MS = 2600;  // beat AFTER the actor casts, before the effect lands on the target
+  const HIT_MS = 2100;   // beat after an effect resolves
   const doFight = () => {
     if (anim || snap.outcome) return;
     setConfirmFight(false); setSelId2(null); setPlayPaused(false);
@@ -387,19 +389,26 @@ export default function BattleScreen() {
         {/* TOP-LEFT: turn tracker (just "Turn X") */}
         <div className="bTurn"><b>Turn {snap.turn}</b></div>
 
-        {/* TOP-RIGHT: camera / movement controls (touch-friendly; WASD still pans).
-            rotate ↺/↻ · tilt up/down · zoom in/out · recenter. */}
-        <div className="bCamCtl">
-          <div className="bCamRow">
-            <button title="Rotate left" onClick={() => camRef.current?.yaw(-0.35)}><Icon icon="tabler:rotate" /></button>
-            <button title="Tilt up (more overhead)" onClick={() => camRef.current?.tilt(-0.14)}><Icon icon="tabler:angle" /></button>
-            <button title="Rotate right" onClick={() => camRef.current?.yaw(0.35)}><Icon icon="tabler:rotate-clockwise" /></button>
-          </div>
-          <div className="bCamRow">
-            <button title="Zoom in" onClick={() => camRef.current?.zoom(-0.22)}><Icon icon="tabler:zoom-in" /></button>
-            <button title="Recenter camera" onClick={() => camRef.current?.reset()}><Icon icon="tabler:focus-centered" /></button>
-            <button title="Zoom out" onClick={() => camRef.current?.zoom(0.22)}><Icon icon="tabler:zoom-out" /></button>
-          </div>
+        {/* TOP-RIGHT: a single camera button opens the control pad (hidden by default;
+            touch-friendly — WASD still pans). rotate ↺/↻ · tilt · zoom · recenter. */}
+        <div className="bCamWrap">
+          <button className={`bCamToggle${camOpen ? ' on' : ''}`} title="Camera controls" onClick={() => setCamOpen((v) => !v)}>
+            <Icon icon={camOpen ? 'tabler:x' : 'tabler:video'} />
+          </button>
+          {camOpen && (
+            <div className="bCamCtl">
+              <div className="bCamRow">
+                <button title="Rotate left" onClick={() => camRef.current?.yaw(-0.35)}><Icon icon="tabler:rotate" /></button>
+                <button title="Tilt up (more overhead)" onClick={() => camRef.current?.tilt(-0.14)}><Icon icon="tabler:angle" /></button>
+                <button title="Rotate right" onClick={() => camRef.current?.yaw(0.35)}><Icon icon="tabler:rotate-clockwise" /></button>
+              </div>
+              <div className="bCamRow">
+                <button title="Zoom in" onClick={() => camRef.current?.zoom(-0.22)}><Icon icon="tabler:zoom-in" /></button>
+                <button title="Recenter camera" onClick={() => camRef.current?.reset()}><Icon icon="tabler:focus-centered" /></button>
+                <button title="Zoom out" onClick={() => camRef.current?.zoom(0.22)}><Icon icon="tabler:zoom-out" /></button>
+              </div>
+            </div>
+          )}
         </div>
 
         {/* CENTRE: the action currently resolving (roughly under its target), or the outcome */}
@@ -411,18 +420,6 @@ export default function BattleScreen() {
         ) : (anim && ticker ? (
           <div className={`bActionText ${ticker.side === 'e' ? 'foe' : 'ally'}`}>{ticker.text}</div>
         ) : null)}
-
-        {/* live playback SPEED controls (pause / slow / normal / fast) during resolution */}
-        {anim && (
-          <div className="bSpeed">
-            <button className={playPaused ? 'on' : ''} title={playPaused ? 'Resume' : 'Pause'} onClick={() => setPlayPaused((v) => !v)}>
-              <Icon icon={playPaused ? 'tabler:player-play-filled' : 'tabler:player-pause-filled'} />
-            </button>
-            {[0.5, 1, 2].map((sp) => (
-              <button key={sp} className={!playPaused && playSpeed === sp ? 'on' : ''} onClick={() => { setPlaySpeed(sp); setPlayPaused(false); }}>{sp}×</button>
-            ))}
-          </div>
-        )}
       </div>
 
       {/* BOTTOM HUD — the hand toggle (only on your squad), the CENTRED selection pill
@@ -472,35 +469,52 @@ export default function BattleScreen() {
               <Icon icon="game-icons:scroll-quill" /><span>Log</span>
             </button>
           ) : null}
-          <button className={`bHudBtn plan${planOpen ? ' on' : ''}`} title="Planned actions" disabled={!!anim} onClick={() => setPlanOpen((v) => !v)}>
+          <button className={`bHudBtn plan${planOpen ? ' on' : ''}`} title="Plan & playback speed" onClick={() => setPlanOpen((v) => !v)}>
             <Icon icon="tabler:list-check" /><span>Plan</span>{totalQueued > 0 && <span className="bPlanCount">{totalQueued}</span>}
           </button>
           <button className="bHudBtn fight" title="Fight — resolve the round" disabled={!!anim || !!snap.outcome} onClick={requestFight}><Icon icon="game-icons:crossed-swords" /><span>Fight</span></button>
         </div>
 
-        {/* PLAN popup — the queued actions this turn + Undo / Redo / Reset (above the buttons) */}
-        {planOpen && !anim && (
+        {/* PLAN popup — playback SPEED (used during the Fight phase) + the queued actions
+            this turn + Undo / Redo / Reset. Open during a fight to slow/pause/speed playback. */}
+        {planOpen && (
           <div className="bPlanPop" onClick={(e) => e.stopPropagation()}>
             <div className="bPlanHead">
-              <span><Icon icon="tabler:list-check" /> Planned Actions <em>{totalQueued}</em></span>
+              <span><Icon icon="tabler:list-check" /> {anim ? 'Playback' : 'Plan'}{!anim && <em>{totalQueued}</em>}</span>
               <button className="bZoomClose sm" onClick={() => setPlanOpen(false)}><Icon icon="tabler:x" /></button>
             </div>
-            <div className="bPlanList">
-              {plannedActions.length === 0 && <div className="bPlanEmpty">No actions queued. Drag or select a card to plan one.</div>}
-              {plannedActions.map((pa, k) => (
-                <div key={k} className="bPlanRow">
-                  <span className="bPlanSq">{pa.squadLabel}</span>
-                  <span className="bPlanCard" style={{ '--el': elColor(pa.card.element) }}>{pa.card.name}</span>
-                  <Icon icon="tabler:arrow-right" />
-                  <span className="bPlanTgt">{pa.targetName}</span>
-                </div>
-              ))}
+            {/* Fight-speed controls */}
+            <div className="bPlanSpeed">
+              <span className="bPlanSpeedLbl"><Icon icon="tabler:player-play" /> Fight speed</span>
+              <div className="bSpeed inline">
+                <button className={playPaused ? 'on' : ''} title={playPaused ? 'Resume' : 'Pause'} disabled={!anim} onClick={() => setPlayPaused((v) => !v)}>
+                  <Icon icon={playPaused ? 'tabler:player-play-filled' : 'tabler:player-pause-filled'} />
+                </button>
+                {[0.5, 1, 2].map((sp) => (
+                  <button key={sp} className={!playPaused && playSpeed === sp ? 'on' : ''} onClick={() => { setPlaySpeed(sp); setPlayPaused(false); }}>{sp}×</button>
+                ))}
+              </div>
             </div>
-            <div className="bPlanBtns">
-              <button className="bCtl" title="Undo last" disabled={!totalQueued} onClick={undoLast}><Icon icon="tabler:arrow-back-up" /> Undo</button>
-              <button className="bCtl" title="Redo" disabled={!snap.canRedo} onClick={redoLast}><Icon icon="tabler:arrow-forward-up" /> Redo</button>
-              <button className="bCtl danger" title="Reset all" disabled={!totalQueued} onClick={() => { setPlanOpen(false); setConfirmReset(true); }}><Icon icon="tabler:refresh" /> Reset</button>
-            </div>
+            {!anim && (
+              <div className="bPlanList">
+                {plannedActions.length === 0 && <div className="bPlanEmpty">No actions queued. Drag or select a card to plan one.</div>}
+                {plannedActions.map((pa, k) => (
+                  <div key={k} className="bPlanRow">
+                    <span className="bPlanSq">{pa.squadLabel}</span>
+                    <span className="bPlanCard" style={{ '--el': elColor(pa.card.element) }}>{pa.card.name}</span>
+                    <Icon icon="tabler:arrow-right" />
+                    <span className="bPlanTgt">{pa.targetName}</span>
+                  </div>
+                ))}
+              </div>
+            )}
+            {!anim && (
+              <div className="bPlanBtns">
+                <button className="bCtl" title="Undo last" disabled={!totalQueued} onClick={undoLast}><Icon icon="tabler:arrow-back-up" /> Undo</button>
+                <button className="bCtl" title="Redo" disabled={!snap.canRedo} onClick={redoLast}><Icon icon="tabler:arrow-forward-up" /> Redo</button>
+                <button className="bCtl danger" title="Reset all" disabled={!totalQueued} onClick={() => { setPlanOpen(false); setConfirmReset(true); }}><Icon icon="tabler:refresh" /> Reset</button>
+              </div>
+            )}
           </div>
         )}
       </div>

@@ -539,11 +539,11 @@ function Playmat({ enemy, player, sel }) {
 // sit OVER the section labels + outlines (they must never be hidden behind them). Clickable
 // (onTap) → the same inspect overlay the hand-overlay piles open. `hot` → white stack.
 const RO_FIELDPILE = 12;
-function MiniStack({ x, z, count, color, top, label, dir, onTap, hot = false }) {
+function MiniStack({ x, z, count, color, top, label, dir, onTap }) {
   const empty = count <= 0;
   const n = Math.max(1, Math.min(14, count));
   const w = 0.5, h = 0.68;
-  const boxCol = empty ? '#20160d' : (hot ? '#efe7cf' : color);
+  const boxCol = empty ? '#20160d' : color;
   return (
     <group position={[x, 0.04, z]}>
       {Array.from({ length: n }).map((_, i) => (
@@ -553,7 +553,7 @@ function MiniStack({ x, z, count, color, top, label, dir, onTap, hot = false }) 
           <meshStandardMaterial color={boxCol} roughness={0.7} metalness={0.12} transparent opacity={empty ? 0.4 : 1} depthTest={false} depthWrite={false} />
         </mesh>
       ))}
-      {top && count > 0 && <mesh position={[0, n * 0.013 + 0.006, 0]} rotation={[-Math.PI / 2, 0, 0]} renderOrder={RO_FIELDPILE + n + 1}><planeGeometry args={[w, h]} /><meshBasicMaterial map={top} color={hot ? '#ffffff' : '#ffffff'} transparent depthTest={false} depthWrite={false} toneMapped={false} /></mesh>}
+      {top && count > 0 && <mesh position={[0, n * 0.013 + 0.006, 0]} rotation={[-Math.PI / 2, 0, 0]} renderOrder={RO_FIELDPILE + n + 1}><planeGeometry args={[w, h]} /><meshBasicMaterial map={top} transparent depthTest={false} depthWrite={false} toneMapped={false} /></mesh>}
       <GroundLabel text={`${label} (${count})`} x={x} z={z + dir * 0.62} w={1.2} color={empty ? '#7a6b4f' : '#c9a66b'} px={32} opacity={empty ? 0.6 : 0.9} />
     </group>
   );
@@ -586,7 +586,7 @@ function FieldPiles({ enemy, player, skipId, onInspect }) {
           <MiniStack x={cx - 1.7} z={bz} count={sq.deckCount || 0} color="#33240f" top={back} label="Draw" dir={dir}
             onTap={() => onInspect?.({ title: 'Draw Pile', cards: sq.deck || [], note: 'Contents known · order hidden' })} />
           {isP && (
-            <MiniStack x={cx - 1.1} z={bz} count={inPlayN} color="#243a1a" top={inPlayN ? back : null} label="In Play" dir={dir} hot={inPlayN > 0}
+            <MiniStack x={cx - 1.1} z={bz} count={inPlayN} color="#243a1a" top={inPlayN ? back : null} label="In Play" dir={dir}
               onTap={() => onInspect?.({ title: 'In Play — this turn', cards: inPlayCards })} />
           )}
           {/* face-down HAND fan in the middle (clickable) */}

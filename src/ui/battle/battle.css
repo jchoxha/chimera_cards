@@ -29,8 +29,14 @@
   color: var(--gold-bright); cursor: pointer; font: 700 12px var(--font-display); letter-spacing: .06em; box-shadow: 0 4px 14px #0008; }
 .bLogBtn:hover { border-color: var(--gold); }
 .bLogBtn iconify-icon { font-size: 17px; }
-/* TOP-RIGHT camera / movement controls — compact 3×2 pad, touch-friendly */
-.bCamCtl { position: absolute; right: 12px; top: 10px; z-index: 7; display: flex; flex-direction: column; gap: 5px;
+/* TOP-RIGHT camera / movement controls — a single toggle button reveals a compact 3×2 pad */
+.bCamWrap { position: absolute; right: 12px; top: 10px; z-index: 7; display: flex; flex-direction: column; align-items: flex-end; gap: 6px; }
+.bCamToggle { width: 40px; height: 34px; border-radius: 999px; border: 1px solid var(--gold-deep); background: linear-gradient(#1a120bE0, #120c07E0);
+  color: var(--gold-bright); cursor: pointer; display: inline-flex; align-items: center; justify-content: center; box-shadow: 0 4px 14px #0008; touch-action: manipulation; }
+.bCamToggle:hover { border-color: var(--gold); }
+.bCamToggle.on { background: linear-gradient(#f0c84a, #c9922e); color: #16110a; border-color: var(--gold-bright); }
+.bCamToggle iconify-icon { font-size: 19px; }
+.bCamCtl { display: flex; flex-direction: column; gap: 5px;
   padding: 6px; border-radius: 14px; background: linear-gradient(#1a120bE0, #120c07E0); border: 1px solid var(--gold-deep); box-shadow: 0 4px 14px #0008; }
 .bCamRow { display: flex; gap: 5px; }
 .bCamCtl button { width: 36px; height: 34px; border-radius: 9px; border: 1px solid var(--line); background: linear-gradient(#241a10, #191009);
@@ -52,6 +58,11 @@
 .bSpeed button iconify-icon { font-size: 17px; }
 .bSpeed button:hover { color: var(--gold-bright); }
 .bSpeed button.on { background: linear-gradient(#f0c84a, #c9922e); color: #16110a; border-color: var(--gold-bright); }
+.bSpeed button:disabled { opacity: .4; cursor: default; }
+/* inline variant (inside the Plan popup) — no absolute positioning */
+.bSpeed.inline { position: static; transform: none; padding: 0; background: none; border: none; box-shadow: none; }
+.bSpeed.inline button { border: 1px solid var(--line); background: linear-gradient(#241a10, #191009); }
+.bSpeed.inline button.on { background: linear-gradient(#f0c84a, #c9922e); border-color: var(--gold-bright); }
 
 /* ── (legacy DOM board — kept for reference/fallback) perspective play surface ── */
 .bArena { flex: 1 1 0; position: relative; min-height: 0; overflow: hidden;
@@ -382,6 +393,9 @@
 .bPlanHead { display: flex; align-items: center; gap: 8px; padding: 9px 12px; border-bottom: 1px solid var(--line); font: 700 13px var(--font-display); color: var(--gold-bright); }
 .bPlanHead span { display: inline-flex; align-items: center; gap: 6px; flex: 1; }
 .bPlanHead em { font-style: normal; color: var(--ink-faint); }
+.bPlanSpeed { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 8px 12px; border-bottom: 1px solid var(--line); }
+.bPlanSpeedLbl { display: inline-flex; align-items: center; gap: 6px; font: 700 12px var(--font-display); letter-spacing: .04em; color: var(--gold-bright); }
+.bPlanSpeedLbl iconify-icon { font-size: 15px; }
 .bPlanList { display: flex; flex-direction: column; gap: 4px; padding: 8px; overflow-y: auto; }
 .bPlanEmpty { color: var(--ink-faint); font-style: italic; font-size: 12px; padding: 10px; text-align: center; }
 .bPlanRow { display: flex; align-items: center; gap: 6px; padding: 6px 9px; border-radius: 8px; background: #ffffff06; font-size: 12px; color: var(--ink-dim); }
