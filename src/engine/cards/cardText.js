@@ -15,7 +15,7 @@ const STATUS_LABEL = {
 };
 const EVENT_LABEL = {
   cardsPlayed: 'cards played', cardsDrawn: 'cards drawn', cardsDiscarded: 'cards discarded',
-  cardsExhausted: 'cards exhausted', damageDealt: 'damage dealt', damageTaken: 'damage taken',
+  cardsExhausted: 'cards banished', damageDealt: 'damage dealt', damageTaken: 'damage taken',
   blockGained: 'Block gained', energySpent: 'energy spent',
 };
 const TRIGGER_PHRASE = {
@@ -23,7 +23,7 @@ const TRIGGER_PHRASE = {
   onGainBlock: 'Whenever you gain Block, ', onDamageDealt: 'Whenever you deal damage, ',
   onDamageTaken: 'Whenever you take damage, ', onCardPlayed: 'Whenever you play a card, ',
   onDraw: 'Whenever you draw, ', onDiscard: 'Whenever you discard, ',
-  onExhaust: 'Whenever you Exhaust a card, ', onEnergySpent: 'Whenever you spend energy, ',
+  onExhaust: 'Whenever you Banish a card, ', onEnergySpent: 'Whenever you spend energy, ',
   onDeath: 'On death, ', fatal: 'On a kill, ',
 };
 const win = (w) => (w === 'thisCombat' ? 'combat' : 'turn');
@@ -110,7 +110,7 @@ export function describeCard(card) {
     const sig = ATTUNEMENT_SIGNATURE[att];
     text += sig && att !== 'Stone' ? ` Imbue: also applies ${sig}.` : ' Imbue.';
   }
-  for (const kw of card.keywords || []) if (kw !== 'unplayable') text += ` ${cap(kw)}.`;
+  for (const kw of card.keywords || []) if (kw !== 'unplayable') text += ` ${KEYWORD_DISPLAY[kw] || cap(kw)}.`;
   return text.trim();
 }
 
@@ -120,6 +120,8 @@ export function cardText(card) {
 }
 
 const PASSIVE_LABEL = { blockAlwaysBraces: 'Your Block always Braces' };
+// Player-facing display names for internal keyword ids (the JSON keeps `exhaust`; players see "Banish").
+const KEYWORD_DISPLAY = { exhaust: 'Banish' };
 
 // ── Keyword glossary + linkifier ──────────────────────────────────────────────
 export const KEYWORD_GLOSSARY = {
@@ -133,8 +135,8 @@ export const KEYWORD_GLOSSARY = {
   Regen: 'Heal this amount at the end of your turn; decreases by 1 each turn.',
   Burn: 'Lose HP equal to its amount each turn (bypasses Block); decays.',
   Poison: 'Lose HP equal to its amount each turn (bypasses Block); does not decay.',
-  Exhaust: 'When played, this card leaves your deck for the rest of combat.',
-  Ethereal: 'If still in hand at end of turn, this card Exhausts.',
+  Banish: 'When played, this card leaves your deck for the rest of combat.',
+  Ethereal: 'If still in hand at end of turn, this card is Banished.',
   Retain: 'This card is kept in hand at the end of your turn instead of discarding.',
   Innate: 'This card starts in your opening hand.',
   Stance: 'A persistent combat mode on the Stance Spectrum (Rampage→Full Guard).',

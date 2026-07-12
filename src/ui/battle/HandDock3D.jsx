@@ -260,9 +260,9 @@ export default function HandDock3D({ station, selectedIid, dealKey, squadIndex =
           onTap={() => onInspect({ title: 'Draw Pile', cards: station.deck, note: 'Contents known · order hidden' })} />
         <Pile3D x={-px + gap} color="#243a1a" count={inPlay.length} label="In Play" topCard={inPlay[inPlay.length - 1]?.card || null}
           onTap={() => onInspect({ title: 'In Play — this turn', plays: inPlay })} />
-        <Pile3D x={px - gap} color="#241528" count={station.discardCount || 0} label="Discarded"
+        <Pile3D x={px - gap} color="#241528" count={station.discardCount || 0} label="Discarded" topCard={(station.discard || [])[(station.discard || []).length - 1] || null}
           onTap={() => onInspect({ title: 'Discarded', cards: station.discard })} />
-        <Pile3D x={px} color="#241228" count={station.exhaustCount || 0} label="Banished"
+        <Pile3D x={px} color="#241228" count={station.exhaustCount || 0} label="Banished" topCard={(station.exhaust || [])[(station.exhaust || []).length - 1] || null}
           onTap={() => onInspect({ title: 'Banished', cards: station.exhaust })} />
       </group>
       {/* hand (centre). While a card is being REORDERED in the hand, reserve an empty SLOT at

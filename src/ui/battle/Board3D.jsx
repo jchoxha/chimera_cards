@@ -282,7 +282,7 @@ function CameraRig({ view, orbit, stage }) {
 
 /** Exposes a screen→creature raycast picker so the DOM hand-drag can find a drop
  *  target over the canvas (returns a unitId or null). */
-function Picker({ pickRef, validRef, meshes, unitMeta, fieldBoundsOf }) {
+function Picker({ pickRef, validRef, zoneRef, meshes, unitMeta, fieldBoundsOf, squadListOf }) {
   const { camera, gl } = useThree();
   useEffect(() => {
     const ray = new THREE.Raycaster();
@@ -310,8 +310,29 @@ function Picker({ pickRef, validRef, meshes, unitMeta, fieldBoundsOf }) {
       const b = fieldBoundsOf(wantSide);
       return pt.x >= b.xMin && pt.x <= b.xMax && pt.z >= b.zMin && pt.z <= b.zMax;
     };
-    return () => { if (pickRef) pickRef.current = null; if (validRef) validRef.current = null; };
-  }, [camera, gl, pickRef, validRef, meshes, unitMeta, fieldBoundsOf]);
+    // The ZONE under (cx,cy) — mirrors what a CLICK would select, so a drag resolves its target
+    // identically: a creature → that unit; else a squad's ground area → that squad; else the
+    // field → that side. Lets a card dropped on empty squad/field space target correctly
+    // (instead of defaulting to squad 1's vanguard).
+    if (zoneRef) zoneRef.current = (cx, cy) => {
+      setRay(cx, cy);
+      const hits = ray.intersectObjects([...meshes.current.values()], false);
+      const uid = hits[0]?.object?.userData?.unitId;
+      if (uid) { const m = unitMeta.get(uid); return m ? { level: 'unit', side: m.side, squadId: m.squadId, unitId: uid } : null; }
+      const pt = new THREE.Vector3();
+      if (!ray.ray.intersectPlane(groundPlane, pt)) return null;
+      for (const side of ['e', 'p']) {
+        const b = fieldBoundsOf(side);
+        if (pt.x < b.xMin || pt.x > b.xMax || pt.z < b.zMin || pt.z > b.zMax) continue;
+        // nearest squad by x, if the pointer is within half a squad-spacing of its centre
+        let best = null, bd = Infinity;
+        for (const s of squadListOf(side)) { const d = Math.abs(s.cx - pt.x); if (d < bd) { bd = d; best = s; } }
+        return best && bd <= LAYOUT.spacing / 2 ? { level: 'squad', side, squadId: best.squadId } : { level: 'side', side };
+      }
+      return null;
+    };
+    return () => { if (pickRef) pickRef.current = null; if (validRef) validRef.current = null; if (zoneRef) zoneRef.current = null; };
+  }, [camera, gl, pickRef, validRef, zoneRef, meshes, unitMeta, fieldBoundsOf, squadListOf]);
   return null;
 }
 
@@ -943,7 +964,7 @@ function viewFor(sel, maps, focusId, handV) {
   return { x: 0, y: 0.2, z: 1.7, dist: 14.2, pol: FIELD_POL };
 }
 
-export default function Board3D({ enemy, player, sel, actingId, focusId, targetHint, onPick, onZone, onStepUp, pickRef, validRef, hand, fx, drag, handVisible, handSquadId, cardFocusSide, autoCam = true, onInspect, onSelectSquad, camRef, fly, onFlyDone }) {
+export default function Board3D({ enemy, player, sel, actingId, focusId, targetHint, onPick, onZone, onStepUp, pickRef, validRef, zoneRef, hand, fx, drag, handVisible, handSquadId, cardFocusSide, autoCam = true, onInspect, onSelectSquad, camRef, fly, onFlyDone }) {
   const [hover, setHover] = useState(null);   // { level, side, squadId?, unitId? } under the pointer
   const orbit = useOrbit();
   const meshes = useRef(new Map());
@@ -963,6 +984,11 @@ export default function Board3D({ enemy, player, sel, actingId, focusId, targetH
   const fieldBoundsOf = (side) => {
     const n = side === 'e' ? enemy.length : player.length; const fe = fieldExtent(side, n);
     return { xMin: -fe.halfX - 0.6, xMax: fe.halfX + 0.6, zMin: fe.cz - fe.dz / 2 - 0.6, zMax: fe.cz + fe.dz / 2 + 0.6 };
+  };
+  // per-side squad centres (x) — lets the zone picker map a ground point to a squad.
+  const squadListOf = (side) => {
+    const arr = side === 'e' ? enemy : player; const n = arr.length;
+    return arr.map((sq, i) => ({ squadId: sq.id, cx: squadX(i, n) }));
   };
 
   // ABSOLUTE stage bounds (derived from the board, NOT the current selection) — the
@@ -1028,7 +1054,7 @@ export default function Board3D({ enemy, player, sel, actingId, focusId, targetH
       <color attach="background" args={['#0c0805']} />
       <fog attach="fog" args={['#0c0805', 18, 52]} />
       <CameraRig view={view} orbit={orbit} stage={stage} />
-      <Picker pickRef={pickRef} validRef={validRef} meshes={meshes} unitMeta={maps.unitMeta} fieldBoundsOf={fieldBoundsOf} />
+      <Picker pickRef={pickRef} validRef={validRef} zoneRef={zoneRef} meshes={meshes} unitMeta={maps.unitMeta} fieldBoundsOf={fieldBoundsOf} squadListOf={squadListOf} />
       <ambientLight intensity={0.82} />
       <directionalLight position={[4, 9, 7]} intensity={1.1} />
       <directionalLight position={[-5, 4, 2]} intensity={0.35} color="#8fb4ff" />
@@ -1041,7 +1067,7 @@ export default function Board3D({ enemy, player, sel, actingId, focusId, targetH
       {!dragging && !actingId && <PlannedCards player={player} maps={maps} effSel={effSel} onInspect={onInspect} />}
       {fly && <FlyingCard key={fly.key} fly={fly} maps={maps} onDone={onFlyDone} />}
       {hand && <HandDock3D {...hand} draggingIid={drag?.iid || null} />}
-      {drag?.card && <DragCard3D card={drag.card} sx={drag.x} sy={drag.y} over={!!drag.over} />}
+      {drag?.card && <DragCard3D card={drag.card} sx={drag.x} sy={drag.y} over={!!drag.valid} />}
       <FxLayer items={fx} meshes={meshes} />
     </Canvas>
   );

@@ -749,7 +749,7 @@ function CodexMechanics() {
 
       {section("🔗 Team synergy & affinity", "Each monster gains +1 Strength for every other teammate sharing its element, so mono-element teams hit harder. Element affinity boosts themed statuses: ember adds extra Burn, tide extra Weak, umbra extra Vulnerable.")}
 
-      {section("🃏 Card keywords", "Retain: the card stays in hand at end of turn instead of discarding. Exhaust: a powerful card that leaves the deck after one use. Some cards grant bonus energy or draw to enable combos.")}
+      {section("🃏 Card keywords", "Retain: the card stays in hand at end of turn instead of discarding. Banish: a powerful card that leaves the deck after one use. Some cards grant bonus energy or draw to enable combos.")}
 
       {section("⬆️ Evolution", "Monsters evolve when they meet their unique requirements (XP plus deeds like winning battles, defeating bosses, or looting treasure) and you hold an Evolution Stone, which is consumed. Each species has its own conditions.")}
 

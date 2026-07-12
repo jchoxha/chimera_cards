@@ -81,6 +81,7 @@ export default function BattleScreen() {
   const dropEls = useRef(new Map());   // (reserved for in-scene FX anchoring)
   const pickRef = useRef(null);        // Board3D raycast picker: (clientX,clientY) → unitId | null
   const validRef = useRef(null);       // (cx,cy,wantSide) → is this a valid drop location?
+  const zoneRef = useRef(null);        // (cx,cy) → the zone under the pointer {level, side, squadId?, unitId?}
   const camRef = useRef(null);         // Board3D imperative camera controls (yaw/tilt/zoom/reset)
   const drag = useRef(null);
   const liveRef = useRef({});          // bridge for the once-bound window drag handler → current render values
@@ -140,6 +141,9 @@ export default function BattleScreen() {
         g.lifted = e.clientY < H * 0.58;
         if (g.lifted) g.everLifted = true;   // sticky: once aimed, the camera stays on the field
         g.over = g.lifted ? ((pickRef.current && pickRef.current(e.clientX, e.clientY)) || null) : null;
+        // the ZONE under the pointer (creature / squad / field) — resolves the drop target the
+        // SAME way a click would (so dropping on empty squad/field space targets correctly).
+        g.zone = g.lifted ? ((zoneRef.current && zoneRef.current(e.clientX, e.clientY)) || null) : null;
         const L = liveRef.current;
         if (L.updateDragHi) L.updateDragHi(g);   // (clears hi/valid when not lifted)
         // live REORDER GAP: while the card is down in the hand, where would it slot in?
@@ -168,9 +172,10 @@ export default function BattleScreen() {
         const L = liveRef.current;
         // 1) dropped over the HAND band → reorganise the hand (or just return the card)
         if (L.handReorder && L.handReorder(g.iid, g.x, g.y)) { setSelId2(null); }
-        // 2) else over a VALID + AFFORDABLE target → play it (flies to the target)
+        // 2) else over a VALID + AFFORDABLE target → play it (flies to the target). The target is
+        // resolved by the SAME rule as a click (creature / squad-area / field).
         else if (g.valid) {
-          const target = (L.resolveDropFromHi && L.resolveDropFromHi(g.hi)) || g.over;
+          const target = (L.resolveDrop && L.resolveDrop(g)) || null;
           if (target && (!L.affords || L.affords(g.card))) { queueCard(g.iid, target); setSelId2(null); setFly({ key: (flySeq.current += 1), card: g.card, targetId: target, x: g.x, y: g.y, kind: 'drag' }); }
         }
         // 3) else dropped in empty space → the card simply returns to the hand (no-op)
@@ -242,12 +247,27 @@ export default function BattleScreen() {
     const wantSide = isOffensiveCard(g.card) ? 'e' : 'p';
     const scopeLevel = scopeLevelOf(g.card);
     g.wantSide = wantSide; g.scopeLevel = scopeLevel;
-    g.valid = validRef.current ? validRef.current(g.x, g.y, wantSide) : true;   // over a real target?
-    const over = g.over ? squadOfUnit(g.over) : null;
-    if (scopeLevel === 'field' || !over || sideOfSquad(over) !== wantSide) { g.hi = { level: 'side', side: wantSide }; return; }
-    g.hi = scopeLevel === 'squad'
-      ? { level: 'squad', side: wantSide, squadId: over.id }
-      : { level: 'unit', side: wantSide, squadId: over.id, unitId: g.over };
+    const zone = g.zone;
+    // valid iff hovering the CORRECT side (a creature, a squad's area, or the field).
+    g.valid = !!(zone && zone.side === wantSide);
+    if (!g.valid) { g.hi = { level: 'side', side: wantSide }; return; }
+    // the highlight granularity follows the card's SCOPE, positioned at the hovered zone:
+    // field → whole side; squad → the hovered squad; targeted/front → the hovered creature
+    // (or the hovered squad's vanguard if the pointer is on squad ground, not a creature).
+    if (scopeLevel === 'field') { g.hi = { level: 'side', side: wantSide }; return; }
+    if (scopeLevel === 'squad' || zone.level !== 'unit') {
+      g.hi = zone.squadId ? { level: 'squad', side: wantSide, squadId: zone.squadId } : { level: 'side', side: wantSide };
+      return;
+    }
+    g.hi = { level: 'unit', side: wantSide, squadId: zone.squadId, unitId: zone.unitId };
+  };
+  // resolve a drag DROP to a concrete target unit — identical to the click flow (onZone/onTok):
+  // a creature → that unit; a squad's area → that squad's vanguard; the field → its first squad's.
+  liveRef.current.resolveDrop = (g) => {
+    const zone = g.zone; if (!zone || zone.side !== (g.wantSide || (isOffensiveCard(g.card) ? 'e' : 'p'))) return null;
+    if (zone.level === 'unit') return zone.unitId;
+    if (zone.level === 'squad') return frontOf(allSquads.find((sq) => sq.id === zone.squadId));
+    return frontOf((zone.side === 'e' ? snap.enemy : snap.player)[0]);
   };
   liveRef.current.affords = (card) => (selectedSquad?.energyLeft ?? 0) >= (card?.cost ?? 1);
   // where in the current squad's hand would a drop at screen-x insert (0..N-1)?
@@ -263,13 +283,6 @@ export default function BattleScreen() {
     const sq = selectedSquad; if (!sq || (sq.hand || []).length <= 1) return true;   // return the card (no reorder)
     reorderHand(sq.id, iid, liveRef.current.handInsertIdx(iid, x) ?? 0);
     return true;
-  };
-  liveRef.current.resolveDropFromHi = (hi) => {
-    if (!hi) return null;
-    if (hi.level === 'unit') return hi.unitId;
-    if (hi.level === 'squad') return frontOf(allSquads.find((sq) => sq.id === hi.squadId));
-    if (hi.level === 'side') return frontOf((hi.side === 'e' ? snap.enemy : snap.player)[0]);
-    return null;
   };
 
   const startHandDrag = (card, ne) => {
@@ -539,7 +552,7 @@ export default function BattleScreen() {
         <Board3D
           enemy={snap.enemy.map((sq) => ({ ...sq, units: sq.units.map(disp) }))}
           player={snap.player.map((sq) => ({ ...sq, units: sq.units.map(disp) }))}
-          sel={sel} onStepUp={stepUp} actingId={anim?.acting} focusId={anim?.focus} onPick={onTok} onZone={onZone} pickRef={pickRef} validRef={validRef} fx={fx} drag={d}
+          sel={sel} onStepUp={stepUp} actingId={anim?.acting} focusId={anim?.focus} onPick={onTok} onZone={onZone} pickRef={pickRef} validRef={validRef} zoneRef={zoneRef} fx={fx} drag={d}
           handVisible={showHand} handSquadId={handSquad?.id || null}
           cardFocusSide={autoCam ? (selectedCard ? (isOffensiveCard(selectedCard) ? 'e' : 'p') : (fly ? sideOfUnit(fly.targetId) : null)) : null}
           autoCam={autoCam} targetHint={targetHint} onInspect={setInspect} camRef={camRef}

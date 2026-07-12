@@ -530,7 +530,7 @@ export function CardEditor({ onMenu, tabs } = {}) {
                             const set = new Set(card.keywords || []);
                             if (e.target.checked) set.add(kw); else set.delete(kw);
                             updateCard({ keywords: [...set] });
-                          }} /> {kw}
+                          }} /> {kw === 'exhaust' ? 'banish' : kw}
                         </label>
                       ))}
                     </div>

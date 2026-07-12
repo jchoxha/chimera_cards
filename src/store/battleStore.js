@@ -29,7 +29,7 @@ export const DEMO_CARDS = {
   guard: { id: 'guard', name: 'Guard', cost: 1, type: 'skill', element: 'Physical', priority: 2, scope: 'self', effects: [{ op: 'block', value: 9 }], text: 'Priority. Gain 9 Block (temporary HP).' },
   rally: { id: 'rally', name: 'Rally', cost: 2, type: 'skill', element: 'Holy', priority: 2, scope: 'squad', effects: [{ op: 'block', value: 6 }], text: 'Priority. Give your squad 6 Block.' },
   weaken: { id: 'weaken', name: 'Weaken', cost: 1, type: 'skill', element: 'Void', priority: 0, scope: 'front', effects: [{ op: 'debuff', value: 2, status: 'weak' }], text: 'Apply 2 Weak.' },
-  overload: { id: 'overload', name: 'Overload', cost: 2, type: 'skill', element: 'Energy', priority: 1, scope: 'self', exhaust: true, effects: [{ op: 'buff', value: 2, status: 'strength' }], text: 'Exhaust. Gain 2 Strength.' },
+  overload: { id: 'overload', name: 'Overload', cost: 2, type: 'skill', element: 'Energy', priority: 1, scope: 'self', exhaust: true, effects: [{ op: 'buff', value: 2, status: 'strength' }], text: 'Banish. Gain 2 Strength.' },
 };
 const DEMO_DECK = ['strike', 'strike', 'strike', 'jab', 'jab', 'guard', 'guard', 'sweep', 'cleave', 'weaken', 'rally', 'overload'];
 const inst = (id) => ({ ...DEMO_CARDS[id], iid: `${id}#${uid()}` });

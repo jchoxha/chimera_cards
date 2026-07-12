@@ -307,7 +307,7 @@ const DEFAULT_MONSTERS = [
     desc: "The bedrock of the world, awake at last and not pleased.",
     lore: "A planet-scaled titan whose body is a fragment of the world's deep crust, continents of stone plating over a core of glowing magma seen through tectonic cracks. Mountains form its shoulders, canyons its joints. Its face is a vast, slow, ancient thing like a cliff with eyes of molten gold. When it wakes, the earth quakes for miles. It is the ground itself, given the will to stand.",
     cards: [
-      { id: "continent", name: "Continental Crush", type: "attack", cost: 2, dmg: 36, exhaust: true, text: "Deal 36 damage. Exhaust." },
+      { id: "continent", name: "Continental Crush", type: "attack", cost: 2, dmg: 36, exhaust: true, text: "Deal 36 damage. Banish." },
       { id: "bulwarkx", name: "Unbreakable", type: "skill", cost: 2, block: 28, text: "Gain 28 block." },
       { id: "tectonic", name: "Tectonic", type: "power", cost: 2, strength: 5, text: "Gain 5 Strength." },
     ],
@@ -1179,7 +1179,7 @@ const DEFAULT_MONSTERS = [
     cards: [
       { id: "calderacry", name: "Caldera Cry", type: "attack", cost: 2, dmg: 22, burn: 3, text: "Deal 22 damage. Apply 3 Burn." },
       { id: "basaltplume", name: "Basalt Plumage", type: "skill", cost: 2, block: 20, shield: 6, text: "Gain 20 block and 6 Shield." },
-      { id: "extinction", name: "Extinction Dive", type: "attack", cost: 2, dmg: 30, exhaust: true, text: "Deal 30 damage. Exhaust." },
+      { id: "extinction", name: "Extinction Dive", type: "attack", cost: 2, dmg: 30, exhaust: true, text: "Deal 30 damage. Banish." },
     ],
   },
 

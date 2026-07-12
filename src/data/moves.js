@@ -32,7 +32,7 @@ const SPECIAL_MOVES = [
   { id: "sp_omni", name: "Omnistrike", type: "attack", cost: 2, dmg: 9, hits: 2, text: "Deal 9 damage twice." },
   { id: "sp_aegis", name: "Aegis Field", type: "skill", cost: 2, shield: 10, block: 6, text: "Gain 10 Shield and 6 block." },
   { id: "sp_wind", name: "Second Wind", type: "skill", cost: 1, teamheal: 6, draw: 1, text: "Heal team 6. Draw 1." },
-  { id: "sp_clock", name: "Overclock", type: "skill", cost: 0, energy: 2, exhaust: true, text: "Gain 2 energy. Exhaust." },
+  { id: "sp_clock", name: "Overclock", type: "skill", cost: 0, energy: 2, exhaust: true, text: "Gain 2 energy. Banish." },
 ];
 const MOVE_CAP = 5; // max equipped moves per monster (signatures + learned)
 
