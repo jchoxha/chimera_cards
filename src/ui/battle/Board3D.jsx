@@ -936,7 +936,7 @@ function viewFor(sel, maps, focusId, handV) {
   return { x: 0, y: 0.2, z: 1.7, dist: 14.2, pol: FIELD_POL };
 }
 
-export default function Board3D({ enemy, player, sel, actingId, focusId, targetHint, onPick, onZone, onStepUp, pickRef, validRef, hand, fx, drag, handVisible, handSquadId, cardFocusSide, onInspect, onSelectSquad, camRef, fly, onFlyDone }) {
+export default function Board3D({ enemy, player, sel, actingId, focusId, targetHint, onPick, onZone, onStepUp, pickRef, validRef, hand, fx, drag, handVisible, handSquadId, cardFocusSide, autoCam = true, onInspect, onSelectSquad, camRef, fly, onFlyDone }) {
   const [hover, setHover] = useState(null);   // { level, side, squadId?, unitId? } under the pointer
   const orbit = useOrbit();
   const meshes = useRef(new Map());
@@ -971,14 +971,16 @@ export default function Board3D({ enemy, player, sel, actingId, focusId, targetH
   // creatures. The HIGHLIGHT (gold) follows the card's scope level under the pointer
   // (drag.hi), and the drop resolves from that (BattleScreen.resolveDropTarget).
   const dragging = !!drag?.card;
-  // camera during drag = the whole relative FIELD (or whole board for a battleground card);
-  // it does NOT zoom to squads/creatures. The gold highlight follows the scope (drag.hi).
-  const camSel = dragging
+  // AIMING = a lifted card while auto-camera is on → the camera frames the relative field and
+  // the scope highlight follows drag.hi. A card still down in the hand (or autoCam off) leaves
+  // the camera on the current selection so the hand can be reorganised undisturbed.
+  const aiming = dragging && !!drag.lifted && autoCam;
+  const camSel = aiming
     ? (drag.scopeLevel === 'board' ? { level: 'field' } : { level: 'side', side: drag.wantSide || 'e' })
     : (cardFocusSide ? { level: 'side', side: cardFocusSide } : sel);   // selecting a card frames the target field
-  const effSel = dragging ? (drag.hi || { level: 'side', side: drag.wantSide || 'e' }) : sel;
+  const effSel = (dragging && drag.lifted) ? (drag.hi || { level: 'side', side: drag.wantSide || 'e' }) : sel;
   // camera focus during playback follows the FX: actor while casting, TARGET while landing.
-  const view = viewFor(camSel, maps, focusId ?? actingId, handVisible && !dragging);
+  const view = viewFor(camSel, maps, focusId ?? actingId, handVisible && !aiming);
   // on camera-selection change: recentre WASD roam + reframe (tilt + zoom reset). az → 0.
   const selKey = `${camSel.level}:${camSel.side || ''}:${camSel.squadId || ''}:${camSel.unitId || ''}`;
   useEffect(() => {

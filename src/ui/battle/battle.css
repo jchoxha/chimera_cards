@@ -44,6 +44,10 @@
 .bCamCtl button:hover { border-color: var(--gold); background: linear-gradient(#2e2114, #201509); }
 .bCamCtl button:active { transform: translateY(1px); }
 .bCamCtl button iconify-icon { font-size: 19px; }
+.bCamAuto { width: 100% !important; height: auto !important; padding: 6px 8px !important; gap: 6px; font: 700 11px var(--font-display); letter-spacing: .03em; white-space: nowrap; }
+.bCamAuto span { font-size: 11px; }
+.bCamAuto.on { background: linear-gradient(#2a3a18, #1c2a10) !important; border-color: var(--good-line) !important; color: #cde8d2 !important; }
+.bCamAuto iconify-icon { font-size: 16px !important; }
 @media (max-height: 440px) { .bCamCtl button { width: 30px; height: 28px; } .bCamCtl button iconify-icon { font-size: 16px; } }
 .bActionText { position: absolute; left: 50%; top: 46%; transform: translate(-50%, -50%); z-index: 7; max-width: 68vw; text-align: center;
   padding: 8px 20px; border-radius: 12px; background: linear-gradient(#1a120bE8, #120c07E8); border: 1px solid var(--gold-deep);
@@ -459,6 +463,15 @@
   background: #ffffff06; color: var(--ink-dim); display: flex; align-items: center; }
 .bLogRow.foe { border-left-color: #b5341f; background: #2a141055; }
 .bLogRow.ally { border-left-color: var(--good); background: #10261a55; }
+/* collapsible per-turn groups */
+.bLogTurnGroup { display: flex; flex-direction: column; gap: 6px; }
+.bLogTurnHead { display: flex; align-items: center; gap: 8px; padding: 6px 10px; border-radius: 8px; cursor: pointer;
+  background: linear-gradient(#241a10, #180f08); border: 1px solid var(--gold-deep); color: var(--gold-bright);
+  font: 800 12px var(--font-display); letter-spacing: .05em; text-transform: uppercase; position: sticky; top: 0; z-index: 1; }
+.bLogTurnHead:hover { border-color: var(--gold); }
+.bLogTurnHead span { flex: 1; text-align: left; }
+.bLogTurnHead em { font-style: normal; font-size: 11px; color: var(--ink-faint); background: #ffffff12; border-radius: 999px; padding: 1px 8px; }
+.bLogTurnHead iconify-icon { font-size: 16px; }
 
 /* ── structured log / ticker / plan line: clickable crest + card chips ── */
 .bLogLine { display: inline-flex; align-items: center; gap: 6px; flex-wrap: wrap; }

@@ -109,6 +109,8 @@ export default function BattleScreen() {
   const [confirmReset, setConfirmReset] = useState(false);   // "reset all moves?" confirmation
   const [planOpen, setPlanOpen] = useState(false);           // "Plan" popup (queued actions + undo/redo/reset + speed)
   const [camOpen, setCamOpen] = useState(false);             // camera-control pad shown/hidden
+  const [autoCam, setAutoCam] = useState(true);              // auto-frame the camera on card interaction
+  const [collapsedTurns, setCollapsedTurns] = useState(() => new Set());   // combat-log turn folding
   const [dockHidden, setDockHidden] = useState(false);       // Action Cards shown/hidden
   const fxSeq = useRef(0);
   const timers = useRef([]);
@@ -126,19 +128,23 @@ export default function BattleScreen() {
       g.x = e.clientX; g.y = e.clientY;
       if (!g.moved && Math.hypot(e.clientX - g.x0, e.clientY - g.y0) > 6) g.moved = true;
       if (g.moved) {
-        g.over = (pickRef.current && pickRef.current(e.clientX, e.clientY)) || null;
-        // DRAG HIGHLIGHT: the camera holds on the relative FIELD; the gold highlight
-        // follows the card's SCOPE level under the pointer (unit / squad / whole field).
+        const W = window.innerWidth, H = window.innerHeight, m = 70;
+        // LIFTED = dragged above the hand zone → the card is being AIMED (camera frames the
+        // target field + targets highlight). Below the line = still in the hand (reorder only,
+        // camera undisturbed) so you can reorganise without moving the view.
+        g.lifted = e.clientY < H * 0.58;
+        g.over = g.lifted ? ((pickRef.current && pickRef.current(e.clientX, e.clientY)) || null) : null;
         const L = liveRef.current;
-        if (L.updateDragHi) L.updateDragHi(g);
-        // EDGE-PAN: dragging the card to a screen edge slides the camera (slow, smooth).
-        // Left/right/top only — the bottom is the hand return/reorder zone.
+        if (L.updateDragHi) L.updateDragHi(g);   // (clears hi/valid when not lifted)
+        // EDGE-PAN: top/left/right pan only while LIFTED; the EXTREME bottom always pans down
+        // (past where you'd be reordering the hand).
         if (camRef.current?.setEdge) {
-          const W = window.innerWidth, H = window.innerHeight, m = 70;
           let r = 0, f = 0;
-          if (e.clientX < m) r = -(m - e.clientX) / m; else if (e.clientX > W - m) r = (e.clientX - (W - m)) / m;
-          if (e.clientY < m) f = (m - e.clientY) / m;
-          g.inHand = e.clientY > H * 0.72;   // over the hand band?
+          if (g.lifted) {
+            if (e.clientX < m) r = -(m - e.clientX) / m; else if (e.clientX > W - m) r = (e.clientX - (W - m)) / m;
+            if (e.clientY < m) f = (m - e.clientY) / m;
+          }
+          if (e.clientY > H - m) f = -((e.clientY - (H - m)) / m);   // extreme bottom → pan down
           camRef.current.setEdge(f, r);
         }
         setD({ ...g });
@@ -219,6 +225,7 @@ export default function BattleScreen() {
   // during a drag: set the scope HIGHLIGHT (drag.hi) + which field the camera holds on.
   const scopeLevelOf = (card) => { const s = scopeOf(card); return s === 'field' ? 'field' : (s === 'squad' ? 'squad' : 'unit'); };
   liveRef.current.updateDragHi = (g) => {
+    if (!g.lifted) { g.hi = null; g.valid = false; g.wantSide = null; return; }   // in the hand → no aiming
     const wantSide = isOffensiveCard(g.card) ? 'e' : 'p';
     const scopeLevel = scopeLevelOf(g.card);
     g.wantSide = wantSide; g.scopeLevel = scopeLevel;
@@ -365,6 +372,13 @@ export default function BattleScreen() {
     run();
   };
 
+  // combat log grouped by turn (latest turn first; entries within a turn in play order)
+  const logByTurn = (() => {
+    const groups = new Map();
+    for (const en of (snap.logHistory || [])) { const t = en.turn ?? 1; if (!groups.has(t)) groups.set(t, []); groups.get(t).push(en); }
+    return [...groups.entries()].sort((a, b) => b[0] - a[0]);
+  })();
+
   // flat list of queued actions this turn (for the Plan popup)
   const unitName = (id) => allSquads.flatMap((s) => s.units).find((u) => u.id === id)?.name || '—';
   const plannedActions = snap.player.flatMap((sq, i) => (sq.plan || []).map((a) => ({ squadLabel: `Squad ${i + 1}`, card: a.card, targetId: a.targetId, targetName: unitName(a.targetId) })));
@@ -406,7 +420,9 @@ export default function BattleScreen() {
 
   // when a card is ARMED (selected OR mid-drag) highlight its valid TARGETS on the board:
   // offensive → enemy side (red), beneficial → your side (green); front/self scopes = vanguards.
-  const armedCard = selectedCard || (d && d.card) || null;
+  // a card is "armed" (targets highlight) when selected, or while dragging ONCE it's lifted
+  // above the hand zone — not while it's still down in the hand being reordered.
+  const armedCard = selectedCard || (d?.card && d.lifted ? d.card : null);
   const targetHint = (armedCard && !anim)
     ? { side: isOffensiveCard(armedCard) ? 'e' : 'p', scope: scopeOf(armedCard), offensive: isOffensiveCard(armedCard) }
     : null;
@@ -491,8 +507,8 @@ export default function BattleScreen() {
           player={snap.player.map((sq) => ({ ...sq, units: sq.units.map(disp) }))}
           sel={sel} onStepUp={stepUp} actingId={anim?.acting} focusId={anim?.focus} onPick={onTok} onZone={onZone} pickRef={pickRef} validRef={validRef} fx={fx} drag={d}
           handVisible={showHand} handSquadId={handSquad?.id || null}
-          cardFocusSide={selectedCard ? (isOffensiveCard(selectedCard) ? 'e' : 'p') : (fly ? sideOfUnit(fly.targetId) : null)}
-          targetHint={targetHint} onInspect={setInspect} camRef={camRef}
+          cardFocusSide={autoCam ? (selectedCard ? (isOffensiveCard(selectedCard) ? 'e' : 'p') : (fly ? sideOfUnit(fly.targetId) : null)) : null}
+          autoCam={autoCam} targetHint={targetHint} onInspect={setInspect} camRef={camRef}
           onSelectSquad={(side, squadId) => { setSelId2(null); setSel({ level: 'squad', side, squadId, unitId: null }); }}
           fly={fly} onFlyDone={() => setFly(null)}
           hand={showHand ? {
@@ -526,6 +542,11 @@ export default function BattleScreen() {
                 <button title="Recenter camera" onClick={() => camRef.current?.reset()}><Icon icon="tabler:focus-centered" /></button>
                 <button title="Zoom out" onClick={() => camRef.current?.zoom(0.22)}><Icon icon="tabler:zoom-out" /></button>
               </div>
+              <button className={`bCamAuto${autoCam ? ' on' : ''}`} title="Auto-move the camera when aiming action cards"
+                onClick={() => setAutoCam((v) => !v)}>
+                <Icon icon={autoCam ? 'tabler:camera-bolt' : 'tabler:camera-off'} />
+                <span>Auto-camera: {autoCam ? 'On' : 'Off'}</span>
+              </button>
             </div>
           )}
         </div>
@@ -741,9 +762,20 @@ export default function BattleScreen() {
             </div>
             <div className="bLogList">
               {(snap.logHistory || []).length === 0 && <div className="bHandEmpty">No actions yet.</div>}
-              {(snap.logHistory || []).slice().reverse().map((en, i) => (
-                <div key={i} className={`bLogRow ${en.side === 'e' ? 'foe' : 'ally'}`}>{renderEntry(en, true)}</div>
-              ))}
+              {logByTurn.map(([turn, entries]) => {
+                const open = !collapsedTurns.has(turn);
+                return (
+                  <div key={turn} className="bLogTurnGroup">
+                    <button className={`bLogTurnHead${open ? ' open' : ''}`} onClick={() => setCollapsedTurns((s) => { const n = new Set(s); if (n.has(turn)) n.delete(turn); else n.add(turn); return n; })}>
+                      <Icon icon={open ? 'tabler:chevron-down' : 'tabler:chevron-right'} />
+                      <span>Turn {turn}</span><em>{entries.length}</em>
+                    </button>
+                    {open && entries.map((en, i) => (
+                      <div key={i} className={`bLogRow ${en.side === 'e' ? 'foe' : 'ally'}`}>{renderEntry(en, true)}</div>
+                    ))}
+                  </div>
+                );
+              })}
             </div>
           </div>
         </div>
