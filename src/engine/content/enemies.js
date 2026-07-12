@@ -36,7 +36,7 @@ export const ENEMY_ARCHETYPES = {
     ],
   },
   brute: {
-    name: 'Ash Brute', hp: 46, element: 'stone', icon: 'game-icons:troll', rarity: 'uncommon', form: 'large',
+    name: 'Ash Brute', hp: 46, element: 'stone', icon: 'game-icons:troll', rarity: 'uncommon', form: 'elite',
     moves: [
       { kind: 'buff', value: 2 },          // gains Strength
       { kind: 'attack', value: 11 },

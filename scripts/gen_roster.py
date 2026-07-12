@@ -34,20 +34,20 @@ SIZE_DESC = {
              "oversized head and big eyes, short stubby limbs, endearing and young. It STILL FILLS MOST OF THE FRAME like a normal "
              "portrait (do NOT shrink it into a tiny speck or hide it in grass). Simple flat background at normal scale — NO oversized "
              "grass/pebbles, and NO footprints. It reads as a baby from its youthful proportions, not from the environment scale."),
-    "small": ("SIZE (overrides any size words in the subject): a SMALL, young, half-grown specimen. Lean, compact, slightly gangly "
-              "— not yet grown into its features. Eye-level camera; it fills about HALF the frame height."),
-    "regular": "SIZE: its typical ADULT form — balanced, characteristic proportions, filling most of the frame.",
-    "large": ("SIZE (overrides any size words in the subject): an unusually LARGE, powerful adult — visibly bigger and heavier than "
-              "a typical member of its kind. Slightly LOW camera angle; its body fills the frame edge to edge, environment details "
-              "read small beside it."),
-    "elite": ("SIZE (overrides any size words in the subject): a huge, battle-hardened ELITE veteran — larger than any normal adult, "
-              "covered in scars, trophies and ornamented armor/growths. LOW camera angle looking up; it looms past the frame edges "
-              "with parts of its silhouette cropped by sheer size."),
-    "boss": ("SIZE (overrides any size words in the subject): a COLOSSAL, cataclysmic BOSS — building-sized, DWARFING the landscape. "
-             "Extreme LOW camera angle looking far up at it; tiny environment details (trees, rubble, distant birds) establish its "
-             "enormous scale; its silhouette overflows the frame, elaborate and terrifying, wreathed in its element."),
+    "young": ("SIZE (overrides any size words in the subject): a YOUNG, half-grown adolescent — an in-between of baby and adult. "
+              "Leaner, more compact and a bit less developed than the adult, but confident. Eye-level camera, simple clean background. "
+              "The WHOLE creature is fully visible with a margin around it — nothing cropped."),
+    "regular": "SIZE: its typical ADULT form — balanced, characteristic proportions, the whole creature visible with a little margin.",
+    "elite": ("SIZE (overrides any size words in the subject): a bigger, tougher ELITE veteran — clearly larger and more powerful than "
+              "the normal adult, with only MINOR extra scars or slightly heavier armor. Keep the design essentially the same and "
+              "PLAINER than a boss (do NOT out-ornament the boss). The ENTIRE creature stays within the frame with a margin — nothing cropped."),
+    "boss": ("SIZE (overrides any size words in the subject): the ultimate BOSS — the biggest, most fearsome and most VISUALLY "
+             "SPECTACULAR apex version, with a grander, more elaborate design (more massive/ornate armor, spikes/horns, glowing "
+             "elemental power, a crest). Convey enormous scale with a LOW camera angle and tiny environment details (trees, rocks, "
+             "distant birds) — BUT keep the ENTIRE creature fully within the frame with a margin: head, body, weapon and feet all "
+             "visible, nothing cropped or overflowing the edges."),
 }
-ALL_FORMS = ["baby", "small", "regular", "large", "elite", "boss"]
+ALL_FORMS = ["baby", "young", "regular", "elite", "boss"]
 
 CREATURES = [
     ("ironhide",   "a colossal armored brute — a mountain of muscle and iron plating, hefting a massive warhammer, immovable and grim"),

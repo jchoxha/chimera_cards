@@ -278,7 +278,7 @@ export default function ChimeraCards() {
     const pool = DEFAULT_MONSTERS.filter((t) => (t.tier || 1) >= 2 && ["rare", "epic"].includes(t.rarity));
     const base = pool[Math.floor(Math.random() * pool.length)];
     const info = evolutionInfo(base);
-    const form = formAllowed("elite", info) ? "elite" : "large";
+    const form = formAllowed("elite", info) ? "elite" : "regular";
     const hpScale = 1 + wins * 0.25;
     const enemy = makeMonster({ ...base, form, baseHp: base.hp, hp: Math.round(base.hp * FORMS[form].hpMult * hpScale) });
     enemy.intent = null;

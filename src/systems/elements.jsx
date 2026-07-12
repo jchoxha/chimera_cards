@@ -94,13 +94,13 @@ function defenseMultiplier(atkEl, defender) {
 // `art` = relative scale of the creature art on its card (size you can see).
 const FORMS = {
   baby:    { id: "baby",    label: "Baby",  badge: "🍼", hpMult: 0.5,  str: -1, order: 0, art: 0.72 },
-  small:   { id: "small",   label: "Small", badge: "🐾", hpMult: 0.75, str: 0,  order: 1, art: 0.86 },
+  young:   { id: "young",   label: "Young", badge: "🌱", hpMult: 0.75, str: 0,  order: 1, art: 0.86 },
   regular: { id: "regular", label: "",      badge: "",   hpMult: 1.0,  str: 0,  order: 2, art: 1.0  },
-  large:   { id: "large",   label: "Large", badge: "🔺", hpMult: 1.3,  str: 1,  order: 3, art: 1.18 },
-  elite:   { id: "elite",   label: "Elite", badge: "⭐", hpMult: 1.6,  str: 2,  order: 4, art: 1.34 },
-  boss:    { id: "boss",    label: "Boss",  badge: "👑", hpMult: 2.0,  str: 3,  order: 5, art: 1.55 },
+  elite:   { id: "elite",   label: "Elite", badge: "⭐", hpMult: 1.6,  str: 2,  order: 3, art: 1.34 },
+  boss:    { id: "boss",    label: "Boss",  badge: "👑", hpMult: 2.0,  str: 3,  order: 4, art: 1.55 },
 };
-const FORM_ORDER = ["baby", "small", "regular", "large", "elite", "boss"];
+const FORM_ALIAS = { small: "young", large: "regular" };
+const FORM_ORDER = ["baby", "young", "regular", "elite", "boss"];
 
 // Forms that are TERMINAL: a creature wearing one is a peak specimen of its
 // current stage and cannot evolve (prevents power double-stacking and gives
@@ -163,7 +163,7 @@ function ElementPills({ m, size = 9 }) {
 }
 
 function formLabel(m) {
-  const f = FORMS[m.form || "regular"];
+  const f = FORMS[FORM_ALIAS[m.form] || m.form || "regular"] || FORMS.regular;
   return f && f.label ? `${f.badge} ${f.label}` : "";
 }
 // Roll a wild/dungeon enemy's form, respecting policy.
@@ -172,8 +172,7 @@ function rollEnemyForm(info, ctx = {}) {
   if (ctx.elite && formAllowed("elite", info)) return "elite";
   const r = Math.random();
   if (r < 0.08 && formAllowed("baby", info)) return "baby";
-  if (r < 0.25 && formAllowed("small", info)) return "small";
-  if (r > 0.88 && formAllowed("large", info)) return "large";
+  if (r < 0.25 && formAllowed("young", info)) return "young";
   return "regular";
 }
 

@@ -19,11 +19,10 @@ import SIZE_MANIFEST from './creatureArtSizes.json';
 // SIZE_DESC (the fuller pipeline wording).
 export const FORM_ART_DESC = {
   baby: 'as a cute juvenile / baby version (this overrides any size words above) — rounded chunky proportions, an oversized head and big eyes, short stubby limbs — but still filling most of the frame like a normal portrait; a simple flat background at normal scale, NO oversized props, giant grass, or footprints (it reads as young from its proportions, not from being tiny in a huge world)',
-  small: 'as a small, half-grown young specimen (this overrides any size words above) — lean, compact and slightly gangly, filling about half the frame',
+  young: 'as a YOUNG, half-grown adolescent (an in-between of baby and adult; this overrides any size words above) — leaner, more compact and a bit less developed than the adult, on a simple clean background; the whole creature clearly visible with margin',
   regular: 'at its typical adult size — balanced, characteristic proportions',
-  large: 'as an unusually large, powerful adult, visibly bigger than a typical member of its kind (this overrides any size words above) — low camera angle, its body filling the frame edge to edge',
-  elite: 'as a huge battle-hardened elite veteran (this overrides any size words above) — scarred, trophied and ornamented, low camera angle, looming past the frame edges',
-  boss: 'as a colossal building-sized boss DWARFING the landscape (this overrides any size words above) — extreme low camera angle looking far up, tiny environment details establishing enormous scale, silhouette overflowing the frame',
+  elite: 'as a bigger, tougher ELITE veteran (this overrides any size words above) — clearly larger and more powerful than the adult, with only MINOR extra scars/heavier armor; keep the design essentially the same and plainer than a boss (do NOT out-ornament the boss). The ENTIRE creature stays within the frame with a margin — nothing cropped',
+  boss: 'as the ultimate BOSS — the biggest, most fearsome and most VISUALLY SPECTACULAR apex version (this overrides any size words above), with a grander, more elaborate design (more massive/ornate armor, spikes/horns, glowing elemental power, a crest); convey huge scale with a low camera angle and tiny environment details, BUT keep the ENTIRE creature fully within the frame with a margin — nothing cropped or overflowing the edges',
 };
 export function formArtDesc(form) { return FORM_ART_DESC[form] || FORM_ART_DESC.regular; }
 
