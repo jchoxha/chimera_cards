@@ -143,12 +143,15 @@ const cap = (s) => (s ? s[0].toUpperCase() + s.slice(1) : s);
 export function formatRoundLog(state, log, turn) {
   const nameOf = (id) => state.unitsById[id]?.creature?.name || state.unitsById[id]?.name || 'Unknown';
   const sideLbl = (id) => (state.unitsById[id]?.side === 'e' ? 'Enemy' : 'Friendly');
+  const elOf = (id) => state.unitsById[id]?.creature?.element || null;
   const entries = []; let cur = null;
   for (const e of log) {
     if (e.type === 'play') {
       cur = { turn, side: state.unitsById[e.ownerId]?.side || 'p', actor: nameOf(e.ownerId), actorSide: sideLbl(e.ownerId),
         verb: e.offensive ? 'Attacked' : 'Buffed', target: nameOf(e.targetId), targetSide: sideLbl(e.targetId),
-        card: e.cardName || 'a card', effects: [] };
+        card: e.cardName || 'a card', effects: [],
+        // ids + element so the UI can render clickable crests + tinted card chips
+        ownerId: e.ownerId, targetId: e.targetId, cardId: e.card, offensive: !!e.offensive, element: elOf(e.ownerId) };
       entries.push(cur);
     } else if (cur) {
       if (e.type === 'damage') { const net = e.amount - (e.blocked || 0); cur.effects.push(`${net} Damage`); }
@@ -160,8 +163,10 @@ export function formatRoundLog(state, log, turn) {
     }
   }
   for (const en of entries) {
-    en.text = `Turn ${en.turn} — ${en.actorSide} ${en.actor} ${en.verb} ${en.targetSide} ${en.target} with ${en.card}`
+    const body = `${en.actorSide} ${en.actor} ${en.verb} ${en.targetSide} ${en.target} with ${en.card}`
       + (en.effects.length ? `, causing ${en.effects.join(', ')}` : '');
+    en.headline = body;                       // no turn prefix (used in the live ticker)
+    en.text = `Turn ${en.turn} — ${body}`;    // full line (combat log history)
   }
   return entries;
 }

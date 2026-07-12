@@ -87,6 +87,7 @@ export default function BattleScreen() {
   const [cardZoom, setCardZoom] = useState(null);    // enlarged Action Card detail
   const [selId2, setSelId2] = useState(null);        // selected hand-card iid (click-to-target)
   const [anim, setAnim] = useState(null);    // resolution playback
+  const [displayTurn, setDisplayTurn] = useState(1);   // top-left turn — only advances once a fight resolves
   const [fx, setFx] = useState([]);
   const [playSpeed, setPlaySpeed] = useState(1);     // resolution playback speed (0.5 / 1 / 2)
   const [playPaused, setPlayPaused] = useState(false);
@@ -148,6 +149,10 @@ export default function BattleScreen() {
   useEffect(() => {
     if (anim?.acting) dropEls.current.get(anim.acting)?.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
   }, [anim?.acting]);
+
+  // the top-left turn counter only advances once a fight FINISHES resolving (the store bumps
+  // snap.turn at resolve() time, but the playback runs after — so hold the shown value).
+  useEffect(() => { if (!anim && snap?.turn) setDisplayTurn(snap.turn); }, [anim, snap?.turn]);
 
   // mobile: request FULLSCREEN on the first touch (best-effort — needs a user gesture and
   // is only attempted on coarse-pointer / small screens so desktop is unaffected).
@@ -278,7 +283,7 @@ export default function BattleScreen() {
   const HIT_MS = 2100;   // beat after an effect resolves
   const doFight = () => {
     if (anim || snap.outcome) return;
-    setConfirmFight(false); setSelId2(null); setPlayPaused(false);
+    setConfirmFight(false); setSelId2(null); setPlayPaused(false); setTicker(null); setPlanOpen(false);
     const pre = { hp: {}, block: {} };
     allSquads.forEach((sq) => sq.units.forEach((u) => { pre.hp[u.id] = u.hp; pre.block[u.id] = u.block; }));
     setAnim({ hp: { ...pre.hp }, block: { ...pre.block }, acting: null });
@@ -322,7 +327,7 @@ export default function BattleScreen() {
 
   // flat list of queued actions this turn (for the Plan popup)
   const unitName = (id) => allSquads.flatMap((s) => s.units).find((u) => u.id === id)?.name || '—';
-  const plannedActions = snap.player.flatMap((sq, i) => (sq.plan || []).map((a) => ({ squadLabel: `Squad ${i + 1}`, card: a.card, targetName: unitName(a.targetId) })));
+  const plannedActions = snap.player.flatMap((sq, i) => (sq.plan || []).map((a) => ({ squadLabel: `Squad ${i + 1}`, card: a.card, targetId: a.targetId, targetName: unitName(a.targetId) })));
 
   // ── selection PILL: content is relevant to the current selection level ──
   const sideName = (s) => (s === 'e' ? 'Enemy' : 'Ally');
@@ -366,6 +371,30 @@ export default function BattleScreen() {
     ? { side: isOffensiveCard(armedCard) ? 'e' : 'p', scope: scopeOf(armedCard), offensive: isOffensiveCard(armedCard) }
     : null;
 
+  // ── clickable log / ticker / plan helpers ──
+  const unitById = (id) => allSquads.flatMap((s) => s.units).find((u) => u.id === id) || null;
+  const sideOfUnit = (id) => (snap.enemy.some((sq) => sq.units.some((u) => u.id === id)) ? 'e' : 'p');
+  const inspectUnit = (id) => { const u = unitById(id); if (u) setZoom({ u: disp(u), side: sideOfUnit(id) }); };
+  const openCard = (card) => card && setCardZoom(card);
+  // skip the rest of the fight animation → jump straight to the resolved board.
+  const skipFight = () => { timers.current.forEach(clearTimeout); timers.current = []; setFx([]); setTicker(null); setPlayPaused(false); setAnim(null); };
+  // one clickable creature crest chip (inspects the unit on the battlefield)
+  const UnitChip = (id, name, side) => (unitById(id)
+    ? <button key={`${id}-${name}`} className={`bChip unit ${side === 'e' ? 'foe' : 'ally'}`} title={`Inspect ${name}`} onClick={() => inspectUnit(id)}><Icon icon="tabler:paw" />{name}</button>
+    : <span className={`bChip unit ${side === 'e' ? 'foe' : 'ally'} dead`}><Icon icon="tabler:skull" />{name}</span>);
+  // a structured, tinted combat-log / ticker line (actor → card → target + effects)
+  const renderEntry = (en, withTurn) => (
+    <span className="bLogLine">
+      {withTurn && <span className="bLogTurn">T{en.turn}</span>}
+      {UnitChip(en.ownerId, en.actor, en.side)}
+      <span className={`bLogVerb ${en.offensive ? 'atk' : 'buf'}`}><Icon icon={en.offensive ? 'game-icons:crossed-swords' : 'game-icons:sparkles'} /></span>
+      <span className="bChip card" style={{ '--el': elColor(en.element) }}><Icon icon="game-icons:card-play" />{en.card}</span>
+      <span className="bLogArrow"><Icon icon="tabler:arrow-right" /></span>
+      {UnitChip(en.targetId, en.target, sideOfUnit(en.targetId))}
+      {en.effects?.length ? <span className="bLogEff">{en.effects.join(' · ')}</span> : null}
+    </span>
+  );
+
   return (
     <div className={`battleScreen${d ? ' dragging' : ''}${anim ? ' resolving' : ''}${dockHidden ? ' dockHidden' : ''}${selectedCard ? ' picking' : ''}`}
       onContextMenu={(e) => e.preventDefault()}>
@@ -386,8 +415,8 @@ export default function BattleScreen() {
             onCardPointerDown: startHandDrag, onInspect: setInspect,
           } : null} />
 
-        {/* TOP-LEFT: turn tracker (just "Turn X") */}
-        <div className="bTurn"><b>Turn {snap.turn}</b></div>
+        {/* TOP-LEFT: turn tracker — holds until a fight fully resolves */}
+        <div className="bTurn"><b>Turn {displayTurn}</b></div>
 
         {/* TOP-RIGHT: a single camera button opens the control pad (hidden by default;
             touch-friendly — WASD still pans). rotate ↺/↻ · tilt · zoom · recenter. */}
@@ -411,111 +440,110 @@ export default function BattleScreen() {
           )}
         </div>
 
-        {/* CENTRE: the action currently resolving (roughly under its target), or the outcome */}
-        {snap.outcome ? (
+        {/* CENTRE: only the outcome banner (the live action text moved to the bottom bar) */}
+        {snap.outcome && (
           <div className={`bOutcome center ${snap.outcome === 'p' ? 'win' : 'lose'}`}>
             {snap.outcome === 'p' ? 'Victory' : snap.outcome === 'e' ? 'Defeat' : 'Draw'}
             <span className="bNew" onClick={() => window.location.reload()} title="New battle"><Icon icon="tabler:refresh" /></span>
           </div>
-        ) : (anim && ticker ? (
-          <div className={`bActionText ${ticker.side === 'e' ? 'foe' : 'ally'}`}>{ticker.text}</div>
-        ) : null)}
+        )}
       </div>
 
-      {/* BOTTOM HUD — the hand toggle (only on your squad), the CENTRED selection pill
-          (only when something is selected, content relevant to the selection), and the
-          action controls. The pill is centred; the hand renders above it in the canvas. */}
-      <div className="bHud">
-        <div className="bHudCluster left">
-          {canToggleHand && (
-            <button className="bHudBtn toggle" title={dockHidden ? 'Show Action Cards' : 'Hide Action Cards'} onClick={() => setDockHidden((v) => !v)}>
-              <Icon icon="tabler:cards" />
-              {!dockHidden && <span className="bHudX"><Icon icon="tabler:x" /></span>}
-            </button>
-          )}
-        </div>
-
-        {pill && (
-          <div className="bHudCluster center pill">
-            <button className="bHudBtn" title="Previous" disabled={!canCycle} onClick={() => cycleSel(-1)}><Icon icon="tabler:chevron-left" /></button>
-            <div className={`bHudSquad${pill.side === 'e' ? ' foe' : ''}`}>
-              <span className="bHudSquadName">{pill.title}</span>
-              {(pill.kind === 'squad' || pill.kind === 'unit') && pill.energy && (
-                <span className="bEnergy" title={`${pill.energy.energyLeft} of ${pill.energy.maxEnergy} AP`}>
-                  <Icon icon="tabler:bolt" /><b>{pill.energy.energyLeft}/{pill.energy.maxEnergy}</b><em className="bEnergyLbl">AP</em>
-                </span>
-              )}
-            </div>
-            <button className="bHudBtn" title="Next" disabled={!canCycle} onClick={() => cycleSel(1)}><Icon icon="tabler:chevron-right" /></button>
-          </div>
-        )}
-
-        {/* ally FIELD selected → a line per squad with its AP ratio; click one to select it */}
-        {pill && pill.kind === 'side' && pill.side === 'p' && (
-          <div className="bFieldPop">
-            <div className="bFieldPopHead"><Icon icon="tabler:users-group" /> Ally Squads</div>
-            {snap.player.map((sq, i) => (
-              <button key={sq.id} className="bEnergyLink" onClick={() => { setSelId2(null); setSel({ level: 'squad', side: 'p', squadId: sq.id, unitId: null }); }}>
-                <span><Icon icon="tabler:chevron-right" /> Squad {i + 1}</span>
-                <em className={sq.energyLeft > 0 ? 'has' : ''}><Icon icon="tabler:bolt" /> {sq.energyLeft}/{sq.maxEnergy} AP</em>
-              </button>
-            ))}
-          </div>
-        )}
-
-        <div className="bHudCluster right">
-          {snap.logHistory?.length ? (
-            <button className="bHudBtn log" title="View combat log" onClick={() => setLogOpen(true)}>
-              <Icon icon="game-icons:scroll-quill" /><span>Log</span>
-            </button>
-          ) : null}
-          <button className={`bHudBtn plan${planOpen ? ' on' : ''}`} title="Plan & playback speed" onClick={() => setPlanOpen((v) => !v)}>
-            <Icon icon="tabler:list-check" /><span>Plan</span>{totalQueued > 0 && <span className="bPlanCount">{totalQueued}</span>}
-          </button>
-          <button className="bHudBtn fight" title="Fight — resolve the round" disabled={!!anim || !!snap.outcome} onClick={requestFight}><Icon icon="game-icons:crossed-swords" /><span>Fight</span></button>
-        </div>
-
-        {/* PLAN popup — playback SPEED (used during the Fight phase) + the queued actions
-            this turn + Undo / Redo / Reset. Open during a fight to slow/pause/speed playback. */}
-        {planOpen && (
-          <div className="bPlanPop" onClick={(e) => e.stopPropagation()}>
-            <div className="bPlanHead">
-              <span><Icon icon="tabler:list-check" /> {anim ? 'Playback' : 'Plan'}{!anim && <em>{totalQueued}</em>}</span>
-              <button className="bZoomClose sm" onClick={() => setPlanOpen(false)}><Icon icon="tabler:x" /></button>
-            </div>
-            {/* Fight-speed controls */}
-            <div className="bPlanSpeed">
-              <span className="bPlanSpeedLbl"><Icon icon="tabler:player-play" /> Fight speed</span>
+      {/* BOTTOM HUD. During the FIGHT PHASE every planning control is replaced by a single
+          centred bar: the live action line (clickable crests) + speed/pause/skip controls. */}
+      <div className={`bHud${anim ? ' resolving' : ''}`}>
+        {anim ? (
+          <div className="bFightBar">
+            <div className="bFightText">{ticker ? renderEntry(ticker, false) : <span className="bFightIdle"><Icon icon="tabler:loader-2" /> Resolving…</span>}</div>
+            <div className="bFightCtl">
               <div className="bSpeed inline">
-                <button className={playPaused ? 'on' : ''} title={playPaused ? 'Resume' : 'Pause'} disabled={!anim} onClick={() => setPlayPaused((v) => !v)}>
+                <button className={playPaused ? 'on' : ''} title={playPaused ? 'Resume' : 'Pause'} onClick={() => setPlayPaused((v) => !v)}>
                   <Icon icon={playPaused ? 'tabler:player-play-filled' : 'tabler:player-pause-filled'} />
                 </button>
                 {[0.5, 1, 2].map((sp) => (
                   <button key={sp} className={!playPaused && playSpeed === sp ? 'on' : ''} onClick={() => { setPlaySpeed(sp); setPlayPaused(false); }}>{sp}×</button>
                 ))}
               </div>
+              <button className="bCtl skip" title="Skip the animation" onClick={skipFight}><Icon icon="tabler:player-track-next-filled" /> Skip</button>
             </div>
-            {!anim && (
-              <div className="bPlanList">
-                {plannedActions.length === 0 && <div className="bPlanEmpty">No actions queued. Drag or select a card to plan one.</div>}
-                {plannedActions.map((pa, k) => (
-                  <div key={k} className="bPlanRow">
-                    <span className="bPlanSq">{pa.squadLabel}</span>
-                    <span className="bPlanCard" style={{ '--el': elColor(pa.card.element) }}>{pa.card.name}</span>
-                    <Icon icon="tabler:arrow-right" />
-                    <span className="bPlanTgt">{pa.targetName}</span>
-                  </div>
+          </div>
+        ) : (
+          <>
+            <div className="bHudCluster left">
+              {canToggleHand && (
+                <button className="bHudBtn toggle" title={dockHidden ? 'Show Action Cards' : 'Hide Action Cards'} onClick={() => setDockHidden((v) => !v)}>
+                  <Icon icon="tabler:cards" />
+                  {!dockHidden && <span className="bHudX"><Icon icon="tabler:x" /></span>}
+                </button>
+              )}
+            </div>
+
+            {pill && (
+              <div className="bHudCluster center pill">
+                <button className="bHudBtn" title="Previous" disabled={!canCycle} onClick={() => cycleSel(-1)}><Icon icon="tabler:chevron-left" /></button>
+                <div className={`bHudSquad${pill.side === 'e' ? ' foe' : ''}`}>
+                  <span className="bHudSquadName">{pill.title}</span>
+                  {(pill.kind === 'squad' || pill.kind === 'unit') && pill.energy && (
+                    <span className="bEnergy" title={`${pill.energy.energyLeft} of ${pill.energy.maxEnergy} AP`}>
+                      <Icon icon="tabler:bolt" /><b>{pill.energy.energyLeft}/{pill.energy.maxEnergy}</b><em className="bEnergyLbl">AP</em>
+                    </span>
+                  )}
+                </div>
+                <button className="bHudBtn" title="Next" disabled={!canCycle} onClick={() => cycleSel(1)}><Icon icon="tabler:chevron-right" /></button>
+              </div>
+            )}
+
+            {/* ally FIELD selected → a line per squad with its AP ratio; click one to select it */}
+            {pill && pill.kind === 'side' && pill.side === 'p' && (
+              <div className="bFieldPop">
+                <div className="bFieldPopHead"><Icon icon="tabler:users-group" /> Ally Squads</div>
+                {snap.player.map((sq, i) => (
+                  <button key={sq.id} className="bEnergyLink" onClick={() => { setSelId2(null); setSel({ level: 'squad', side: 'p', squadId: sq.id, unitId: null }); }}>
+                    <span><Icon icon="tabler:chevron-right" /> Squad {i + 1}</span>
+                    <em className={sq.energyLeft > 0 ? 'has' : ''}><Icon icon="tabler:bolt" /> {sq.energyLeft}/{sq.maxEnergy} AP</em>
+                  </button>
                 ))}
               </div>
             )}
-            {!anim && (
-              <div className="bPlanBtns">
-                <button className="bCtl" title="Undo last" disabled={!totalQueued} onClick={undoLast}><Icon icon="tabler:arrow-back-up" /> Undo</button>
-                <button className="bCtl" title="Redo" disabled={!snap.canRedo} onClick={redoLast}><Icon icon="tabler:arrow-forward-up" /> Redo</button>
-                <button className="bCtl danger" title="Reset all" disabled={!totalQueued} onClick={() => { setPlanOpen(false); setConfirmReset(true); }}><Icon icon="tabler:refresh" /> Reset</button>
+
+            <div className="bHudCluster right">
+              {snap.logHistory?.length ? (
+                <button className="bHudBtn log" title="View combat log" onClick={() => setLogOpen(true)}>
+                  <Icon icon="game-icons:scroll-quill" /><span>Log</span>
+                </button>
+              ) : null}
+              <button className={`bHudBtn plan${planOpen ? ' on' : ''}`} title="Planned actions" onClick={() => setPlanOpen((v) => !v)}>
+                <Icon icon="tabler:list-check" /><span>Plan</span>{totalQueued > 0 && <span className="bPlanCount">{totalQueued}</span>}
+              </button>
+              <button className="bHudBtn fight" title="Fight — resolve the round" disabled={!!snap.outcome} onClick={requestFight}><Icon icon="game-icons:crossed-swords" /><span>Fight</span></button>
+            </div>
+
+            {/* PLAN popup — the queued actions this turn (clickable card + target) + Undo/Redo/Reset */}
+            {planOpen && (
+              <div className="bPlanPop" onClick={(e) => e.stopPropagation()}>
+                <div className="bPlanHead">
+                  <span><Icon icon="tabler:list-check" /> Planned Actions <em>{totalQueued}</em></span>
+                  <button className="bZoomClose sm" onClick={() => setPlanOpen(false)}><Icon icon="tabler:x" /></button>
+                </div>
+                <div className="bPlanList">
+                  {plannedActions.length === 0 && <div className="bPlanEmpty">No actions queued. Drag or select a card to plan one.</div>}
+                  {plannedActions.map((pa, k) => (
+                    <div key={k} className="bPlanRow">
+                      <span className="bPlanSq">{pa.squadLabel}</span>
+                      <button className="bChip card" style={{ '--el': elColor(pa.card.element) }} title="View card" onClick={() => openCard(pa.card)}><Icon icon="game-icons:card-play" />{pa.card.name}</button>
+                      <span className="bLogArrow"><Icon icon="tabler:arrow-right" /></span>
+                      {UnitChip(pa.targetId, pa.targetName, sideOfUnit(pa.targetId))}
+                    </div>
+                  ))}
+                </div>
+                <div className="bPlanBtns">
+                  <button className="bCtl" title="Undo last" disabled={!totalQueued} onClick={undoLast}><Icon icon="tabler:arrow-back-up" /> Undo</button>
+                  <button className="bCtl" title="Redo" disabled={!snap.canRedo} onClick={redoLast}><Icon icon="tabler:arrow-forward-up" /> Redo</button>
+                  <button className="bCtl danger" title="Reset all" disabled={!totalQueued} onClick={() => { setPlanOpen(false); setConfirmReset(true); }}><Icon icon="tabler:refresh" /> Reset</button>
+                </div>
               </div>
             )}
-          </div>
+          </>
         )}
       </div>
 
@@ -609,7 +637,7 @@ export default function BattleScreen() {
             <div className="bLogList">
               {(snap.logHistory || []).length === 0 && <div className="bHandEmpty">No actions yet.</div>}
               {(snap.logHistory || []).slice().reverse().map((en, i) => (
-                <div key={i} className={`bLogRow ${en.side === 'e' ? 'foe' : 'ally'}`}>{en.text}</div>
+                <div key={i} className={`bLogRow ${en.side === 'e' ? 'foe' : 'ally'}`}>{renderEntry(en, true)}</div>
               ))}
             </div>
           </div>

@@ -157,10 +157,12 @@ function Pile3D({ x, color = '#3a2a18', count, label, onTap }) {
           <meshStandardMaterial color={boxCol} roughness={0.7} metalness={0.15} transparent opacity={empty ? 0.32 : 1} depthTest={false} depthWrite={false} />
         </mesh>
       ))}
-      {/* the TOP card's face-down back (so the deck reads as a stack of real cards) */}
+      {/* the TOP card's face-down back (so the deck reads as a stack of real cards).
+          KEY on `empty` — going null→map (0→1 cards) won't recompile the shader to use the
+          map without a remount, so a pile that started empty would otherwise render white. */}
       <mesh position={[0, top + 0.012, 0]} rotation={[-Math.PI / 2, 0, 0]} renderOrder={RO + n + 1}>
         <planeGeometry args={[pw, ph]} />
-        <meshBasicMaterial map={empty ? null : back} color={empty ? '#241a10' : '#ffffff'} transparent opacity={empty ? 0.35 : 1} depthTest={false} depthWrite={false} toneMapped={false} />
+        <meshBasicMaterial key={empty ? 'e' : 'f'} map={empty ? null : back} color={empty ? '#241a10' : '#ffffff'} transparent opacity={empty ? 0.35 : 1} depthTest={false} depthWrite={false} toneMapped={false} />
       </mesh>
       {/* one-line label plate, stood up to face the camera ABOVE (behind) the stack */}
       {tex && <mesh position={[0, 0.02, -(ph * 0.5 + 0.22)]} rotation={[-1.24, 0, 0]} renderOrder={RO + n + 3}><planeGeometry args={[1.15, 0.19]} /><meshBasicMaterial map={tex} transparent opacity={empty ? 0.7 : 1} depthTest={false} depthWrite={false} toneMapped={false} /></mesh>}

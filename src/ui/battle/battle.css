@@ -456,9 +456,38 @@
 .bInspectPanel.log { width: min(560px, 92vw); }
 .bLogList { display: flex; flex-direction: column; gap: 6px; padding: 12px 16px; overflow-y: auto; }
 .bLogRow { font-size: 13px; line-height: 1.35; padding: 7px 11px; border-radius: 8px; border-left: 3px solid var(--line-strong);
-  background: #ffffff06; color: var(--ink-dim); }
-.bLogRow.foe { border-left-color: #b5341f; color: #f2cdc2; background: #2a141055; }
-.bLogRow.ally { border-left-color: var(--good); color: #cde8d2; background: #10261a55; }
+  background: #ffffff06; color: var(--ink-dim); display: flex; align-items: center; }
+.bLogRow.foe { border-left-color: #b5341f; background: #2a141055; }
+.bLogRow.ally { border-left-color: var(--good); background: #10261a55; }
+
+/* ── structured log / ticker / plan line: clickable crest + card chips ── */
+.bLogLine { display: inline-flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+.bChip { display: inline-flex; align-items: center; gap: 4px; padding: 3px 9px; border-radius: 999px; border: 1px solid var(--line);
+  font: 700 12px var(--font-body); background: #ffffff0a; color: var(--cream, #f6e7b0); cursor: default; white-space: nowrap; max-width: 42vw; overflow: hidden; text-overflow: ellipsis; }
+.bChip iconify-icon { font-size: 13px; flex: none; }
+button.bChip { cursor: pointer; transition: transform .1s, border-color .1s; }
+button.bChip:hover { border-color: var(--gold); transform: translateY(-1px); }
+.bChip.unit.foe { color: #f2cdc2; border-color: #7a3226; background: #2a141066; }
+.bChip.unit.ally { color: #cde8d2; border-color: var(--good-line); background: #10261a66; }
+.bChip.unit.dead { opacity: .55; text-decoration: line-through; }
+.bChip.card { color: var(--el, var(--cream)); border-color: var(--el, var(--gold-deep)); background: #ffffff08; }
+.bLogVerb { display: inline-flex; }
+.bLogVerb.atk { color: #ff9c86; } .bLogVerb.buf { color: #9fe0b4; }
+.bLogArrow { color: var(--ink-faint); display: inline-flex; }
+.bLogTurn { font: 800 10px var(--font-display); letter-spacing: .04em; color: var(--gold); background: #ffffff12; border-radius: 6px; padding: 2px 6px; margin-right: 4px; flex: none; }
+.bLogEff { font-size: 11px; color: var(--ink-dim); font-style: italic; }
+
+/* ── fight-phase bottom bar: live action line + speed/skip (replaces all planning UI) ── */
+.bHud.resolving { display: flex; justify-content: center; }
+.bFightBar { pointer-events: auto; display: flex; align-items: center; gap: 14px; max-width: 96vw;
+  padding: 8px 12px; border-radius: 14px; background: linear-gradient(#1a120bF2, #120c07F2); border: 1px solid var(--gold-deep); box-shadow: 0 8px 26px #000b; }
+.bFightText { display: flex; align-items: center; min-width: 0; font-size: 13px; }
+.bFightIdle { display: inline-flex; align-items: center; gap: 6px; color: var(--ink-dim); font: 600 14px var(--font-body); }
+.bFightIdle iconify-icon { animation: bSpin 1s linear infinite; }
+.bFightCtl { display: flex; align-items: center; gap: 8px; flex: none; }
+.bCtl.skip { width: auto; padding: 0 12px; height: 34px; gap: 5px; font: 700 12px var(--font-display); display: inline-flex; align-items: center; color: var(--gold-bright); }
+.bCtl.skip:hover { border-color: var(--gold); }
+@keyframes bSpin { to { transform: rotate(360deg); } }
 
 @media (max-height: 620px) {
   .bTok.front { width: clamp(74px, 8vw, 104px); }
