@@ -102,15 +102,16 @@ function Card3D({ u, side, x, z, selected, acting, hovered, onPick, onOver, regi
     g.scale.setScalar(cur);
   });
 
-  // block is TEMP HP shown past the health — scale the bar by max(maxHp, hp+block) so the
-  // block segment is always visible (even at full HP), each as its own proportion.
   const blk = Math.max(0, u.block || 0);
-  const total = Math.max(1, u.maxHp, u.hp + blk);
-  const hpFrac = Math.max(0, u.hp) / total;
-  const blockFrac = blk / total;
   const dim = u.dead ? 0.4 : 1;
   const hpW = CARD_W - 0.26;          // HP bar width (over the reserved plate baked in the face)
   const hpY = -CARD_H / 2 + 0.18;     // sits on the bottom stat plate
+  // green HP fills by hp/maxHp (leaves room for missing health); the BLOCK is a fixed-width
+  // blue segment (icon + number, NOT to scale) placed just to the RIGHT of the green.
+  const hpFrac = Math.max(0, Math.min(1, u.hp / u.maxHp));
+  const greenW = hpFrac * hpW;
+  const BLK_W = 0.42;
+  const blkX = -hpW / 2 + Math.min(greenW, hpW - BLK_W) + BLK_W / 2;
 
   // fully FLAT on the table (face up) — the whole card is one BAKED TCG face; HP is live.
   return (
@@ -124,7 +125,7 @@ function Card3D({ u, side, x, z, selected, acting, hovered, onPick, onOver, regi
       )}
       {/* the baked TCG face — the pick target. UNLIT so art shows true colors. */}
       <mesh ref={meshRef} userData={{ unitId: u.id, side }}
-        onPointerDown={(e) => { e.stopPropagation(); onPick(u, side); }}
+        onPointerDown={(e) => { if ((e.nativeEvent?.button ?? 0) !== 0) return; e.stopPropagation(); onPick(u, side); }}
         onPointerOver={(e) => { e.stopPropagation(); onOver(u.id); }}
         onPointerOut={() => onOver(null)}>
         <planeGeometry args={[CARD_W, CARD_H]} />
@@ -132,30 +133,22 @@ function Card3D({ u, side, x, z, selected, acting, hovered, onPick, onOver, regi
           ? <meshBasicMaterial key="img" map={tex} color={new THREE.Color(dim, dim, dim)} toneMapped={false} />
           : <meshBasicMaterial key="col" color={art.color || '#8a6d3f'} toneMapped={false} />}
       </mesh>
-      {/* LIVE HP bar over the baked stat plate — green HP + a distinct BLUE block (temp-HP)
-          segment appended after it, each with its own number. */}
+      {/* LIVE HP bar: green health (leaves room for missing HP) + a fixed-width BLUE block
+          segment just to its right, showing a shield icon + the block amount. */}
       <group position={[0, hpY, 0.02]}>
         <mesh><planeGeometry args={[hpW, 0.16]} /><meshBasicMaterial color="#0a0605" /></mesh>
-        <mesh position={[-(hpW / 2) * (1 - hpFrac), 0, 0.002]} scale={[Math.max(0.0001, hpFrac), 1, 1]}>
-          <planeGeometry args={[hpW, 0.12]} />
-          <meshBasicMaterial color={(u.hp / u.maxHp) <= 0.33 ? '#e6603a' : '#3fa860'} />
+        <mesh position={[-hpW / 2 + greenW / 2, 0, 0.002]}>
+          <planeGeometry args={[Math.max(0.001, greenW), 0.12]} />
+          <meshBasicMaterial color={hpFrac <= 0.33 ? '#e6603a' : '#3fa860'} />
         </mesh>
-        {/* BLOCK segment (blue) starts right after the HP fill */}
-        {blockFrac > 0 && (
-          <mesh position={[-hpW / 2 + hpFrac * hpW + (blockFrac * hpW) / 2, 0, 0.003]} scale={[Math.max(0.0001, blockFrac), 1, 1]}>
-            <planeGeometry args={[hpW, 0.12]} />
-            <meshBasicMaterial color="#5aa9e6" />
-          </mesh>
+        <Label text={`${u.hp}/${u.maxHp}`} position={[-hpW / 2 + 0.27, 0, 0.006]} width={0.52} color="#ffffff" px={34} />
+        {blk > 0 && (
+          <group position={[blkX, 0, 0.004]}>
+            <mesh><planeGeometry args={[BLK_W, 0.14]} /><meshBasicMaterial color="#3f7fbf" /></mesh>
+            <Label text={`🛡${blk}`} position={[0, 0, 0.003]} width={BLK_W + 0.08} color="#eaf4ff" px={38} />
+          </group>
         )}
-        <Label text={`${u.hp}/${u.maxHp}`} position={[0, 0, 0.004]} width={0.85} color="#ffffff" px={38} />
       </group>
-      {/* separate BLOCK number (blue shield) above the bar's right end */}
-      {u.block > 0 && (
-        <group position={[CARD_W / 2 - 0.24, hpY + 0.28, 0.05]}>
-          <mesh><planeGeometry args={[0.42, 0.24]} /><meshBasicMaterial color="#123049" transparent opacity={0.92} /></mesh>
-          <Label text={`🛡${u.block}`} position={[0, 0, 0.004]} width={0.5} color="#bce0ff" px={40} />
-        </group>
-      )}
       {/* DEFEATED: the card stays on the field but is greyed with a red wash + skull mark */}
       {u.dead && (
         <group>
@@ -195,6 +188,7 @@ function useOrbit() {
   const zoom = useRef(1), zoomT = useRef(1);   // zoom multiplier (bigger = further out)
   const pan = useRef({ x: 0, z: 0 });   // WASD offset applied to the look-at (world)
   const keys = useRef({});
+  const edge = useRef({ f: 0, r: 0 });  // edge-pan while dragging a card (camera-relative, -1..1)
   const drag = useRef(null);
   useEffect(() => {
     const onMove = (e) => {
@@ -221,10 +215,11 @@ function useOrbit() {
     window.addEventListener('keyup', ku);
     return () => { window.removeEventListener('pointermove', onMove); window.removeEventListener('pointerup', onUp); window.removeEventListener('wheel', onWheel); window.removeEventListener('keydown', kd); window.removeEventListener('keyup', ku); };
   }, []);
-  const start = (e, onTap) => { drag.current = { x: e.clientX, y: e.clientY, az: az.current, pol: pol.current, moved: false, onTap }; };
+  // right-drag (button 2) orbits WITHOUT a tap action (never steps up / selects)
+  const start = (e, onTap) => { drag.current = { x: e.clientX, y: e.clientY, az: az.current, pol: pol.current, moved: false, onTap: e.button === 2 ? null : onTap }; };
   // selection reframing: ease the angle + zoom toward a nicer framing (drag still overrides)
   const frameTo = ({ az: a, pol: p, zoom: z }) => { if (a != null) azT.current = a; if (p != null) polT.current = p; if (z != null) zoomT.current = z; };
-  return useMemo(() => ({ az, pol, zoom, azT, polT, zoomT, pan, keys, start, frameTo }), []);
+  return useMemo(() => ({ az, pol, zoom, azT, polT, zoomT, pan, keys, edge, start, frameTo }), []);
 }
 
 /** Navigable camera: eases the LOOK-AT toward an overview, or a FOCUS point {x,z}
@@ -241,10 +236,11 @@ function CameraRig({ view, orbit, stage }) {
     orbit.az.current += (orbit.azT.current - orbit.az.current) * e;
     orbit.pol.current += (orbit.polT.current - orbit.pol.current) * e;
     orbit.zoom.current += (orbit.zoomT.current - orbit.zoom.current) * e;
-    // WASD pan, CAMERA-RELATIVE: move along the camera's own ground forward/right.
-    const k = orbit.keys.current;
-    const f = (k.w ? 1 : 0) - (k.s ? 1 : 0);
-    const rt = (k.d ? 1 : 0) - (k.a ? 1 : 0);
+    // WASD pan + EDGE-pan (dragging a card to a screen edge), CAMERA-RELATIVE: move along the
+    // camera's own ground forward/right. Edge-pan is deliberately slow (× ~0.55).
+    const k = orbit.keys.current, eg = orbit.edge.current;
+    const f = (k.w ? 1 : 0) - (k.s ? 1 : 0) + (eg.f || 0) * 0.55;
+    const rt = (k.d ? 1 : 0) - (k.a ? 1 : 0) + (eg.r || 0) * 0.55;
     if (f || rt) {
       camera.getWorldDirection(fwd.current); fwd.current.y = 0;
       if (fwd.current.lengthSq() > 1e-4) fwd.current.normalize();
@@ -568,7 +564,7 @@ function MiniStack({ x, z, count, color, top, label, dir, onTap }) {
     <group position={[x, 0.04, z]}>
       {Array.from({ length: n }).map((_, i) => (
         <mesh key={i} position={[0, i * 0.013, 0]} rotation={[-Math.PI / 2, 0, 0]} renderOrder={RO_FIELDPILE + i}
-          onPointerDown={i === n - 1 && !empty && onTap ? (e) => { e.stopPropagation(); onTap(); } : undefined}>
+          onPointerDown={i === n - 1 && !empty && onTap ? (e) => { if ((e.nativeEvent?.button ?? 0) !== 0) return; e.stopPropagation(); onTap(); } : undefined}>
           <boxGeometry args={[w, h, 0.012]} />
           <meshStandardMaterial color={boxCol} roughness={0.7} metalness={0.12} transparent opacity={empty ? 0.4 : 1} depthTest={false} depthWrite={false} />
         </mesh>
@@ -600,7 +596,7 @@ function FieldPiles({ enemy, player, skipId, onInspect, onSelectSquad }) {
           <MiniStack x={cx - 1.4} z={bz} count={sq.deckCount || 0} color="#33240f" top={back} label="Draw" dir={dir}
             onTap={() => onInspect?.({ title: 'Draw Pile', cards: sq.deck || [], note: 'Contents known · order hidden' })} />
           {/* HAND fan in the middle — clicking it OPENS that squad's hand overlay (selects it) */}
-          <group onPointerDown={(e) => { e.stopPropagation(); onSelectSquad?.(side, sq.id); }}>
+          <group onPointerDown={(e) => { if ((e.nativeEvent?.button ?? 0) !== 0) return; e.stopPropagation(); onSelectSquad?.(side, sq.id); }}>
             {Array.from({ length: Math.min(6, handN) }).map((_, k) => {
               const m = Math.min(6, handN); const off = k - (m - 1) / 2;
               return (
@@ -686,7 +682,7 @@ function Zones({ enemy, player, effSel, hover, onZone, onHover }) {
       <group key={side}>
         {/* big invisible field CLICK plane (fills the gaps the squad zones don't cover) */}
         <mesh position={[0, 0.005, fe.cz]} rotation={[-Math.PI / 2, 0, 0]}
-          onPointerDown={(e) => { e.stopPropagation(); onZone({ level: 'side', side }); }}
+          onPointerDown={(e) => { if ((e.nativeEvent?.button ?? 0) !== 0) return; e.stopPropagation(); onZone({ level: 'side', side }); }}
           onPointerOver={(e) => { e.stopPropagation(); onHover({ level: 'side', side }); }}
           onPointerOut={() => onHover(null)}>
           <planeGeometry args={[fe.halfX * 2, fe.dz]} />
@@ -704,7 +700,7 @@ function Zones({ enemy, player, effSel, hover, onZone, onHover }) {
           const sqHov = hover?.level === 'squad' && hover.squadId === sq.id;
           return (
             <mesh key={sq.id} position={[cx, 0.009, cz]} rotation={[-Math.PI / 2, 0, 0]} geometry={squadZoneGeo(side, occupancyOf(sq))}
-              onPointerDown={(e) => { e.stopPropagation(); onZone({ level: 'squad', side, squadId: sq.id }); }}
+              onPointerDown={(e) => { if ((e.nativeEvent?.button ?? 0) !== 0) return; e.stopPropagation(); onZone({ level: 'squad', side, squadId: sq.id }); }}
               onPointerOver={(e) => { e.stopPropagation(); onHover({ level: 'squad', side, squadId: sq.id }); }}
               onPointerOut={() => onHover(null)}>
               <meshBasicMaterial color="#7fe3ff" transparent opacity={sqHov ? 0.13 : 0} depthWrite={false} />
@@ -809,7 +805,7 @@ function PlannedChip({ card, x, y, z, onTap }) {
   const tex = useActionCardTexture(card);
   return (
     <mesh position={[x, y, z]} rotation={[-Math.PI / 2, 0, 0]} renderOrder={RO_FIELDPILE + 6}
-      onPointerDown={onTap ? (e) => { e.stopPropagation(); onTap(); } : undefined}>
+      onPointerDown={onTap ? (e) => { if ((e.nativeEvent?.button ?? 0) !== 0) return; e.stopPropagation(); onTap(); } : undefined}>
       <planeGeometry args={[PL_W, PL_H]} />
       {tex
         ? <meshBasicMaterial key="t" map={tex} transparent depthTest={false} depthWrite={false} toneMapped={false} />
@@ -1000,6 +996,9 @@ export default function Board3D({ enemy, player, sel, actingId, focusId, targetH
       tilt: (d) => { orbit.polT.current = clamp(orbit.polT.current + d, 0.12, 1.2); },
       zoom: (d) => { orbit.zoomT.current = clamp(orbit.zoomT.current + d, 0.72, 1.8); },
       reset: () => { orbit.pan.current.x = 0; orbit.pan.current.z = 0; orbit.frameTo({ az: 0, pol: viewPolRef.current, zoom: 1 }); },
+      // edge-pan while dragging a card (f/r in -1..1); resetDragCam undoes any drag movement
+      setEdge: (f, r) => { orbit.edge.current.f = f; orbit.edge.current.r = r; },
+      resetDragCam: () => { orbit.edge.current.f = 0; orbit.edge.current.r = 0; orbit.pan.current.x = 0; orbit.pan.current.z = 0; },
     };
     return () => { if (camRef) camRef.current = null; };
   }, [camRef, orbit]);

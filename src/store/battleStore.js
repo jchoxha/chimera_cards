@@ -156,13 +156,13 @@ export function formatRoundLog(state, log, turn) {
         offensive: !!e.offensive, element: elOf(e.ownerId) };
       entries.push(cur);
     } else if (cur) {
-      // show the FULL calculated damage regardless of block; if it didn't all get through,
-      // add a separate "N Blocked Damage" note.
-      if (e.type === 'damage') { cur.effects.push(`${e.amount || 0} Damage`); if (e.blocked > 0) cur.effects.push(`${e.blocked} Blocked Damage`); }
-      else if (e.type === 'block') cur.effects.push(`${e.amount} Block`);
-      else if (e.type === 'heal') cur.effects.push(`${e.amount} Heal`);
+      // "N Damage Taken" (what got past block) + ", X Blocked" for the absorbed portion.
+      if (e.type === 'damage') { const taken = (e.amount || 0) - (e.blocked || 0); cur.effects.push(`${taken} Damage Taken`); if (e.blocked > 0) cur.effects.push(`${e.blocked} Blocked`); }
+      // block / buffs read as "N ... Granted"
+      else if (e.type === 'block') cur.effects.push(`${e.amount} Block Granted`);
+      else if (e.type === 'heal') cur.effects.push(`${e.amount} Healed`);
       else if (e.type === 'debuff') cur.effects.push(`${e.amount} ${cap(e.status || 'Debuff')}`);
-      else if (e.type === 'buff') cur.effects.push(`${e.amount} ${cap(e.status || 'Buff')}`);
+      else if (e.type === 'buff') cur.effects.push(`${e.amount} ${cap(e.status || 'Buff')} Granted`);
       else if (e.type === 'miss') cur.effects.push('Miss');
     }
   }
@@ -228,6 +228,21 @@ export const useBattle = create((set, get) => ({
   },
 
   selectSquad(sqId) { set((s) => ({ selectedSquadId: sqId, snapshot: publish({ ...s, selectedSquadId: sqId }) })); },
+
+  /** Cosmetically reorder a squad's HAND (move card `iid` to `index`). Persists until the
+   *  hand is redrawn next turn — lets the player organise the hand while viewing it. */
+  reorderHand(sqId, iid, index) {
+    const s = get();
+    const pile = s.cards[sqId]; if (!pile) return;
+    const hand = [...pile.hand];
+    const from = hand.findIndex((c) => c.iid === iid); if (from < 0) return;
+    const [card] = hand.splice(from, 1);
+    const idx = Math.max(0, Math.min(hand.length, index));
+    if (idx === from) return;   // no-op
+    hand.splice(idx, 0, card);
+    const cards = { ...s.cards, [sqId]: { ...pile, hand } };
+    set({ cards, snapshot: publish({ ...s, cards }) });
+  },
 
   /** Queue a hand card (by iid) from the selected squad onto a target unit. */
   queueCard(handIid, targetId) {

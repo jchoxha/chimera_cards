@@ -72,6 +72,7 @@ export default function BattleScreen() {
   const snap = useBattle((s) => s.snapshot);
   const selectSquad = useBattle((s) => s.selectSquad);
   const queueCard = useBattle((s) => s.queueCard);
+  const reorderHand = useBattle((s) => s.reorderHand);
   const undoLast = useBattle((s) => s.undoLast);
   const redoLast = useBattle((s) => s.redoLast);
   const resetPlans = useBattle((s) => s.resetPlans);
@@ -130,20 +131,32 @@ export default function BattleScreen() {
         // follows the card's SCOPE level under the pointer (unit / squad / whole field).
         const L = liveRef.current;
         if (L.updateDragHi) L.updateDragHi(g);
+        // EDGE-PAN: dragging the card to a screen edge slides the camera (slow, smooth).
+        // Left/right/top only — the bottom is the hand return/reorder zone.
+        if (camRef.current?.setEdge) {
+          const W = window.innerWidth, H = window.innerHeight, m = 70;
+          let r = 0, f = 0;
+          if (e.clientX < m) r = -(m - e.clientX) / m; else if (e.clientX > W - m) r = (e.clientX - (W - m)) / m;
+          if (e.clientY < m) f = (m - e.clientY) / m;
+          g.inHand = e.clientY > H * 0.72;   // over the hand band?
+          camRef.current.setEdge(f, r);
+        }
         setD({ ...g });
       }
     };
     const onUp = () => {
       const g = drag.current; if (!g) return; drag.current = null; setD(null);
+      camRef.current?.resetDragCam();   // undo any drag-time camera movement (back to pickup framing)
       if (g.moved) {
-        // only play if the release is over a VALID target (a creature/field of the right
-        // side); dropping in empty space just returns the card to hand.
         const L = liveRef.current;
-        if (g.valid) {
+        // 1) dropped over the HAND band → reorganise the hand (or just return the card)
+        if (L.handReorder && L.handReorder(g.iid, g.x, g.y)) { setSelId2(null); }
+        // 2) else over a VALID + AFFORDABLE target → play it (flies to the target)
+        else if (g.valid) {
           const target = (L.resolveDropFromHi && L.resolveDropFromHi(g.hi)) || g.over;
-          // only queue + fly if the squad can actually AFFORD the card (else it snaps back)
           if (target && (!L.affords || L.affords(g.card))) { queueCard(g.iid, target); setSelId2(null); setFly({ key: (flySeq.current += 1), card: g.card, targetId: target, x: g.x, y: g.y, kind: 'drag' }); }
         }
+        // 3) else dropped in empty space → the card simply returns to the hand (no-op)
       }
       else if (g.tapSel) setCardZoom(g.card);   // tap a selected card → detail
       else setSelId2(g.iid);                     // tap → select
@@ -217,6 +230,16 @@ export default function BattleScreen() {
       : { level: 'unit', side: wantSide, squadId: over.id, unitId: g.over };
   };
   liveRef.current.affords = (card) => (selectedSquad?.energyLeft ?? 0) >= (card?.cost ?? 1);
+  // dropped over the bottom HAND band → reorganise the hand (persisted) or just return the card
+  liveRef.current.handReorder = (iid, x, y) => {
+    if (y < window.innerHeight * 0.72) return false;   // not in the hand band → let play/return handle it
+    const sq = selectedSquad; if (!sq) return true;    // return the card (no reorder)
+    const N = (sq.hand || []).length; if (N <= 1) return true;
+    const W = window.innerWidth, left = W * 0.30, span = W * 0.40;
+    const idx = Math.max(0, Math.min(N - 1, Math.round(((x - left) / span) * (N - 1))));
+    reorderHand(sq.id, iid, idx);
+    return true;
+  };
   liveRef.current.resolveDropFromHi = (hi) => {
     if (!hi) return null;
     if (hi.level === 'unit') return hi.unitId;
@@ -439,7 +462,11 @@ export default function BattleScreen() {
   };
   // a structured combat-log / ticker line using the real cards: actor → action → target + effects
   const renderEntry = (en, withStamp) => {
-    const eff = mergeEffects(en.effects);
+    let eff = mergeEffects(en.effects);
+    // render the damage/block pair as one comma phrase: "N Damage Taken, X Blocked"
+    const dt = eff.find((s) => s.endsWith('Damage Taken'));
+    const bl = eff.find((s) => s.endsWith('Blocked'));
+    if (dt && bl) eff = [`${dt}, ${bl}`, ...eff.filter((s) => s !== dt && s !== bl)];
     return (
       <span className="bLogLine">
         {withStamp && <span className="bLogTurn">{en.at || `T${en.turn}`}</span>}
