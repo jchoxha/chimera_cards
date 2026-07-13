@@ -156,13 +156,13 @@ export const PROP_TEX = { tree: treeRoundTexture, pine: pineTexture, rock: rockT
 export const PROP_SIZE = { tree: [3.0, 4.2], pine: [2.6, 4.4], rock: [1.7, 1.3], bush: [1.5, 1.05] };
 
 // ── an upright CYLINDRICAL billboard (yaw-to-camera; stays standing on tilt) ──
-export function Billboard({ kind, x, z, s = 1 }) {
+export function Billboard({ kind, x, z, s = 1, groundY = 0 }) {
   const ref = useRef();
   const tex = useMemo(() => PROP_TEX[kind](), [kind]);
   const [w, h] = PROP_SIZE[kind]; const W = w * s, H = h * s;
   useFrame(({ camera }) => { const m = ref.current; if (m) m.rotation.y = Math.atan2(camera.position.x - x, camera.position.z - z); });
   return (
-    <group position={[x, 0, z]}>
+    <group position={[x, groundY, z]}>
       <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.02, 0]}>
         <planeGeometry args={[W * 0.8, W * 0.42]} />
         <meshBasicMaterial map={shadowTexture()} transparent depthWrite={false} toneMapped={false} />
@@ -311,6 +311,29 @@ const MARKERS = {
 
 const CHUNKW = 24;   // world units per chunk — battlefield-scale, so a chunk reads like the old field
 
+// Smooth rolling-hills HEIGHT (units above the flat plane). Flat near the play centre (so the
+// avatar + battlefield stay level), gentle hills toward the chunk edges — "hills between the
+// transitions". Continuous, so adjacent tiles meet seamlessly.
+export function terrainHeight(x, z) {
+  const h = 1.7 * Math.sin(x * 0.085 + 0.6) * Math.cos(z * 0.07)
+          + 1.05 * Math.sin((x - z) * 0.05 + 2.1)
+          + 0.6 * Math.cos(x * 0.042 - z * 0.055);
+  const flat = Math.min(1, Math.max(0, (Math.hypot(x, z) - 9) / 13));   // 0 near centre → 1 past ~22
+  return h * flat;
+}
+// a displaced ground tile geometry per chunk OFFSET (only ~25 ever exist → cache them).
+const _tileGeo = {};
+function tileGeometry(wx, wz) {
+  const k = `${wx},${wz}`;
+  if (_tileGeo[k]) return _tileGeo[k];
+  const geo = new THREE.PlaneGeometry(CHUNKW * 1.18, CHUNKW * 1.18, 16, 16);
+  const p = geo.attributes.position;
+  for (let i = 0; i < p.count; i++) p.setZ(i, terrainHeight(wx + p.getX(i), wz - p.getY(i)));   // local y → world -z
+  geo.computeVertexNormals();
+  _tileGeo[k] = geo;
+  return geo;
+}
+
 // soft-edged square ALPHA (opaque centre, fading border) so biome tiles PHASE into each other +
 // into the base ground instead of showing hard seams.
 let _tileAlpha = null;
@@ -327,7 +350,7 @@ function tileAlphaTexture() {
 const _ZERO = new THREE.Vector3();
 
 // a camera-facing content marker (house / portal / sign) with a ground ring + shadow.
-function MarkerBillboard({ tex, ring, x, z, w, h }) {
+function MarkerBillboard({ tex, ring, x, z, w, h, groundY = 0 }) {
   const grp = useRef();
   const wp = useRef(new THREE.Vector3());
   const ph = useRef(0);
@@ -338,7 +361,7 @@ function MarkerBillboard({ tex, ring, x, z, w, h }) {
     g.position.y = h / 2 + Math.sin(clock.elapsedTime * 1.6 + ph.current) * 0.08;
   });
   return (
-    <group position={[x, 0, z]}>
+    <group position={[x, groundY, z]}>
       <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.03, 0]}><planeGeometry args={[w * 0.9, w * 0.5]} /><meshBasicMaterial map={shadowTexture()} transparent depthWrite={false} toneMapped={false} /></mesh>
       <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.04, 0]}><ringGeometry args={[w * 0.55, w * 0.72, 32]} /><meshBasicMaterial color={ring} transparent opacity={0.85} depthWrite={false} toneMapped={false} /></mesh>
       <group ref={grp} position={[0, h / 2, 0]}><mesh><planeGeometry args={[w, h]} /><meshBasicMaterial map={tex()} transparent alphaTest={0.4} side={THREE.DoubleSide} toneMapped={false} /></mesh></group>
@@ -361,19 +384,21 @@ function chunkFlora(ch, flora) {
 
 /** One stitched chunk: a biome-tinted ground tile + edge flora + an in-scene CONTENT prop
  *  (town/dungeon/event) toward the far edge (so it never overlaps the party at the centre). */
-function ChunkTile3D({ ch, wx, wz }) {
+function ChunkTile3D({ ch, wx, wz, showProps = true }) {
   const b = biomeOf(ch.biome);
   const ground = useMemo(() => groundTexture(), []);
+  const geo = useMemo(() => tileGeometry(wx, wz), [wx, wz]);
   const flora = useMemo(() => chunkFlora(ch, b.flora), [ch.x, ch.y, ch.biome]);
   const marker = (!ch.cleared && MARKERS[ch.kind]) ? MARKERS[ch.kind] : null;
   return (
     <group>
-      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[wx, -0.02, wz]}>
-        <planeGeometry args={[CHUNKW * 1.25, CHUNKW * 1.25]} />
+      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[wx, -0.02, wz]} geometry={geo}>
         <meshStandardMaterial map={ground} alphaMap={tileAlphaTexture()} color={b.ground} roughness={1} transparent depthWrite={false} />
       </mesh>
-      {flora.map((f) => <Billboard key={f.id} kind={f.kind} x={wx + f.lx} z={wz + f.lz} s={f.s} />)}
-      {marker && <MarkerBillboard tex={marker.tex} ring={marker.ring} x={wx} z={wz} w={marker.w} h={marker.h} />}
+      {/* flora + content markers ride the hills, but HIDE during combat so nothing blocks the
+          battlefield (the flat ground tile stays). */}
+      {showProps && flora.map((f) => <Billboard key={f.id} kind={f.kind} x={wx + f.lx} z={wz + f.lz} s={f.s} groundY={terrainHeight(wx + f.lx, wz + f.lz)} />)}
+      {showProps && marker && <MarkerBillboard tex={marker.tex} ring={marker.ring} x={wx} z={wz} w={marker.w} h={marker.h} groundY={terrainHeight(wx, wz)} />}
     </group>
   );
 }
@@ -381,7 +406,7 @@ function ChunkTile3D({ ch, wx, wz }) {
 /** The stitched overworld ground around the current chunk: a radius of biome tiles that slide
  *  in from the travel direction each time `pos` changes (the party stays centred; the world
  *  scrolls under it). Content props ride the tiles, so towns/dungeons are visible in-scene. */
-export function WorldTerrain({ grid, pos, radius = 2 }) {
+export function WorldTerrain({ grid, pos, radius = 2, exploring = true }) {
   const groupRef = useRef();
   const slide = useRef(new THREE.Vector3());
   const last = useRef({ x: pos.x, y: pos.y });
@@ -396,7 +421,7 @@ export function WorldTerrain({ grid, pos, radius = 2 }) {
     const ch = grid[`${pos.x + dx},${pos.y + dy}`]; if (!ch) continue;
     tiles.push({ ch, wx: dx * CHUNKW, wz: dy * CHUNKW });
   }
-  return <group ref={groupRef}>{tiles.map((t) => <ChunkTile3D key={`${t.ch.x},${t.ch.y}`} ch={t.ch} wx={t.wx} wz={t.wz} />)}</group>;
+  return <group ref={groupRef}>{tiles.map((t) => <ChunkTile3D key={`${t.ch.x},${t.ch.y}`} ch={t.ch} wx={t.wx} wz={t.wz} showProps={exploring} />)}</group>;
 }
 
 // scene registry — bg + fog per scene (attached in Board3D), plus playmat theming. Every biome

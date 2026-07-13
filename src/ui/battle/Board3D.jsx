@@ -1103,7 +1103,7 @@ export default function Board3D({ enemy, player, sel, actingId, focusId, targetH
       <CameraRig view={view} orbit={orbit} stage={stage} />
       <Picker pickRef={pickRef} validRef={validRef} zoneRef={zoneRef} meshes={meshes} unitMeta={maps.unitMeta} fieldBoundsOf={fieldBoundsOf} squadListOf={squadListOf} />
       <SceneEnv scene={scene} stage={stage} bare={!!world && scene !== 'grid'} onOrbitStart={(ne) => orbit.start(ne, onStepUp)} />
-      {world && scene !== 'grid' && <WorldTerrain grid={world.grid} pos={world.pos} />}
+      {world && scene !== 'grid' && <WorldTerrain grid={world.grid} pos={world.pos} exploring={exploring} />}
       {/* EXPLORE = a single avatar walking the world (no formation); COMBAT = the full squads. */}
       {exploring ? (
         <PartyAvatar unit={player[0]?.units.find((u) => u.isFront) || player[0]?.units[0]} />

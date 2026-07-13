@@ -142,18 +142,15 @@ export default function BattleScreen({ onFlee, onBattleEnd, initialScene, sceneB
   const [scene, setScene] = useState(sceneBiome || initialScene || 'forest');   // backdrop (chunk biome | grid=admin)
   // in the seamless world the scene FOLLOWS the current chunk's biome (unless in the admin grid).
   useEffect(() => { if (sceneBiome) setScene((v) => (v === 'grid' ? 'grid' : sceneBiome)); }, [sceneBiome]);
-  // exploring: W/S/↑/↓ walk forward/back, A/D/←/→ strafe (relative to facing), Q/E turn.
+  // exploring: W / ↑ walk FORWARD (in the facing direction); A/D / ←/→ TURN left/right.
   useEffect(() => {
     if (!exploring || !onStep) return undefined;
     const onKey = (e) => {
       if (e.repeat || e.target?.tagName === 'INPUT' || e.target?.tagName === 'TEXTAREA') return;
       const k = e.key.toLowerCase();
       if (k === 'w' || k === 'arrowup') { onStep('forward'); e.preventDefault(); }
-      else if (k === 's' || k === 'arrowdown') { onStep('back'); e.preventDefault(); }
-      else if (k === 'a' || k === 'arrowleft') { onStep('left'); e.preventDefault(); }
-      else if (k === 'd' || k === 'arrowright') { onStep('right'); e.preventDefault(); }
-      else if (k === 'q') { onTurn?.(-1); e.preventDefault(); }
-      else if (k === 'e') { onTurn?.(1); e.preventDefault(); }
+      else if (k === 'a' || k === 'arrowleft' || k === 'q') { onTurn?.(-1); e.preventDefault(); }
+      else if (k === 'd' || k === 'arrowright' || k === 'e') { onTurn?.(1); e.preventDefault(); }
     };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
@@ -820,12 +817,9 @@ export default function BattleScreen({ onFlee, onBattleEnd, initialScene, sceneB
             </div>
           </div>
           <div className="wPad">
-            <button className="wTurnL" title="Turn left (Q)" onClick={() => onTurn?.(-1)}><Icon icon="tabler:rotate-2" /></button>
             <button className="wUp" title="Forward (W)" onClick={() => onStep('forward')}><Icon icon="tabler:chevron-up" /></button>
-            <button className="wTurnR" title="Turn right (E)" onClick={() => onTurn?.(1)}><Icon icon="tabler:rotate-clockwise-2" /></button>
-            <button className="wLeft" title="Strafe left (A)" onClick={() => onStep('left')}><Icon icon="tabler:chevron-left" /></button>
-            <button className="wRight" title="Strafe right (D)" onClick={() => onStep('right')}><Icon icon="tabler:chevron-right" /></button>
-            <button className="wDown" title="Back (S)" onClick={() => onStep('back')}><Icon icon="tabler:chevron-down" /></button>
+            <button className="wLeft wTurn" title="Turn left (A)" onClick={() => onTurn?.(-1)}><Icon icon="tabler:rotate-2" /></button>
+            <button className="wRight wTurn" title="Turn right (D)" onClick={() => onTurn?.(1)}><Icon icon="tabler:rotate-clockwise-2" /></button>
           </div>
         </>
       )}

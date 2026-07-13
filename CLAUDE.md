@@ -6,6 +6,21 @@ a single-file Claude artifact now split into ES modules.
 
 ## ⚑ Project state — read this first (updated 2026-06-18)
 
+**⛰️ FACING-RELATIVE MOVEMENT + ROLLING HILLS + COMBAT HIDES PROPS (v3.150.0, 2026-07-13, Jeton).**
+Four overworld refinements. (1) **D-pad = forward + TURN:** the left/right pad buttons now `turn(∓1)`
+(Q/E) instead of strafing, and the BACK direction is gone — `BattleScreen` only wires `onStep('forward')`
++ `onTurn`; you always walk the way you face (already relative via `worldStore.step`). world.css `.wPad`
+is a 2-row grid (up / turn-left · turn-right). (2) **ROLLING HILLS:** `SceneEnv.terrainHeight(x,z)` (a
+smooth multi-sine field, **flattened within ~9u of the play centre** so the avatar + battlefield stay
+level) displaces each chunk tile's geometry (`tileGeometry(wx,wz)`, cached per offset, 16×16 segments);
+flora + content markers ride the hills via a new `groundY` on `Billboard`/`MarkerBillboard`
+(=`terrainHeight` at their spot). Hills grow toward chunk edges + between chunks, seamless. (3) **COMBAT
+HIDES PROPS:** `WorldTerrain` gained an `exploring` prop → `ChunkTile3D showProps`; during a battle the
+flat ground tiles stay but ALL flora/town/dungeon/event billboards are hidden so nothing blocks the
+battlefield. Board3D passes `exploring`. **NEXT:** per-step avatar walk animation, richer town/dungeon
+interiors, generated enemy portraits.
+
+
 **🚶 OVERWORLD FEEL PASS — big chunks, single avatar, facing + turning, softer seams (v3.149.0,
 2026-07-13, Jeton).** (1) **Chunks are battlefield-scale** (`SceneEnv.CHUNKW` 13→24) so a chunk reads
 like the old field. (2) **Exploring shows a SINGLE avatar** (party leader billboard, `Board3D.PartyAvatar`)

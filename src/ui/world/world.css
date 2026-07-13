@@ -53,12 +53,10 @@
   border-radius: 12px; font-size: 24px; display: flex; align-items: center; justify-content: center; cursor: pointer; }
 .wPad button:hover { border-color: var(--gold); background: linear-gradient(#2e2114, #201509); }
 .wPad button:active { transform: translateY(1px); }
+.wPad { grid-template-rows: repeat(2, 1fr); height: 104px; }
 .wPad .wUp { grid-column: 2; grid-row: 1; }
 .wPad .wLeft { grid-column: 1; grid-row: 2; }
 .wPad .wRight { grid-column: 3; grid-row: 2; }
-.wPad .wDown { grid-column: 2; grid-row: 3; }
-.wPad .wTurnL { grid-column: 1; grid-row: 1; }
-.wPad .wTurnR { grid-column: 3; grid-row: 1; }
-.wPad .wTurnL, .wPad .wTurnR { color: #cbb27a; border-color: var(--line); font-size: 20px; }
-.wPad .wTurnL:hover, .wPad .wTurnR:hover { color: var(--gold-bright); border-color: var(--gold); }
+.wPad .wTurn { color: #cbb27a; }
+.wPad .wTurn:hover { color: var(--gold-bright); border-color: var(--gold); }
 @media (min-width: 900px) and (pointer: fine) { .wPad { opacity: .5; } .wPad:hover { opacity: .92; } }
