@@ -6,6 +6,20 @@ a single-file Claude artifact now split into ES modules.
 
 ## ⚑ Project state — read this first (updated 2026-06-18)
 
+**🚶 OVERWORLD FEEL PASS — big chunks, single avatar, facing + turning, softer seams (v3.149.0,
+2026-07-13, Jeton).** (1) **Chunks are battlefield-scale** (`SceneEnv.CHUNKW` 13→24) so a chunk reads
+like the old field. (2) **Exploring shows a SINGLE avatar** (party leader billboard, `Board3D.PartyAvatar`)
+instead of the whole squad formation — `Board3D` gates the Playmat/Sides/Zones/piles behind `exploring`
+and shows the avatar; combat still renders the full squads. (3) **FACING + TURNING:**
+`worldStore.facing` (0=N…3=W) with `turn(±1)` (Q/E + on-screen ↺/↻ buttons) and `step(forward|back|
+left|right)` (WASD/arrows, movement RELATIVE to facing); the explore CAMERA azimuth follows facing
+(`Board3D` eases `az = -facing·90°`), and combat snaps back to head-on (az 0). (4) **Smoother phasing:**
+biome ground tiles got a soft-edge `alphaMap` (they blend into each other + the base) and the base
+ground **eases its tint** toward the current biome (`BaseGround`), so travelling between biomes no
+longer hard-pops. **NEXT:** per-step avatar walk animation, richer town/dungeon interiors, generated
+enemy portraits.
+
+
 **🌎 STITCHED WORLD + PERSISTENT PARTY (v3.148.0, 2026-07-13, Jeton).** Three upgrades to the
 seamless overworld. (1) **PERSISTENCE:** the party board is built ONCE (`startBattle` with `enemy:[]`)
 and NEVER rebuilt — entering a fight `battleStore.spawnEnemies(squads)` drops enemies onto the live

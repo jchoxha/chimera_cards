@@ -37,6 +37,7 @@ export function enemyFor(seed = 0, tough = false) {
 
 const GRID_W = 6, GRID_H = 6;
 const key = (x, y) => `${x},${y}`;
+const FACING_DELTA = [[0, -1], [1, 0], [0, 1], [-1, 0]];   // N, E, S, W
 const BIOME_KEYS = Object.keys(BIOMES);          // forest/plains/desert/snow/swamp
 const CONTENTS = ['empty', 'empty', 'empty', 'wild', 'wild', 'town', 'event', 'dungeon'];
 
@@ -80,6 +81,7 @@ export const useWorld = create((set, get) => ({
   grid: makeGrid(1337),
   pos: { x: 2, y: 3 },
   prevPos: { x: 2, y: 3 },
+  facing: 0,                   // 0=N 1=E 2=S 3=W — the direction the avatar/camera faces
   party: makeParty(),
   pendingEnemy: null,
   pendingBiome: 'forest',      // the biome the current battle is fought on
@@ -89,6 +91,16 @@ export const useWorld = create((set, get) => ({
 
   keyOf: key,
   biomeAt(x, y) { return get().grid[key(x, y)]?.biome || 'forest'; },
+
+  /** Rotate the facing 90° (d = -1 left / +1 right). */
+  turn(d) { const s = get(); if (s.mode !== 'explore' || s.event) return; set({ facing: (((s.facing + d) % 4) + 4) % 4 }); },
+  /** Move ONE chunk relative to the facing: forward / back / left / right (strafe). */
+  step(rel) {
+    const s = get(); if (s.mode !== 'explore' || s.event) return;
+    const off = rel === 'forward' ? 0 : rel === 'right' ? 1 : rel === 'back' ? 2 : 3;   // left=3
+    const [dx, dy] = FACING_DELTA[(s.facing + off) % 4];
+    get().move(dx, dy);
+  },
 
   /** Move the party one chunk. Battlegrounds start a fight; towns/events pop a modal. */
   move(dx, dy) {

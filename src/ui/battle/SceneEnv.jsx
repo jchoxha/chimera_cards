@@ -223,6 +223,22 @@ function GridScene({ onOrbitStart }) {
   );
 }
 
+// The big BASE ground — eases its tint toward the current biome so travelling between biomes
+// PHASES smoothly instead of a hard colour pop.
+function BaseGround({ color, y, ground, onOrbitStart }) {
+  const matRef = useRef();
+  const target = useRef(new THREE.Color(color));
+  useEffect(() => { target.current.set(color); }, [color]);
+  useFrame(() => { const m = matRef.current; if (m) m.color.lerp(target.current, 0.08); });
+  return (
+    <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, y, -0.5]}
+      onPointerDown={(e) => { if ((e.nativeEvent?.button ?? 0) !== 0) return; e.stopPropagation(); onOrbitStart(e.nativeEvent); }}>
+      <planeGeometry args={[240, 240]} />
+      <meshStandardMaterial ref={matRef} map={ground} color={color} roughness={1} />
+    </mesh>
+  );
+}
+
 // A BIOME scene: tinted sky dome + tinted ground + scattered 2.5D billboard flora. The same
 // palette themes the battle backdrop AND the matching overworld chunk (seamless-place). In
 // `bare` mode (a stitched WorldTerrain provides the ground/flora/content) only the sky + lights
@@ -238,13 +254,9 @@ function BiomeScene({ onOrbitStart, stage, biome, bare = false }) {
       <directionalLight position={[-6, 5, -3]} intensity={0.4} color="#9fc6ff" />
       <hemisphereLight args={['#bfe0ff', b.ground, 0.5]} />
       <SkyDome tint={b.sky} />
-      {/* BASE ground: the current biome, filling the whole view (no void at the world edge). In
-          `bare` mode it sits just BELOW the stitched WorldTerrain tiles, which layer on top. */}
-      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, bare ? -0.06 : -0.02, -0.5]}
-        onPointerDown={(e) => { if ((e.nativeEvent?.button ?? 0) !== 0) return; e.stopPropagation(); onOrbitStart(e.nativeEvent); }}>
-        <planeGeometry args={[220, 220]} />
-        <meshStandardMaterial map={ground} color={b.ground} roughness={1} />
-      </mesh>
+      {/* BASE ground: eases to the current biome, filling the whole view (no void at the world
+          edge). In `bare` mode it sits just BELOW the stitched WorldTerrain tiles. */}
+      <BaseGround color={b.ground} y={bare ? -0.06 : -0.02} ground={ground} onOrbitStart={onOrbitStart} />
       {props.map((p) => <Billboard key={p.id} kind={p.kind} x={p.x} z={p.z} s={p.s} />)}
     </group>
   );
@@ -297,7 +309,21 @@ const MARKERS = {
   event: { tex: signTexture, ring: '#40d0c0', w: 2.4, h: 2.7 },
 };
 
-const CHUNKW = 13;   // world units per chunk (a battlefield fits inside one; neighbours stay in view)
+const CHUNKW = 24;   // world units per chunk — battlefield-scale, so a chunk reads like the old field
+
+// soft-edged square ALPHA (opaque centre, fading border) so biome tiles PHASE into each other +
+// into the base ground instead of showing hard seams.
+let _tileAlpha = null;
+function tileAlphaTexture() {
+  if (_tileAlpha) return _tileAlpha;
+  _tileAlpha = bake(128, 128, (ctx) => {
+    ctx.fillStyle = '#000'; ctx.fillRect(0, 0, 128, 128);
+    const g = ctx.createRadialGradient(64, 64, 30, 64, 64, 74);   // opaque core → transparent rim
+    g.addColorStop(0, '#fff'); g.addColorStop(0.72, '#fff'); g.addColorStop(1, '#000');
+    ctx.fillStyle = g; ctx.fillRect(0, 0, 128, 128);
+  });
+  return _tileAlpha;
+}
 const _ZERO = new THREE.Vector3();
 
 // a camera-facing content marker (house / portal / sign) with a ground ring + shadow.
@@ -343,8 +369,8 @@ function ChunkTile3D({ ch, wx, wz }) {
   return (
     <group>
       <mesh rotation={[-Math.PI / 2, 0, 0]} position={[wx, -0.02, wz]}>
-        <planeGeometry args={[CHUNKW * 1.02, CHUNKW * 1.02]} />
-        <meshStandardMaterial map={ground} color={b.ground} roughness={1} />
+        <planeGeometry args={[CHUNKW * 1.25, CHUNKW * 1.25]} />
+        <meshStandardMaterial map={ground} alphaMap={tileAlphaTexture()} color={b.ground} roughness={1} transparent depthWrite={false} />
       </mesh>
       {flora.map((f) => <Billboard key={f.id} kind={f.kind} x={wx + f.lx} z={wz + f.lz} s={f.s} />)}
       {marker && <MarkerBillboard tex={marker.tex} ring={marker.ring} x={wx} z={wz} w={marker.w} h={marker.h} />}

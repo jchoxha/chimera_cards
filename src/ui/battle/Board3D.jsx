@@ -12,7 +12,7 @@ import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Canvas, useFrame, useThree } from '@react-three/fiber';
 import * as THREE from 'three';
 import HandDock3D, { useActionCardTexture, HAND_CARD_W, HAND_CARD_H, RO_OVERLAY } from './HandDock3D.jsx';
-import SceneEnv, { SCENES, WorldTerrain } from './SceneEnv.jsx';
+import SceneEnv, { SCENES, WorldTerrain, shadowTexture } from './SceneEnv.jsx';
 import { creatureColor } from '../../data/axisIcons.js';
 import { creatureArt } from '../../data/artPool.js';
 import { sizedPortrait } from '../../data/sizeArt.js';
@@ -973,7 +973,40 @@ function viewFor(sel, maps, focusId, handV) {
   return { x: 0, y: 0.2, z: 1.7, dist: 14.2, pol: FIELD_POL };
 }
 
-export default function Board3D({ enemy, player, sel, actingId, focusId, targetHint, onPick, onZone, onStepUp, pickRef, validRef, zoneRef, hand, fx, drag, handVisible, handSquadId, cardFocusSide, autoCam = true, scene = 'forest', exploring = false, world = null, onInspect, onSelectSquad, camRef, fly, onFlyDone }) {
+/** EXPLORE avatar: a single camera-facing billboard of the party leader (replaces the whole
+ *  squad formation while walking the overworld). Stands at the chunk centre. */
+function PartyAvatar({ unit }) {
+  const grp = useRef();
+  const art = useMemo(() => (unit ? cardArtOf(unit) : null), [unit?.id]);
+  const [tex, setTex] = useState(null);
+  useEffect(() => {
+    if (!art?.url) { setTex(null); return undefined; }
+    let alive = true;
+    const t = new THREE.TextureLoader().load(art.url, () => { if (alive) setTex(t); }, undefined, () => { if (alive) setTex(null); });
+    t.colorSpace = THREE.SRGBColorSpace;
+    return () => { alive = false; };
+  }, [art?.url]);
+  const wp = useRef(new THREE.Vector3());
+  useFrame(({ camera, clock }) => {
+    const g = grp.current; if (!g) return;
+    g.getWorldPosition(wp.current);
+    g.rotation.y = Math.atan2(camera.position.x - wp.current.x, camera.position.z - wp.current.z);
+    g.position.y = 2.0 + Math.sin(clock.elapsedTime * 2) * 0.1;
+  });
+  const W = 2.8, H = 3.8;
+  return (
+    <group position={[0, 0, 0.4]}>
+      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.05, 0]}><planeGeometry args={[W * 0.72, W * 0.42]} /><meshBasicMaterial map={shadowTexture()} transparent depthWrite={false} toneMapped={false} /></mesh>
+      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.06, 0]}><ringGeometry args={[W * 0.48, W * 0.64, 32]} /><meshBasicMaterial color="#ffe08a" transparent opacity={0.85} depthWrite={false} toneMapped={false} /></mesh>
+      <group ref={grp} position={[0, 2.0, 0]}>
+        <mesh><planeGeometry args={[W * 0.7, H * 0.9]} /><meshBasicMaterial color="#e8c06a" side={THREE.DoubleSide} toneMapped={false} /></mesh>
+        {tex && <mesh position={[0, 0, 0.02]}><planeGeometry args={[W, H]} /><meshBasicMaterial map={tex} transparent alphaTest={0.02} side={THREE.DoubleSide} toneMapped={false} /></mesh>}
+      </group>
+    </group>
+  );
+}
+
+export default function Board3D({ enemy, player, sel, actingId, focusId, targetHint, onPick, onZone, onStepUp, pickRef, validRef, zoneRef, hand, fx, drag, handVisible, handSquadId, cardFocusSide, autoCam = true, scene = 'forest', exploring = false, world = null, worldFacing = 0, onInspect, onSelectSquad, camRef, fly, onFlyDone }) {
   const sc = SCENES[scene] || SCENES.forest;
   const [hover, setHover] = useState(null);   // { level, side, squadId?, unitId? } under the pointer
   const orbit = useOrbit();
@@ -1035,11 +1068,15 @@ export default function Board3D({ enemy, player, sel, actingId, focusId, targetH
   // on camera-selection change: recentre WASD roam + reframe (tilt + zoom reset). az → 0.
   // Skipped entirely while autoCam is off (no automatic reframing at all).
   const selKey = `${camSel.level}:${camSel.side || ''}:${camSel.squadId || ''}:${camSel.unitId || ''}`;
+  // exploring: the camera AZIMUTH follows the party FACING (turn buttons orbit it); combat
+  // resets to the head-on battle framing (az 0).
+  const facingAz = exploring ? -worldFacing * (Math.PI / 2) : 0;
   useEffect(() => {
     if (!autoCam) return;
     orbit.pan.current.x = 0; orbit.pan.current.z = 0;
-    orbit.frameTo({ az: 0, pol: view.pol, zoom: 1 });
-  }, [selKey, orbit, view.pol, autoCam]);
+    orbit.frameTo({ az: exploring ? undefined : 0, pol: view.pol, zoom: 1 });   // az handled below in explore
+  }, [selKey, orbit, view.pol, autoCam, exploring]);
+  useEffect(() => { orbit.frameTo({ az: facingAz }); }, [facingAz, orbit]);
 
   // expose imperative camera controls (DOM buttons in BattleScreen) — cross-platform, so
   // touch users get rotate/tilt/zoom/recenter without a keyboard. WASD panning still works.
@@ -1067,12 +1104,19 @@ export default function Board3D({ enemy, player, sel, actingId, focusId, targetH
       <Picker pickRef={pickRef} validRef={validRef} zoneRef={zoneRef} meshes={meshes} unitMeta={maps.unitMeta} fieldBoundsOf={fieldBoundsOf} squadListOf={squadListOf} />
       <SceneEnv scene={scene} stage={stage} bare={!!world && scene !== 'grid'} onOrbitStart={(ne) => orbit.start(ne, onStepUp)} />
       {world && scene !== 'grid' && <WorldTerrain grid={world.grid} pos={world.pos} />}
-      <Playmat enemy={enemy} player={player} sel={effSel} theme={sc.playmat} />
-      {!exploring && <FieldPiles enemy={enemy} player={player} skipId={handVisible ? handSquadId : null} onInspect={onInspect} onSelectSquad={onSelectSquad} />}
-      <Zones enemy={enemy} player={player} effSel={effSel} hover={hover} onZone={onZone} onHover={setHover} />
-      <Side squads={enemy} side="e" effSel={effSel} hover={hover} actingId={actingId} targetHint={targetHint} onPick={onPick} onOver={onOverUnit} registerMesh={registerMesh} />
-      <Side squads={player} side="p" effSel={effSel} hover={hover} actingId={actingId} targetHint={targetHint} onPick={onPick} onOver={onOverUnit} registerMesh={registerMesh} />
-      {!dragging && !actingId && <PlannedCards player={player} maps={maps} effSel={effSel} onInspect={onInspect} />}
+      {/* EXPLORE = a single avatar walking the world (no formation); COMBAT = the full squads. */}
+      {exploring ? (
+        <PartyAvatar unit={player[0]?.units.find((u) => u.isFront) || player[0]?.units[0]} />
+      ) : (
+        <>
+          <Playmat enemy={enemy} player={player} sel={effSel} theme={sc.playmat} />
+          <FieldPiles enemy={enemy} player={player} skipId={handVisible ? handSquadId : null} onInspect={onInspect} onSelectSquad={onSelectSquad} />
+          <Zones enemy={enemy} player={player} effSel={effSel} hover={hover} onZone={onZone} onHover={setHover} />
+          <Side squads={enemy} side="e" effSel={effSel} hover={hover} actingId={actingId} targetHint={targetHint} onPick={onPick} onOver={onOverUnit} registerMesh={registerMesh} />
+          <Side squads={player} side="p" effSel={effSel} hover={hover} actingId={actingId} targetHint={targetHint} onPick={onPick} onOver={onOverUnit} registerMesh={registerMesh} />
+          {!dragging && !actingId && <PlannedCards player={player} maps={maps} effSel={effSel} onInspect={onInspect} />}
+        </>
+      )}
       {fly && <FlyingCard key={fly.key} fly={fly} maps={maps} onDone={onFlyDone} />}
       {hand && <HandDock3D {...hand} draggingIid={drag?.iid || null} />}
       {drag?.card && <DragCard3D card={drag.card} sx={drag.x} sy={drag.y} over={!!drag.valid} />}

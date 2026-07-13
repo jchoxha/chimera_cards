@@ -83,7 +83,7 @@ function DieFace({ value = 1, rolling = false, pass = null }) {
   );
 }
 
-export default function BattleScreen({ onFlee, onBattleEnd, initialScene, sceneBiome, worldMode = 'battle', world = null, event = null, onCloseEvent, onTravel } = {}) {
+export default function BattleScreen({ onFlee, onBattleEnd, initialScene, sceneBiome, worldMode = 'battle', world = null, event = null, onCloseEvent, onStep, onTurn } = {}) {
   const exploring = worldMode === 'explore';
   const snap = useBattle((s) => s.snapshot);
   const selectSquad = useBattle((s) => s.selectSquad);
@@ -142,20 +142,22 @@ export default function BattleScreen({ onFlee, onBattleEnd, initialScene, sceneB
   const [scene, setScene] = useState(sceneBiome || initialScene || 'forest');   // backdrop (chunk biome | grid=admin)
   // in the seamless world the scene FOLLOWS the current chunk's biome (unless in the admin grid).
   useEffect(() => { if (sceneBiome) setScene((v) => (v === 'grid' ? 'grid' : sceneBiome)); }, [sceneBiome]);
-  // exploring: WASD / arrows TRAVEL to the adjacent chunk (no combat).
+  // exploring: W/S/↑/↓ walk forward/back, A/D/←/→ strafe (relative to facing), Q/E turn.
   useEffect(() => {
-    if (!exploring || !onTravel) return undefined;
+    if (!exploring || !onStep) return undefined;
     const onKey = (e) => {
       if (e.repeat || e.target?.tagName === 'INPUT' || e.target?.tagName === 'TEXTAREA') return;
       const k = e.key.toLowerCase();
-      if (k === 'w' || k === 'arrowup') { onTravel(0, -1); e.preventDefault(); }
-      else if (k === 's' || k === 'arrowdown') { onTravel(0, 1); e.preventDefault(); }
-      else if (k === 'a' || k === 'arrowleft') { onTravel(-1, 0); e.preventDefault(); }
-      else if (k === 'd' || k === 'arrowright') { onTravel(1, 0); e.preventDefault(); }
+      if (k === 'w' || k === 'arrowup') { onStep('forward'); e.preventDefault(); }
+      else if (k === 's' || k === 'arrowdown') { onStep('back'); e.preventDefault(); }
+      else if (k === 'a' || k === 'arrowleft') { onStep('left'); e.preventDefault(); }
+      else if (k === 'd' || k === 'arrowright') { onStep('right'); e.preventDefault(); }
+      else if (k === 'q') { onTurn?.(-1); e.preventDefault(); }
+      else if (k === 'e') { onTurn?.(1); e.preventDefault(); }
     };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
-  }, [exploring, onTravel]);
+  }, [exploring, onStep, onTurn]);
   const autoCamRef = useRef(true);                           // live mirror for the once-bound drag handlers
   autoCamRef.current = autoCam;
   const [collapsedTurns, setCollapsedTurns] = useState(() => new Set());   // combat-log turn folding
@@ -621,7 +623,7 @@ export default function BattleScreen({ onFlee, onBattleEnd, initialScene, sceneB
           sel={sel} onStepUp={stepUp} actingId={anim?.acting} focusId={anim?.focus} onPick={onTok} onZone={onZone} pickRef={pickRef} validRef={validRef} zoneRef={zoneRef} fx={fx} drag={d}
           handVisible={showHand} handSquadId={handSquad?.id || null}
           cardFocusSide={autoCam ? (selectedCard ? (isOffensiveCard(selectedCard) ? 'e' : 'p') : (fly ? sideOfUnit(fly.targetId) : null)) : null}
-          autoCam={autoCam} scene={scene} exploring={exploring} world={world} targetHint={targetHint} onInspect={setInspect} camRef={camRef}
+          autoCam={autoCam} scene={scene} exploring={exploring} world={world} worldFacing={world?.facing || 0} targetHint={targetHint} onInspect={setInspect} camRef={camRef}
           onSelectSquad={(side, squadId) => { setSelId2(null); setDockHidden(false); setSel({ level: 'squad', side, squadId, unitId: null }); }}
           fly={fly} onFlyDone={() => setFly(null)}
           hand={showHand ? {
@@ -818,10 +820,12 @@ export default function BattleScreen({ onFlee, onBattleEnd, initialScene, sceneB
             </div>
           </div>
           <div className="wPad">
-            <button className="wUp" onClick={() => onTravel(0, -1)}><Icon icon="tabler:chevron-up" /></button>
-            <button className="wLeft" onClick={() => onTravel(-1, 0)}><Icon icon="tabler:chevron-left" /></button>
-            <button className="wRight" onClick={() => onTravel(1, 0)}><Icon icon="tabler:chevron-right" /></button>
-            <button className="wDown" onClick={() => onTravel(0, 1)}><Icon icon="tabler:chevron-down" /></button>
+            <button className="wTurnL" title="Turn left (Q)" onClick={() => onTurn?.(-1)}><Icon icon="tabler:rotate-2" /></button>
+            <button className="wUp" title="Forward (W)" onClick={() => onStep('forward')}><Icon icon="tabler:chevron-up" /></button>
+            <button className="wTurnR" title="Turn right (E)" onClick={() => onTurn?.(1)}><Icon icon="tabler:rotate-clockwise-2" /></button>
+            <button className="wLeft" title="Strafe left (A)" onClick={() => onStep('left')}><Icon icon="tabler:chevron-left" /></button>
+            <button className="wRight" title="Strafe right (D)" onClick={() => onStep('right')}><Icon icon="tabler:chevron-right" /></button>
+            <button className="wDown" title="Back (S)" onClick={() => onStep('back')}><Icon icon="tabler:chevron-down" /></button>
           </div>
         </>
       )}

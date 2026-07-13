@@ -22,7 +22,9 @@ function Shell() {
   const pendingEnemy = useWorld((s) => s.pendingEnemy);
   const battleChunk = useWorld((s) => s.battleChunk);
   const party = useWorld((s) => s.party);
-  const move = useWorld((s) => s.move);
+  const facing = useWorld((s) => s.facing);
+  const step = useWorld((s) => s.step);
+  const turn = useWorld((s) => s.turn);
   const event = useWorld((s) => s.event);
   const closeEvent = useWorld((s) => s.closeEvent);
   const winBattle = useWorld((s) => s.winBattle);
@@ -56,10 +58,11 @@ function Shell() {
       <BattleScreen
         sceneBiome={biome}
         worldMode={mode}
-        world={{ gridW, gridH, grid, pos, biome }}
+        world={{ gridW, gridH, grid, pos, biome, facing }}
         event={event}
         onCloseEvent={() => { if (event?.kind === 'town') useBattle.getState().healParty(); closeEvent(); }}
-        onTravel={move}
+        onStep={step}
+        onTurn={turn}
         onFlee={fleeBattle}
         onBattleEnd={(r) => (r === 'win' ? winBattle() : fleeBattle())} />
       {flash && <div style={{ position: 'fixed', inset: 0, zIndex: 9000, background: BIOMES[biome]?.fog || '#0c0805', pointerEvents: 'none', animation: 'shellFlash .38s ease-out forwards' }} />}
