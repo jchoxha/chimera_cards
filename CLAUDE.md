@@ -6,6 +6,22 @@ a single-file Claude artifact now split into ES modules.
 
 ## ⚑ Project state — read this first (updated 2026-06-18)
 
+**🌍 PROCEDURAL BIOME OVERWORLD + SEAMLESS-PLACE BATTLES + RUN-AWAY MEMORY (v3.146.0, 2026-07-13,
+Jeton).** (1) **Overworld generates procedurally** (`worldStore.makeGrid`, seeded): a 6×6 grid where
+CONTIGUOUS regions get a **BIOME** (forest/plains/desert/snow/marsh — `SceneEnv.BIOMES`, palette+flora)
+and each chunk gets **CONTENT** (empty · wild · town · event · dungeon). (2) **Seamless place:** the
+overworld now renders from the **battle's DEFAULT field camera** and each chunk is a **biome-tinted
+ground tile** with biome flora; walking into a wild/dungeon chunk starts a battle **fought on that
+chunk's biome** (the battlefield IS the overworld spot) — `SceneEnv` is now **biome-driven**
+(`groundTexture` tinted per biome, `SCENES` = one entry per biome + `grid` admin; the shell passes the
+chunk biome as `initialScene`), and a **crossfade wipe** covers the explore↔battle swap. Towns/events
+pop a themed modal (`worldStore.event`), dungeons spawn a 3rd enemy squad. Distinct billboard markers
+(house/portal/signpost) + a **minimap legend**. (3) **Run-away MEMORY:** a squad that passes its d6 once
+**doesn't re-roll** on later attempts (`battleStore.runPassed`, shown as "Already out"); cleared on a full
+escape. **NEXT:** true in-place combat (no component swap), persistent party HP/deck across chunks, town
+shops/quests + real event effects, generated enemy portraits for markers.
+
+
 **🗺️ OPEN-WORLD EXPLORATION + RUN AWAY (v3.144.0, 2026-07-12, Jeton).** `battle.html` is now a
 SHELL (`src/battle-v2/main.jsx`) that switches between combat and a new **overworld** off
 `worldStore.mode`. **Exploration** (`src/ui/world/WorldScene.jsx`) reuses the billboard scene tech: a

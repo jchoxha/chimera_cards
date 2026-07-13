@@ -131,7 +131,7 @@ function publish(store) {
     version: (store.version || 0) + 1,
     phase: store.phase, outcome: store.outcome, log: store.log, dealKey: store.dealKey || 0,
     turn: store.turn || 1, logHistory: store.logHistory || [], startedAt: store.startedAt || null,
-    selectedSquadId, canRedo: (store.undone || []).length > 0,
+    selectedSquadId, canRedo: (store.undone || []).length > 0, runPassed: store.runPassed || [],
     enemy: state.sides.e.map((id) => squadSnap(store, id, 'e')),
     player: state.sides.p.map((id) => squadSnap(store, id, 'p')),
   };
@@ -217,6 +217,7 @@ export const useBattle = create((set, get) => ({
   snapshot: null, state: null, plans: {}, cards: {}, seen: new Set(), queueOrder: [], undone: [], selectedSquadId: null,
   phase: 'plan', outcome: null, log: [], version: 0, dealKey: 0, turn: 1, logHistory: [],
   stunnedSquads: [], pendingStun: null,   // run-away failure: squads locked out of the NEXT plan phase
+  runPassed: [],                          // squads that have ALREADY passed a run-away roll this battle
   opponent: aiOpponent,   // multiplayer seam: swap for a network provider (see aiOpponent)
 
   /** Replace the opponent provider (AI ↔ remote player). Netcode entry point. */
@@ -225,7 +226,7 @@ export const useBattle = create((set, get) => ({
   startBattle({ player, enemy }) {
     const { state, cards } = buildBattle(player, enemy);
     startRound(state);
-    const base = { state, cards, seen: new Set(), plans: {}, queueOrder: [], undone: [], selectedSquadId: state.sides.p[0], phase: 'plan', outcome: null, log: [], version: 0, dealKey: 1, turn: 1, logHistory: [], startedAt: Date.now(), stunnedSquads: [], pendingStun: null };
+    const base = { state, cards, seen: new Set(), plans: {}, queueOrder: [], undone: [], selectedSquadId: state.sides.p[0], phase: 'plan', outcome: null, log: [], version: 0, dealKey: 1, turn: 1, logHistory: [], startedAt: Date.now(), stunnedSquads: [], pendingStun: null, runPassed: [] };
     set({ ...base, snapshot: publish({ ...get(), ...base }) });
   },
 
@@ -394,14 +395,20 @@ export const useBattle = create((set, get) => ({
     const s = get();
     if (s.phase !== 'plan' || s.outcome) return { success: false, failed: [] };
     const livingIds = s.state.sides.p.filter((id) => liveFrontUnit(s.state, s.state.squadsById[id]));
-    const failed = livingIds.filter((id) => (rolls[id] ?? 6) < threshold);
-    if (!failed.length) return { success: true, failed: [] };
-    // escape failed → forfeit the turn: return queued cards to hand + arm the stun for next round
+    const already = new Set(s.runPassed || []);                       // passed in a PRIOR attempt this battle
+    // a squad passes if it passed before OR beats the threshold now; only the rest can fail.
+    const passedNow = livingIds.filter((id) => already.has(id) || (rolls[id] ?? 0) >= threshold);
+    const passedSet = new Set(passedNow);
+    const failed = livingIds.filter((id) => !passedSet.has(id));
+    if (!failed.length) { set({ runPassed: [] }); return { success: true, failed: [] }; }   // all out → clear
+    // escape failed → forfeit the turn: return queued cards to hand, arm the stun for next round,
+    // and PERSIST the passers so they don't re-roll next attempt.
     const cards = { ...s.cards };
     for (const [sqId, plan] of Object.entries(s.plans)) {
       if (plan?.length) { const pile = cards[sqId] || { hand: [] }; cards[sqId] = { ...pile, hand: [...pile.hand, ...plan.map((a) => a.card)] }; }
     }
-    set({ plans: {}, cards, queueOrder: [], undone: [], pendingStun: failed, snapshot: publish({ ...s, plans: {}, cards, undone: [] }) });
-    return { success: false, failed };
+    const runPassed = passedNow;
+    set({ plans: {}, cards, queueOrder: [], undone: [], pendingStun: failed, runPassed, snapshot: publish({ ...s, plans: {}, cards, undone: [], runPassed }) });
+    return { success: false, failed, passed: runPassed };
   },
 }));

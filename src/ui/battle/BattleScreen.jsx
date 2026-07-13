@@ -81,7 +81,7 @@ function DieFace({ value = 1, rolling = false, pass = null }) {
   );
 }
 
-export default function BattleScreen({ onFlee, onBattleEnd } = {}) {
+export default function BattleScreen({ onFlee, onBattleEnd, initialScene } = {}) {
   const snap = useBattle((s) => s.snapshot);
   const selectSquad = useBattle((s) => s.selectSquad);
   const queueCard = useBattle((s) => s.queueCard);
@@ -136,7 +136,7 @@ export default function BattleScreen({ onFlee, onBattleEnd } = {}) {
   }, [runAway?.stage]);
   const [camOpen, setCamOpen] = useState(false);             // camera-control pad shown/hidden
   const [autoCam, setAutoCam] = useState(true);              // auto-frame the camera on card interaction
-  const [scene, setScene] = useState('forest');              // battlefield backdrop (forest | grid=admin)
+  const [scene, setScene] = useState(initialScene || 'forest');   // battlefield backdrop (chunk biome | grid=admin)
   const autoCamRef = useRef(true);                           // live mirror for the once-bound drag handlers
   autoCamRef.current = autoCam;
   const [collapsedTurns, setCollapsedTurns] = useState(() => new Set());   // combat-log turn folding
@@ -512,19 +512,26 @@ export default function BattleScreen({ onFlee, onBattleEnd } = {}) {
   };
 
   // ── RUN AWAY: each living squad rolls a d6; ALL must roll ≥ RUN_THRESHOLD to escape ──
+  // Squads that ALREADY passed a roll this battle (snap.runPassed) are auto-passed and don't roll.
   const runSquads = snap ? snap.player.filter((sq) => sq.units.some((u) => !u.dead)) : [];
+  const runPassedSet = new Set(snap?.runPassed || []);
+  const rollNeeded = (sqId) => !runPassedSet.has(sqId);        // a pre-passed squad needs no roll
   const openRunAway = () => { if (anim || snap.outcome) return; setPlanOpen(false); setLogOpen(false); setRunAway({ stage: 'confirm', rolls: {} }); };
   const rollSquad = (sqId) => setRunAway((r) => {
-    if (!r || r.rolls[sqId]) return r;                    // already rolled/rolling
+    if (!r || r.rolls[sqId] || !rollNeeded(sqId)) return r;    // already rolled/rolling or pre-passed
     const value = 1 + Math.floor(Math.random() * 6);
     timers.current.push(setTimeout(() => setRunAway((rr) => (rr ? { ...rr, rolls: { ...rr.rolls, [sqId]: { rolling: false, value } } } : rr)), 850));
     return { ...r, rolls: { ...r.rolls, [sqId]: { rolling: true, value } } };
   });
-  const rollAllSquads = () => runSquads.forEach((sq, i) => timers.current.push(setTimeout(() => rollSquad(sq.id), i * 170)));
-  const runDone = !!runAway && runAway.stage === 'roll' && runSquads.length > 0 && runSquads.every((sq) => runAway.rolls[sq.id] && !runAway.rolls[sq.id].rolling);
-  const runSuccess = runDone && runSquads.every((sq) => runAway.rolls[sq.id].value >= RUN_THRESHOLD);
+  const rollAllSquads = () => runSquads.filter((sq) => rollNeeded(sq.id)).forEach((sq, i) => timers.current.push(setTimeout(() => rollSquad(sq.id), i * 170)));
+  // a squad is "settled" if it's pre-passed OR it has finished rolling
+  const runSettled = (sq) => !rollNeeded(sq.id) || (runAway?.rolls[sq.id] && !runAway.rolls[sq.id].rolling);
+  const runPassedNow = (sq) => !rollNeeded(sq.id) || (runAway?.rolls[sq.id]?.value >= RUN_THRESHOLD);
+  const runDone = !!runAway && runAway.stage === 'roll' && runSquads.length > 0 && runSquads.every(runSettled);
+  const runSuccess = runDone && runSquads.every(runPassedNow);
+  const needToRoll = runSquads.filter((sq) => rollNeeded(sq.id));   // squads that still must roll this attempt
   const finishRunAway = () => {
-    const rolls = {}; runSquads.forEach((sq) => { rolls[sq.id] = runAway.rolls[sq.id]?.value ?? 6; });
+    const rolls = {}; needToRoll.forEach((sq) => { rolls[sq.id] = runAway.rolls[sq.id]?.value ?? 0; });
     const res = attemptRunAway(rolls, RUN_THRESHOLD);
     setRunAway(null);
     if (res.success) { onFlee?.(); }        // escaped → the shell switches to exploration
@@ -635,10 +642,10 @@ export default function BattleScreen({ onFlee, onBattleEnd } = {}) {
                 <Icon icon={autoCam ? 'tabler:camera-bolt' : 'tabler:camera-off'} />
                 <span>Auto-camera: {autoCam ? 'On' : 'Off'}</span>
               </button>
-              <button className={`bCamAuto${scene === 'grid' ? ' on' : ''}`} title="Switch the battlefield backdrop (admin/testing)"
-                onClick={() => setScene((v) => (v === 'forest' ? 'grid' : 'forest'))}>
-                <Icon icon={scene === 'forest' ? 'tabler:trees' : 'tabler:grid-dots'} />
-                <span>Scene: {scene === 'forest' ? 'Forest' : 'Grid'}</span>
+              <button className={`bCamAuto${scene === 'grid' ? ' on' : ''}`} title="Toggle the admin GRID battlefield (testing)"
+                onClick={() => setScene((v) => (v === 'grid' ? (initialScene || 'forest') : 'grid'))}>
+                <Icon icon={scene === 'grid' ? 'tabler:grid-dots' : 'tabler:trees'} />
+                <span>Scene: {scene === 'grid' ? 'Grid' : 'Biome'}</span>
               </button>
             </div>
           )}
@@ -872,17 +879,19 @@ export default function BattleScreen({ onFlee, onBattleEnd } = {}) {
                 <h3><Icon icon="tabler:dice" /> Rolling to flee <em>· need {RUN_THRESHOLD}+</em></h3>
                 <div className="bRunList">
                   {runSquads.map((sq, i) => {
+                    const prePassed = !rollNeeded(sq.id);          // already escaped a prior attempt
                     const r = runAway.rolls[sq.id];
                     const rolled = r && !r.rolling;
-                    const pass = rolled ? r.value >= RUN_THRESHOLD : null;
-                    const shown = r ? (r.rolling ? ((dieSpin + i) % 6) + 1 : r.value) : 1;
+                    const pass = prePassed ? true : (rolled ? r.value >= RUN_THRESHOLD : null);
+                    const shown = r ? (r.rolling ? ((dieSpin + i) % 6) + 1 : r.value) : 6;
                     return (
-                      <div key={sq.id} className={`bRunRow${rolled ? (pass ? ' pass' : ' fail') : ''}`}>
+                      <div key={sq.id} className={`bRunRow${prePassed || pass ? ' pass' : rolled ? ' fail' : ''}`}>
                         <span className="bRunSq">Ally Squad {snap.player.findIndex((p) => p.id === sq.id) + 1}</span>
-                        <DieFace value={shown} rolling={!!r?.rolling} pass={pass} />
-                        {!r ? <button className="bCtl sm" onClick={() => rollSquad(sq.id)}>Roll</button>
-                          : r.rolling ? <span className="bRunTag rolling">…</span>
-                            : <span className={`bRunTag ${pass ? 'ok' : 'no'}`}>{pass ? 'Escaped' : 'Caught'}</span>}
+                        <DieFace value={prePassed ? 6 : shown} rolling={!!r?.rolling} pass={prePassed ? true : pass} />
+                        {prePassed ? <span className="bRunTag ok">Already out</span>
+                          : !r ? <button className="bCtl sm" onClick={() => rollSquad(sq.id)}>Roll</button>
+                            : r.rolling ? <span className="bRunTag rolling">…</span>
+                              : <span className={`bRunTag ${pass ? 'ok' : 'no'}`}>{pass ? 'Escaped' : 'Caught'}</span>}
                       </div>
                     );
                   })}

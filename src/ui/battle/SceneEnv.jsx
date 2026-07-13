@@ -62,6 +62,35 @@ export function grassTexture() {
   _grass.wrapS = _grass.wrapT = THREE.RepeatWrapping; _grass.repeat.set(26, 26);
   return _grass;
 }
+// NEUTRAL ground noise, tinted per-biome via the material `color` (multiply). One bake
+// serves every biome — forest green, desert sand, snow, etc. all come from the tint.
+let _ground = null;
+export function groundTexture() {
+  if (_ground) return _ground;
+  _ground = bake(256, 256, (ctx) => {
+    ctx.fillStyle = '#8f8f8a'; ctx.fillRect(0, 0, 256, 256);
+    const rng = mulberry32(11);
+    for (let i = 0; i < 1100; i++) {
+      const x = rng() * 256, y = rng() * 256, r = 2 + rng() * 7, sh = rng();
+      ctx.fillStyle = sh < 0.5 ? 'rgba(105,105,100,0.5)' : (sh < 0.82 ? 'rgba(150,150,142,0.45)' : 'rgba(190,190,180,0.4)');
+      ctx.beginPath(); ctx.ellipse(x, y, r, r * 0.6, rng() * 3.14, 0, 6.28); ctx.fill();
+    }
+  });
+  _ground.wrapS = _ground.wrapT = THREE.RepeatWrapping; _ground.repeat.set(26, 26);
+  return _ground;
+}
+
+// ── BIOMES: a palette + flora set per biome, shared by the battle backdrop AND the overworld
+// so a chunk and the battle fought on it look like the SAME place. ──
+export const BIOMES = {
+  forest: { name: 'Forest', ground: '#4f7a3f', fog: '#d3e0cf', sky: '#cfe0e8', flora: ['tree', 'tree', 'pine', 'bush', 'rock'], map: '#3f5a30' },
+  plains: { name: 'Plains', ground: '#7f9642', fog: '#e2e6c8', sky: '#d6e8ee', flora: ['bush', 'bush', 'rock', 'tree'], map: '#6f8a3a' },
+  desert: { name: 'Desert', ground: '#c9a35c', fog: '#ecdcb2', sky: '#efe0c4', flora: ['rock', 'rock', 'bush'], map: '#c9a35c' },
+  snow: { name: 'Snowfield', ground: '#dbe6ee', fog: '#eaf2f8', sky: '#e4eef6', flora: ['pine', 'pine', 'rock'], map: '#cdd8e0' },
+  swamp: { name: 'Marsh', ground: '#4a5836', fog: '#9fae94', sky: '#c0ccc0', flora: ['tree', 'bush', 'rock'], map: '#3a4a30' },
+};
+export const biomeOf = (k) => BIOMES[k] || BIOMES.forest;
+
 // soft round ground shadow (dark → transparent) for grounding billboards
 let _shadow = null;
 export function shadowTexture() {
@@ -148,10 +177,9 @@ export function Billboard({ kind, x, z, s = 1 }) {
 
 // Scatter props in a RING outside the play area (never over the fields) + a far backdrop
 // band, deterministic so they don't jump between renders. `stage` = the board bounds.
-function scatterProps(stage) {
+function scatterProps(stage, kinds = ['tree', 'tree', 'pine', 'bush', 'rock']) {
   const rng = mulberry32(2026);
   const out = [];
-  const kinds = ['tree', 'tree', 'pine', 'bush', 'rock'];
   const clearX = stage.xMax + 2.2, clearZ0 = stage.zMin - 1.5, clearZ1 = stage.zMax + 1.5;
   const inClear = (x, z) => x > -clearX && x < clearX && z > clearZ0 && z < clearZ1;
   let guard = 0;
@@ -169,11 +197,11 @@ function scatterProps(stage) {
   return out;
 }
 
-function SkyDome() {
+export function SkyDome({ tint = '#ffffff', radius = 74 }) {
   return (
     <mesh scale={[1, 1, 1]}>
-      <sphereGeometry args={[74, 32, 20]} />
-      <meshBasicMaterial map={skyTexture()} side={THREE.BackSide} fog={false} depthWrite={false} toneMapped={false} />
+      <sphereGeometry args={[radius, 32, 20]} />
+      <meshBasicMaterial map={skyTexture()} color={tint} side={THREE.BackSide} fog={false} depthWrite={false} toneMapped={false} />
     </mesh>
   );
 }
@@ -195,39 +223,45 @@ function GridScene({ onOrbitStart }) {
   );
 }
 
-// The FOREST scene: gradient sky dome + grass ground + scattered 2.5D billboard flora.
-function ForestScene({ onOrbitStart, stage }) {
-  const grass = useMemo(() => grassTexture(), []);
-  const props = useMemo(() => scatterProps(stage), [stage]);
+// A BIOME scene: tinted sky dome + tinted ground + scattered 2.5D billboard flora. The same
+// palette themes the battle backdrop AND the matching overworld chunk (seamless-place).
+function BiomeScene({ onOrbitStart, stage, biome }) {
+  const b = biomeOf(biome);
+  const ground = useMemo(() => groundTexture(), []);
+  const props = useMemo(() => scatterProps(stage, b.flora), [stage, b.flora]);
   return (
     <group>
-      <ambientLight intensity={0.92} color="#eaf1e6" />
-      <directionalLight position={[6, 11, 5]} intensity={1.15} color="#fff2d6" />
+      <ambientLight intensity={0.94} color="#eef3ea" />
+      <directionalLight position={[6, 11, 5]} intensity={1.12} color="#fff2d6" />
       <directionalLight position={[-6, 5, -3]} intensity={0.4} color="#9fc6ff" />
-      <hemisphereLight args={['#bfe0ff', '#3a5a2a', 0.5]} />
-      <SkyDome />
+      <hemisphereLight args={['#bfe0ff', b.ground, 0.5]} />
+      <SkyDome tint={b.sky} />
       <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.02, -0.5]}
         onPointerDown={(e) => { if ((e.nativeEvent?.button ?? 0) !== 0) return; e.stopPropagation(); onOrbitStart(e.nativeEvent); }}>
         <planeGeometry args={[180, 180]} />
-        <meshStandardMaterial map={grass} roughness={1} />
+        <meshStandardMaterial map={ground} color={b.ground} roughness={1} />
       </mesh>
       {props.map((p) => <Billboard key={p.id} kind={p.kind} x={p.x} z={p.z} s={p.s} />)}
     </group>
   );
 }
 
-/** Scene backdrop for the board. `scene` = 'forest' | 'grid'. */
+/** Scene backdrop for the board. `scene` = a BIOME key (forest/plains/desert/snow/swamp) or 'grid'. */
 export default function SceneEnv({ scene = 'forest', onOrbitStart, stage }) {
   if (scene === 'grid') return <GridScene onOrbitStart={onOrbitStart} />;
-  return <ForestScene onOrbitStart={onOrbitStart} stage={stage} />;
+  return <BiomeScene onOrbitStart={onOrbitStart} stage={stage} biome={scene} />;
 }
 
-// scene registry — bg + fog per scene (attached in Board3D), plus playmat theming.
+// scene registry — bg + fog per scene (attached in Board3D), plus playmat theming. Every biome
+// is a scene (the battle backdrop = the chunk's biome); 'grid' is the admin battlefield.
+const bannerPlaymat = { ally: '#e8d79a', enemy: '#e6a488', slotFill: '#241c10', banner: true, fieldAlly: '#e8d79a', fieldEnemy: '#e6a488' };
+const biomeScene = (key) => ({ name: BIOMES[key].name, bg: BIOMES[key].fog, fog: [BIOMES[key].fog, 26, 74], playmat: bannerPlaymat });
 export const SCENES = {
-  forest: {
-    name: 'Forest', bg: '#dfe7d2', fog: ['#d3e0cf', 26, 72],
-    playmat: { ally: '#e8d79a', enemy: '#e6a488', slotFill: '#241c10', banner: true, fieldAlly: '#e8d79a', fieldEnemy: '#e6a488' },
-  },
+  forest: biomeScene('forest'),
+  plains: biomeScene('plains'),
+  desert: biomeScene('desert'),
+  snow: biomeScene('snow'),
+  swamp: biomeScene('swamp'),
   grid: {
     name: 'Admin Grid', bg: '#0c0805', fog: ['#0c0805', 18, 52],
     playmat: { ally: '#e6c079', enemy: '#d68f74', slotFill: '#20160d', banner: false, fieldAlly: '#e6c079', fieldEnemy: '#d68f74' },
