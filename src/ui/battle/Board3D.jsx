@@ -973,7 +973,7 @@ function viewFor(sel, maps, focusId, handV) {
   return { x: 0, y: 0.2, z: 1.7, dist: 14.2, pol: FIELD_POL };
 }
 
-export default function Board3D({ enemy, player, sel, actingId, focusId, targetHint, onPick, onZone, onStepUp, pickRef, validRef, zoneRef, hand, fx, drag, handVisible, handSquadId, cardFocusSide, autoCam = true, scene = 'forest', onInspect, onSelectSquad, camRef, fly, onFlyDone }) {
+export default function Board3D({ enemy, player, sel, actingId, focusId, targetHint, onPick, onZone, onStepUp, pickRef, validRef, zoneRef, hand, fx, drag, handVisible, handSquadId, cardFocusSide, autoCam = true, scene = 'forest', exploring = false, onInspect, onSelectSquad, camRef, fly, onFlyDone }) {
   const sc = SCENES[scene] || SCENES.forest;
   const [hover, setHover] = useState(null);   // { level, side, squadId?, unitId? } under the pointer
   const orbit = useOrbit();
@@ -1067,7 +1067,7 @@ export default function Board3D({ enemy, player, sel, actingId, focusId, targetH
       <Picker pickRef={pickRef} validRef={validRef} zoneRef={zoneRef} meshes={meshes} unitMeta={maps.unitMeta} fieldBoundsOf={fieldBoundsOf} squadListOf={squadListOf} />
       <SceneEnv scene={scene} stage={stage} onOrbitStart={(ne) => orbit.start(ne, onStepUp)} />
       <Playmat enemy={enemy} player={player} sel={effSel} theme={sc.playmat} />
-      <FieldPiles enemy={enemy} player={player} skipId={handVisible ? handSquadId : null} onInspect={onInspect} onSelectSquad={onSelectSquad} />
+      {!exploring && <FieldPiles enemy={enemy} player={player} skipId={handVisible ? handSquadId : null} onInspect={onInspect} onSelectSquad={onSelectSquad} />}
       <Zones enemy={enemy} player={player} effSel={effSel} hover={hover} onZone={onZone} onHover={setHover} />
       <Side squads={enemy} side="e" effSel={effSel} hover={hover} actingId={actingId} targetHint={targetHint} onPick={onPick} onOver={onOverUnit} registerMesh={registerMesh} />
       <Side squads={player} side="p" effSel={effSel} hover={hover} actingId={actingId} targetHint={targetHint} onPick={onPick} onOver={onOverUnit} registerMesh={registerMesh} />

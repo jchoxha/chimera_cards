@@ -10,6 +10,10 @@
 .wHint { padding: 4px 10px; border-radius: 8px; background: #120c07C0; border: 1px solid var(--line);
   color: var(--ink-dim); font: 600 12px var(--font-body); width: fit-content; }
 .wHint b { color: #ff8a6a; }
+/* when the explore HUD is embedded in the battle shell, sit the hint under the biome title and
+   drop the minimap below the camera button (top-right). */
+.wExploreHint { position: absolute; left: 12px; top: 46px; z-index: 7; width: fit-content; }
+.battleScreen .wMapWrap { top: 58px; }
 .wHint .wTownTxt { color: #6ab4ff; } .wHint .wEvtTxt { color: #58e0d0; } .wHint .wDunTxt { color: #c088ee; }
 
 .wMapWrap { position: absolute; top: 12px; right: 12px; display: flex; flex-direction: column; gap: 6px;

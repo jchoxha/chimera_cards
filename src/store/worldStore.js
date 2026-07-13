@@ -75,7 +75,7 @@ const EVENTS = [
 const TOWN = { title: 'A Quiet Town', icon: 'game-icons:village', text: 'Lantern-lit streets and a warm inn. Your party recovers here. (Shops & quests coming soon.)' };
 
 export const useWorld = create((set, get) => ({
-  mode: 'battle',              // 'battle' | 'explore'
+  mode: 'explore',             // 'battle' | 'explore' — drives which HUD BattleScreen shows (SAME 3D board)
   gridW: GRID_W, gridH: GRID_H,
   grid: makeGrid(1337),
   pos: { x: 2, y: 3 },

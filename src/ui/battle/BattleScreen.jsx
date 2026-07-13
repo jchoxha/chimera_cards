@@ -32,8 +32,10 @@ import { ATTUNEMENT_COLOR } from '../../data/axisIcons.js';
 import { cardArt, creatureArt } from '../../data/artPool.js';
 import { sizedPortrait } from '../../data/sizeArt.js';
 import { enterLandscapeFullscreen, wantsLandscape } from '../mobile.js';
+import { BIOMES } from './SceneEnv.jsx';
 import '../combat/combat.css';   // CardFace styling for the enlarged info card
 import './battle.css';
+import '../world/world.css';     // explore-overlay classes (minimap / dpad / event modal)
 
 const Icon = ({ icon }) => <iconify-icon icon={icon}></iconify-icon>;
 const elColor = (el) => ATTUNEMENT_COLOR[el] || '#c9a66b';
@@ -81,7 +83,8 @@ function DieFace({ value = 1, rolling = false, pass = null }) {
   );
 }
 
-export default function BattleScreen({ onFlee, onBattleEnd, initialScene } = {}) {
+export default function BattleScreen({ onFlee, onBattleEnd, initialScene, sceneBiome, worldMode = 'battle', world = null, event = null, onCloseEvent, onTravel } = {}) {
+  const exploring = worldMode === 'explore';
   const snap = useBattle((s) => s.snapshot);
   const selectSquad = useBattle((s) => s.selectSquad);
   const queueCard = useBattle((s) => s.queueCard);
@@ -136,7 +139,23 @@ export default function BattleScreen({ onFlee, onBattleEnd, initialScene } = {})
   }, [runAway?.stage]);
   const [camOpen, setCamOpen] = useState(false);             // camera-control pad shown/hidden
   const [autoCam, setAutoCam] = useState(true);              // auto-frame the camera on card interaction
-  const [scene, setScene] = useState(initialScene || 'forest');   // battlefield backdrop (chunk biome | grid=admin)
+  const [scene, setScene] = useState(sceneBiome || initialScene || 'forest');   // backdrop (chunk biome | grid=admin)
+  // in the seamless world the scene FOLLOWS the current chunk's biome (unless in the admin grid).
+  useEffect(() => { if (sceneBiome) setScene((v) => (v === 'grid' ? 'grid' : sceneBiome)); }, [sceneBiome]);
+  // exploring: WASD / arrows TRAVEL to the adjacent chunk (no combat).
+  useEffect(() => {
+    if (!exploring || !onTravel) return undefined;
+    const onKey = (e) => {
+      if (e.repeat || e.target?.tagName === 'INPUT' || e.target?.tagName === 'TEXTAREA') return;
+      const k = e.key.toLowerCase();
+      if (k === 'w' || k === 'arrowup') { onTravel(0, -1); e.preventDefault(); }
+      else if (k === 's' || k === 'arrowdown') { onTravel(0, 1); e.preventDefault(); }
+      else if (k === 'a' || k === 'arrowleft') { onTravel(-1, 0); e.preventDefault(); }
+      else if (k === 'd' || k === 'arrowright') { onTravel(1, 0); e.preventDefault(); }
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [exploring, onTravel]);
   const autoCamRef = useRef(true);                           // live mirror for the once-bound drag handlers
   autoCamRef.current = autoCam;
   const [collapsedTurns, setCollapsedTurns] = useState(() => new Set());   // combat-log turn folding
@@ -254,7 +273,7 @@ export default function BattleScreen({ onFlee, onBattleEnd, initialScene } = {})
   const selectedCard = selId2 ? (selectedSquad?.hand || []).find((c) => c.iid === selId2) : null;
   // hand shows once a squad is selected: YOUR squad = playable, an ENEMY squad = face-DOWN
   const handSquad = sel.squadId ? allSquads.find((sq) => sq.id === sel.squadId) : null;
-  const showHand = !dockHidden && !anim && !!handSquad;
+  const showHand = !exploring && !dockHidden && !anim && !!handSquad;   // no cards while exploring
   const handIsEnemy = handSquad ? sideOfSquad(handSquad) === 'e' : false;
 
   const frontOf = (sq) => sq?.units.find((u) => u.isFront)?.id || sq?.units[0]?.id || null;
@@ -602,7 +621,7 @@ export default function BattleScreen({ onFlee, onBattleEnd, initialScene } = {})
           sel={sel} onStepUp={stepUp} actingId={anim?.acting} focusId={anim?.focus} onPick={onTok} onZone={onZone} pickRef={pickRef} validRef={validRef} zoneRef={zoneRef} fx={fx} drag={d}
           handVisible={showHand} handSquadId={handSquad?.id || null}
           cardFocusSide={autoCam ? (selectedCard ? (isOffensiveCard(selectedCard) ? 'e' : 'p') : (fly ? sideOfUnit(fly.targetId) : null)) : null}
-          autoCam={autoCam} scene={scene} targetHint={targetHint} onInspect={setInspect} camRef={camRef}
+          autoCam={autoCam} scene={scene} exploring={exploring} targetHint={targetHint} onInspect={setInspect} camRef={camRef}
           onSelectSquad={(side, squadId) => { setSelId2(null); setDockHidden(false); setSel({ level: 'squad', side, squadId, unitId: null }); }}
           fly={fly} onFlyDone={() => setFly(null)}
           hand={showHand ? {
@@ -613,10 +632,14 @@ export default function BattleScreen({ onFlee, onBattleEnd, initialScene } = {})
             onCardPointerDown: startHandDrag, onInspect: setInspect,
           } : null} />
 
-        {/* TOP-LEFT: turn tracker (holds until a fight fully resolves) + battle clock */}
+        {/* TOP-LEFT: exploring → the biome name; fighting → the turn tracker + battle clock */}
         <div className="bTopLeft">
-          <div className="bTurn"><b>Turn {displayTurn}</b></div>
-          <div className="bTimer" title="Battle time"><Icon icon="tabler:clock" />{battleClock}</div>
+          {exploring
+            ? <div className="bTurn"><b><Icon icon="tabler:compass" /> {BIOMES[scene]?.name || 'Overworld'}</b></div>
+            : <>
+                <div className="bTurn"><b>Turn {displayTurn}</b></div>
+                <div className="bTimer" title="Battle time"><Icon icon="tabler:clock" />{battleClock}</div>
+              </>}
         </div>
 
         {/* TOP-RIGHT: a single camera button opens the control pad (hidden by default;
@@ -664,8 +687,9 @@ export default function BattleScreen({ onFlee, onBattleEnd, initialScene } = {})
         )}
       </div>
 
-      {/* BOTTOM HUD. During the FIGHT PHASE every planning control is replaced by a single
-          centred bar: the live action line (clickable crests) + speed/pause/skip controls. */}
+      {/* BOTTOM HUD (combat only). During the FIGHT PHASE every planning control is replaced by
+          a single centred bar. HIDDEN while exploring — the world travel HUD shows instead. */}
+      {!exploring && (
       <div className={`bHud${anim ? ' resolving' : ''}`}>
         {anim ? (
           <div className="bFightBar">
@@ -771,6 +795,48 @@ export default function BattleScreen({ onFlee, onBattleEnd, initialScene } = {})
           </>
         )}
       </div>
+      )}
+
+      {/* EXPLORE HUD — the battlefield IS a chunk of the overworld: travel to adjacent chunks,
+          read the minimap, no combat controls until an encounter drops enemies onto the field. */}
+      {exploring && world && (
+        <>
+          <div className="wHint wExploreHint">WASD / arrows to travel · <b>red</b>=fight · <span className="wTownTxt">blue</span>=town · <span className="wEvtTxt">?</span>=event · <span className="wDunTxt">purple</span>=dungeon</div>
+          <div className="wMapWrap">
+            <div className="wMap" style={{ gridTemplateColumns: `repeat(${world.gridW}, 1fr)` }}>
+              {Array.from({ length: world.gridH }).map((_, y) => Array.from({ length: world.gridW }).map((_, x) => {
+                const ch = world.grid[`${x},${y}`]; const here = world.pos.x === x && world.pos.y === y;
+                const cls = here ? 'here' : ch.cleared ? 'cleared' : (ch.kind !== 'empty' ? ch.kind : 'field');
+                const style = cls === 'field' ? { background: (BIOMES[ch.biome]?.map) || '#3f5a30' } : undefined;
+                return <span key={`${x},${y}`} className={`wCell ${cls}`} style={style} />;
+              }))}
+            </div>
+            <div className="wLegend">
+              {[['wild', 'Wild'], ['dungeon', 'Dungeon'], ['town', 'Town'], ['event', 'Event']].map(([c, l]) => (
+                <span key={c} className="wLegItem"><span className={`wCell ${c}`} />{l}</span>
+              ))}
+            </div>
+          </div>
+          <div className="wPad">
+            <button className="wUp" onClick={() => onTravel(0, -1)}><Icon icon="tabler:chevron-up" /></button>
+            <button className="wLeft" onClick={() => onTravel(-1, 0)}><Icon icon="tabler:chevron-left" /></button>
+            <button className="wRight" onClick={() => onTravel(1, 0)}><Icon icon="tabler:chevron-right" /></button>
+            <button className="wDown" onClick={() => onTravel(0, 1)}><Icon icon="tabler:chevron-down" /></button>
+          </div>
+        </>
+      )}
+
+      {/* town / event popup (world) */}
+      {event && (
+        <div className="wEventWrap" onClick={onCloseEvent}>
+          <div className={`wEvent ${event.kind}`} onClick={(e) => e.stopPropagation()}>
+            <div className="wEventIcon"><Icon icon={event.icon} /></div>
+            <h3>{event.title}</h3>
+            <p>{event.text}</p>
+            <button className="wEventBtn" onClick={onCloseEvent}>Continue</button>
+          </div>
+        </div>
+      )}
 
       {/* the dragged Action Card is now a REAL 3D card mesh in Board3D (DragCard3D),
           lifted out of the hand and followed through the scene — no DOM ghost. */}

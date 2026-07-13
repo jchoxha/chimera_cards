@@ -6,6 +6,20 @@ a single-file Claude artifact now split into ES modules.
 
 ## ⚑ Project state — read this first (updated 2026-06-18)
 
+**🌐 SEAMLESS OVERWORLD = THE BATTLEFIELD (v3.147.0, 2026-07-13, Jeton).** The overworld and the
+battlefield are now the **SAME 3D board** — there is no separate map view and no scene swap. The
+battlefield acts as **one chunk** of the overworld: `battle-v2/main.jsx` always renders `BattleScreen`,
+and `worldStore.mode` just switches which HUD shows. **Exploring** = a PEACEFUL party-only board
+(`startBattle` with `enemy: []` — we never resolve, so no auto-win), combat HUD + card piles HIDDEN
+(`BattleScreen exploring` gate, `Board3D exploring` hides FieldPiles), and a **travel HUD** instead
+(biome title, minimap+legend, D-pad, WASD/arrows). Walking into a **wild/dungeon** chunk drops enemies
+onto the SAME field (`startBattle` with enemies) and reveals the combat HUD — same camera, same biome,
+a short flash covers the beat. Towns/events pop a modal; win/flee returns to the peaceful board. The
+old zoomed-out `WorldScene` (walking-token map) is **deleted**. `sceneBiome` flows from the current
+chunk so the backdrop always matches. **NEXT:** persistent party HP/deck across chunks, in-scene chunk
+content (visible town/dungeon props), generated enemy portraits, richer town/event effects.
+
+
 **🌍 PROCEDURAL BIOME OVERWORLD + SEAMLESS-PLACE BATTLES + RUN-AWAY MEMORY (v3.146.0, 2026-07-13,
 Jeton).** (1) **Overworld generates procedurally** (`worldStore.makeGrid`, seeded): a 6×6 grid where
 CONTIGUOUS regions get a **BIOME** (forest/plains/desert/snow/marsh — `SceneEnv.BIOMES`, palette+flora)
