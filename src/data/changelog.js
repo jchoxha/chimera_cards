@@ -6,6 +6,12 @@
 
 /** @type {{version:string, date:string, notes:string[]}[]} newest first */
 export const CHANGELOG = [
+  { version: 'v3.151.0', date: '2026-07-13', notes: [
+    'Fixed the ground plane poking through the new hills — the rolling terrain now only ever rises above the base, so nothing phases through it.',
+    'During a battle only the trees/props inside the actual playing area are hidden now; distant flora on nearby chunks stays, so fights still feel like they’re in the world.',
+    'Turning no longer snaps the camera the wrong way after a full spin — it rotates continuously in the direction you turn.',
+    'New radar minimap: it’s centred on you, shows nearby chunks with their trees and points of interest, and a gold arrow that points the way you’re facing.',
+  ] },
   { version: 'v3.150.0', date: '2026-07-13', notes: [
     'Overworld movement reworked: the D-pad’s left/right buttons now TURN you (Q/E) instead of strafing, and the back direction is gone — you always walk in the direction you’re facing.',
     'The overworld now has rolling HILLS: the ground rises and dips with smooth hills between chunks (the play area under you stays level).',

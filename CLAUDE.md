@@ -6,6 +6,21 @@ a single-file Claude artifact now split into ES modules.
 
 ## ⚑ Project state — read this first (updated 2026-06-18)
 
+**🧭 OVERWORLD FIX PASS — hills don't clip, play-area-only prop cull, continuous turn, radar minimap
+(v3.151.0, 2026-07-13, Jeton).** Four fixes on the v3.150 overworld. (1) **No base clip:**
+`terrainHeight` rewritten to always-positive terms (∈[0,3.1]) so hills only RISE above the biome base
+ground — a valley can no longer dip below it and let the base plane phase through. (2) **Play-area-only
+cull:** combat no longer hides ALL props — `ChunkTile3D` culls only flora/markers within `PLAY_CLEAR`
+(~12u of origin); distant flora on neighbouring chunks stays so fights read as in-world. (3) **Continuous
+turn:** `worldStore.turns` is a CUMULATIVE quarter-turn counter (`turn()` adds ±1); Board3D's explore
+azimuth = `-worldTurns·90°` (not `facing%4`), so turning past a wrap keeps spinning the SAME way instead
+of snapping the short way back. (4) **Radar minimap:** the confusing full-grid map is replaced by
+`WorldMini` (BattleScreen) — a player-centred 5×5 SVG radar (biome-tinted tiles, per-chunk tree dots,
+colour-coded content markers) with a gold **facing arrow** at the centre that rotates with `facing`.
+**NEXT:** per-step avatar walk animation, richer town/dungeon interiors, generated enemy portraits — and
+a broader "make it fun" polish pass (see chat).
+
+
 **⛰️ FACING-RELATIVE MOVEMENT + ROLLING HILLS + COMBAT HIDES PROPS (v3.150.0, 2026-07-13, Jeton).**
 Four overworld refinements. (1) **D-pad = forward + TURN:** the left/right pad buttons now `turn(∓1)`
 (Q/E) instead of strafing, and the BACK direction is gone — `BattleScreen` only wires `onStep('forward')`

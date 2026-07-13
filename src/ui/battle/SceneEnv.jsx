@@ -311,13 +311,15 @@ const MARKERS = {
 
 const CHUNKW = 24;   // world units per chunk — battlefield-scale, so a chunk reads like the old field
 
-// Smooth rolling-hills HEIGHT (units above the flat plane). Flat near the play centre (so the
+// Smooth rolling-hills HEIGHT (units ABOVE the flat plane). Flat near the play centre (so the
 // avatar + battlefield stay level), gentle hills toward the chunk edges — "hills between the
-// transitions". Continuous, so adjacent tiles meet seamlessly.
+// transitions". Continuous (adjacent tiles meet seamlessly) and ALWAYS ≥ 0, so the hills only
+// ever RISE above the biome base ground — a valley can never dip below it and let the base
+// plane poke through.
 export function terrainHeight(x, z) {
-  const h = 1.7 * Math.sin(x * 0.085 + 0.6) * Math.cos(z * 0.07)
-          + 1.05 * Math.sin((x - z) * 0.05 + 2.1)
-          + 0.6 * Math.cos(x * 0.042 - z * 0.055);
+  const h = 1.5 * (0.5 + 0.5 * Math.sin(x * 0.085 + 0.6) * Math.cos(z * 0.07))
+          + 1.0 * (0.5 + 0.5 * Math.sin((x - z) * 0.05 + 2.1))
+          + 0.6 * (0.5 + 0.5 * Math.cos(x * 0.042 - z * 0.055));   // ∈ [0, 3.1]
   const flat = Math.min(1, Math.max(0, (Math.hypot(x, z) - 9) / 13));   // 0 near centre → 1 past ~22
   return h * flat;
 }
@@ -384,21 +386,26 @@ function chunkFlora(ch, flora) {
 
 /** One stitched chunk: a biome-tinted ground tile + edge flora + an in-scene CONTENT prop
  *  (town/dungeon/event) toward the far edge (so it never overlaps the party at the centre). */
-function ChunkTile3D({ ch, wx, wz, showProps = true }) {
+// radius around the play centre (0,0) that must stay CLEAR during a battle — props inside it are
+// hidden so nothing blocks the battlefield; flora further out (other chunks) stays visible.
+const PLAY_CLEAR = 12;
+function ChunkTile3D({ ch, wx, wz, exploring = true }) {
   const b = biomeOf(ch.biome);
   const ground = useMemo(() => groundTexture(), []);
   const geo = useMemo(() => tileGeometry(wx, wz), [wx, wz]);
   const flora = useMemo(() => chunkFlora(ch, b.flora), [ch.x, ch.y, ch.biome]);
   const marker = (!ch.cleared && MARKERS[ch.kind]) ? MARKERS[ch.kind] : null;
+  // during combat, cull ONLY the props that fall inside the battlefield's play area (near origin);
+  // distant flora on neighbouring chunks keeps the world looking alive around the fight.
+  const showable = (px, pz) => exploring || Math.hypot(px, pz) > PLAY_CLEAR;
   return (
     <group>
       <mesh rotation={[-Math.PI / 2, 0, 0]} position={[wx, -0.02, wz]} geometry={geo}>
         <meshStandardMaterial map={ground} alphaMap={tileAlphaTexture()} color={b.ground} roughness={1} transparent depthWrite={false} />
       </mesh>
-      {/* flora + content markers ride the hills, but HIDE during combat so nothing blocks the
-          battlefield (the flat ground tile stays). */}
-      {showProps && flora.map((f) => <Billboard key={f.id} kind={f.kind} x={wx + f.lx} z={wz + f.lz} s={f.s} groundY={terrainHeight(wx + f.lx, wz + f.lz)} />)}
-      {showProps && marker && <MarkerBillboard tex={marker.tex} ring={marker.ring} x={wx} z={wz} w={marker.w} h={marker.h} groundY={terrainHeight(wx, wz)} />}
+      {flora.map((f) => showable(wx + f.lx, wz + f.lz)
+        && <Billboard key={f.id} kind={f.kind} x={wx + f.lx} z={wz + f.lz} s={f.s} groundY={terrainHeight(wx + f.lx, wz + f.lz)} />)}
+      {marker && showable(wx, wz) && <MarkerBillboard tex={marker.tex} ring={marker.ring} x={wx} z={wz} w={marker.w} h={marker.h} groundY={terrainHeight(wx, wz)} />}
     </group>
   );
 }
@@ -421,7 +428,7 @@ export function WorldTerrain({ grid, pos, radius = 2, exploring = true }) {
     const ch = grid[`${pos.x + dx},${pos.y + dy}`]; if (!ch) continue;
     tiles.push({ ch, wx: dx * CHUNKW, wz: dy * CHUNKW });
   }
-  return <group ref={groupRef}>{tiles.map((t) => <ChunkTile3D key={`${t.ch.x},${t.ch.y}`} ch={t.ch} wx={t.wx} wz={t.wz} showProps={exploring} />)}</group>;
+  return <group ref={groupRef}>{tiles.map((t) => <ChunkTile3D key={`${t.ch.x},${t.ch.y}`} ch={t.ch} wx={t.wx} wz={t.wz} exploring={exploring} />)}</group>;
 }
 
 // scene registry — bg + fog per scene (attached in Board3D), plus playmat theming. Every biome

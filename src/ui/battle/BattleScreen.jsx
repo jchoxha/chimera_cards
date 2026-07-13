@@ -83,6 +83,54 @@ function DieFace({ value = 1, rolling = false, pass = null }) {
   );
 }
 
+// ── player-centred radar MINIMAP: nearby chunks (biome-tinted), their trees/props as dots, the
+// content markers, and a FACING arrow at the centre that rotates with you. ──
+const MINI_R = 2;                     // chunks visible each direction → a 5×5 window on the player
+const MK_COLOR = { wild: '#ff5a3c', dungeon: '#b060e0', town: '#4aa0ff', event: '#40d0c0' };
+// deterministic per-chunk scatter (approximates the in-world flora so the map reads like the scene)
+function miniDots(x, y) {
+  let a = ((x * 73856093) ^ (y * 19349663) ^ 668265263) >>> 0;
+  const rnd = () => { a = (a * 1664525 + 1013904223) >>> 0; return a / 4294967296; };
+  const n = 3 + ((((x + y) % 3) + 3) % 3);
+  const out = [];
+  for (let i = 0; i < n; i++) out.push([0.18 + rnd() * 0.64, 0.18 + rnd() * 0.64]);
+  return out;
+}
+function WorldMini({ world }) {
+  const { grid, pos, facing, gridW, gridH } = world;
+  const N = MINI_R * 2 + 1, S = 150, cell = S / N;
+  const tiles = [];
+  for (let dy = -MINI_R; dy <= MINI_R; dy++) for (let dx = -MINI_R; dx <= MINI_R; dx++) {
+    tiles.push({ gx: pos.x + dx, gy: pos.y + dy, cx: (dx + MINI_R) * cell, cy: (dy + MINI_R) * cell });
+  }
+  const treeCol = (biome) => (biome === 'desert' ? '#9c7b3a' : biome === 'snow' ? '#88a0b0' : '#2f5a29');
+  return (
+    <svg className="wMiniSvg" width={S} height={S} viewBox={`0 0 ${S} ${S}`}>
+      {tiles.map((t) => {
+        const inb = t.gx >= 0 && t.gx < gridW && t.gy >= 0 && t.gy < gridH;
+        const ch = inb ? grid[`${t.gx},${t.gy}`] : null;
+        const fill = ch ? (BIOMES[ch.biome]?.map || '#3f5a30') : '#0d0a07';
+        return (
+          <g key={`${t.gx},${t.gy}`}>
+            <rect x={t.cx + 1} y={t.cy + 1} width={cell - 2} height={cell - 2} rx={3} fill={fill} opacity={ch && ch.cleared ? 0.45 : 1} />
+            {ch && miniDots(t.gx, t.gy).map(([fx, fy], i) => (
+              <circle key={i} cx={t.cx + fx * cell} cy={t.cy + fy * cell} r={1.5} fill={treeCol(ch.biome)} opacity={0.9} />
+            ))}
+            {ch && !ch.cleared && MK_COLOR[ch.kind] && (
+              <circle cx={t.cx + cell / 2} cy={t.cy + cell / 2} r={cell * 0.18} fill={MK_COLOR[ch.kind]} stroke="#000a" strokeWidth={1} />
+            )}
+          </g>
+        );
+      })}
+      {/* the player — a facing arrow at the centre cell (N = up; rotates with facing) */}
+      <g transform={`translate(${MINI_R * cell + cell / 2} ${MINI_R * cell + cell / 2}) rotate(${facing * 90})`}>
+        <circle r={cell * 0.36} fill="#1a120bDD" stroke="#f0c84a" strokeWidth={1.5} />
+        <path d={`M 0 ${-cell * 0.3} L ${cell * 0.2} ${cell * 0.18} L 0 ${cell * 0.05} L ${-cell * 0.2} ${cell * 0.18} Z`} fill="#f0c84a" />
+      </g>
+    </svg>
+  );
+}
+
 export default function BattleScreen({ onFlee, onBattleEnd, initialScene, sceneBiome, worldMode = 'battle', world = null, event = null, onCloseEvent, onStep, onTurn } = {}) {
   const exploring = worldMode === 'explore';
   const snap = useBattle((s) => s.snapshot);
@@ -620,7 +668,7 @@ export default function BattleScreen({ onFlee, onBattleEnd, initialScene, sceneB
           sel={sel} onStepUp={stepUp} actingId={anim?.acting} focusId={anim?.focus} onPick={onTok} onZone={onZone} pickRef={pickRef} validRef={validRef} zoneRef={zoneRef} fx={fx} drag={d}
           handVisible={showHand} handSquadId={handSquad?.id || null}
           cardFocusSide={autoCam ? (selectedCard ? (isOffensiveCard(selectedCard) ? 'e' : 'p') : (fly ? sideOfUnit(fly.targetId) : null)) : null}
-          autoCam={autoCam} scene={scene} exploring={exploring} world={world} worldFacing={world?.facing || 0} targetHint={targetHint} onInspect={setInspect} camRef={camRef}
+          autoCam={autoCam} scene={scene} exploring={exploring} world={world} worldFacing={world?.facing || 0} worldTurns={world?.turns || 0} targetHint={targetHint} onInspect={setInspect} camRef={camRef}
           onSelectSquad={(side, squadId) => { setSelId2(null); setDockHidden(false); setSel({ level: 'squad', side, squadId, unitId: null }); }}
           fly={fly} onFlyDone={() => setFly(null)}
           hand={showHand ? {
@@ -800,16 +848,9 @@ export default function BattleScreen({ onFlee, onBattleEnd, initialScene, sceneB
           read the minimap, no combat controls until an encounter drops enemies onto the field. */}
       {exploring && world && (
         <>
-          <div className="wHint wExploreHint">WASD / arrows to travel · <b>red</b>=fight · <span className="wTownTxt">blue</span>=town · <span className="wEvtTxt">?</span>=event · <span className="wDunTxt">purple</span>=dungeon</div>
+          <div className="wHint wExploreHint"><b>W</b> forward · <b>A</b>/<b>D</b> turn · <span className="wTownTxt">blue</span>=town · <span className="wEvtTxt">teal</span>=event · <span className="wDunTxt">purple</span>=dungeon · <span style={{ color: '#ff8a6a' }}>red</span>=fight</div>
           <div className="wMapWrap">
-            <div className="wMap" style={{ gridTemplateColumns: `repeat(${world.gridW}, 1fr)` }}>
-              {Array.from({ length: world.gridH }).map((_, y) => Array.from({ length: world.gridW }).map((_, x) => {
-                const ch = world.grid[`${x},${y}`]; const here = world.pos.x === x && world.pos.y === y;
-                const cls = here ? 'here' : ch.cleared ? 'cleared' : (ch.kind !== 'empty' ? ch.kind : 'field');
-                const style = cls === 'field' ? { background: (BIOMES[ch.biome]?.map) || '#3f5a30' } : undefined;
-                return <span key={`${x},${y}`} className={`wCell ${cls}`} style={style} />;
-              }))}
-            </div>
+            <WorldMini world={world} />
             <div className="wLegend">
               {[['wild', 'Wild'], ['dungeon', 'Dungeon'], ['town', 'Town'], ['event', 'Event']].map(([c, l]) => (
                 <span key={c} className="wLegItem"><span className={`wCell ${c}`} />{l}</span>

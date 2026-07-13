@@ -23,6 +23,7 @@ function Shell() {
   const battleChunk = useWorld((s) => s.battleChunk);
   const party = useWorld((s) => s.party);
   const facing = useWorld((s) => s.facing);
+  const turns = useWorld((s) => s.turns);
   const step = useWorld((s) => s.step);
   const turn = useWorld((s) => s.turn);
   const event = useWorld((s) => s.event);
@@ -58,7 +59,7 @@ function Shell() {
       <BattleScreen
         sceneBiome={biome}
         worldMode={mode}
-        world={{ gridW, gridH, grid, pos, biome, facing }}
+        world={{ gridW, gridH, grid, pos, biome, facing, turns }}
         event={event}
         onCloseEvent={() => { if (event?.kind === 'town') useBattle.getState().healParty(); closeEvent(); }}
         onStep={step}

@@ -1006,7 +1006,7 @@ function PartyAvatar({ unit }) {
   );
 }
 
-export default function Board3D({ enemy, player, sel, actingId, focusId, targetHint, onPick, onZone, onStepUp, pickRef, validRef, zoneRef, hand, fx, drag, handVisible, handSquadId, cardFocusSide, autoCam = true, scene = 'forest', exploring = false, world = null, worldFacing = 0, onInspect, onSelectSquad, camRef, fly, onFlyDone }) {
+export default function Board3D({ enemy, player, sel, actingId, focusId, targetHint, onPick, onZone, onStepUp, pickRef, validRef, zoneRef, hand, fx, drag, handVisible, handSquadId, cardFocusSide, autoCam = true, scene = 'forest', exploring = false, world = null, worldFacing = 0, worldTurns = 0, onInspect, onSelectSquad, camRef, fly, onFlyDone }) {
   const sc = SCENES[scene] || SCENES.forest;
   const [hover, setHover] = useState(null);   // { level, side, squadId?, unitId? } under the pointer
   const orbit = useOrbit();
@@ -1070,7 +1070,9 @@ export default function Board3D({ enemy, player, sel, actingId, focusId, targetH
   const selKey = `${camSel.level}:${camSel.side || ''}:${camSel.squadId || ''}:${camSel.unitId || ''}`;
   // exploring: the camera AZIMUTH follows the party FACING (turn buttons orbit it); combat
   // resets to the head-on battle framing (az 0).
-  const facingAz = exploring ? -worldFacing * (Math.PI / 2) : 0;
+  // CUMULATIVE turns (not facing % 4) → a CONTINUOUS azimuth, so turning past a wrap keeps
+  // rotating the SAME direction instead of snapping the short way back.
+  const facingAz = exploring ? -worldTurns * (Math.PI / 2) : 0;
   useEffect(() => {
     if (!autoCam) return;
     orbit.pan.current.x = 0; orbit.pan.current.z = 0;
