@@ -11,7 +11,7 @@
 // ║ ART IS PROCEDURAL PLACEHOLDER (canvas-baked) — swap in generated sprites    ║
 // ║ later by replacing the texture bakers; the scatter/layout stays.            ║
 // ╚══════════════════════════════════════════════════════════════════╝
-import React, { useMemo, useRef } from 'react';
+import React, { useEffect, useMemo, useRef } from 'react';
 import { useFrame } from '@react-three/fiber';
 import * as THREE from 'three';
 
@@ -224,11 +224,13 @@ function GridScene({ onOrbitStart }) {
 }
 
 // A BIOME scene: tinted sky dome + tinted ground + scattered 2.5D billboard flora. The same
-// palette themes the battle backdrop AND the matching overworld chunk (seamless-place).
-function BiomeScene({ onOrbitStart, stage, biome }) {
+// palette themes the battle backdrop AND the matching overworld chunk (seamless-place). In
+// `bare` mode (a stitched WorldTerrain provides the ground/flora/content) only the sky + lights
+// render, plus a big invisible plane so table-drag orbit + tap-to-step-up still work.
+function BiomeScene({ onOrbitStart, stage, biome, bare = false }) {
   const b = biomeOf(biome);
   const ground = useMemo(() => groundTexture(), []);
-  const props = useMemo(() => scatterProps(stage, b.flora), [stage, b.flora]);
+  const props = useMemo(() => (bare ? [] : scatterProps(stage, b.flora)), [stage, b.flora, bare]);
   return (
     <group>
       <ambientLight intensity={0.94} color="#eef3ea" />
@@ -236,9 +238,11 @@ function BiomeScene({ onOrbitStart, stage, biome }) {
       <directionalLight position={[-6, 5, -3]} intensity={0.4} color="#9fc6ff" />
       <hemisphereLight args={['#bfe0ff', b.ground, 0.5]} />
       <SkyDome tint={b.sky} />
-      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.02, -0.5]}
+      {/* BASE ground: the current biome, filling the whole view (no void at the world edge). In
+          `bare` mode it sits just BELOW the stitched WorldTerrain tiles, which layer on top. */}
+      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, bare ? -0.06 : -0.02, -0.5]}
         onPointerDown={(e) => { if ((e.nativeEvent?.button ?? 0) !== 0) return; e.stopPropagation(); onOrbitStart(e.nativeEvent); }}>
-        <planeGeometry args={[180, 180]} />
+        <planeGeometry args={[220, 220]} />
         <meshStandardMaterial map={ground} color={b.ground} roughness={1} />
       </mesh>
       {props.map((p) => <Billboard key={p.id} kind={p.kind} x={p.x} z={p.z} s={p.s} />)}
@@ -246,10 +250,127 @@ function BiomeScene({ onOrbitStart, stage, biome }) {
   );
 }
 
-/** Scene backdrop for the board. `scene` = a BIOME key (forest/plains/desert/snow/swamp) or 'grid'. */
-export default function SceneEnv({ scene = 'forest', onOrbitStart, stage }) {
+/** Scene backdrop for the board. `scene` = a BIOME key (forest/plains/desert/snow/swamp) or 'grid'.
+ *  `bare` (the stitched overworld) renders only sky+lights; WorldTerrain supplies the ground. */
+export default function SceneEnv({ scene = 'forest', onOrbitStart, stage, bare = false }) {
   if (scene === 'grid') return <GridScene onOrbitStart={onOrbitStart} />;
-  return <BiomeScene onOrbitStart={onOrbitStart} stage={stage} biome={scene} />;
+  return <BiomeScene onOrbitStart={onOrbitStart} stage={stage} biome={scene} bare={bare} />;
+}
+
+// ── stitched overworld terrain: content-marker textures (town hut · dungeon portal · signpost) ──
+const _mk = {};
+function houseTexture() {
+  if (_mk.town) return _mk.town;
+  _mk.town = bake(160, 160, (ctx) => {
+    ctx.strokeStyle = '#3a2415'; ctx.lineWidth = 4;
+    ctx.fillStyle = '#8a5a34'; ctx.fillRect(38, 78, 84, 66); ctx.strokeRect(38, 78, 84, 66);
+    ctx.fillStyle = '#b0432f'; ctx.beginPath(); ctx.moveTo(28, 80); ctx.lineTo(80, 34); ctx.lineTo(132, 80); ctx.closePath(); ctx.fill(); ctx.stroke();
+    ctx.fillStyle = '#3a2415'; ctx.fillRect(70, 108, 22, 36);
+    ctx.fillStyle = '#ffe08a'; ctx.fillRect(48, 92, 16, 16); ctx.fillRect(98, 92, 16, 16);
+  });
+  return _mk.town;
+}
+function portalTexture() {
+  if (_mk.dungeon) return _mk.dungeon;
+  _mk.dungeon = bake(150, 170, (ctx) => {
+    ctx.fillStyle = '#4a4650'; ctx.strokeStyle = '#26232c'; ctx.lineWidth = 5;
+    ctx.beginPath(); ctx.moveTo(24, 165); ctx.lineTo(24, 74); ctx.arc(75, 74, 51, Math.PI, 0); ctx.lineTo(126, 165); ctx.stroke();
+    const g = ctx.createLinearGradient(0, 40, 0, 165); g.addColorStop(0, '#6a3aa0'); g.addColorStop(1, '#1a0f2a');
+    ctx.fillStyle = g; ctx.beginPath(); ctx.moveTo(34, 165); ctx.lineTo(34, 78); ctx.arc(75, 78, 41, Math.PI, 0); ctx.lineTo(116, 165); ctx.closePath(); ctx.fill();
+    ctx.fillStyle = 'rgba(180,130,255,0.5)'; ctx.beginPath(); ctx.ellipse(75, 96, 22, 30, 0, 0, 6.28); ctx.fill();
+  });
+  return _mk.dungeon;
+}
+function signTexture() {
+  if (_mk.event) return _mk.event;
+  _mk.event = bake(140, 160, (ctx) => {
+    ctx.fillStyle = '#6a4a28'; ctx.fillRect(64, 70, 12, 82);
+    ctx.fillStyle = '#caa34e'; ctx.strokeStyle = '#3a2a12'; ctx.lineWidth = 4;
+    ctx.beginPath(); if (ctx.roundRect) ctx.roundRect(30, 30, 80, 54, 10); else ctx.rect(30, 30, 80, 54); ctx.fill(); ctx.stroke();
+    ctx.fillStyle = '#3a2a12'; ctx.font = 'bold 46px Georgia'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText('?', 70, 58);
+  });
+  return _mk.event;
+}
+const MARKERS = {
+  town: { tex: houseTexture, ring: '#4aa0ff', w: 3.0, h: 3.0 },
+  dungeon: { tex: portalTexture, ring: '#b060e0', w: 3.0, h: 3.4 },
+  event: { tex: signTexture, ring: '#40d0c0', w: 2.4, h: 2.7 },
+};
+
+const CHUNKW = 13;   // world units per chunk (a battlefield fits inside one; neighbours stay in view)
+const _ZERO = new THREE.Vector3();
+
+// a camera-facing content marker (house / portal / sign) with a ground ring + shadow.
+function MarkerBillboard({ tex, ring, x, z, w, h }) {
+  const grp = useRef();
+  const wp = useRef(new THREE.Vector3());
+  const ph = useRef(0);
+  useFrame(({ camera, clock }) => {
+    const g = grp.current; if (!g) return;
+    g.getWorldPosition(wp.current);
+    g.rotation.y = Math.atan2(camera.position.x - wp.current.x, camera.position.z - wp.current.z);
+    g.position.y = h / 2 + Math.sin(clock.elapsedTime * 1.6 + ph.current) * 0.08;
+  });
+  return (
+    <group position={[x, 0, z]}>
+      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.03, 0]}><planeGeometry args={[w * 0.9, w * 0.5]} /><meshBasicMaterial map={shadowTexture()} transparent depthWrite={false} toneMapped={false} /></mesh>
+      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.04, 0]}><ringGeometry args={[w * 0.55, w * 0.72, 32]} /><meshBasicMaterial color={ring} transparent opacity={0.85} depthWrite={false} toneMapped={false} /></mesh>
+      <group ref={grp} position={[0, h / 2, 0]}><mesh><planeGeometry args={[w, h]} /><meshBasicMaterial map={tex()} transparent alphaTest={0.4} side={THREE.DoubleSide} toneMapped={false} /></mesh></group>
+    </group>
+  );
+}
+
+// flora scattered in a RING near a chunk's edges (leaves the centre clear for the battlefield /
+// content prop). Deterministic per chunk.
+function chunkFlora(ch, flora) {
+  const rng = mulberry32((ch.x * 73856093) ^ (ch.y * 19349663) ^ 12345);
+  const out = [];
+  const n = 4 + ((ch.x + ch.y) % 4);
+  for (let i = 0; i < n; i++) {
+    const ang = rng() * 6.28, rad = 5.4 + rng() * 3.0;
+    out.push({ id: i, kind: flora[(rng() * flora.length) | 0], lx: Math.cos(ang) * rad, lz: Math.sin(ang) * rad, s: 0.7 + rng() * 0.55 });
+  }
+  return out;
+}
+
+/** One stitched chunk: a biome-tinted ground tile + edge flora + an in-scene CONTENT prop
+ *  (town/dungeon/event) toward the far edge (so it never overlaps the party at the centre). */
+function ChunkTile3D({ ch, wx, wz }) {
+  const b = biomeOf(ch.biome);
+  const ground = useMemo(() => groundTexture(), []);
+  const flora = useMemo(() => chunkFlora(ch, b.flora), [ch.x, ch.y, ch.biome]);
+  const marker = (!ch.cleared && MARKERS[ch.kind]) ? MARKERS[ch.kind] : null;
+  return (
+    <group>
+      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[wx, -0.02, wz]}>
+        <planeGeometry args={[CHUNKW * 1.02, CHUNKW * 1.02]} />
+        <meshStandardMaterial map={ground} color={b.ground} roughness={1} />
+      </mesh>
+      {flora.map((f) => <Billboard key={f.id} kind={f.kind} x={wx + f.lx} z={wz + f.lz} s={f.s} />)}
+      {marker && <MarkerBillboard tex={marker.tex} ring={marker.ring} x={wx} z={wz} w={marker.w} h={marker.h} />}
+    </group>
+  );
+}
+
+/** The stitched overworld ground around the current chunk: a radius of biome tiles that slide
+ *  in from the travel direction each time `pos` changes (the party stays centred; the world
+ *  scrolls under it). Content props ride the tiles, so towns/dungeons are visible in-scene. */
+export function WorldTerrain({ grid, pos, radius = 2 }) {
+  const groupRef = useRef();
+  const slide = useRef(new THREE.Vector3());
+  const last = useRef({ x: pos.x, y: pos.y });
+  useEffect(() => {
+    slide.current.x = (pos.x - last.current.x) * CHUNKW;   // new chunk eases in from the travel dir
+    slide.current.z = (pos.y - last.current.y) * CHUNKW;
+    last.current = { x: pos.x, y: pos.y };
+  }, [pos.x, pos.y]);
+  useFrame(() => { slide.current.lerp(_ZERO, 0.12); const g = groupRef.current; if (g) g.position.set(slide.current.x, 0, slide.current.z); });
+  const tiles = [];
+  for (let dy = -radius; dy <= radius; dy++) for (let dx = -radius; dx <= radius; dx++) {
+    const ch = grid[`${pos.x + dx},${pos.y + dy}`]; if (!ch) continue;
+    tiles.push({ ch, wx: dx * CHUNKW, wz: dy * CHUNKW });
+  }
+  return <group ref={groupRef}>{tiles.map((t) => <ChunkTile3D key={`${t.ch.x},${t.ch.y}`} ch={t.ch} wx={t.wx} wz={t.wz} />)}</group>;
 }
 
 // scene registry — bg + fog per scene (attached in Board3D), plus playmat theming. Every biome

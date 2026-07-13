@@ -12,7 +12,7 @@ import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Canvas, useFrame, useThree } from '@react-three/fiber';
 import * as THREE from 'three';
 import HandDock3D, { useActionCardTexture, HAND_CARD_W, HAND_CARD_H, RO_OVERLAY } from './HandDock3D.jsx';
-import SceneEnv, { SCENES } from './SceneEnv.jsx';
+import SceneEnv, { SCENES, WorldTerrain } from './SceneEnv.jsx';
 import { creatureColor } from '../../data/axisIcons.js';
 import { creatureArt } from '../../data/artPool.js';
 import { sizedPortrait } from '../../data/sizeArt.js';
@@ -973,7 +973,7 @@ function viewFor(sel, maps, focusId, handV) {
   return { x: 0, y: 0.2, z: 1.7, dist: 14.2, pol: FIELD_POL };
 }
 
-export default function Board3D({ enemy, player, sel, actingId, focusId, targetHint, onPick, onZone, onStepUp, pickRef, validRef, zoneRef, hand, fx, drag, handVisible, handSquadId, cardFocusSide, autoCam = true, scene = 'forest', exploring = false, onInspect, onSelectSquad, camRef, fly, onFlyDone }) {
+export default function Board3D({ enemy, player, sel, actingId, focusId, targetHint, onPick, onZone, onStepUp, pickRef, validRef, zoneRef, hand, fx, drag, handVisible, handSquadId, cardFocusSide, autoCam = true, scene = 'forest', exploring = false, world = null, onInspect, onSelectSquad, camRef, fly, onFlyDone }) {
   const sc = SCENES[scene] || SCENES.forest;
   const [hover, setHover] = useState(null);   // { level, side, squadId?, unitId? } under the pointer
   const orbit = useOrbit();
@@ -1065,7 +1065,8 @@ export default function Board3D({ enemy, player, sel, actingId, focusId, targetH
       <fog attach="fog" args={[sc.fog[0], sc.fog[1], sc.fog[2]]} />
       <CameraRig view={view} orbit={orbit} stage={stage} />
       <Picker pickRef={pickRef} validRef={validRef} zoneRef={zoneRef} meshes={meshes} unitMeta={maps.unitMeta} fieldBoundsOf={fieldBoundsOf} squadListOf={squadListOf} />
-      <SceneEnv scene={scene} stage={stage} onOrbitStart={(ne) => orbit.start(ne, onStepUp)} />
+      <SceneEnv scene={scene} stage={stage} bare={!!world && scene !== 'grid'} onOrbitStart={(ne) => orbit.start(ne, onStepUp)} />
+      {world && scene !== 'grid' && <WorldTerrain grid={world.grid} pos={world.pos} />}
       <Playmat enemy={enemy} player={player} sel={effSel} theme={sc.playmat} />
       {!exploring && <FieldPiles enemy={enemy} player={player} skipId={handVisible ? handSquadId : null} onInspect={onInspect} onSelectSquad={onSelectSquad} />}
       <Zones enemy={enemy} player={player} effSel={effSel} hover={hover} onZone={onZone} onHover={setHover} />

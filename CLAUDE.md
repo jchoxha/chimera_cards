@@ -6,6 +6,21 @@ a single-file Claude artifact now split into ES modules.
 
 ## ⚑ Project state — read this first (updated 2026-06-18)
 
+**🌎 STITCHED WORLD + PERSISTENT PARTY (v3.148.0, 2026-07-13, Jeton).** Three upgrades to the
+seamless overworld. (1) **PERSISTENCE:** the party board is built ONCE (`startBattle` with `enemy:[]`)
+and NEVER rebuilt — entering a fight `battleStore.spawnEnemies(squads)` drops enemies onto the live
+state, winning/fleeing `despawnEnemies()` strips them off, so **HP + decks carry across chunks +
+fights**. `healParty()` fully restores at TOWNS. (2) **STITCHED CHUNKS + IN-SCENE CONTENT:**
+`SceneEnv.WorldTerrain` renders a radius of biome-tinted ground tiles around the current chunk (the
+current biome is the BASE ground so there's no void at the map edge), each carrying edge flora + an
+**in-scene content prop** — town HOUSE / dungeon PORTAL / event SIGNPOST billboards (`MARKERS`) — so
+towns/dungeons are visible in the world; SceneEnv gained a `bare` mode (sky+lights only) for this.
+(3) **MOVEMENT ANIMATION:** the terrain **slides in from the travel direction** each time `pos`
+changes (`WorldTerrain` eases a group offset; the party stays centred, the world scrolls under it).
+`CHUNKW=13`. **NEXT:** crossfade the base-ground biome swap on travel, town shops/quests, richer
+events, generated enemy portraits.
+
+
 **🌐 SEAMLESS OVERWORLD = THE BATTLEFIELD (v3.147.0, 2026-07-13, Jeton).** The overworld and the
 battlefield are now the **SAME 3D board** — there is no separate map view and no scene swap. The
 battlefield acts as **one chunk** of the overworld: `battle-v2/main.jsx` always renders `BattleScreen`,

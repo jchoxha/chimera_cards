@@ -29,17 +29,19 @@ function Shell() {
   const fleeBattle = useWorld((s) => s.fleeBattle);
   const biome = grid[`${pos.x},${pos.y}`]?.biome || 'forest';
 
-  // (re)build the board: a battle when entering an encounter, else a PEACEFUL party-only field
-  // (enemy: [] — we simply never resolve, so no auto-win). Keyed so travel between peaceful
-  // chunks does NOT rebuild (only the biome/scene changes live).
-  const startedFor = useRef(null);
+  // Build the party board ONCE (peaceful, no enemies). It is NEVER rebuilt after this, so the
+  // party's HP + decks PERSIST across chunks + fights.
+  const booted = useRef(false);
+  useEffect(() => { if (!booted.current) { booted.current = true; useBattle.getState().startBattle({ player: party, enemy: [] }); } }, [party]);
+
+  // enter a fight → drop enemies onto the SAME board; return to explore → strip them off. The
+  // party state is untouched either way (persistence).
+  const wasBattle = useRef(false);
   useEffect(() => {
-    const k = mode === 'battle' ? `b:${battleChunk}` : 'explore';
-    if (startedFor.current === k) return;
-    startedFor.current = k;
-    if (mode === 'battle') useBattle.getState().startBattle({ player: party, enemy: pendingEnemy || enemyFor(0) });
-    else useBattle.getState().startBattle({ player: party, enemy: [] });
-  }, [mode, battleChunk, pendingEnemy, party]);
+    if (!booted.current) return;
+    if (mode === 'battle') { useBattle.getState().spawnEnemies(pendingEnemy || enemyFor(0)); wasBattle.current = true; }
+    else if (wasBattle.current) { useBattle.getState().despawnEnemies(); wasBattle.current = false; }
+  }, [mode, pendingEnemy, battleChunk]);
 
   // a light flash on entering/leaving combat so enemies appear-with-a-beat, not a hard pop.
   const [flash, setFlash] = useState(false);
@@ -56,7 +58,7 @@ function Shell() {
         worldMode={mode}
         world={{ gridW, gridH, grid, pos, biome }}
         event={event}
-        onCloseEvent={closeEvent}
+        onCloseEvent={() => { if (event?.kind === 'town') useBattle.getState().healParty(); closeEvent(); }}
         onTravel={move}
         onFlee={fleeBattle}
         onBattleEnd={(r) => (r === 'win' ? winBattle() : fleeBattle())} />

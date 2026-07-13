@@ -621,7 +621,7 @@ export default function BattleScreen({ onFlee, onBattleEnd, initialScene, sceneB
           sel={sel} onStepUp={stepUp} actingId={anim?.acting} focusId={anim?.focus} onPick={onTok} onZone={onZone} pickRef={pickRef} validRef={validRef} zoneRef={zoneRef} fx={fx} drag={d}
           handVisible={showHand} handSquadId={handSquad?.id || null}
           cardFocusSide={autoCam ? (selectedCard ? (isOffensiveCard(selectedCard) ? 'e' : 'p') : (fly ? sideOfUnit(fly.targetId) : null)) : null}
-          autoCam={autoCam} scene={scene} exploring={exploring} targetHint={targetHint} onInspect={setInspect} camRef={camRef}
+          autoCam={autoCam} scene={scene} exploring={exploring} world={world} targetHint={targetHint} onInspect={setInspect} camRef={camRef}
           onSelectSquad={(side, squadId) => { setSelId2(null); setDockHidden(false); setSel({ level: 'squad', side, squadId, unitId: null }); }}
           fly={fly} onFlyDone={() => setFly(null)}
           hand={showHand ? {

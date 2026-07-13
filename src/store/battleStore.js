@@ -10,7 +10,7 @@
 // ╚══════════════════════════════════════════════════════════════════╝
 import { create } from 'zustand';
 import { uid, shuffle } from '../utils.js';
-import { buildState, makeUnit, liveFrontUnit, isAlive } from '../engine/battle/state.js';
+import { buildState, makeUnit, makeSquad, liveFrontUnit, isAlive } from '../engine/battle/state.js';
 import { battleStats } from '../engine/battle/stats.js';
 import { resolveBattleRound, startRound, planCost } from '../engine/battle/battle.js';
 import { creatureToFace } from '../ui/combat/creatureVisuals.jsx';
@@ -231,6 +231,54 @@ export const useBattle = create((set, get) => ({
   },
 
   selectSquad(sqId) { set((s) => ({ selectedSquadId: sqId, snapshot: publish({ ...s, selectedSquadId: sqId }) })); },
+
+  /** OVERWORLD PERSISTENCE: add enemy squads to the LIVE state (the party is never rebuilt,
+   *  so its HP + decks carry across chunks). Redeals the party's hands from its own persistent
+   *  deck (a fresh encounter), refreshes energy, starts a new round. */
+  spawnEnemies(enemySquads) {
+    const s = get(); if (!s.state) return;
+    const state = s.state; const cards = { ...s.cards };
+    // drop any leftover enemies, then build the new squads
+    for (const sqId of state.sides.e) { const sq = state.squadsById[sqId]; sq?.memberIds.forEach((id) => delete state.unitsById[id]); delete state.squadsById[sqId]; delete cards[sqId]; }
+    const eIds = [];
+    (enemySquads || []).forEach((sq, i) => {
+      const sqId = `e${i}_${uid()}`;
+      const members = sq.creatures.map((c, j) => creatureToUnit(c, `${sqId}_${j}`));
+      members.forEach((u) => { u.side = 'e'; u.squadId = sqId; state.unitsById[u.id] = u; });
+      state.squadsById[sqId] = makeSquad({ id: sqId, side: 'e', memberIds: members.map((u) => u.id) });
+      cards[sqId] = drawInto(emptyPile(), HAND_SIZE);
+      eIds.push(sqId);
+    });
+    state.sides.e = eIds;
+    // fresh hands for the party from its OWN persistent deck (banished returns per-fight)
+    for (const sqId of state.sides.p) {
+      const pile = cards[sqId] || emptyPile();
+      const deck = shuffle([...pile.deck, ...pile.hand, ...pile.discard, ...pile.exhaust]);
+      cards[sqId] = drawInto({ deck, hand: [], discard: [], exhaust: [] }, HAND_SIZE);
+    }
+    startRound(state);
+    const patch = { state, cards, plans: {}, queueOrder: [], undone: [], phase: 'plan', outcome: null, turn: 1, dealKey: (s.dealKey || 0) + 1, stunnedSquads: [], pendingStun: null, runPassed: [], seen: new Set(), selectedSquadId: state.sides.p[0] };
+    set({ ...patch, snapshot: publish({ ...s, ...patch }) });
+  },
+
+  /** OVERWORLD PERSISTENCE: strip the enemy side back to a peaceful party-only board. The
+   *  party's units (HP) + cards are untouched, so wounds carry into exploration + the next fight. */
+  despawnEnemies() {
+    const s = get(); if (!s.state) return;
+    const state = s.state; const cards = { ...s.cards };
+    for (const sqId of state.sides.e) { const sq = state.squadsById[sqId]; sq?.memberIds.forEach((id) => delete state.unitsById[id]); delete state.squadsById[sqId]; delete cards[sqId]; }
+    state.sides.e = [];
+    const patch = { state, cards, plans: {}, queueOrder: [], undone: [], phase: 'plan', outcome: null, stunnedSquads: [], pendingStun: null, runPassed: [] };
+    set({ ...patch, snapshot: publish({ ...s, ...patch }) });
+  },
+
+  /** Restore every living party unit to full HP (towns). */
+  healParty() {
+    const s = get(); if (!s.state) return;
+    const state = s.state;
+    for (const sqId of state.sides.p) for (const id of state.squadsById[sqId].memberIds) { const u = state.unitsById[id]; if (u) { u.hp = u.maxHp; u.block = 0; u.statuses = []; } }   // towns fully restore (revive included)
+    set({ state, snapshot: publish({ ...s, state }) });
+  },
 
   /** Cosmetically reorder a squad's HAND (move card `iid` to `index`). Persists until the
    *  hand is redrawn next turn — lets the player organise the hand while viewing it. */
