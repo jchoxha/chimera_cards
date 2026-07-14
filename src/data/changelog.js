@@ -6,6 +6,12 @@
 
 /** @type {{version:string, date:string, notes:string[]}[]} newest first */
 export const CHANGELOG = [
+  { version: 'v3.157.0', date: '2026-07-14', notes: [
+    'FORMATIONS now matter! A squad’s energy scales with its size (solo 2 · duo 4 · trio 6), so grouping vs splitting is a real choice — six creatures give ~the same total energy either way, but a big squad protects its back row and makes bigger single plays.',
+    'Support empowers its Vanguard: each back-row creature grants a formation aura (a defensive one adds Defense, an offensive one adds Attack), shown as a pip on the vanguard.',
+    'Hybrid support-casting: a new “Cast with” picker lets a protected back-row Support cast the squad’s cards using its own stats.',
+    'Started real balancing — a headless formation harness (npm run balance:formations) and a first tuning pass so wide-vs-tall is a genuine trade-off, not a dominant strategy.',
+  ] },
   { version: 'v3.156.0', date: '2026-07-14', notes: [
     'Onboarding: a friendly welcome tip explains the run on your first play, and a “Your first battle” tip explains how to plan and fight the first time combat starts (each shows once).',
     'An always-on objective chip in the top-left reminds you of the goal — “Defeat the boss” — and flips to “Boss defeated!” once you clear it.',

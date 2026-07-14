@@ -38,7 +38,7 @@ console.log('Energy spend + refresh:');
   spendPlan(s, { ps: [act('P', strike()), act('P', strike())] });
   ok(s.squadsById.ps.energy === 1, `spend deducts energy (${s.squadsById.ps.energy})`);
   startRound(s);
-  ok(s.squadsById.ps.energy === 3, `startRound refreshes to max (${s.squadsById.ps.energy})`); }
+  ok(s.squadsById.ps.energy === 2, `startRound refreshes to size-scaled max — solo = 2 (${s.squadsById.ps.energy})`); }
 
 console.log('flatten merges both blind commits:');
 { const acts = flattenPlans({ p: { ps: [act('P', strike()), act('P', strike())] }, e: { es: [act('E', strike(), 'P')] } });
@@ -51,7 +51,7 @@ console.log('resolveBattleRound + win/loss:');
     e: { es: [{ ownerId: 'E', targetId: 'P', card: strike() }] },
   }, rng());
   ok(P.hp === 20 && E.hp === 20 && r1.outcome === null, `both trade a hit, battle continues (P ${P.hp}, E ${E.hp})`);
-  ok(s.squadsById.ps.energy === 3 && s.squadsById.es.energy === 3, 'energy refreshed for next round'); }
+  ok(s.squadsById.ps.energy === 2 && s.squadsById.es.energy === 2, 'energy refreshed for next round (solo = 2)'); }
 { const { s, E } = duel(30, 8);   // E is nearly dead → one hit ends it
   const r = resolveBattleRound(s, {
     p: { ps: [{ ownerId: 'P', targetId: 'E', card: strike() }] },

@@ -127,6 +127,7 @@ function unitFace(state, u, squad) {
     ...face,
     id: u.id, hp: u.hp, maxHp: u.maxHp, block: u.block, statuses: u.statuses,
     isFront: liveFrontUnit(state, squad)?.id === u.id,
+    formation: u.formation || null,        // Vanguard's aura from its Support (attack/defense) — for a pip
     dead: !isAlive(u),
   };
 }
@@ -149,6 +150,10 @@ function squadSnap(store, sqId, side) {
     snap.stunned = (store.stunnedSquads || []).includes(sqId);   // failed a run-away roll → can't plan this round
     snap.hand = c.hand;                       // your own hand, face-up + draggable
     snap.deck = pileHidden(c.deck);           // your draw pile — contents known, order hidden
+    // the active CASTER (hybrid support-casting): the chosen live member, else the Vanguard.
+    const chosen = store.casters?.[sqId];
+    snap.casterId = (chosen && squad.memberIds.includes(chosen) && isAlive(state.unitsById[chosen]))
+      ? chosen : (liveFrontUnit(state, squad)?.id || null);
   } else {
     snap.handCount = c.hand.length;           // enemy hand: face-down count only
     snap.deck = deckInspect(c.deck, store.seen || new Set());   // '?' until seen
@@ -272,6 +277,7 @@ function enemyPlan(state, cards) {
 
 export const useBattle = create((set, get) => ({
   snapshot: null, state: null, plans: {}, cards: {}, seen: new Set(), queueOrder: [], undone: [], selectedSquadId: null,
+  casters: {},   // sqId → the chosen CASTER unit (hybrid support-casting); defaults to the Vanguard
   phase: 'plan', outcome: null, log: [], version: 0, dealKey: 0, turn: 1, logHistory: [],
   stunnedSquads: [], pendingStun: null,   // run-away failure: squads locked out of the NEXT plan phase
   runPassed: [],                          // squads that have ALREADY passed a run-away roll this battle
@@ -283,11 +289,14 @@ export const useBattle = create((set, get) => ({
   startBattle({ player, enemy }) {
     const { state, cards } = buildBattle(player, enemy);
     startRound(state);
-    const base = { state, cards, seen: new Set(), plans: {}, queueOrder: [], undone: [], selectedSquadId: state.sides.p[0], phase: 'plan', outcome: null, log: [], version: 0, dealKey: 1, turn: 1, logHistory: [], startedAt: Date.now(), stunnedSquads: [], pendingStun: null, runPassed: [] };
+    const base = { state, cards, seen: new Set(), plans: {}, queueOrder: [], undone: [], selectedSquadId: state.sides.p[0], phase: 'plan', outcome: null, log: [], version: 0, dealKey: 1, turn: 1, logHistory: [], startedAt: Date.now(), stunnedSquads: [], pendingStun: null, runPassed: [], casters: {} };
     set({ ...base, snapshot: publish({ ...get(), ...base }) });
   },
 
   selectSquad(sqId) { set((s) => ({ selectedSquadId: sqId, snapshot: publish({ ...s, selectedSquadId: sqId }) })); },
+
+  /** Choose which squad MEMBER casts queued cards (hybrid support-casting). */
+  setCaster(sqId, unitId) { set((s) => { const casters = { ...s.casters, [sqId]: unitId }; return { casters, snapshot: publish({ ...s, casters }) }; }); },
 
   /** OVERWORLD PERSISTENCE: add enemy squads to the LIVE state (the party is never rebuilt,
    *  so its HP + decks carry across chunks). Redeals the party's hands from its own persistent
@@ -314,7 +323,7 @@ export const useBattle = create((set, get) => ({
       cards[sqId] = drawInto({ deck, hand: [], discard: [], exhaust: [] }, HAND_SIZE);
     }
     startRound(state);
-    const patch = { state, cards, plans: {}, queueOrder: [], undone: [], phase: 'plan', outcome: null, turn: 1, dealKey: (s.dealKey || 0) + 1, stunnedSquads: [], pendingStun: null, runPassed: [], seen: new Set(), selectedSquadId: state.sides.p[0] };
+    const patch = { state, cards, plans: {}, queueOrder: [], undone: [], phase: 'plan', outcome: null, turn: 1, dealKey: (s.dealKey || 0) + 1, stunnedSquads: [], pendingStun: null, runPassed: [], casters: {}, seen: new Set(), selectedSquadId: state.sides.p[0] };
     set({ ...patch, snapshot: publish({ ...s, ...patch }) });
   },
 
@@ -325,7 +334,7 @@ export const useBattle = create((set, get) => ({
     const state = s.state; const cards = { ...s.cards };
     for (const sqId of state.sides.e) { const sq = state.squadsById[sqId]; sq?.memberIds.forEach((id) => delete state.unitsById[id]); delete state.squadsById[sqId]; delete cards[sqId]; }
     state.sides.e = [];
-    const patch = { state, cards, plans: {}, queueOrder: [], undone: [], phase: 'plan', outcome: null, stunnedSquads: [], pendingStun: null, runPassed: [] };
+    const patch = { state, cards, plans: {}, queueOrder: [], undone: [], phase: 'plan', outcome: null, stunnedSquads: [], pendingStun: null, runPassed: [], casters: {} };
     set({ ...patch, snapshot: publish({ ...s, ...patch }) });
   },
 
@@ -386,11 +395,14 @@ export const useBattle = create((set, get) => ({
     if ((s.stunnedSquads || []).includes(sqId)) return;   // stunned by a failed run-away → can't plan
     const squad = s.state.squadsById[sqId]; if (!squad || squad.side !== 'p') return;
     const front = liveFrontUnit(s.state, squad); if (!front) return;
+    // the CASTER: the chosen live member (hybrid support-casting) or the Vanguard by default.
+    const chosen = s.casters?.[sqId];
+    const caster = (chosen && squad.memberIds.includes(chosen) && isAlive(s.state.unitsById[chosen])) ? s.state.unitsById[chosen] : front;
     const pile = s.cards[sqId] || { hand: [] };
     const card = pile.hand.find((c) => c.iid === handIid); if (!card) return;
     const plan = s.plans[sqId] || [];
     if (planCost(plan) + (card.cost ?? 1) > squad.energy) return;   // not enough energy
-    const plans = { ...s.plans, [sqId]: [...plan, { ownerId: front.id, targetId, card }] };
+    const plans = { ...s.plans, [sqId]: [...plan, { ownerId: caster.id, targetId, card }] };
     const cards = { ...s.cards, [sqId]: { ...pile, hand: pile.hand.filter((c) => c.iid !== handIid) } };
     const queueOrder = [...s.queueOrder, sqId];
     set({ plans, cards, queueOrder, undone: [], snapshot: publish({ ...s, plans, cards, undone: [] }) });   // a fresh play clears the redo stack

@@ -14,6 +14,8 @@
     "test:battleround": "node src/engine/battle/__round__.mjs",
     "test:battlesquad": "node src/engine/battle/__squad__.mjs",
     "test:battleloop": "node src/engine/battle/__battle__.mjs",
+    "test:formations": "node src/engine/battle/__formations__.mjs",
+    "balance:formations": "node src/engine/battle/__balance__.mjs",
     "test:turn": "node src/engine/combat/__turn__.mjs",
     "test:matchups": "node src/engine/content/__matchups__.mjs",
     "test:cards": "node src/engine/cards/__cards__.mjs",

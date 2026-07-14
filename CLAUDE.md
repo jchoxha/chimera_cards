@@ -6,6 +6,25 @@ a single-file Claude artifact now split into ES modules.
 
 ## ⚑ Project state — read this first (updated 2026-06-18)
 
+**🛡️ FORMATIONS MADE REAL + BALANCE STARTED (v3.157.0, 2026-07-14, Jeton "flesh out combat" pass).**
+Before this, formations were a non-choice: flat 3 energy/squad + only the Vanguard casts → Support was
+dead weight and MORE squads = strictly more energy/cards (WIDE beat TALL 100% in the harness). Fixed with
+three levers (`docs/formations-design.md`): (1) **energy ~constant per creature** — `battle.js`
+`squadEnergyFor = max(2, liveMembers×2)` (solo 2 · duo 4 · trio 6), so 6 creatures ≈ 12 energy in ANY
+formation (splitting no longer buys actions). (2) **Protection/resilience** already in the engine (front-
+only targeting + auto-promote) is now the point of TALL. (3) **Support contributes (HYBRID):** a passive
+**aura** — `applyFormationAuras` recomputes each unit's effective `stats` = `baseStats` + Σ support auras
+(defensive support → `+AURA_DEFENSE` 6, offensive → `+AURA_ATTACK` 5) onto the live Vanguard, surfaced as
+`snap…formation` → a **caster-picker pip** ("+5 ATK / +6 DEF"); AND **active support-casting** —
+`battleStore.casters`/`setCaster` let the player choose which live member casts (owner's stats used), via
+a `.bCaster` "Cast with" picker in BattleScreen. Units gained `baseStats` (`state.makeUnit`). **Balance
+harness** `npm run balance:formations` (`__balance__.mjs`, abstract focus-fire sim, mirrors ~50/50) drove
+the tuning: WIDE-vs-TALL now ~70/30 (was 100/0; a lower bound for tall — the bot undervalues protected
+casters/resilience). `test:formations` 14, all battle suites green. **NEXT:** per-creature kit decks (so
+support casts ITS cards), formation-synergy cards, smarter enemy AI, then re-tune with varied stats.
+
+
+
 **🧭 ONBOARDING + HUB PLAY BUTTONS (v3.156.0, 2026-07-14, Jeton "make it fun" pass, part 4).** (1)
 **First-run coach tips** (BattleScreen `ONB_TIPS`, dismissed-once, persisted to `localStorage`
 `chimera.v2.onboard`): a `welcome` tip on first explore (the run goal + WASD/turn controls) and a

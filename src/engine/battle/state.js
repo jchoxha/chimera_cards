@@ -13,7 +13,9 @@
 
 /** A single battle creature. Step-2/3 unit. */
 export function makeUnit({ id, side, squadId = id, stats, hp, maxHp, block = 0, statuses = [] }) {
-  return { id, side, squadId, stats: { ...stats }, hp: hp ?? maxHp, maxHp: maxHp ?? hp, block, statuses: [...statuses] };
+  // baseStats = the creature's own line; `stats` is the EFFECTIVE line (base + formation auras,
+  // recomputed each round by applyFormationAuras). They start equal.
+  return { id, side, squadId, baseStats: { ...stats }, stats: { ...stats }, hp: hp ?? maxHp, maxHp: maxHp ?? hp, block, statuses: [...statuses] };
 }
 
 /** A squad: an ordered member list (index 0 default front), per-squad energy. */

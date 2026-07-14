@@ -10,7 +10,46 @@
 // ║ UPDATE WHEN: energy rules, the commit shape, or win/loss change.           ║
 // ╚══════════════════════════════════════════════════════════════════╝
 import { resolveRound } from './round.js';
-import { liveUnits } from './state.js';
+import { liveUnits, liveFrontUnit, isAlive } from './state.js';
+
+// ── FORMATIONS (docs/formations-design.md) ───────────────────────────────────
+// Per-squad energy scales with LIVE size, so concentrating creatures buys bigger single plays
+// while many solo squads buy more total actions (a wide-vs-tall tradeoff). Tunable.
+export const ENERGY_PER_MEMBER = 2;         // ≈2 energy per living creature (solo 2, duo 4, trio 6)
+export const ENERGY_MIN = 2;                // solo-squad floor
+// Each living SUPPORT empowers its Vanguard by an aura keyed to the support's build: a defensive
+// support hardens the front (+Defense), an offensive one sharpens it (+Attack). Flat per support.
+export const AURA_DEFENSE = 6;
+export const AURA_ATTACK = 5;
+
+/** A squad's energy for the round. Energy is ~constant PER creature (≈2 each) so splitting into
+ *  many squads does NOT hand you more total actions — the wide-vs-tall choice is about protection
+ *  & concentration, not raw economy. A small solo floor keeps 1-creature squads playable. */
+export function squadEnergyFor(state, squad) {
+  const live = squad.memberIds.reduce((n, id) => n + (isAlive(state.unitsById[id]) ? 1 : 0), 0);
+  if (live <= 0) return 0;
+  return Math.max(ENERGY_MIN, live * ENERGY_PER_MEMBER);
+}
+
+/** Recompute every unit's EFFECTIVE stats = base + formation auras from its living Support.
+ *  Resets to base first, then stacks each support's aura onto the squad's live Vanguard. */
+export function applyFormationAuras(state) {
+  for (const squad of Object.values(state.squadsById || {})) {
+    const members = squad.memberIds.map((id) => state.unitsById[id]).filter(Boolean);
+    for (const u of members) { u.stats = { ...u.baseStats }; u.formation = null; }
+    const front = liveFrontUnit(state, squad);
+    if (!front) continue;
+    let aAtk = 0, aDef = 0;
+    for (const u of members) {
+      if (u === front || !isAlive(u)) continue;                 // supports = the other live members
+      if (u.baseStats.attack > u.baseStats.defense) aAtk += AURA_ATTACK; else aDef += AURA_DEFENSE;
+    }
+    if (aAtk || aDef) {
+      front.stats = { ...front.baseStats, attack: front.baseStats.attack + aAtk, defense: front.baseStats.defense + aDef };
+      front.formation = { attack: aAtk, defense: aDef };        // surfaced to the UI as a pip
+    }
+  }
+}
 
 /** Energy cost of one committed action (card cost, or a reposition's cost). Basics = 1. */
 export function actionCost(action) {
@@ -59,10 +98,14 @@ export function flattenPlans(plansBySide) {
   return out;
 }
 
-/** Start-of-round: refresh every squad's energy to its max (StS-style, no carry-over).
- *  (Hand draw from the shared deck lands with the deck/hand layer.) */
+/** Start-of-round: recompute formation auras, then size-scale + refresh every squad's energy
+ *  (StS-style, no carry-over). (Hand draw from the shared deck lands with the deck/hand layer.) */
 export function startRound(state) {
-  for (const squad of Object.values(state.squadsById || {})) squad.energy = squad.maxEnergy;
+  applyFormationAuras(state);
+  for (const squad of Object.values(state.squadsById || {})) {
+    squad.maxEnergy = squadEnergyFor(state, squad);
+    squad.energy = squad.maxEnergy;
+  }
 }
 
 /** Who has won? A side is defeated when it has no living units. */
