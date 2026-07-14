@@ -6,6 +6,12 @@
 
 /** @type {{version:string, date:string, notes:string[]}[]} newest first */
 export const CHANGELOG = [
+  { version: 'v3.152.0', date: '2026-07-14', notes: [
+    'THE RUN LOOP IS HERE: winning a fight now rewards you — pick 1 of 3 cards to add to a squad’s deck, earn gold, and optionally CAPTURE one of the defeated creatures onto your team.',
+    'Every world now has a GOAL: a golden-star BOSS dungeon (the chunk farthest from your start). Beat it to win the run.',
+    'Losing (party wiped) ends the run with a New Run button; winning the boss shows a run-complete screen. New runs reroll the world, party and gold.',
+    'Gold is tracked in the top-left while exploring; the boss chunk shows as a gold star on the minimap.',
+  ] },
   { version: 'v3.151.0', date: '2026-07-13', notes: [
     'Fixed the ground plane poking through the new hills — the rolling terrain now only ever rises above the base, so nothing phases through it.',
     'During a battle only the trees/props inside the actual playing area are hidden now; distant flora on nearby chunks stays, so fights still feel like they’re in the world.',

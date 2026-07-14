@@ -21,7 +21,6 @@ function Shell() {
   const gridH = useWorld((s) => s.gridH);
   const pendingEnemy = useWorld((s) => s.pendingEnemy);
   const battleChunk = useWorld((s) => s.battleChunk);
-  const party = useWorld((s) => s.party);
   const facing = useWorld((s) => s.facing);
   const turns = useWorld((s) => s.turns);
   const step = useWorld((s) => s.step);
@@ -30,12 +29,25 @@ function Shell() {
   const closeEvent = useWorld((s) => s.closeEvent);
   const winBattle = useWorld((s) => s.winBattle);
   const fleeBattle = useWorld((s) => s.fleeBattle);
+  const reward = useWorld((s) => s.reward);
+  const runOver = useWorld((s) => s.runOver);
+  const gold = useWorld((s) => s.gold);
+  const runSeq = useWorld((s) => s.runSeq);
+  const collectReward = useWorld((s) => s.collectReward);
+  const skipReward = useWorld((s) => s.skipReward);
+  const loseRun = useWorld((s) => s.loseRun);
+  const newRun = useWorld((s) => s.newRun);
   const biome = grid[`${pos.x},${pos.y}`]?.biome || 'forest';
 
-  // Build the party board ONCE (peaceful, no enemies). It is NEVER rebuilt after this, so the
-  // party's HP + decks PERSIST across chunks + fights.
+  // Build the party board ONCE per RUN (peaceful, no enemies). It is not rebuilt within a run, so
+  // the party's HP + decks PERSIST across chunks + fights; a NEW run (runSeq bump) re-boots it.
   const booted = useRef(false);
-  useEffect(() => { if (!booted.current) { booted.current = true; useBattle.getState().startBattle({ player: party, enemy: [] }); } }, [party]);
+  const bootedSeq = useRef(-1);
+  useEffect(() => {
+    if (bootedSeq.current === runSeq) return;
+    bootedSeq.current = runSeq; booted.current = true;
+    useBattle.getState().startBattle({ player: useWorld.getState().party, enemy: [] });
+  }, [runSeq]);
 
   // enter a fight → drop enemies onto the SAME board; return to explore → strip them off. The
   // party state is untouched either way (persistence).
@@ -59,13 +71,23 @@ function Shell() {
       <BattleScreen
         sceneBiome={biome}
         worldMode={mode}
-        world={{ gridW, gridH, grid, pos, biome, facing, turns }}
+        world={{ gridW, gridH, grid, pos, biome, facing, turns, gold }}
         event={event}
         onCloseEvent={() => { if (event?.kind === 'town') useBattle.getState().healParty(); closeEvent(); }}
+        reward={reward}
+        onCollectReward={(sel) => {
+          const bs = useBattle.getState();
+          if (sel?.card && sel?.squadId) bs.grantCard(sel.squadId, sel.card);
+          if (sel?.capture) bs.addPlayerCreature(sel.capture);
+          collectReward(sel);
+        }}
+        onSkipReward={skipReward}
+        runOver={runOver}
+        onNewRun={newRun}
         onStep={step}
         onTurn={turn}
         onFlee={fleeBattle}
-        onBattleEnd={(r) => (r === 'win' ? winBattle() : fleeBattle())} />
+        onBattleEnd={(r) => (r === 'win' ? winBattle() : loseRun())} />
       {flash && <div style={{ position: 'fixed', inset: 0, zIndex: 9000, background: BIOMES[biome]?.fog || '#0c0805', pointerEvents: 'none', animation: 'shellFlash .38s ease-out forwards' }} />}
       <style>{'@keyframes shellFlash{from{opacity:.7}to{opacity:0}}'}</style>
     </>

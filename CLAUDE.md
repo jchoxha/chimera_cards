@@ -6,6 +6,24 @@ a single-file Claude artifact now split into ES modules.
 
 ## ⚑ Project state — read this first (updated 2026-06-18)
 
+**🎯 THE RUN LOOP — rewards + capture + gold + boss goal (v3.152.0, 2026-07-14, Jeton "make it fun"
+pass, milestone 1).** The seamless overworld is now a real StS×Pokémon RUN, not a sandbox — the biggest
+fun-blocker (winning gave nothing) is fixed. (1) **Rewards on win:** `battleStore` gained a `REWARD_POOL`
+(10 cards using ONLY the mechanically-live effects — damage/multi-hit/block/heal/poison-DoT/regen — so a
+reward always changes play) + `draftReward(n)` (rarity-weighted) + `grantCard(sqId, def)` (adds a card
+instance to a squad's persistent deck). `worldStore.winBattle` now sets `reward = { gold, cards:[3],
+captable, isBoss }`; a `WorldMini`-adjacent **reward overlay** (BattleScreen `wReward*`) lets you pick 1
+of 3 cards → assign to a squad, and optionally CAPTURE one defeated creature. (2) **Capture:**
+`battleStore.addPlayerCreature(creature)` inserts a NEW player squad into the live persistent board
+(capped 6); `worldStore.collectReward` appends it to `party`. (3) **Gold:** `worldStore.gold` (tracked
+top-left while exploring). (4) **THE GOAL:** `makeGrid` marks the chunk FARTHEST from spawn as a
+`boss` dungeon (gold ★ on the minimap); beating it → `runOver:'win'` → run-complete screen. A party wipe
+→ `onBattleEnd('lose')` → `loseRun()` → `runOver:'lose'`. Both offer **New Run** (`newRun()` rerolls
+world+party+gold, bumps `runSeq` so the shell re-boots the board). **NEXT (milestone 2):** town SHOP
+(spend gold) + real event choices; then combat feel/clarity, then an art pass. *(decks are still the
+shared DEMO set + reward cards; per-creature kit decks land later.)*
+
+
 **🧭 OVERWORLD FIX PASS — hills don't clip, play-area-only prop cull, continuous turn, radar minimap
 (v3.151.0, 2026-07-13, Jeton).** Four fixes on the v3.150 overworld. (1) **No base clip:**
 `terrainHeight` rewritten to always-positive terms (∈[0,3.1]) so hills only RISE above the biome base

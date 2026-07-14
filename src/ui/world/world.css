@@ -48,6 +48,49 @@
 .wEventBtn:active { transform: translateY(2px); box-shadow: 0 2px 0 #7a5a12; }
 @keyframes wEvPop { from { transform: scale(.9); opacity: 0; } to { transform: scale(1); opacity: 1; } }
 
+/* gold readout in the explore top-left HUD */
+.wGoldHud { color: #ffd24a !important; }
+.wGoldHud iconify-icon { color: #ffd24a; }
+
+/* ── post-victory REWARD overlay ── */
+.wReward { width: min(860px, 94vw); max-height: 92vh; overflow: auto; padding: 18px 20px 16px; border-radius: 16px;
+  background: linear-gradient(170deg, #241812, #150d08); border: 1px solid var(--gold-deep); box-shadow: 0 24px 60px #000c;
+  animation: wEvPop .2s cubic-bezier(.2,1.1,.3,1); }
+.wRewardHead { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 12px;
+  font: 700 22px var(--font-display); color: var(--gold-bright); }
+.wRewardHead iconify-icon { vertical-align: -2px; margin-right: 4px; }
+.wGoldTag { font: 700 16px var(--font-display); color: #ffd24a; }
+.wRewardBody { display: flex; flex-direction: column; gap: 14px; }
+.wRewardCol { width: 100%; }
+.wRewardCol h4 { margin: 6px 0 8px; font: 700 13px var(--font-display); letter-spacing: .04em; color: var(--gold-bright); text-transform: uppercase; }
+.wRewardCol h4 em { font-style: normal; color: var(--ink-dim); font-weight: 600; text-transform: none; }
+.wRewardCards { display: flex; gap: 10px; justify-content: flex-start; }
+.wRewardCard { flex: 0 1 200px; padding: 0; background: none; border: 2px solid transparent; border-radius: 12px; cursor: pointer; transition: transform .12s, border-color .12s; }
+.wRewardCard:hover { transform: translateY(-3px); }
+.wRewardCard.sel { border-color: var(--gold-bright); box-shadow: 0 0 14px #f0c84a66; }
+.wRewardSquads { display: flex; flex-direction: column; gap: 6px; margin-bottom: 6px; }
+.wRewardSquad { display: flex; align-items: baseline; gap: 8px; text-align: left; padding: 7px 11px; border-radius: 9px; cursor: pointer;
+  background: #1a120b; border: 1px solid var(--line); color: var(--cream, #f6e7b0); font: 600 13px var(--font-body); }
+.wRewardSquad b { color: var(--gold-bright); font: 700 13px var(--font-display); }
+.wRewardSquad span { color: var(--ink-dim); font-size: 12px; }
+.wRewardSquad.sel { border-color: var(--gold-bright); background: #2a1d10; }
+.wRewardCaps { display: flex; flex-wrap: wrap; gap: 8px; }
+.wRewardCap { position: relative; width: 84px; padding: 6px; border-radius: 10px; cursor: pointer; text-align: center;
+  background: #1a120b; border: 1px solid var(--line); color: var(--cream, #f6e7b0); }
+.wRewardCap.sel { border-color: #6ab4ff; box-shadow: 0 0 12px #6ab4ff55; }
+.wRewardCapArt { display: block; width: 100%; height: 66px; border-radius: 7px; overflow: hidden; background: #0d0a07; display: flex; align-items: center; justify-content: center; }
+.wRewardCapArt img { width: 100%; height: 100%; object-fit: cover; }
+.wRewardCapArt iconify-icon { font-size: 30px; color: var(--gold-deep); }
+.wRewardCap em { display: block; margin-top: 4px; font: 600 11px var(--font-body); font-style: normal; line-height: 1.2; }
+.wRewardCapChk { position: absolute; top: 4px; right: 4px; width: 18px; height: 18px; border-radius: 50%; background: #6ab4ff; color: #05121f; display: flex; align-items: center; justify-content: center; font-size: 12px; }
+.wRewardBtns { display: flex; justify-content: flex-end; gap: 10px; margin-top: 16px; }
+.wRewardSkip { padding: 10px 18px; border-radius: 10px; cursor: pointer; background: #1a120b; border: 1px solid var(--line); color: var(--ink-dim); font: 600 13px var(--font-body); }
+.wRewardSkip:hover { color: var(--cream, #f6e7b0); border-color: var(--gold-deep); }
+.wRewardTake { padding: 10px 22px; border-radius: 10px; cursor: pointer; border: 1px solid var(--gold-bright); color: #16110a;
+  font: 700 14px var(--font-display); letter-spacing: .4px; background: linear-gradient(#f0c84a, #c9922e); box-shadow: 0 4px 0 #7a5a12; }
+.wRewardTake:active { transform: translateY(2px); box-shadow: 0 2px 0 #7a5a12; }
+.wRunOver .wEventIcon { color: #ffd24a; }
+
 .wPad { position: absolute; right: 20px; bottom: 20px; width: 150px; height: 150px; display: grid;
   grid-template-columns: repeat(3, 1fr); grid-template-rows: repeat(3, 1fr); gap: 4px; opacity: .92; }
 .wPad button { border: 1px solid var(--gold-deep); background: linear-gradient(#241a10, #191009); color: var(--gold-bright);

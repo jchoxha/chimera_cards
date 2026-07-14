@@ -35,6 +35,37 @@ const DEMO_DECK = ['strike', 'strike', 'strike', 'jab', 'jab', 'guard', 'guard',
 const inst = (id) => ({ ...DEMO_CARDS[id], iid: `${id}#${uid()}` });
 const makeDeck = () => shuffle(DEMO_DECK.map(inst));
 
+/** REWARD POOL — cards a victory can add to a creature's deck. Every card here uses ONLY the
+ *  mechanically-live effects (damage incl. multi-hit · block · heal · poison DoT · regen), so a
+ *  reward always changes how the fight plays, never a dead pip. `rarity` weights the draft. */
+export const REWARD_POOL = {
+  ironStrike: { id: 'ironStrike', name: 'Iron Strike', cost: 2, type: 'attack', element: 'Physical', priority: 0, scope: 'front', rarity: 'common', effects: [{ op: 'damage', value: 14 }], text: 'Deal 14 damage.' },
+  twinFang: { id: 'twinFang', name: 'Twin Fang', cost: 1, type: 'attack', element: 'Physical', priority: 0, scope: 'targeted', reachesBack: true, rarity: 'common', effects: [{ op: 'damage', value: 5 }, { op: 'damage', value: 5 }], text: 'Deal 5 damage twice to any one creature.' },
+  toxicBite: { id: 'toxicBite', name: 'Toxic Bite', cost: 1, type: 'attack', element: 'Nature', priority: 0, scope: 'front', rarity: 'common', effects: [{ op: 'damage', value: 4 }, { op: 'debuff', value: 4, status: 'poison' }], text: 'Deal 4 damage and apply 4 Poison.' },
+  bulwark: { id: 'bulwark', name: 'Bulwark', cost: 2, type: 'skill', element: 'Stone', priority: 2, scope: 'self', rarity: 'common', effects: [{ op: 'block', value: 16 }], text: 'Priority. Gain 16 Block.' },
+  quake: { id: 'quake', name: 'Quake', cost: 2, type: 'attack', element: 'Physical', priority: 0, scope: 'squad', rarity: 'rare', effects: [{ op: 'damage', value: 9 }], text: 'Deal 9 to an entire enemy squad.' },
+  venomSpray: { id: 'venomSpray', name: 'Venom Spray', cost: 2, type: 'skill', element: 'Nature', priority: 0, scope: 'squad', rarity: 'rare', effects: [{ op: 'debuff', value: 4, status: 'poison' }], text: 'Apply 4 Poison to an enemy squad.' },
+  mend: { id: 'mend', name: 'Mend', cost: 1, type: 'skill', element: 'Holy', priority: 2, scope: 'self', rarity: 'common', effects: [{ op: 'heal', value: 12 }], text: 'Priority. Heal 12 HP.' },
+  renew: { id: 'renew', name: 'Renew', cost: 2, type: 'skill', element: 'Holy', priority: 2, scope: 'squad', rarity: 'rare', effects: [{ op: 'buff', value: 3, status: 'regen' }], text: 'Priority. Give your squad 3 Regen.' },
+  thunderclap: { id: 'thunderclap', name: 'Thunderclap', cost: 3, type: 'attack', element: 'Energy', priority: 0, scope: 'field', rarity: 'epic', effects: [{ op: 'damage', value: 7 }], text: 'Deal 7 to every enemy creature.' },
+  execute: { id: 'execute', name: 'Execute', cost: 2, type: 'attack', element: 'Void', priority: 0, scope: 'targeted', reachesBack: true, rarity: 'epic', effects: [{ op: 'damage', value: 20 }], text: 'Deal 20 to any one creature.' },
+};
+const REWARD_WEIGHT = { common: 5, rare: 3, epic: 1 };
+/** Draft `n` distinct reward cards (rarity-weighted). Returns card DEFS (not instances). */
+export function draftReward(n = 3) {
+  const bag = [];
+  for (const [id, c] of Object.entries(REWARD_POOL)) for (let i = 0; i < (REWARD_WEIGHT[c.rarity] || 1); i++) bag.push(id);
+  const out = [];
+  const seen = new Set();
+  let guard = 0;
+  while (out.length < n && guard++ < 200) {
+    const id = bag[Math.floor(rng() * bag.length)];
+    if (seen.has(id)) continue;
+    seen.add(id); out.push({ ...REWARD_POOL[id] });
+  }
+  return out;
+}
+
 /** Draw `n` cards into hand, reshuffling discard into the deck when it runs dry. */
 function drawInto(p, n) {
   const c = { deck: [...p.deck], hand: [...p.hand], discard: [...p.discard], exhaust: [...p.exhaust] };
@@ -278,6 +309,33 @@ export const useBattle = create((set, get) => ({
     const state = s.state;
     for (const sqId of state.sides.p) for (const id of state.squadsById[sqId].memberIds) { const u = state.unitsById[id]; if (u) { u.hp = u.maxHp; u.block = 0; u.statuses = []; } }   // towns fully restore (revive included)
     set({ state, snapshot: publish({ ...s, state }) });
+  },
+
+  /** REWARD: add a card DEF to a squad's persistent DECK (a victory draft). */
+  grantCard(sqId, cardDef) {
+    const s = get(); if (!s.state || !cardDef) return;
+    const pile = s.cards[sqId]; if (!pile) return;
+    const card = { ...cardDef, iid: `${cardDef.id}#${uid()}` };
+    const cards = { ...s.cards, [sqId]: { ...pile, deck: [...pile.deck, card] } };
+    set({ cards, snapshot: publish({ ...s, cards }) });
+  },
+
+  /** CAPTURE: add a defeated creature to the party as a NEW squad on the live board (the party
+   *  board is never rebuilt, so a capture must be inserted here to persist). Capped so the party
+   *  can't balloon. Returns true if it was added. */
+  addPlayerCreature(creature, maxSquads = 6) {
+    const s = get(); if (!s.state || !creature) return false;
+    const state = s.state;
+    if (state.sides.p.length >= maxSquads) return false;
+    const cards = { ...s.cards };
+    const sqId = `p${state.sides.p.length}_${uid()}`;
+    const u = creatureToUnit(creature, `${sqId}_0`);
+    u.side = 'p'; u.squadId = sqId; state.unitsById[u.id] = u;
+    state.squadsById[sqId] = makeSquad({ id: sqId, side: 'p', memberIds: [u.id] });
+    cards[sqId] = drawInto(emptyPile(), HAND_SIZE);
+    state.sides.p = [...state.sides.p, sqId];
+    set({ state, cards, snapshot: publish({ ...s, state, cards }) });
+    return true;
   },
 
   /** Cosmetically reorder a squad's HAND (move card `iid` to `index`). Persists until the

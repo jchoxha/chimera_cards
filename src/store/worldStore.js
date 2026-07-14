@@ -11,6 +11,7 @@ import { create } from 'zustand';
 import { buildRoster, ROSTER as ROSTER_ENTRIES } from '../data/roster.js';
 import { POOLS, rosterPool } from '../app/pools.js';
 import { BIOMES } from '../ui/battle/SceneEnv.jsx';
+import { draftReward } from './battleStore.js';
 
 const ROSTER = buildRoster(POOLS, POOLS.Warrior || [], rosterPool);
 const IDS = ROSTER_ENTRIES.map((r) => r.id);
@@ -63,6 +64,10 @@ function makeGrid(seed) {
       chunks[key(x, y)] = { x, y, biome, kind, cleared: false, seed: (x * 7 + y * 13) % 5 };
     }
   }
+  // THE GOAL: the chunk FARTHEST from spawn becomes the BOSS dungeon — beating it wins the run.
+  let far = null, fd = -1;
+  for (const k in chunks) { const c = chunks[k]; const d = Math.abs(c.x - spawn.x) + Math.abs(c.y - spawn.y); if (d > fd) { fd = d; far = c; } }
+  if (far) { far.kind = 'dungeon'; far.boss = true; far.cleared = false; }
   return chunks;
 }
 
@@ -89,6 +94,10 @@ export const useWorld = create((set, get) => ({
   pendingBiome: 'forest',      // the biome the current battle is fought on
   battleChunk: null,
   event: null,                 // { kind:'town'|'event', chunkKey, title, icon, text }
+  reward: null,                // post-victory draft: { gold, cards:[3], captable:[creatures], isBoss }
+  runOver: null,               // 'win' (boss beaten) | 'lose' (party wiped) — ends the run
+  gold: 0,
+  runSeq: 0,                   // bumped by newRun() so the shell re-boots the battle board
   moveSeq: 0,
 
   keyOf: key,
@@ -129,7 +138,7 @@ export const useWorld = create((set, get) => ({
   enterBattle(chunkKey) {
     const s = get();
     const ch = chunkKey ? s.grid[chunkKey] : null;
-    const tough = ch?.kind === 'dungeon';
+    const tough = ch?.kind === 'dungeon' || !!ch?.boss;
     set({ mode: 'battle', pendingEnemy: enemyFor(ch?.seed ?? 0, tough), pendingBiome: ch?.biome || 'forest', battleChunk: chunkKey || null });
   },
 
@@ -146,8 +155,36 @@ export const useWorld = create((set, get) => ({
   winBattle() {
     const s = get();
     const grid = { ...s.grid };
-    if (s.battleChunk && grid[s.battleChunk]) grid[s.battleChunk] = { ...grid[s.battleChunk], cleared: true };
-    set({ mode: 'explore', grid, pendingEnemy: null, battleChunk: null });
+    const ch = s.battleChunk ? grid[s.battleChunk] : null;
+    if (ch) grid[s.battleChunk] = { ...ch, cleared: true };
+    const isBoss = !!ch?.boss;
+    // reward: gold + a 3-card draft + capture options drawn from the DEFEATED enemy squads.
+    const gold = (isBoss ? 60 : 22) + Math.floor(Math.random() * 14);
+    const captable = (s.pendingEnemy || []).flatMap((sq) => sq.creatures).slice(0, 3);
+    const reward = { gold, cards: draftReward(3), captable, isBoss };
+    set({ mode: 'explore', grid, pendingEnemy: null, battleChunk: null, gold: s.gold + gold, reward, runOver: isBoss ? 'win' : null });
+  },
+
+  /** Apply the reward selection (worldStore side): append a captured creature to the party +
+   *  clear the overlay. The card grant / battle-board capture happen in the shell (it owns the
+   *  battle store), same pattern as healParty on town close. */
+  collectReward(sel) {
+    const s = get(); if (!s.reward) return;
+    const party = sel?.capture ? [...s.party, { creatures: [sel.capture] }] : s.party;
+    set({ reward: null, party });
+  },
+  skipReward() { set({ reward: null }); },
+
+  /** Party wiped → the run ends. */
+  loseRun() { const s = get(); set({ mode: 'explore', runOver: 'lose', pendingEnemy: null, battleChunk: null, pos: s.prevPos || s.pos }); },
+
+  /** Start a FRESH run: new world, new party, gold reset. Bumps runSeq so the shell re-boots
+   *  the battle board with the new party. */
+  newRun() {
+    const s = get();
+    set({ mode: 'explore', grid: makeGrid((Math.floor(Math.random() * 1e9)) | 0), pos: { x: 2, y: 3 }, prevPos: { x: 2, y: 3 },
+      facing: 0, turns: 0, party: makeParty(), pendingEnemy: null, battleChunk: null, event: null,
+      reward: null, runOver: null, gold: 0, moveSeq: s.moveSeq + 1, runSeq: s.runSeq + 1 });
   },
 
   fleeBattle() {

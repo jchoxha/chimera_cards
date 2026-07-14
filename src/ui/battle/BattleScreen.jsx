@@ -96,6 +96,15 @@ function miniDots(x, y) {
   for (let i = 0; i < n; i++) out.push([0.18 + rnd() * 0.64, 0.18 + rnd() * 0.64]);
   return out;
 }
+// a 5-point star path centred at (cx,cy) with outer/inner radii — marks the BOSS goal chunk.
+function starPath(cx, cy, ro, ri) {
+  let d = '';
+  for (let i = 0; i < 10; i++) {
+    const r = i % 2 ? ri : ro, a = (Math.PI / 5) * i - Math.PI / 2;
+    d += `${i ? 'L' : 'M'} ${(cx + Math.cos(a) * r).toFixed(1)} ${(cy + Math.sin(a) * r).toFixed(1)} `;
+  }
+  return d + 'Z';
+}
 function WorldMini({ world }) {
   const { grid, pos, facing, gridW, gridH } = world;
   const N = MINI_R * 2 + 1, S = 150, cell = S / N;
@@ -116,7 +125,10 @@ function WorldMini({ world }) {
             {ch && miniDots(t.gx, t.gy).map(([fx, fy], i) => (
               <circle key={i} cx={t.cx + fx * cell} cy={t.cy + fy * cell} r={1.5} fill={treeCol(ch.biome)} opacity={0.9} />
             ))}
-            {ch && !ch.cleared && MK_COLOR[ch.kind] && (
+            {ch && !ch.cleared && ch.boss && (
+              <path d={starPath(t.cx + cell / 2, t.cy + cell / 2, cell * 0.28, cell * 0.13)} fill="#ffd24a" stroke="#000a" strokeWidth={1} />
+            )}
+            {ch && !ch.cleared && !ch.boss && MK_COLOR[ch.kind] && (
               <circle cx={t.cx + cell / 2} cy={t.cy + cell / 2} r={cell * 0.18} fill={MK_COLOR[ch.kind]} stroke="#000a" strokeWidth={1} />
             )}
           </g>
@@ -131,7 +143,7 @@ function WorldMini({ world }) {
   );
 }
 
-export default function BattleScreen({ onFlee, onBattleEnd, initialScene, sceneBiome, worldMode = 'battle', world = null, event = null, onCloseEvent, onStep, onTurn } = {}) {
+export default function BattleScreen({ onFlee, onBattleEnd, initialScene, sceneBiome, worldMode = 'battle', world = null, event = null, onCloseEvent, reward = null, onCollectReward, onSkipReward, runOver = null, onNewRun, onStep, onTurn } = {}) {
   const exploring = worldMode === 'explore';
   const snap = useBattle((s) => s.snapshot);
   const selectSquad = useBattle((s) => s.selectSquad);
@@ -188,6 +200,9 @@ export default function BattleScreen({ onFlee, onBattleEnd, initialScene, sceneB
   const [camOpen, setCamOpen] = useState(false);             // camera-control pad shown/hidden
   const [autoCam, setAutoCam] = useState(true);              // auto-frame the camera on card interaction
   const [scene, setScene] = useState(sceneBiome || initialScene || 'forest');   // backdrop (chunk biome | grid=admin)
+  // post-victory reward selection: which of the 3 cards, which squad gets it, optional capture.
+  const [rwPick, setRwPick] = useState({ cardIdx: 0, squadId: null, capIdx: null });
+  useEffect(() => { if (reward) setRwPick({ cardIdx: 0, squadId: null, capIdx: null }); }, [reward]);
   // in the seamless world the scene FOLLOWS the current chunk's biome (unless in the admin grid).
   useEffect(() => { if (sceneBiome) setScene((v) => (v === 'grid' ? 'grid' : sceneBiome)); }, [sceneBiome]);
   // exploring: W / ↑ walk FORWARD (in the facing direction); A/D / ←/→ TURN left/right.
@@ -682,7 +697,8 @@ export default function BattleScreen({ onFlee, onBattleEnd, initialScene, sceneB
         {/* TOP-LEFT: exploring → the biome name; fighting → the turn tracker + battle clock */}
         <div className="bTopLeft">
           {exploring
-            ? <div className="bTurn"><b><Icon icon="tabler:compass" /> {BIOMES[scene]?.name || 'Overworld'}</b></div>
+            ? <><div className="bTurn"><b><Icon icon="tabler:compass" /> {BIOMES[scene]?.name || 'Overworld'}</b></div>
+                <div className="bTimer wGoldHud" title="Gold"><Icon icon="tabler:coin" />{world?.gold ?? 0}</div></>
             : <>
                 <div className="bTurn"><b>Turn {displayTurn}</b></div>
                 <div className="bTimer" title="Battle time"><Icon icon="tabler:clock" />{battleClock}</div>
@@ -873,6 +889,75 @@ export default function BattleScreen({ onFlee, onBattleEnd, initialScene, sceneB
             <h3>{event.title}</h3>
             <p>{event.text}</p>
             <button className="wEventBtn" onClick={onCloseEvent}>Continue</button>
+          </div>
+        </div>
+      )}
+
+      {/* POST-VICTORY REWARD — pick a card for a squad + optionally capture a defeated creature. */}
+      {reward && !runOver && (
+        <div className="wEventWrap">
+          <div className="wReward" onClick={(e) => e.stopPropagation()}>
+            <div className="wRewardHead"><span><Icon icon="tabler:trophy" /> Victory!</span><span className="wGoldTag"><Icon icon="tabler:coin" /> +{reward.gold} gold</span></div>
+            <div className="wRewardBody">
+              <div className="wRewardCol">
+                <h4><Icon icon="tabler:cards" /> Choose a card</h4>
+                <div className="wRewardCards">
+                  {reward.cards.map((c, i) => (
+                    <button key={c.id} className={`wRewardCard${rwPick.cardIdx === i ? ' sel' : ''}`} onClick={() => setRwPick((p) => ({ ...p, cardIdx: i }))}>
+                      <ActionCard card={c} />
+                    </button>
+                  ))}
+                </div>
+                <h4><Icon icon="tabler:users-group" /> Give it to</h4>
+                <div className="wRewardSquads">
+                  {snap.player.map((sq, i) => {
+                    const effId = rwPick.squadId || snap.player[0]?.id;
+                    return (
+                      <button key={sq.id} className={`wRewardSquad${effId === sq.id ? ' sel' : ''}`} onClick={() => setRwPick((p) => ({ ...p, squadId: sq.id }))}>
+                        <b>Squad {i + 1}</b><span>{sq.units.map((u) => u.name).join(', ')}</span>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+              {reward.captable?.length > 0 && (
+                <div className="wRewardCol">
+                  <h4><Icon icon="tabler:pokeball" /> Capture a creature? <em>(optional)</em></h4>
+                  <div className="wRewardCaps">
+                    {reward.captable.map((cr, i) => {
+                      const art = sizedPortrait(cr.portrait, cr.form) || (cr.biology ? creatureArt({ id: cr.id, biology: cr.biology, family: cr.family, subtypes: cr.subtypes }) : null);
+                      return (
+                        <button key={i} className={`wRewardCap${rwPick.capIdx === i ? ' sel' : ''}`} onClick={() => setRwPick((p) => ({ ...p, capIdx: p.capIdx === i ? null : i }))}>
+                          <span className="wRewardCapArt">{art ? <img src={art} alt="" /> : <Icon icon="tabler:paw" />}</span>
+                          <em>{cr.name}</em>
+                          {rwPick.capIdx === i && <span className="wRewardCapChk"><Icon icon="tabler:check" /></span>}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+            </div>
+            <div className="wRewardBtns">
+              <button className="wRewardSkip" onClick={() => onSkipReward?.()}>Skip card</button>
+              <button className="wRewardTake" onClick={() => onCollectReward?.({ card: reward.cards[rwPick.cardIdx], squadId: rwPick.squadId || snap.player[0]?.id, capture: rwPick.capIdx != null ? reward.captable[rwPick.capIdx] : null })}>
+                <Icon icon="tabler:check" /> Collect
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* RUN OVER — boss beaten (win) or party wiped (lose). */}
+      {runOver && (
+        <div className="wEventWrap">
+          <div className={`wEvent ${runOver === 'win' ? 'town' : ''} wRunOver`} onClick={(e) => e.stopPropagation()}>
+            <div className="wEventIcon"><Icon icon={runOver === 'win' ? 'tabler:crown' : 'tabler:skull'} /></div>
+            <h3>{runOver === 'win' ? 'Run Complete!' : 'Your Party Fell'}</h3>
+            <p>{runOver === 'win'
+              ? `You conquered the dungeon and won the run with ${world?.gold ?? 0} gold.`
+              : 'Your squads were overwhelmed. The world resets for a new attempt.'}</p>
+            <button className="wEventBtn" onClick={() => onNewRun?.()}><Icon icon="tabler:refresh" /> New Run</button>
           </div>
         </div>
       )}
