@@ -680,7 +680,7 @@ export default function BattleScreen({ onFlee, onBattleEnd, initialScene, sceneB
           raycast-picked so tilted 3D cards stay tappable. Hand/HUD stay DOM below. */}
       <div className="bArena3d">
         <Board3D
-          enemy={snap.enemy.map((sq) => ({ ...sq, units: sq.units.map(disp) }))}
+          enemy={snap.enemy.map((sq) => ({ ...sq, units: sq.units.map((u) => ({ ...disp(u), incoming: anim ? 0 : (snap.incoming?.[u.id] || 0) })) }))}
           player={snap.player.map((sq) => ({ ...sq, units: sq.units.map(disp) }))}
           sel={sel} onStepUp={stepUp} actingId={anim?.acting} focusId={anim?.focus} onPick={onTok} onZone={onZone} pickRef={pickRef} validRef={validRef} zoneRef={zoneRef} fx={fx} drag={d}
           handVisible={showHand} handSquadId={handSquad?.id || null}

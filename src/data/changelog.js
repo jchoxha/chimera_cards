@@ -6,6 +6,11 @@
 
 /** @type {{version:string, date:string, notes:string[]}[]} newest first */
 export const CHANGELOG = [
+  { version: 'v3.154.0', date: '2026-07-14', notes: [
+    'Combat clarity: as you queue attacks, each enemy now shows exactly how much health your plan will remove — a red chip eats into its HP bar and a red “-N” badge appears on the card.',
+    'Lethal telegraph: if your queued plan would KILL an enemy, its badge becomes a glowing skull, so you can see your kills before you commit.',
+    'The preview accounts for real Attack vs Defense and the target’s Block, and it only ever shows YOUR planned damage — never the enemy’s hidden moves.',
+  ] },
   { version: 'v3.153.0', date: '2026-07-14', notes: [
     'TOWNS are now a real stop: rest to fully heal AND browse a card MERCHANT — buy up to three cards (priced by rarity) with your gold and assign each to a squad.',
     'EVENTS now offer a CHOICE with real outcomes: heal your party, take gold, or accept a free card — pick one, then move on.',

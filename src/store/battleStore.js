@@ -11,7 +11,7 @@
 import { create } from 'zustand';
 import { uid, shuffle } from '../utils.js';
 import { buildState, makeUnit, makeSquad, liveFrontUnit, isAlive } from '../engine/battle/state.js';
-import { battleStats } from '../engine/battle/stats.js';
+import { battleStats, attackDamage } from '../engine/battle/stats.js';
 import { resolveBattleRound, startRound, planCost } from '../engine/battle/battle.js';
 import { creatureToFace } from '../ui/combat/creatureVisuals.jsx';
 
@@ -156,9 +156,35 @@ function squadSnap(store, sqId, side) {
   return snap;
 }
 
+/** PREDICTED incoming damage per unit from the player's CURRENTLY QUEUED plan (StS-style intent,
+ *  but for YOUR own moves — never reveals the enemy's). Honors card scope (front/targeted hit the
+ *  target; squad hits its squad; field hits the whole side) and the real Attack÷Defense scaling. */
+function predictIncoming(state, plans) {
+  const inc = {};
+  const add = (id, n) => { if (n > 0) inc[id] = (inc[id] || 0) + n; };
+  const squadOf = (uid) => Object.values(state.squadsById).find((sq) => sq.memberIds.includes(uid));
+  for (const sqId of Object.keys(plans || {})) {
+    for (const a of plans[sqId] || []) {
+      const owner = state.unitsById[a.ownerId], tgt = state.unitsById[a.targetId];
+      if (!owner || !tgt) continue;
+      const card = a.card;
+      const dmgEffs = (card.effects || []).filter((e) => e.op === 'damage');
+      if (!dmgEffs.length) continue;
+      const scope = card.scope || (card.reachesBack ? 'targeted' : 'front');
+      const tsq = squadOf(tgt.id);
+      let targets = [tgt];
+      if (scope === 'field' && tsq) targets = state.sides[tsq.side].flatMap((id) => state.squadsById[id].memberIds.map((m) => state.unitsById[m])).filter((u) => u && isAlive(u));
+      else if (scope === 'squad' && tsq) targets = tsq.memberIds.map((m) => state.unitsById[m]).filter((u) => u && isAlive(u));
+      for (const t of targets) { let per = 0; for (const e of dmgEffs) per += attackDamage(e.value, owner.stats.attack, t.stats.defense); add(t.id, per); }
+    }
+  }
+  return inc;
+}
+
 function publish(store) {
   const { state, selectedSquadId } = store;
   return {
+    incoming: predictIncoming(state, store.plans),
     version: (store.version || 0) + 1,
     phase: store.phase, outcome: store.outcome, log: store.log, dealKey: store.dealKey || 0,
     turn: store.turn || 1, logHistory: store.logHistory || [], startedAt: store.startedAt || null,

@@ -113,6 +113,13 @@ function Card3D({ u, side, x, z, selected, acting, hovered, onPick, onOver, regi
   const greenW = hpFrac * hpW;
   const BLK_W = 0.42;
   const blkX = -hpW / 2 + Math.min(greenW, hpW - BLK_W) + BLK_W / 2;
+  // PREDICTED incoming damage from the player's queued plan: a red "chip loss" segment eating
+  // into the green from the right, + a floating "-N" (skull when it would be lethal).
+  const inc = Math.max(0, u.incoming || 0);
+  const afterBlock = Math.max(0, inc - blk);                    // block soaks first
+  const lethal = !u.dead && inc > 0 && afterBlock >= u.hp;
+  const lossFrac = Math.max(0, Math.min(hpFrac, afterBlock / u.maxHp));
+  const lossW = lossFrac * hpW;
 
   // fully FLAT on the table (face up) — the whole card is one BAKED TCG face; HP is live.
   return (
@@ -142,6 +149,13 @@ function Card3D({ u, side, x, z, selected, acting, hovered, onPick, onOver, regi
           <planeGeometry args={[Math.max(0.001, greenW), 0.12]} />
           <meshBasicMaterial color={hpFrac <= 0.33 ? '#e6603a' : '#3fa860'} />
         </mesh>
+        {/* predicted-loss chip: a red segment at the RIGHT end of the current green health */}
+        {lossW > 0.001 && (
+          <mesh position={[-hpW / 2 + greenW - lossW / 2, 0, 0.004]}>
+            <planeGeometry args={[lossW, 0.12]} />
+            <meshBasicMaterial color="#c8322a" transparent opacity={0.9} />
+          </mesh>
+        )}
         <Label text={`${u.hp}/${u.maxHp}`} position={[-hpW / 2 + 0.27, 0, 0.006]} width={0.52} color="#ffffff" px={34} />
         {blk > 0 && (
           <group position={[blkX, 0, 0.004]}>
@@ -150,6 +164,16 @@ function Card3D({ u, side, x, z, selected, acting, hovered, onPick, onOver, regi
           </group>
         )}
       </group>
+      {/* PREDICTED damage from your queued plan — a red badge at the card's top-right corner
+          (clear of the art + HP bar), with a lethal skull + halo when it would kill. */}
+      {inc > 0 && !u.dead && (
+        <group position={[CARD_W / 2 - 0.02, CARD_H / 2 - 0.04, 0.05]}>
+          {lethal && <mesh position={[0, 0, -0.004]}><circleGeometry args={[0.42, 24]} /><meshBasicMaterial color="#ff3b2f" transparent opacity={0.45} depthWrite={false} /></mesh>}
+          <mesh><circleGeometry args={[0.32, 28]} /><meshBasicMaterial color={lethal ? '#6e0d0d' : '#170707'} transparent opacity={0.94} depthWrite={false} /></mesh>
+          <mesh><ringGeometry args={[0.3, 0.34, 28]} /><meshBasicMaterial color={lethal ? '#ff5a4a' : '#c8322a'} transparent opacity={0.95} depthWrite={false} /></mesh>
+          <Label text={lethal ? '☠' : (afterBlock > 0 ? `-${afterBlock}` : '🛡')} position={[0, 0, 0.006]} width={0.52} color={lethal ? '#ffd0c6' : '#ff6a5a'} px={lethal ? 60 : 46} />
+        </group>
+      )}
       {/* DEFEATED: the card stays on the field but is greyed with a red wash + skull mark */}
       {u.dead && (
         <group>

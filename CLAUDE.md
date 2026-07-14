@@ -6,6 +6,19 @@ a single-file Claude artifact now split into ES modules.
 
 ## ⚑ Project state — read this first (updated 2026-06-18)
 
+**🎯 COMBAT CLARITY — planned-damage preview + lethal telegraph (v3.154.0, 2026-07-14, Jeton "make it
+fun" pass, milestone 3 = part 2/combat feel).** Blind-commit combat was hard to read — you committed
+without seeing what your own plan would do. Fixed with a StS-style **intent preview for YOUR queued
+moves** (never reveals the enemy's): `battleStore.publish` computes `predictIncoming(state, plans)` (per
+card scope front/targeted/squad/field × real `attackDamage(value, attack, defense)`) and exposes
+`snap.incoming` (unitId→predicted dmg). `BattleScreen` attaches `incoming` to each ENEMY unit (planning
+phase only, not during resolution) → `Board3D.Card3D` renders (1) a **red predicted-loss chip** eating
+into the green HP bar (block soaks first), and (2) a **corner badge**: `-N` normally, a glowing **☠ skull**
+when the queued plan is LETHAL. Updates live as you queue/undo. **NEXT (combat feel, remaining):**
+aiming-time preview before queue, clearer valid-target cues, resolution juice; then art pass, onboarding.
+
+
+
 **🎯 THE RUN LOOP — rewards + capture + gold + boss goal (v3.152.0, 2026-07-14, Jeton "make it fun"
 pass, milestone 1).** The seamless overworld is now a real StS×Pokémon RUN, not a sandbox — the biggest
 fun-blocker (winning gave nothing) is fixed. (1) **Rewards on win:** `battleStore` gained a `REWARD_POOL`
