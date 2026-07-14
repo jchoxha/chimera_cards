@@ -7,7 +7,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import { createRoot } from 'react-dom/client';
 import '../ui/theme.css';
 import BattleScreen from '../ui/battle/BattleScreen.jsx';
-import { useBattle } from '../store/battleStore.js';
+import { useBattle, draftReward } from '../store/battleStore.js';
 import { useWorld, enemyFor } from '../store/worldStore.js';
 import { BIOMES } from '../ui/battle/SceneEnv.jsx';
 
@@ -37,7 +37,27 @@ function Shell() {
   const skipReward = useWorld((s) => s.skipReward);
   const loseRun = useWorld((s) => s.loseRun);
   const newRun = useWorld((s) => s.newRun);
+  const addGold = useWorld((s) => s.addGold);
+  const spendGold = useWorld((s) => s.spendGold);
+  const markBought = useWorld((s) => s.markBought);
   const biome = grid[`${pos.x},${pos.y}`]?.biome || 'forest';
+
+  const firstSquadId = () => useBattle.getState().snapshot?.player?.[0]?.id || null;
+  // a town-shop purchase: spend gold, add the card to the chosen squad, mark it sold.
+  const buyShopCard = (idx, squadId) => {
+    const ev = useWorld.getState().event; const item = ev?.shop?.[idx];
+    if (!item || (ev.bought || []).includes(idx)) return;
+    if (!spendGold(item.price)) return;
+    useBattle.getState().grantCard(squadId || firstSquadId(), item.card);
+    markBought(idx);
+  };
+  // an event choice boon: heal · gold · a free drafted card (to the front squad).
+  const takeEventChoice = (choice) => {
+    if (choice?.kind === 'heal') useBattle.getState().healParty();
+    else if (choice?.kind === 'gold') addGold(choice.amount || 0);
+    else if (choice?.kind === 'card') useBattle.getState().grantCard(firstSquadId(), draftReward(1)[0]);
+    closeEvent();
+  };
 
   // Build the party board ONCE per RUN (peaceful, no enemies). It is not rebuilt within a run, so
   // the party's HP + decks PERSIST across chunks + fights; a NEW run (runSeq bump) re-boots it.
@@ -74,6 +94,8 @@ function Shell() {
         world={{ gridW, gridH, grid, pos, biome, facing, turns, gold }}
         event={event}
         onCloseEvent={() => { if (event?.kind === 'town') useBattle.getState().healParty(); closeEvent(); }}
+        onEventChoice={takeEventChoice}
+        onBuyCard={buyShopCard}
         reward={reward}
         onCollectReward={(sel) => {
           const bs = useBattle.getState();

@@ -91,6 +91,26 @@
 .wRewardTake:active { transform: translateY(2px); box-shadow: 0 2px 0 #7a5a12; }
 .wRunOver .wEventIcon { color: #ffd24a; }
 
+/* ── town SHOP + event CHOICES ── */
+.wEvent.wTown { width: min(720px, 94vw); }
+.wShopWrap { margin: 4px 0 14px; }
+.wShopSquadPick { display: flex; align-items: center; gap: 6px; justify-content: center; margin-bottom: 12px; flex-wrap: wrap; }
+.wShopLbl { font: 600 12px var(--font-body); color: var(--ink-dim); }
+.wShopSquad { padding: 5px 12px; border-radius: 8px; cursor: pointer; background: #1a120b; border: 1px solid var(--line); color: var(--cream, #f6e7b0); font: 700 12px var(--font-display); }
+.wShopSquad.sel { border-color: var(--gold-bright); background: #2a1d10; color: var(--gold-bright); }
+.wShop { display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; }
+.wShopItem { display: flex; flex-direction: column; align-items: center; gap: 8px; width: 200px; }
+.wShopBuy { width: 100%; padding: 8px 0; border-radius: 9px; cursor: pointer; border: 1px solid var(--gold-bright); color: #16110a;
+  font: 700 14px var(--font-display); background: linear-gradient(#f0c84a, #c9922e); box-shadow: 0 3px 0 #7a5a12; display: inline-flex; align-items: center; justify-content: center; gap: 5px; }
+.wShopBuy:active:not(:disabled) { transform: translateY(2px); box-shadow: 0 1px 0 #7a5a12; }
+.wShopBuy:disabled { cursor: default; opacity: .55; box-shadow: none; }
+.wShopBuy.sold { background: #2a3a22; border-color: #4a6b38; color: #bfe0a0; }
+.wChoices { display: flex; flex-direction: column; gap: 10px; margin: 4px 0 6px; }
+.wChoiceBtn { padding: 13px 18px; border-radius: 11px; cursor: pointer; background: linear-gradient(#241a10, #191009); border: 1px solid var(--gold-deep);
+  color: var(--gold-bright); font: 700 15px var(--font-display); letter-spacing: .02em; display: inline-flex; align-items: center; justify-content: center; gap: 8px; transition: border-color .12s, transform .1s; }
+.wChoiceBtn:hover { border-color: var(--gold-bright); background: linear-gradient(#2e2114, #201509); }
+.wChoiceBtn:active { transform: translateY(1px); }
+
 .wPad { position: absolute; right: 20px; bottom: 20px; width: 150px; height: 150px; display: grid;
   grid-template-columns: repeat(3, 1fr); grid-template-rows: repeat(3, 1fr); gap: 4px; opacity: .92; }
 .wPad button { border: 1px solid var(--gold-deep); background: linear-gradient(#241a10, #191009); color: var(--gold-bright);

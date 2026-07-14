@@ -6,6 +6,10 @@
 
 /** @type {{version:string, date:string, notes:string[]}[]} newest first */
 export const CHANGELOG = [
+  { version: 'v3.153.0', date: '2026-07-14', notes: [
+    'TOWNS are now a real stop: rest to fully heal AND browse a card MERCHANT — buy up to three cards (priced by rarity) with your gold and assign each to a squad.',
+    'EVENTS now offer a CHOICE with real outcomes: heal your party, take gold, or accept a free card — pick one, then move on.',
+  ] },
   { version: 'v3.152.0', date: '2026-07-14', notes: [
     'THE RUN LOOP IS HERE: winning a fight now rewards you — pick 1 of 3 cards to add to a squad’s deck, earn gold, and optionally CAPTURE one of the defeated creatures onto your team.',
     'Every world now has a GOAL: a golden-star BOSS dungeon (the chunk farthest from your start). Beat it to win the run.',

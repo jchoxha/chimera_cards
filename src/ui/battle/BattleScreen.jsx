@@ -143,7 +143,7 @@ function WorldMini({ world }) {
   );
 }
 
-export default function BattleScreen({ onFlee, onBattleEnd, initialScene, sceneBiome, worldMode = 'battle', world = null, event = null, onCloseEvent, reward = null, onCollectReward, onSkipReward, runOver = null, onNewRun, onStep, onTurn } = {}) {
+export default function BattleScreen({ onFlee, onBattleEnd, initialScene, sceneBiome, worldMode = 'battle', world = null, event = null, onCloseEvent, onEventChoice, onBuyCard, reward = null, onCollectReward, onSkipReward, runOver = null, onNewRun, onStep, onTurn } = {}) {
   const exploring = worldMode === 'explore';
   const snap = useBattle((s) => s.snapshot);
   const selectSquad = useBattle((s) => s.selectSquad);
@@ -203,6 +203,8 @@ export default function BattleScreen({ onFlee, onBattleEnd, initialScene, sceneB
   // post-victory reward selection: which of the 3 cards, which squad gets it, optional capture.
   const [rwPick, setRwPick] = useState({ cardIdx: 0, squadId: null, capIdx: null });
   useEffect(() => { if (reward) setRwPick({ cardIdx: 0, squadId: null, capIdx: null }); }, [reward]);
+  const [shopSquad, setShopSquad] = useState(null);   // which squad a town-shop card is bought for
+  useEffect(() => { if (event?.kind === 'town') setShopSquad(null); }, [event]);
   // in the seamless world the scene FOLLOWS the current chunk's biome (unless in the admin grid).
   useEffect(() => { if (sceneBiome) setScene((v) => (v === 'grid' ? 'grid' : sceneBiome)); }, [sceneBiome]);
   // exploring: W / ↑ walk FORWARD (in the facing direction); A/D / ←/→ TURN left/right.
@@ -881,14 +883,56 @@ export default function BattleScreen({ onFlee, onBattleEnd, initialScene, sceneB
         </>
       )}
 
-      {/* town / event popup (world) */}
+      {/* town = inn + card SHOP · event = a two-way CHOICE. */}
       {event && (
-        <div className="wEventWrap" onClick={onCloseEvent}>
-          <div className={`wEvent ${event.kind}`} onClick={(e) => e.stopPropagation()}>
+        <div className="wEventWrap" onClick={event.kind === 'town' ? undefined : onCloseEvent}>
+          <div className={`wEvent ${event.kind}${event.kind === 'town' ? ' wTown' : ''}`} onClick={(e) => e.stopPropagation()}>
             <div className="wEventIcon"><Icon icon={event.icon} /></div>
             <h3>{event.title}</h3>
             <p>{event.text}</p>
-            <button className="wEventBtn" onClick={onCloseEvent}>Continue</button>
+
+            {/* TOWN SHOP */}
+            {event.kind === 'town' && event.shop && (() => {
+              const effSquad = shopSquad || snap.player[0]?.id;
+              return (
+                <div className="wShopWrap">
+                  <div className="wShopSquadPick">
+                    <span className="wShopLbl">Buy for:</span>
+                    {snap.player.map((sq, i) => (
+                      <button key={sq.id} className={`wShopSquad${effSquad === sq.id ? ' sel' : ''}`} onClick={() => setShopSquad(sq.id)}>Squad {i + 1}</button>
+                    ))}
+                  </div>
+                  <div className="wShop">
+                    {event.shop.map((it, i) => {
+                      const sold = (event.bought || []).includes(i);
+                      const afford = (world?.gold ?? 0) >= it.price;
+                      return (
+                        <div className="wShopItem" key={it.card.id}>
+                          <ActionCard card={it.card} />
+                          <button className={`wShopBuy${sold ? ' sold' : ''}`} disabled={sold || !afford} onClick={() => onBuyCard?.(i, effSquad)}>
+                            {sold ? <><Icon icon="tabler:check" /> Bought</> : <><Icon icon="tabler:coin" /> {it.price}</>}
+                          </button>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              );
+            })()}
+
+            {/* EVENT CHOICES */}
+            {event.kind === 'event' && event.choices && (
+              <div className="wChoices">
+                {event.choices.map((c, i) => (
+                  <button key={i} className="wChoiceBtn" onClick={() => onEventChoice?.(c)}><Icon icon={c.icon} /> {c.label}</button>
+                ))}
+              </div>
+            )}
+
+            {/* town leaves via Rest; events resolve on a choice (no extra button) */}
+            {event.kind === 'town'
+              ? <button className="wEventBtn" onClick={onCloseEvent}><Icon icon="tabler:zzz" /> Rest &amp; Leave</button>
+              : !event.choices && <button className="wEventBtn" onClick={onCloseEvent}>Continue</button>}
           </div>
         </div>
       )}

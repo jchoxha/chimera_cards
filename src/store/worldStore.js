@@ -71,14 +71,21 @@ function makeGrid(seed) {
   return chunks;
 }
 
-// flavour for town / event popups (kept light for the first cut)
+// EVENTS now offer a CHOICE (two boons — take one, then leave). `kind` is resolved by the shell:
+// heal → healParty · gold → addGold · card → grant a drafted card to the front squad.
 const EVENTS = [
-  { title: 'A Wandering Merchant', icon: 'game-icons:hooded-figure', text: 'A cloaked trader offers curios from distant lands. (Shop coming soon.)' },
-  { title: 'Ancient Shrine', icon: 'game-icons:stone-tablet', text: 'You touch a mossy shrine. A calm resolve settles over your squads.' },
-  { title: 'Abandoned Camp', icon: 'game-icons:campfire', text: 'A cold campfire and scattered supplies. You rest a moment before moving on.' },
-  { title: 'Strange Lights', icon: 'game-icons:sparkles', text: 'Lights dance between the trees, then vanish. Curious — but harmless.' },
+  { title: 'A Wandering Merchant', icon: 'game-icons:hooded-figure', text: 'A cloaked trader spreads a blanket of curios. "Take your pick, traveller."',
+    choices: [{ label: 'Accept a gift card', icon: 'tabler:cards', kind: 'card' }, { label: 'Take 22 gold instead', icon: 'tabler:coin', kind: 'gold', amount: 22 }] },
+  { title: 'Ancient Shrine', icon: 'game-icons:stone-tablet', text: 'A mossy shrine hums with old power. You may draw on it to mend or to enrich.',
+    choices: [{ label: 'Meditate — heal the party', icon: 'tabler:heart', kind: 'heal' }, { label: 'Pray — gain 16 gold', icon: 'tabler:coin', kind: 'gold', amount: 16 }] },
+  { title: 'Abandoned Camp', icon: 'game-icons:campfire', text: 'A cold campfire and scattered supplies. Rest a while, or pick the place clean.',
+    choices: [{ label: 'Rest — heal the party', icon: 'tabler:heart', kind: 'heal' }, { label: 'Scavenge — 12 gold', icon: 'tabler:coin', kind: 'gold', amount: 12 }] },
+  { title: 'Strange Lights', icon: 'game-icons:sparkles', text: 'Lights dance between the trees, curious and beckoning.',
+    choices: [{ label: 'Investigate — gain a card', icon: 'tabler:cards', kind: 'card' }, { label: 'Keep your distance — 10 gold', icon: 'tabler:coin', kind: 'gold', amount: 10 }] },
 ];
-const TOWN = { title: 'A Quiet Town', icon: 'game-icons:village', text: 'Lantern-lit streets and a warm inn. Your party recovers here. (Shops & quests coming soon.)' };
+const TOWN = { title: 'A Quiet Town', icon: 'game-icons:village', text: 'Lantern-lit streets and a warm inn. Rest to fully heal, and browse the card merchant.' };
+// shop card price by rarity.
+const SHOP_PRICE = { common: 20, rare: 34, epic: 52 };
 
 export const useWorld = create((set, get) => ({
   mode: 'explore',             // 'battle' | 'explore' — drives which HUD BattleScreen shows (SAME 3D board)
@@ -129,7 +136,11 @@ export const useWorld = create((set, get) => ({
     }
     if (!ch.cleared && (ch.kind === 'town' || ch.kind === 'event')) {
       const info = ch.kind === 'town' ? TOWN : EVENTS[(nx * 3 + ny * 5) % EVENTS.length];
-      set({ prevPos: prev, pos: { x: nx, y: ny }, moveSeq: s.moveSeq + 1, event: { kind: ch.kind, chunkKey: key(nx, ny), ...info } });
+      // town → a card SHOP (3 cards priced by rarity); event → its two CHOICES (built above).
+      const extra = ch.kind === 'town'
+        ? { shop: draftReward(3).map((c) => ({ card: c, price: SHOP_PRICE[c.rarity] || 20 })), bought: [] }
+        : {};
+      set({ prevPos: prev, pos: { x: nx, y: ny }, moveSeq: s.moveSeq + 1, event: { kind: ch.kind, chunkKey: key(nx, ny), ...info, ...extra } });
       return;
     }
     set({ pos: { x: nx, y: ny }, prevPos: prev, moveSeq: s.moveSeq + 1 });
@@ -174,6 +185,12 @@ export const useWorld = create((set, get) => ({
     set({ reward: null, party });
   },
   skipReward() { set({ reward: null }); },
+
+  /** Gold helpers (shop / event boons). spendGold returns false if you can't afford it. */
+  addGold(n) { set((s) => ({ gold: s.gold + n })); },
+  spendGold(n) { const s = get(); if (s.gold < n) return false; set({ gold: s.gold - n }); return true; },
+  /** Mark a town-shop item bought (so it can't be re-purchased). */
+  markBought(idx) { const s = get(); if (!s.event?.shop) return; set({ event: { ...s.event, bought: [...(s.event.bought || []), idx] } }); },
 
   /** Party wiped → the run ends. */
   loseRun() { const s = get(); set({ mode: 'explore', runOver: 'lose', pendingEnemy: null, battleChunk: null, pos: s.prevPos || s.pos }); },

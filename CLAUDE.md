@@ -19,9 +19,15 @@ of 3 cards → assign to a squad, and optionally CAPTURE one defeated creature. 
 top-left while exploring). (4) **THE GOAL:** `makeGrid` marks the chunk FARTHEST from spawn as a
 `boss` dungeon (gold ★ on the minimap); beating it → `runOver:'win'` → run-complete screen. A party wipe
 → `onBattleEnd('lose')` → `loseRun()` → `runOver:'lose'`. Both offer **New Run** (`newRun()` rerolls
-world+party+gold, bumps `runSeq` so the shell re-boots the board). **NEXT (milestone 2):** town SHOP
-(spend gold) + real event choices; then combat feel/clarity, then an art pass. *(decks are still the
-shared DEMO set + reward cards; per-creature kit decks land later.)*
+world+party+gold, bumps `runSeq` so the shell re-boots the board). *(decks are still the shared DEMO set
++ reward cards; per-creature kit decks land later.)*
+**MILESTONE 2 (v3.153.0):** **TOWN SHOP** — the town modal is now an inn + card MERCHANT: `worldStore.move`
+attaches `shop: draftReward(3)` priced by rarity (`SHOP_PRICE` common 20/rare 34/epic 52) + a `bought[]`;
+BattleScreen renders a squad-picker + 3 buyable ActionCards; the shell's `buyShopCard` spends gold
+(`spendGold`) → `grantCard` → `markBought`; "Rest & Leave" heals. **EVENT CHOICES** — each EVENTS entry
+carries two `choices` ({label,icon,kind}); `takeEventChoice` in the shell resolves `heal`→healParty ·
+`gold`→addGold · `card`→grant a drafted card to the front squad, then closes. **NEXT:** combat
+feel/clarity (telegraph intent, juice), then an art pass, then onboarding.
 
 
 **🧭 OVERWORLD FIX PASS — hills don't clip, play-area-only prop cull, continuous turn, radar minimap
