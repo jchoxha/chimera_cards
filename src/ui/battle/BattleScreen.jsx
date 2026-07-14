@@ -569,6 +569,20 @@ export default function BattleScreen({ onFlee, onBattleEnd, initialScene, sceneB
     ? { side: isOffensiveCard(armedCard) ? 'e' : 'p', scope: scopeOf(armedCard), offensive: isOffensiveCard(armedCard) }
     : null;
 
+  // FORECAST of the queued plan (effective damage after block + how many enemies it would drop) —
+  // an at-a-glance summary of snap.incoming for the Fight decision.
+  const forecast = (() => {
+    const inc = snap.incoming || {};
+    let dmg = 0, kills = 0;
+    for (const sq of snap.enemy) for (const u of sq.units) {
+      const i = inc[u.id] || 0; if (i <= 0 || u.dead) continue;
+      const after = Math.max(0, i - (u.block || 0));
+      dmg += Math.min(after, u.hp);
+      if (after >= u.hp) kills++;
+    }
+    return { dmg, kills };
+  })();
+
   // battle clock (mm:ss since start) shown in the topbar; log rows carry their own stamp (en.at)
   const battleSecs = snap.startedAt ? Math.max(0, Math.floor((nowTs - snap.startedAt) / 1000)) : 0;
   const battleClock = `${Math.floor(battleSecs / 60)}:${String(battleSecs % 60).padStart(2, '0')}`;
@@ -817,6 +831,12 @@ export default function BattleScreen({ onFlee, onBattleEnd, initialScene, sceneB
             )}
 
             <div className="bHudCluster right">
+              {forecast.dmg > 0 && (
+                <div className="bForecast" title="Damage your queued plan will deal this turn">
+                  <span className="bfDmg"><Icon icon="game-icons:crossed-swords" /> {forecast.dmg}</span>
+                  {forecast.kills > 0 && <span className="bfKo"><Icon icon="tabler:skull" /> {forecast.kills}</span>}
+                </div>
+              )}
               <button className="bHudBtn run" title="Attempt to flee this battle" disabled={!!snap.outcome} onClick={openRunAway}>
                 <Icon icon="tabler:run" /><span>Run</span>
               </button>

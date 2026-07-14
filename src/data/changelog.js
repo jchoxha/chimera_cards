@@ -6,6 +6,9 @@
 
 /** @type {{version:string, date:string, notes:string[]}[]} newest first */
 export const CHANGELOG = [
+  { version: 'v3.155.0', date: '2026-07-14', notes: [
+    'A plan forecast chip now sits next to the Fight button: it shows the total damage your queued moves will deal this turn, and a skull count if any enemies would be knocked out.',
+  ] },
   { version: 'v3.154.0', date: '2026-07-14', notes: [
     'Combat clarity: as you queue attacks, each enemy now shows exactly how much health your plan will remove — a red chip eats into its HP bar and a red “-N” badge appears on the card.',
     'Lethal telegraph: if your queued plan would KILL an enemy, its badge becomes a glowing skull, so you can see your kills before you commit.',
