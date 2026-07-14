@@ -52,6 +52,29 @@
 .wGoldHud { color: #ffd24a !important; }
 .wGoldHud iconify-icon { color: #ffd24a; }
 
+/* run OBJECTIVE chip (top-left, under the biome + gold) */
+.wGoal { display: inline-flex; align-items: center; gap: 6px; width: fit-content; margin-top: 4px; padding: 4px 10px; border-radius: 8px;
+  background: #1a1207C0; border: 1px solid #6a531f; color: #ffd24a; font: 700 12px var(--font-display); letter-spacing: .02em; }
+.wGoal iconify-icon { font-size: 15px; color: #ffd24a; }
+.wGoal.done { color: #bfe0a0; border-color: #4a6b38; } .wGoal.done iconify-icon { color: #bfe0a0; }
+
+/* first-run COACH tip — a dismissible card, bottom-centre (above the D-pad / dock) */
+.wCoach { position: absolute; left: 50%; bottom: 92px; transform: translateX(-50%); z-index: 40;
+  display: flex; align-items: center; gap: 14px; width: min(560px, 92vw); padding: 14px 16px; border-radius: 14px;
+  background: linear-gradient(160deg, #241812F2, #150d08F2); border: 1px solid var(--gold-deep); box-shadow: 0 16px 44px #000b;
+  animation: wCoachIn .24s cubic-bezier(.2,1.1,.3,1); pointer-events: auto; }
+.wCoachIcon { flex: none; width: 44px; height: 44px; border-radius: 11px; display: flex; align-items: center; justify-content: center;
+  background: #2a1d10; border: 1px solid var(--gold-deep); color: var(--gold-bright); font-size: 26px; }
+.wCoachBody { flex: 1; min-width: 0; }
+.wCoachBody h4 { margin: 0 0 3px; font: 700 15px var(--font-display); color: var(--gold-bright); letter-spacing: .02em; }
+.wCoachBody p { margin: 0; font: 500 12.5px var(--font-body); color: var(--cream, #f6e7b0); line-height: 1.4; }
+.wCoachBtn { flex: none; align-self: stretch; padding: 0 16px; border-radius: 10px; cursor: pointer; border: 1px solid var(--gold-bright); color: #16110a;
+  font: 700 13px var(--font-display); background: linear-gradient(#f0c84a, #c9922e); box-shadow: 0 3px 0 #7a5a12; display: inline-flex; align-items: center; gap: 5px; }
+.wCoachBtn:active { transform: translateY(2px); box-shadow: 0 1px 0 #7a5a12; }
+.wCoach.battle { bottom: auto; top: 64px; }   /* during a fight, sit up top (hand is at the bottom) */
+@keyframes wCoachIn { from { transform: translateX(-50%) translateY(14px); opacity: 0; } to { transform: translateX(-50%) translateY(0); opacity: 1; } }
+@media (max-height: 440px) { .wCoach { bottom: 74px; padding: 9px 12px; } .wCoach.battle { top: 48px; } .wCoachBody p { font-size: 11px; } }
+
 /* ── post-victory REWARD overlay ── */
 .wReward { width: min(860px, 94vw); max-height: 92vh; overflow: auto; padding: 18px 20px 16px; border-radius: 16px;
   background: linear-gradient(170deg, #241812, #150d08); border: 1px solid var(--gold-deep); box-shadow: 0 24px 60px #000c;

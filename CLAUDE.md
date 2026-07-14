@@ -6,6 +6,18 @@ a single-file Claude artifact now split into ES modules.
 
 ## ⚑ Project state — read this first (updated 2026-06-18)
 
+**🧭 ONBOARDING + HUB PLAY BUTTONS (v3.156.0, 2026-07-14, Jeton "make it fun" pass, part 4).** (1)
+**First-run coach tips** (BattleScreen `ONB_TIPS`, dismissed-once, persisted to `localStorage`
+`chimera.v2.onboard`): a `welcome` tip on first explore (the run goal + WASD/turn controls) and a
+`battle` tip the first time combat starts (select squad → drag card → read the damage preview → Fight).
+Rendered as a `.wCoach` card (bottom-centre exploring, top during a fight). (2) **On-screen objective**:
+a `.wGoal` chip in the explore top-left — "Defeat the boss" → "Boss defeated!" when the boss chunk is
+cleared. (3) **Hub Play buttons** (`src/hub/Hub.jsx`): `battle.html` is now VERSIONS[0] (`CURRENT`, the
+flagship run) so the big **▶ Play** button + nav Play launch it; a smaller hero chip plays **v1**
+(`app.html`). **NEXT:** art pass (needs the AGY connector re-enabled), deeper combat feel (aiming-time
+preview, resolution juice), per-creature kit decks.
+
+
 **🎯 COMBAT CLARITY — planned-damage preview + lethal telegraph (v3.154.0, 2026-07-14, Jeton "make it
 fun" pass, milestone 3 = part 2/combat feel).** Blind-commit combat was hard to read — you committed
 without seeing what your own plan would do. Fixed with a StS-style **intent preview for YOUR queued

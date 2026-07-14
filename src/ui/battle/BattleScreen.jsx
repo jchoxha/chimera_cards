@@ -83,6 +83,16 @@ function DieFace({ value = 1, rolling = false, pass = null }) {
   );
 }
 
+// ── first-run ONBOARDING: contextual coach tips shown once each (persisted), + an on-screen goal.
+const ONB_KEY = 'chimera.v2.onboard';
+function loadOnbSeen() { try { return new Set(JSON.parse(localStorage.getItem(ONB_KEY) || '[]')); } catch { return new Set(); } }
+const ONB_TIPS = {
+  welcome: { id: 'welcome', icon: 'tabler:compass', title: 'Welcome, traveller',
+    body: 'This is a RUN. Explore the world, win battles to grow your team, and defeat the BOSS (the gold ★ on your minimap) to win. Move with W — turn with A / D.' },
+  battle: { id: 'battle', icon: 'game-icons:crossed-swords', title: 'Your first battle',
+    body: 'Tap one of YOUR squads to select it, then drag a card onto an enemy to queue an attack. A red bar + “-N” badge preview the damage you’ll deal — a ☠ means it’s lethal. Plan each squad, then press Fight.' },
+};
+
 // ── player-centred radar MINIMAP: nearby chunks (biome-tinted), their trees/props as dots, the
 // content markers, and a FACING arrow at the centre that rotates with you. ──
 const MINI_R = 2;                     // chunks visible each direction → a 5×5 window on the player
@@ -205,6 +215,8 @@ export default function BattleScreen({ onFlee, onBattleEnd, initialScene, sceneB
   useEffect(() => { if (reward) setRwPick({ cardIdx: 0, squadId: null, capIdx: null }); }, [reward]);
   const [shopSquad, setShopSquad] = useState(null);   // which squad a town-shop card is bought for
   useEffect(() => { if (event?.kind === 'town') setShopSquad(null); }, [event]);
+  const [onbSeen, setOnbSeen] = useState(loadOnbSeen);   // first-run coach tips already dismissed
+  const markOnb = (id) => setOnbSeen((s) => { const n = new Set(s); n.add(id); try { localStorage.setItem(ONB_KEY, JSON.stringify([...n])); } catch { /* ignore */ } return n; });
   // in the seamless world the scene FOLLOWS the current chunk's biome (unless in the admin grid).
   useEffect(() => { if (sceneBiome) setScene((v) => (v === 'grid' ? 'grid' : sceneBiome)); }, [sceneBiome]);
   // exploring: W / ↑ walk FORWARD (in the facing direction); A/D / ←/→ TURN left/right.
@@ -583,6 +595,13 @@ export default function BattleScreen({ onFlee, onBattleEnd, initialScene, sceneB
     return { dmg, kills };
   })();
 
+  // the RUN objective (shown while exploring) + the current first-run coach tip.
+  const bossChunk = world ? Object.values(world.grid).find((c) => c.boss) : null;
+  const activeTip = (world && !anim && !runOver && !reward && !event)
+    ? (exploring && !onbSeen.has('welcome') ? ONB_TIPS.welcome
+      : (!exploring && snap.enemy.length && !onbSeen.has('battle') ? ONB_TIPS.battle : null))
+    : null;
+
   // battle clock (mm:ss since start) shown in the topbar; log rows carry their own stamp (en.at)
   const battleSecs = snap.startedAt ? Math.max(0, Math.floor((nowTs - snap.startedAt) / 1000)) : 0;
   const battleClock = `${Math.floor(battleSecs / 60)}:${String(battleSecs % 60).padStart(2, '0')}`;
@@ -714,7 +733,10 @@ export default function BattleScreen({ onFlee, onBattleEnd, initialScene, sceneB
         <div className="bTopLeft">
           {exploring
             ? <><div className="bTurn"><b><Icon icon="tabler:compass" /> {BIOMES[scene]?.name || 'Overworld'}</b></div>
-                <div className="bTimer wGoldHud" title="Gold"><Icon icon="tabler:coin" />{world?.gold ?? 0}</div></>
+                <div className="bTimer wGoldHud" title="Gold"><Icon icon="tabler:coin" />{world?.gold ?? 0}</div>
+                <div className={`wGoal${bossChunk?.cleared ? ' done' : ''}`} title="Your run objective">
+                  <Icon icon="tabler:star-filled" />{bossChunk?.cleared ? 'Boss defeated!' : 'Defeat the boss'}
+                </div></>
             : <>
                 <div className="bTurn"><b>Turn {displayTurn}</b></div>
                 <div className="bTimer" title="Battle time"><Icon icon="tabler:clock" />{battleClock}</div>
@@ -1023,6 +1045,18 @@ export default function BattleScreen({ onFlee, onBattleEnd, initialScene, sceneB
               : 'Your squads were overwhelmed. The world resets for a new attempt.'}</p>
             <button className="wEventBtn" onClick={() => onNewRun?.()}><Icon icon="tabler:refresh" /> New Run</button>
           </div>
+        </div>
+      )}
+
+      {/* FIRST-RUN coach tip (dismissed once each, persisted). */}
+      {activeTip && (
+        <div className={`wCoach ${activeTip.id}`}>
+          <div className="wCoachIcon"><Icon icon={activeTip.icon} /></div>
+          <div className="wCoachBody">
+            <h4>{activeTip.title}</h4>
+            <p>{activeTip.body}</p>
+          </div>
+          <button className="wCoachBtn" onClick={() => markOnb(activeTip.id)}><Icon icon="tabler:check" /> Got it</button>
         </div>
       )}
 

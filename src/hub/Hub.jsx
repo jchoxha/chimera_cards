@@ -16,10 +16,10 @@ const buildUrl = (href) => `${BASE}${href}`;
 
 /** The deployed builds/versions, newest-direction first. VERSIONS[0] = the "current" build. */
 const VERSIONS = [
-  { href: 'app.html', icon: '🎴', name: 'Chimera — the game', tag: 'current', tone: 'good',
-    desc: 'The playable game: roguelike runs, collection & team building, practice combat, the editor and codex. Runs on the v1 Vanguard/Peek combat engine.' },
-  { href: 'battle.html', icon: '⚔️', name: 'Squad Battle (v2)', tag: 'in progress', tone: 'warn',
-    desc: 'The combat-v2 rebuild — Pokémon-style simultaneous blind-commit squad battles. Early prototype (demo cards + placeholder AI).' },
+  { href: 'battle.html', icon: '⚔️', name: 'Chimera — the game', tag: 'current', tone: 'good',
+    desc: 'The current build: a seamless open-world roguelike run — explore biomes, fight Pokémon-style simultaneous squad battles, earn card & gold rewards, capture creatures, shop in towns, and beat the boss to win the run.' },
+  { href: 'app.html', icon: '🎴', name: 'Chimera v1', tag: 'v1', tone: 'info',
+    desc: 'The v1 game: roguelike runs on the Vanguard/Peek combat engine, collection & team building, practice combat, the editor and codex.' },
   { href: 'editor.html', icon: '🛠️', name: 'Editor', tag: 'tool', tone: 'info',
     desc: 'Standalone card & creature editor (also reachable inside the game).' },
   { href: 'combat.html', icon: '🧪', name: 'Combat demo', tag: 'demo', tone: 'info',
@@ -27,8 +27,8 @@ const VERSIONS = [
   { href: 'prototype.html', icon: '📜', name: 'Original prototype', tag: 'legacy', tone: 'muted',
     desc: 'The original single-file Claude-artifact game that started it all.' },
 ];
-const CURRENT = VERSIONS[0];
-const V2 = VERSIONS.find((v) => v.href === 'battle.html');
+const CURRENT = VERSIONS[0];                                   // battle.html — the current build
+const V1 = VERSIONS.find((v) => v.href === 'app.html');        // the v1 game
 
 // Bundle every doc as raw text at build time (docs/*.md + root-level *.md).
 const rawDocs = import.meta.glob(['../../docs/*.md', '../../*.md'], { query: '?raw', import: 'default', eager: true });
@@ -79,7 +79,7 @@ function Landing() {
         <p className="hubTagline">A Pokémon × Slay-the-Spire creature deckbuilder.</p>
         <a className="hubPlay" href={buildUrl(CURRENT.href)}>▶ Play Chimera</a>
         <div className="hubHeroSub">
-          <a className="hubHeroChip" href={buildUrl(V2.href)}>⚔️ Preview the v2 Squad Battle</a>
+          <a className="hubHeroChip" href={buildUrl(V1.href)}>🎴 Play the v1 game</a>
         </div>
         <div className="hubHeroNav">
           <a className="hubHeroTile" href="#/versions"><span>📚</span><b>Version History</b><em>Every build in one place</em></a>

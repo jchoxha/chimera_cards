@@ -6,6 +6,11 @@
 
 /** @type {{version:string, date:string, notes:string[]}[]} newest first */
 export const CHANGELOG = [
+  { version: 'v3.156.0', date: '2026-07-14', notes: [
+    'Onboarding: a friendly welcome tip explains the run on your first play, and a “Your first battle” tip explains how to plan and fight the first time combat starts (each shows once).',
+    'An always-on objective chip in the top-left reminds you of the goal — “Defeat the boss” — and flips to “Boss defeated!” once you clear it.',
+    'The project home page’s big Play button now launches the current build; a smaller button plays the v1 game.',
+  ] },
   { version: 'v3.155.0', date: '2026-07-14', notes: [
     'A plan forecast chip now sits next to the Fight button: it shows the total damage your queued moves will deal this turn, and a skull count if any enemies would be knocked out.',
   ] },
