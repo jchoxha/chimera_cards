@@ -40,6 +40,55 @@ Generation runs through `agy` (Antigravity CLI) headlessly — see
 `scripts/agy_call.py`. Prefix prompts with "generate the following image:".
 Image gen has a long silent compute phase, so use a long idle window (≈45–60s).
 
+## Prompting — the portable recipe (survives an API swap)
+
+Everything above about connectors/polling/job-ids is **dev-tool scaffolding** and dies
+the day the repo hooks a normal image API. What survives — and what actually determines
+whether a portrait comes out good — is the PROMPT. Keep this decoupled from the tool.
+
+**The recipe** (one final prompt = three concatenated parts):
+
+```
+<subject>  +  <per-size phrasing>  +  <style block>
+```
+
+- **subject** — "`\"<name>\"` — `<description>` (`<biology/attunement>`)". Built in JS by
+  `forgeCreature.js` (`def.artPromptBase`) for forged creatures; for the fixed roster it's
+  `CREATURES[id]` in `scripts/gen_roster.py`.
+- **per-size phrasing** — `formArtDesc(form)` from `src/data/sizeArt.js` (`FORM_ART_DESC`).
+  **This is the portable, canonical size wording** — a plain JS string, already used by the
+  runtime forge. `gen_roster.py SIZE_DESC` is a MIRROR of it for the Windows batch tool.
+- **style block** — the locked "Variant B" flat-2D aesthetic (see § Style spec above).
+
+> ⚠️ **Style-block drift — reconcile before wiring a real API.** The Variant-B style that
+> EVERY baked portrait uses currently lives only in `scripts/gen_roster.py` (`STYLE`) and
+> this doc's prose — there is **no portable JS constant** for it. The JS constant that
+> exists, `ART_STYLE` in `src/ai/claude.js`, is a **different, older SVG-oriented style**
+> (canvas dims, stroke-widths), and `forgeCreature.js` only splices **one line** of it into
+> its prompt. So forged-creature art and batch-baked roster art are prompted from different
+> style text today. **When a real image API lands: promote the Variant-B `STYLE` to ONE
+> shared JS constant and have both the forge path and the batch path read it.**
+
+**Prompt-craft meta-lessons** (learned baking the roster — these are model-behaviour
+truths, not tool quirks, so they carry to any image model):
+
+- **Size goes in the COMPOSITION, not adjectives.** "big"/"tiny"/"colossal" alone barely
+  move the model. What works: camera angle (low angle = looming boss), how much of the
+  frame the subject fills, and environment-scale cues.
+- **Explicitly override size words already in the subject text.** The subject string often
+  contains its own size adjective; each `FORM_ART_DESC` entry says "(this overrides any size
+  words above)" so baby/boss phrasing wins.
+- **Keep the WHOLE creature in frame with a margin.** Models crop or overflow on
+  "boss/colossal/massive" — every large-form phrase must insist "entire creature within the
+  frame, nothing cropped".
+- **Baby = chunky chibi that FILLS the frame** (oversized head, stubby limbs) — NOT a normal
+  creature drawn tiny in a huge world. Explicitly forbid giant grass / oversized props /
+  footprints, or the model conveys "small" by shrinking the subject instead of re-proportioning it.
+- **Elite must NOT out-ornament the boss.** Keep the escalation ladder legible: elite = minor
+  scars/heavier armor on the same design; boss = the spectacular, ornate apex.
+- **The cream-paper-border problem persists** despite "no border, no frame". Strengthen the
+  negative cue and/or crop in post — don't assume the negative prompt alone handles it.
+
 ## Prompt templates
 
 Placeholders come from the game data (`src/data/*`).
