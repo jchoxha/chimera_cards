@@ -15,11 +15,16 @@ hybrid gate** (no direct stats/matchup); **(4) subtypes = wild-card PASSIVES** (
 effects, not stats/constitution). The **fundamental core value — how every matrix composes a creature's
 CARD POOL / deck builds — is now specced in `docs/card-pool-composition.md`** (pipeline, pool budget, the
 4 synergy planes, full kit/factor/attunement/subtype catalogs grounded in the real kit JSONs, 11 subtype
-wild-cards, worked emergent-archetype examples, open questions, build order). **NEXT (build order):**
-① matchups→attunement-only + stats→kit+factor (mechanical, self-contained); ② subtype wild-card engine
-(passive hooks in round.js + author the 11); ③ content-density pass per axis; ④ deck-build surfacing.
-*(This supersedes the biology constitution + BODY_PROFILE stat model — those tables stay until step ①
-rips them out.)*
+wild-cards, worked emergent-archetype examples, and a **CARD SPECIFICITY backbone** §10). **Locked
+follow-ups (Jeton):** factors are **species-fixed** (a diversity lever — a Claws vs Teeth Mammalian feel
+like distinct species); subtypes are **bespoke** hand-tuned generation modifiers, not a formula; and
+**cross-creature rewards use card SPECIFICITY** — every card declares a `require` (universal / attunement
+/ kit / body / factor / subtype / species, AND-across + OR-within), tiered broad→narrow (narrower =
+stronger), which drives the potential pool + reward eligibility + deckbuilding from one rule. **NEXT
+(build order):** ① matchups→attunement-only + stats→kit+factor; ② the specificity backbone
+(`require` + `eligible()`, migrate `pools.js` + rewards); ③ subtype wild-card engine (passive hooks in
+round.js + author the 11); ④ content-density pass; ⑤ deck-build surfacing. *(Supersedes biology
+constitution + BODY_PROFILE — those tables stay until step ① rips them out.)*
 
 
 

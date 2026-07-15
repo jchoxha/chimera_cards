@@ -211,14 +211,75 @@ The proof the model works: distinct, recognizable decks fall out of the combinat
 - **Cross-creature:** the squad's shared hand is the union; rewards can be assigned per-creature
   (`grantCard(ownerId)`), so you sculpt *which* creature carries which reward.
 
-## 10. Open questions / decisions
+## 10. Card SPECIFICITY — the availability backbone (LOCKED direction)
 
-- **Factor count & choice:** are a creature's 2–3 factors fixed by species, rolled, or player-chosen
-  (equipment)? Player-chosen factors would make them true "equipment slots" and a huge build lever.
-- **Subtype packages:** do all subtypes get a card cluster, or do some stay passive-only? (Start:
-  passive-only for the backlog 6, packages for the built 5.)
-- **Cross-creature reward pool:** can a reward card go to *any* creature, or only ones whose typing
-  "legally" supports it? Legality gating preserves identity; free assignment maximizes flexibility.
+Every card declares a **`require`** descriptor: *what a creature must BE to hold it.* This single rule
+powers three things at once — a creature's **potential pool**, **reward eligibility** (which of your
+creatures a reward can go to), and **deckbuilding legality**. It's the formal answer to "cross-creature
+rewards."
+
+### The dimensions a card can key on
+A `require` is a set of clauses across these dimensions (a missing dimension = no constraint):
+
+| Dimension | Matches a creature that… | Example card |
+|---|---|---|
+| *(none)* → **Universal** | any creature | Strike, Defend |
+| **Attunement** | has that attunement | Fireball → any Fire creature |
+| **Kit** (Archetype/Family/Manifestation) | is that kit | Shield Wall → any Warrior · Pursuit → any Mammalian |
+| **Body type** | is that body type | (rare) a generic "Beast" instinct card |
+| **Factor** (Weapon/Anatomy/Feature) | has that factor tag | Rend → any creature with **Claws** · Bulwark → any **Shield** |
+| **Subtype** | has that subtype | Overclock → any **Mechanical** |
+| **Species** | is exactly that species | Ironhide's bespoke signature |
+
+**Matching rule:** OR *within* a dimension (an array — `kit:['Warrior','Rogue']` = has either),
+AND *across* dimensions (`{attunement:['Fire'], factor:['Claws']}` = Fire **and** has Claws). A creature
+is **eligible** iff it satisfies every constrained dimension.
+
+### The specificity ladder (broad → narrow) couples to power/rarity
+The narrower a card's availability, the more build-defining it's *allowed* to be — a natural rarity
+gradient, and a reason to chase specific creatures:
+
+1. **Universal** — the basics. Low power, always legal.
+2. **Attunement / Kit / Body** — the big single-axis pools (the "element/class identity").
+3. **Factor** — a specific equipment/anatomy cluster (narrower — only creatures with that tag).
+4. **Subtype** — the wild-card package.
+5. **Combination** (2+ dimensions) — hybrid signatures (Fire+Warrior "Spellsword" cards, Warrior+Shield,
+   Giant+Mechanical). Build-defining.
+6. **Species** — unique signatures. Rarest, strongest, uncopyable.
+
+### How each system consumes it
+- **Potential pool** = *every card the creature is eligible for* — one rule replaces the ad-hoc pool
+  assembly in `pools.js` (attunement pool + kit pool + factor clusters + subtype package + hybrids all
+  become "cards whose `require` this creature satisfies").
+- **Reward draft:** draft cards from a tier-weighted pool; a reward card may be assigned to **any owned
+  creature that's eligible** — the UI greys the rest. (Replaces today's "reward always goes to the
+  vanguard.")
+- **Deckbuilding / budget builder:** same eligibility gate.
+
+### Re-skin interaction
+**Universal** and **attunement-generic** attack cards are re-skinned to the *receiving* creature's
+attunement (a Universal Strike becomes Fire on a Fire creature; a Nature creature's on a Nature one).
+Kit/factor/species cards keep their authored element unless flagged generic. (Consistent with the current
+`reskin.js` model.)
+
+### Data-model note
+The current loaders already stamp partial tags (`card.class`, `card.attunement`, `card.factor`); the
+specificity system **unifies these into one `require` descriptor** + an `eligible(card, creature)`
+predicate. Implementing it makes the pool builders, the reward flow, and (later) the budget builder all
+read from the same source of truth.
+
+## 11. Open questions / decisions
+
+- ✅ **Factors are SPECIES-FIXED** (set at generation, not player-swappable). This is a deliberate
+  *diversity* lever: two otherwise-identical creatures (both Fire Mammalian beasts) can feel like
+  distinct species purely because one has **Claws** and the other **Teeth** — different factor clusters,
+  different play. Factors are part of the species definition, and the generator/forge assigns them.
+- ✅ **Cross-creature rewards use the SPECIFICITY system** (§10): a reward card is offered to whichever
+  owned creatures satisfy its `require`. Universal cards → anyone; narrower cards → only eligible
+  creatures. This preserves identity *and* allows flexibility, tiered by how specific the card is.
+- ✅ **Subtypes are BESPOKE** — hand-tuned, near-one-off modifiers layered onto species generation, not a
+  systematic formula. Each subtype's passive (§6) + any package is authored individually for feel; some
+  will stay passive-only. Treat the §6 catalog as a *starting* set to iterate by hand.
 - **Size → cards:** does size touch the pool (bigger = fewer/heavier cards?) or only HP? (Lean: HP +
   a gentle cost curve only.)
 - **Pool density targets:** how many authored cards per kit / factor / attunement to hit the §1 budget
@@ -228,9 +289,12 @@ The proof the model works: distinct, recognizable decks fall out of the combinat
 
 1. **Matchups → attunement-only** (retire Layer-2 constitution) + **stats → kit+factor** (retire
    `BODY_PROFILE`). Mechanical, self-contained; unlocks the identity model above.
-2. **Subtype wild-card engine** — passive-trigger hooks in `round.js` (turn-start / on-struck / on-death
-   / turn-end) + author the 11 signatures.
-3. **Content density pass** — flesh each kit/factor/attunement sub-pool to the §1 budget; wire subtype
-   packages.
-4. **Deck-build surfacing** — show a creature's potential pool + let rewards target a creature; later the
-   budget builder.
+2. **Card SPECIFICITY backbone** (§10) — add a `require` descriptor + `eligible(card, creature)`
+   predicate; migrate the `pools.js` builders and the reward flow to consume it (potential pool = eligible
+   cards; rewards target any eligible owned creature). This is the load-bearing piece for everything else.
+3. **Subtype wild-card engine** — passive-trigger hooks in `round.js` (turn-start / on-struck / on-death
+   / turn-end) + author the 11 signatures (bespoke, iterate by hand).
+4. **Content density pass** — flesh each kit/factor/attunement sub-pool to the §1 budget; wire subtype
+   packages; add `test:*` coverage of the specificity tiers + pool sizes.
+5. **Deck-build surfacing** — show a creature's potential pool grouped by specificity tier; let rewards
+   pick which eligible creature receives the card; later the budget builder.
