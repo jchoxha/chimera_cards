@@ -6,6 +6,31 @@ a single-file Claude artifact now split into ES modules.
 
 ## ⚑ Project state — read this first (updated 2026-06-18)
 
+**📚 EFFECT-VOCABULARY + SCALING-AXIS CATALOG — deep StS research (2026-07-15, Jeton).** Per Jeton
+("deep research on Slay the Spire concepts AND StS mods to formulate a very deep collection of possible
+build attributes; the scaling axes need to go far deeper; v1 is a *reference only*, not the port source"),
+ran **five parallel deep-research sweeps** (StS1 base game · StSLib/BaseMod/ModTheSpire libraries ·
+Downfall's 9 villains + Hermit with verbatim keyword text · ~40 custom-character mods · a novel-status/
+scaling-axis sweep) and synthesized them into **`docs/effect-vocabulary.md`** — the mechanical dictionary
+the generators draw from. It defines: the **6 effect categories** (Static / Scaling-scaleBy / Powers-
+triggers / Resources / Conditional / Keywords); the **keyword vocabulary** (base + StSLib + novel mod
+card-mutation keywords: Afterlife/Static/Encode-Compile/Socket-Gem/Unidentified…); the **status palette**
+(~30, in intensity/duration/DoT families **+ a NEW delayed-detonation & conditional-persist family** —
+Soulburn/Doom/Hex/Bruise/Rugged/Reflection); the **~25 trigger hooks** (incl. "can-negate" interception);
+the **deep SCALING-AXIS catalog — ~50 axes across 13 families** (A–I bread-and-butter: Empower/Poison/
+tempo/prime-detonate/summon/HP-cost/persistence/control; **J–M "on-steroids" marquee**: sequence-wheel/
+positional-hand/board-gating/banked-energy/charge/card-fusion/temp→permanent/Posture); the **resource-
+system layer** (meter-burst, ignition, summon-board, orb-field, stance, card-mod, banked-energy, multi-
+body, phase-transform); the **cross-creature/formation** scaling (our unique layer); a **first-pass power-
+budget point table** + the **analytic-budget ↔ simulation-calibration closed loop** ("automated balancing
+with rich possibilities"); and the **modifier-manager + can-negate architecture** to adopt in combat-v2.
+Every axis/effect is **tagged to an owning typing** (kit/factor/attunement/subtype) so generation stays
+coherent, and a **§9 coverage map** assigns each typing its axes + signatures. This is the content of
+`card-pool-composition.md` build-order **step ②** (the balance backbone). **NEXT (build):** ① op-registry
+refactor on the modifier-manager pattern + expand the v2 op set; ② status/hook engine in round.js;
+③ power-budget module + validator; ④ axis→effect mapping tables; ⑤ resource-system engine; ⑥ the
+`balance:generation` harness (headless + GUI Forge Lab). Docs only — no engine code yet, no version bump.
+
 **🧭 BIOLOGY MODEL LOCKED + CARD-POOL COMPOSITION SPEC (2026-07-15, Jeton).** Design direction settled
 for the taxonomy's mechanical roles: **(1) matchups = ATTUNEMENT ONLY** (a creature's resist/weak comes
 from its own attunement — the Layer-2 biology/subtype "constitution" is being RETIRED); **(2) stats = KIT

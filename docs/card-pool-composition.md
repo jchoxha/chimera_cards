@@ -328,6 +328,10 @@ possible instead of aspirational.
    `BODY_PROFILE`). Mechanical, self-contained; unlocks the identity model above.
 2. **Effect vocabulary + power-budget model** (§11) — expand the v2 engine's op set to the intended
    vocabulary AND build `value(effects) ↔ cost/rarity`. The balance backbone; do it before mass content.
+   **→ Now specced in `effect-vocabulary.md`** (the deep StS + mods research: 6 effect categories, ~30
+   statuses incl. the delayed-detonation family, ~25 hooks, ~50 scaling axes across 13 families, the
+   resource-system layer, the modifier-manager + can-negate architecture, and a first-pass power-budget
+   point table).
 3. **Card SPECIFICITY backbone** (§10) — `require` descriptor + `eligible(card, creature)`; migrate the
    `pools.js` builders and the reward flow to consume it. Load-bearing for pools/rewards/deckbuilding.
 4. **Axis→effect mapping tables** (the generative ruleset) + **subtype wild-card engine** — passive
