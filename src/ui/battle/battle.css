@@ -409,12 +409,12 @@
   padding: 6px 8px; border-radius: 11px; background: linear-gradient(#1a120bE8, #120c07E8); border: 1px solid var(--gold-deep); box-shadow: 0 6px 18px #0009; pointer-events: auto; }
 .bCasterLbl { display: inline-flex; align-items: center; gap: 4px; font: 700 11px var(--font-display); color: var(--ink-dim); letter-spacing: .03em; }
 .bCasterLbl iconify-icon { font-size: 14px; }
-.bCasterChip { display: inline-flex; align-items: center; gap: 5px; padding: 5px 10px; border-radius: 9px; cursor: pointer;
+.bCasterChip { display: inline-flex; align-items: center; gap: 5px; padding: 5px 10px; border-radius: 9px; cursor: default;
   background: #241a10; border: 1px solid var(--line); color: var(--cream, #f6e7b0); font: 700 12px var(--font-body); }
 .bCasterChip iconify-icon { font-size: 14px; }
-.bCasterChip.vg iconify-icon { color: #f0c84a; }
-.bCasterChip:hover { border-color: var(--gold-deep); }
-.bCasterChip.on { border-color: var(--gold-bright); background: #2e2114; color: var(--gold-bright); box-shadow: 0 0 10px #f0c84a44; }
+.bCasterChip.vg { border-color: var(--gold-deep); } .bCasterChip.vg iconify-icon { color: #f0c84a; }
+.bCasterChip.dead { opacity: .5; text-decoration: line-through; }
+.bCasterChip.dead iconify-icon { color: #b06a6a; }
 .bCasterAura { font: 700 11px var(--font-display); color: #ff9a6a; padding-left: 4px; border-left: 1px solid #6a531f; }
 @media (max-height: 440px) { .bCaster { bottom: 52px; padding: 4px 6px; } .bCasterChip { padding: 3px 7px; font-size: 11px; } }
 /* queued-plan forecast chip beside the Fight button */

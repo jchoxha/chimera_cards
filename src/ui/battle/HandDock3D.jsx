@@ -68,7 +68,7 @@ function handGlowTexture() {
 
 /** One fanned hand card (a mesh). Pointer-down starts a press the shell resolves
  *  into a TAP (select / detail) or a DRAG-to-play (raycast onto a board creature). */
-function HandCard3D({ card, index, count, dealKey, selected, faceDown, affordable = true, onCardPointerDown }) {
+function HandCard3D({ card, index, count, dealKey, selected, faceDown, affordable = true, ownerColor = null, ownerDead = false, onCardPointerDown }) {
   const faceTex = useActionCardTexture(card);
   const tex = (faceDown && card.known !== true) ? cardBackTexture() : faceTex;
   const grp = useRef();
@@ -120,6 +120,14 @@ function HandCard3D({ card, index, count, dealKey, selected, faceDown, affordabl
           ? <meshBasicMaterial key="t" map={tex} color={affordable ? '#ffffff' : '#9b95a4'} transparent opacity={affordable ? 1 : 0.86} depthTest={false} depthWrite={false} toneMapped={false} />
           : <meshBasicMaterial key="c" color={affordable ? elColor(card.element) : '#6b6478'} transparent depthTest={false} depthWrite={false} toneMapped={false} />}
       </mesh>
+      {/* OWNER tab: a thin bar down the LEFT edge tinted by the owning creature — so you can see
+          at a glance whose card this is (and group a squad's cards by colour). */}
+      {ownerColor && (
+        <mesh position={[-CARD_W / 2 + 0.03, 0, 0.001]} renderOrder={ro + 2}>
+          <planeGeometry args={[0.06, CARD_H * 0.9]} />
+          <meshBasicMaterial color={ownerDead ? '#6b6478' : ownerColor} transparent opacity={ownerDead ? 0.5 : 0.95} depthTest={false} depthWrite={false} toneMapped={false} />
+        </mesh>
+      )}
     </group>
   );
 }
@@ -252,6 +260,9 @@ export default function HandDock3D({ station, selectedIid, dealKey, squadIndex =
   // Exhaust. Pulled IN + lifted so the bottom-corner HUD buttons don't cut them off.
   const px = aspect < 1 ? 2.5 : 3.0, gap = 0.82;
   const inPlay = station.plan || [];   // [{ card, targetId, ownerId }]
+  // OPTION A: each card is OWNED by a squad member — tint it by its owner + grey it out (unplayable)
+  // if that creature has fallen.
+  const ownerOf = (c) => (station.units || []).find((u) => u.id === c.ownerId) || null;
   return (
     <CamShelf aspect={aspect} slideRef={slideRef} riseRef={riseRef}>
       {/* piles sit LOW (near the hand row) with their one-line label above each */}
@@ -273,10 +284,13 @@ export default function HandDock3D({ station, selectedIid, dealKey, squadIndex =
           const slots = gap ? hand.length + 1 : hand.length;
           return hand.map((card, i) => {
             const slot = gap && i >= insertIdx ? i + 1 : i;
+            const owner = faceDown ? null : ownerOf(card);
+            const ownerDead = !!owner?.dead;
             return (
               <HandCard3D key={`${dealKey}-${card.iid}`} card={card} index={slot} count={slots} dealKey={dealKey}
                 selected={!faceDown && selectedIid === card.iid} faceDown={faceDown}
-                affordable={faceDown || (station.energyLeft ?? 99) >= (card.cost ?? 1)} onCardPointerDown={onCardPointerDown} />
+                ownerColor={owner ? elColor(owner.element) : null} ownerDead={ownerDead}
+                affordable={faceDown || (!ownerDead && (station.energyLeft ?? 99) >= (card.cost ?? 1))} onCardPointerDown={onCardPointerDown} />
             );
           });
         })()}

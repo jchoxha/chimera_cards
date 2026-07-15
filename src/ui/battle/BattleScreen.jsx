@@ -157,7 +157,6 @@ export default function BattleScreen({ onFlee, onBattleEnd, initialScene, sceneB
   const exploring = worldMode === 'explore';
   const snap = useBattle((s) => s.snapshot);
   const selectSquad = useBattle((s) => s.selectSquad);
-  const setCaster = useBattle((s) => s.setCaster);
   const queueCard = useBattle((s) => s.queueCard);
   const reorderHand = useBattle((s) => s.reorderHand);
   const undoLast = useBattle((s) => s.undoLast);
@@ -853,20 +852,20 @@ export default function BattleScreen({ onFlee, onBattleEnd, initialScene, sceneB
               </div>
             )}
 
-            {/* CASTER PICKER (hybrid support-casting): choose which squad member casts your cards.
-                The Vanguard shows its formation aura; Support is protected in the back row. */}
-            {selectedSquad && selectedSquad.units.filter((u) => !u.dead).length > 1 && (
+            {/* SQUAD ROSTER strip (Option A): who's in the selected squad, whose cards you can play.
+                The Vanguard is front-line (and shows its formation aura); Support is protected — but
+                its cards are cast from the back. A fallen member greys out (its cards go dead). */}
+            {selectedSquad && selectedSquad.units.length > 1 && (
               <div className="bCaster">
-                <span className="bCasterLbl"><Icon icon="tabler:wand" /> Cast with</span>
-                {selectedSquad.units.filter((u) => !u.dead).map((u) => (
-                  <button key={u.id} className={`bCasterChip${selectedSquad.casterId === u.id ? ' on' : ''}${u.isFront ? ' vg' : ''}`}
-                    title={u.isFront ? `${u.name} — Vanguard (front line)` : `${u.name} — Support (protected back row)`}
-                    onClick={() => setCaster(planSquadId, u.id)}>
-                    <Icon icon={u.isFront ? 'tabler:shield-filled' : 'tabler:user'} />{u.name}
-                    {u.isFront && u.formation && (u.formation.attack || u.formation.defense)
-                      ? <span className="bCasterAura" title="Formation aura from your Support">{[u.formation.attack ? `+${u.formation.attack} ATK` : '', u.formation.defense ? `+${u.formation.defense} DEF` : ''].filter(Boolean).join(' ')}</span>
+                <span className="bCasterLbl"><Icon icon="tabler:users" /> Squad</span>
+                {selectedSquad.units.map((u) => (
+                  <span key={u.id} className={`bCasterChip${u.isFront ? ' vg' : ''}${u.dead ? ' dead' : ''}`}
+                    title={u.dead ? `${u.name} — fallen (its cards can't be played)` : (u.isFront ? `${u.name} — Vanguard (front line)` : `${u.name} — Support (protected back row; casts from safety)`)}>
+                    <Icon icon={u.dead ? 'tabler:skull' : (u.isFront ? 'tabler:shield-filled' : 'tabler:user')} />{u.name}
+                    {!u.dead && u.isFront && u.formation && (u.formation.attack || u.formation.defense)
+                      ? <span className="bCasterAura" title="Formation aura from its Support">{[u.formation.attack ? `+${u.formation.attack} ATK` : '', u.formation.defense ? `+${u.formation.defense} DEF` : ''].filter(Boolean).join(' ')}</span>
                       : null}
-                  </button>
+                  </span>
                 ))}
               </div>
             )}

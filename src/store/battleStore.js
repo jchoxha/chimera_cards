@@ -31,9 +31,15 @@ export const DEMO_CARDS = {
   weaken: { id: 'weaken', name: 'Weaken', cost: 1, type: 'skill', element: 'Void', priority: 0, scope: 'front', effects: [{ op: 'debuff', value: 2, status: 'weak' }], text: 'Apply 2 Weak.' },
   overload: { id: 'overload', name: 'Overload', cost: 2, type: 'skill', element: 'Energy', priority: 1, scope: 'self', exhaust: true, effects: [{ op: 'buff', value: 2, status: 'strength' }], text: 'Banish. Gain 2 Strength.' },
 };
-const DEMO_DECK = ['strike', 'strike', 'strike', 'jab', 'jab', 'guard', 'guard', 'sweep', 'cleave', 'weaken', 'rally', 'overload'];
-const inst = (id) => ({ ...DEMO_CARDS[id], iid: `${id}#${uid()}` });
-const makeDeck = () => shuffle(DEMO_DECK.map(inst));
+// OPTION A — cards are OWNED by a creature and cast by it (from the safety of the back row for a
+// Support), but all of a squad's cards draw into ONE shared hand on shared squad energy. A card
+// whose owner is dead becomes unplayable. `PERSONAL_DECK` is a generic starter for now — the seam
+// where real per-creature KIT decks (from biology/typing) will slot in via personalDeck(unit).
+const PERSONAL_DECK = ['strike', 'strike', 'jab', 'guard', 'cleave', 'weaken'];
+const inst = (id, ownerId) => ({ ...DEMO_CARDS[id], iid: `${id}#${uid()}`, ownerId });
+const personalDeck = (ownerId) => PERSONAL_DECK.map((cid) => inst(cid, ownerId));
+/** A squad's combined deck = each member's personal deck (stamped with its owner), shuffled. */
+const squadDeckFor = (memberUnits) => shuffle(memberUnits.flatMap((u) => personalDeck(u.id)));
 
 /** REWARD POOL — cards a victory can add to a creature's deck. Every card here uses ONLY the
  *  mechanically-live effects (damage incl. multi-hit · block · heal · poison DoT · regen), so a
@@ -82,10 +88,10 @@ function cycle(p, playedCards) {
   for (const card of p.hand) c.discard.push(card);   // unplayed cards discard
   return drawInto(c, HAND_SIZE);
 }
-const emptyPile = () => ({ deck: makeDeck(), hand: [], discard: [], exhaust: [] });
+const emptyPile = () => ({ deck: [], hand: [], discard: [], exhaust: [] });   // real decks build from squad members
 
 /** Card display fields for pile inspection (own piles + enemy piles seen face-up). */
-const cardInfo = (c) => ({ iid: c.iid, id: c.id, name: c.name, element: c.element, type: c.type, cost: c.cost, priority: c.priority, scope: c.scope, reachesBack: c.reachesBack, effects: c.effects, text: c.text });
+const cardInfo = (c) => ({ iid: c.iid, id: c.id, name: c.name, element: c.element, type: c.type, cost: c.cost, priority: c.priority, scope: c.scope, reachesBack: c.reachesBack, effects: c.effects, text: c.text, ownerId: c.ownerId });
 /** A pile shown with its ORDER hidden (sorted by name) — you know the contents, not the draw order. */
 const pileHidden = (pile) => pile.map(cardInfo).sort((a, b) => a.name.localeCompare(b.name));
 /** The enemy deck: cards whose id has been SEEN (played/discarded) show face-up; the rest are '?'. Order hidden. */
@@ -115,8 +121,11 @@ function buildBattle(playerSquads, enemySquads) {
   spec.p = toSide(playerSquads, 'p');
   spec.e = toSide(enemySquads, 'e');
   const state = buildState(spec);
-  const cards = {};   // BOTH sides own real piles now (enemy hand is hidden from the player)
-  for (const side of ['p', 'e']) for (const sqId of state.sides[side]) cards[sqId] = drawInto(emptyPile(), HAND_SIZE);
+  const cards = {};   // BOTH sides own real piles; each squad's deck = its members' OWNED cards
+  for (const side of ['p', 'e']) for (const sqId of state.sides[side]) {
+    const members = state.squadsById[sqId].memberIds.map((id) => state.unitsById[id]);
+    cards[sqId] = drawInto({ deck: squadDeckFor(members), hand: [], discard: [], exhaust: [] }, HAND_SIZE);
+  }
   return { state, cards };
 }
 
@@ -148,12 +157,8 @@ function squadSnap(store, sqId, side) {
   snap.discard = pileHidden(c.discard); snap.exhaust = pileHidden(c.exhaust);   // piles are visible to the player on BOTH sides
   if (side === 'p') {
     snap.stunned = (store.stunnedSquads || []).includes(sqId);   // failed a run-away roll → can't plan this round
-    snap.hand = c.hand;                       // your own hand, face-up + draggable
+    snap.hand = c.hand;                       // your own hand, face-up + draggable (each carries ownerId)
     snap.deck = pileHidden(c.deck);           // your draw pile — contents known, order hidden
-    // the active CASTER (hybrid support-casting): the chosen live member, else the Vanguard.
-    const chosen = store.casters?.[sqId];
-    snap.casterId = (chosen && squad.memberIds.includes(chosen) && isAlive(state.unitsById[chosen]))
-      ? chosen : (liveFrontUnit(state, squad)?.id || null);
   } else {
     snap.handCount = c.hand.length;           // enemy hand: face-down count only
     snap.deck = deckInspect(c.deck, store.seen || new Set());   // '?' until seen
@@ -265,9 +270,12 @@ function enemyPlan(state, cards) {
     for (const card of pile.hand) {
       const cost = card.cost ?? 1;
       if (cost > energy) continue;
+      // OPTION A: a card is cast by its OWNER (if alive); a dead owner's cards are unplayable.
+      const owner = (card.ownerId && state.unitsById[card.ownerId] && state.unitsById[card.ownerId].squadId === sqId && isAlive(state.unitsById[card.ownerId])) ? state.unitsById[card.ownerId] : front;
+      if (!isAlive(owner)) continue;
       const offensive = isOffensiveCard(card);
       if (offensive && !targetFront) continue;
-      actions.push({ ownerId: front.id, targetId: (offensive ? targetFront : front).id, card });
+      actions.push({ ownerId: owner.id, targetId: (offensive ? targetFront : owner).id, card });
       energy -= cost;
     }
     plans[sqId] = actions;
@@ -277,7 +285,6 @@ function enemyPlan(state, cards) {
 
 export const useBattle = create((set, get) => ({
   snapshot: null, state: null, plans: {}, cards: {}, seen: new Set(), queueOrder: [], undone: [], selectedSquadId: null,
-  casters: {},   // sqId → the chosen CASTER unit (hybrid support-casting); defaults to the Vanguard
   phase: 'plan', outcome: null, log: [], version: 0, dealKey: 0, turn: 1, logHistory: [],
   stunnedSquads: [], pendingStun: null,   // run-away failure: squads locked out of the NEXT plan phase
   runPassed: [],                          // squads that have ALREADY passed a run-away roll this battle
@@ -289,14 +296,11 @@ export const useBattle = create((set, get) => ({
   startBattle({ player, enemy }) {
     const { state, cards } = buildBattle(player, enemy);
     startRound(state);
-    const base = { state, cards, seen: new Set(), plans: {}, queueOrder: [], undone: [], selectedSquadId: state.sides.p[0], phase: 'plan', outcome: null, log: [], version: 0, dealKey: 1, turn: 1, logHistory: [], startedAt: Date.now(), stunnedSquads: [], pendingStun: null, runPassed: [], casters: {} };
+    const base = { state, cards, seen: new Set(), plans: {}, queueOrder: [], undone: [], selectedSquadId: state.sides.p[0], phase: 'plan', outcome: null, log: [], version: 0, dealKey: 1, turn: 1, logHistory: [], startedAt: Date.now(), stunnedSquads: [], pendingStun: null, runPassed: [] };
     set({ ...base, snapshot: publish({ ...get(), ...base }) });
   },
 
   selectSquad(sqId) { set((s) => ({ selectedSquadId: sqId, snapshot: publish({ ...s, selectedSquadId: sqId }) })); },
-
-  /** Choose which squad MEMBER casts queued cards (hybrid support-casting). */
-  setCaster(sqId, unitId) { set((s) => { const casters = { ...s.casters, [sqId]: unitId }; return { casters, snapshot: publish({ ...s, casters }) }; }); },
 
   /** OVERWORLD PERSISTENCE: add enemy squads to the LIVE state (the party is never rebuilt,
    *  so its HP + decks carry across chunks). Redeals the party's hands from its own persistent
@@ -312,7 +316,7 @@ export const useBattle = create((set, get) => ({
       const members = sq.creatures.map((c, j) => creatureToUnit(c, `${sqId}_${j}`));
       members.forEach((u) => { u.side = 'e'; u.squadId = sqId; state.unitsById[u.id] = u; });
       state.squadsById[sqId] = makeSquad({ id: sqId, side: 'e', memberIds: members.map((u) => u.id) });
-      cards[sqId] = drawInto(emptyPile(), HAND_SIZE);
+      cards[sqId] = drawInto({ deck: squadDeckFor(members), hand: [], discard: [], exhaust: [] }, HAND_SIZE);
       eIds.push(sqId);
     });
     state.sides.e = eIds;
@@ -323,7 +327,7 @@ export const useBattle = create((set, get) => ({
       cards[sqId] = drawInto({ deck, hand: [], discard: [], exhaust: [] }, HAND_SIZE);
     }
     startRound(state);
-    const patch = { state, cards, plans: {}, queueOrder: [], undone: [], phase: 'plan', outcome: null, turn: 1, dealKey: (s.dealKey || 0) + 1, stunnedSquads: [], pendingStun: null, runPassed: [], casters: {}, seen: new Set(), selectedSquadId: state.sides.p[0] };
+    const patch = { state, cards, plans: {}, queueOrder: [], undone: [], phase: 'plan', outcome: null, turn: 1, dealKey: (s.dealKey || 0) + 1, stunnedSquads: [], pendingStun: null, runPassed: [], seen: new Set(), selectedSquadId: state.sides.p[0] };
     set({ ...patch, snapshot: publish({ ...s, ...patch }) });
   },
 
@@ -334,7 +338,7 @@ export const useBattle = create((set, get) => ({
     const state = s.state; const cards = { ...s.cards };
     for (const sqId of state.sides.e) { const sq = state.squadsById[sqId]; sq?.memberIds.forEach((id) => delete state.unitsById[id]); delete state.squadsById[sqId]; delete cards[sqId]; }
     state.sides.e = [];
-    const patch = { state, cards, plans: {}, queueOrder: [], undone: [], phase: 'plan', outcome: null, stunnedSquads: [], pendingStun: null, runPassed: [], casters: {} };
+    const patch = { state, cards, plans: {}, queueOrder: [], undone: [], phase: 'plan', outcome: null, stunnedSquads: [], pendingStun: null, runPassed: [] };
     set({ ...patch, snapshot: publish({ ...s, ...patch }) });
   },
 
@@ -346,11 +350,13 @@ export const useBattle = create((set, get) => ({
     set({ state, snapshot: publish({ ...s, state }) });
   },
 
-  /** REWARD: add a card DEF to a squad's persistent DECK (a victory draft). */
-  grantCard(sqId, cardDef) {
+  /** REWARD: add a card DEF to a squad's persistent DECK (a victory draft), OWNED by a member
+   *  (the given ownerId if valid, else the squad's Vanguard). */
+  grantCard(sqId, cardDef, ownerId) {
     const s = get(); if (!s.state || !cardDef) return;
-    const pile = s.cards[sqId]; if (!pile) return;
-    const card = { ...cardDef, iid: `${cardDef.id}#${uid()}` };
+    const squad = s.state.squadsById[sqId]; const pile = s.cards[sqId]; if (!squad || !pile) return;
+    const owner = (ownerId && squad.memberIds.includes(ownerId)) ? ownerId : (liveFrontUnit(s.state, squad)?.id || squad.memberIds[0]);
+    const card = { ...cardDef, iid: `${cardDef.id}#${uid()}`, ownerId: owner };
     const cards = { ...s.cards, [sqId]: { ...pile, deck: [...pile.deck, card] } };
     set({ cards, snapshot: publish({ ...s, cards }) });
   },
@@ -367,7 +373,7 @@ export const useBattle = create((set, get) => ({
     const u = creatureToUnit(creature, `${sqId}_0`);
     u.side = 'p'; u.squadId = sqId; state.unitsById[u.id] = u;
     state.squadsById[sqId] = makeSquad({ id: sqId, side: 'p', memberIds: [u.id] });
-    cards[sqId] = drawInto(emptyPile(), HAND_SIZE);
+    cards[sqId] = drawInto({ deck: squadDeckFor([u]), hand: [], discard: [], exhaust: [] }, HAND_SIZE);
     state.sides.p = [...state.sides.p, sqId];
     set({ state, cards, snapshot: publish({ ...s, state, cards }) });
     return true;
@@ -395,14 +401,15 @@ export const useBattle = create((set, get) => ({
     if ((s.stunnedSquads || []).includes(sqId)) return;   // stunned by a failed run-away → can't plan
     const squad = s.state.squadsById[sqId]; if (!squad || squad.side !== 'p') return;
     const front = liveFrontUnit(s.state, squad); if (!front) return;
-    // the CASTER: the chosen live member (hybrid support-casting) or the Vanguard by default.
-    const chosen = s.casters?.[sqId];
-    const caster = (chosen && squad.memberIds.includes(chosen) && isAlive(s.state.unitsById[chosen])) ? s.state.unitsById[chosen] : front;
     const pile = s.cards[sqId] || { hand: [] };
     const card = pile.hand.find((c) => c.iid === handIid); if (!card) return;
+    // OPTION A: the CASTER is the card's OWNER (cast from wherever that creature stands — a
+    // Support casts from the protected back row). A dead owner's cards are unplayable.
+    const owner = (card.ownerId && squad.memberIds.includes(card.ownerId)) ? s.state.unitsById[card.ownerId] : front;
+    if (!owner || !isAlive(owner)) return;
     const plan = s.plans[sqId] || [];
     if (planCost(plan) + (card.cost ?? 1) > squad.energy) return;   // not enough energy
-    const plans = { ...s.plans, [sqId]: [...plan, { ownerId: caster.id, targetId, card }] };
+    const plans = { ...s.plans, [sqId]: [...plan, { ownerId: owner.id, targetId, card }] };
     const cards = { ...s.cards, [sqId]: { ...pile, hand: pile.hand.filter((c) => c.iid !== handIid) } };
     const queueOrder = [...s.queueOrder, sqId];
     set({ plans, cards, queueOrder, undone: [], snapshot: publish({ ...s, plans, cards, undone: [] }) });   // a fresh play clears the redo stack
@@ -467,9 +474,11 @@ export const useBattle = create((set, get) => ({
       for (const card of pile.hand) {                    // hand order, like the AI
         const cost = card.cost ?? 1;
         const offensive = isOffensiveCard(card);
-        if (cost > energy || (offensive && !enemyFront)) { remaining.push(card); continue; }
-        const targetId = (offensive ? enemyFront : front).id;
-        plan.push({ ownerId: front.id, targetId, card });
+        // cast by the card's OWNER (Option A); skip if its owner is dead
+        const owner = (card.ownerId && squad.memberIds.includes(card.ownerId) && isAlive(s.state.unitsById[card.ownerId])) ? s.state.unitsById[card.ownerId] : front;
+        if (cost > energy || !isAlive(owner) || (offensive && !enemyFront)) { remaining.push(card); continue; }
+        const targetId = (offensive ? enemyFront : owner).id;
+        plan.push({ ownerId: owner.id, targetId, card });
         queueOrder.push(sqId);
         energy -= cost; added = true;
       }

@@ -54,10 +54,23 @@ doesn't value tall's real advantages (protected backline casters surviving to ou
 performance vs single-target enemies/AoE). The formation is now a genuine choice, not a dominant
 strategy. Numbers are tunable: `ENERGY_PER_MEMBER`, `AURA_DEFENSE`, `AURA_ATTACK`.
 
+## Update — Option A shipped (owned cards, shared hand; v3.158.0)
+
+Cards are now **owned by a creature** (`inst(id, ownerId)`); a squad's deck is each member's
+`personalDeck` combined and drawn into ONE shared hand on shared squad energy. A card is **cast by
+its owner** (`queueCard`/`enemyPlan`/`autoPlan` resolve owner → its stats apply, so a Support casts
+from the protected back row); a **dead owner's cards are unplayable**. UI: each hand card gets an
+owner-colour tab + greys out when its creature falls; the old manual "Cast with" picker is gone
+(casting is automatic by owner) and the bottom strip now shows the squad roster (members · vanguard
+aura · fallen). `PERSONAL_DECK` is still a generic starter — the seam for real kit decks below.
+
 ## Next steps
 
-- **Deck/kit per creature** so a Support's own cards (not the shared DEMO deck) are what it casts —
-  makes active-casting choices meaningful and gives each creature identity in a squad.
+- **Real per-creature KIT decks** — swap `personalDeck(unit)` from the generic starter to the
+  creature's biology/typing kit (the v1 generator already exists), so a creature's cards express its
+  identity. This is the payoff that makes "which creatures do I group?" a deckbuilding decision.
+- **Reward/creature-level card assignment** — `grantCard` accepts an `ownerId`; wire the reward
+  overlay to pick which creature in the squad receives the card (defaults to the Vanguard today).
 - **Formation-specific cards/synergies** (shared-element squad bonus, "phalanx" cards that scale with
   Support count, back-row-only cards).
 - **Smarter enemy AI** that also uses support-casting + formations, then re-run the harness with varied

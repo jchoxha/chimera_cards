@@ -6,6 +6,11 @@
 
 /** @type {{version:string, date:string, notes:string[]}[]} newest first */
 export const CHANGELOG = [
+  { version: 'v3.158.0', date: '2026-07-15', notes: [
+    'Cards now belong to individual creatures. A squad still draws into ONE shared hand on shared energy, but each card is cast by its owner — a Support casts from the protected back row using its own stats, and a fallen creature’s cards can no longer be played.',
+    'Every hand card is tinted by its owner (a coloured edge) so you can see whose it is at a glance; a fallen owner’s cards grey out.',
+    'The manual “Cast with” picker is gone (casting is automatic by owner); the squad strip now shows your roster — vanguard + its aura, and who has fallen.',
+  ] },
   { version: 'v3.157.0', date: '2026-07-14', notes: [
     'FORMATIONS now matter! A squad’s energy scales with its size (solo 2 · duo 4 · trio 6), so grouping vs splitting is a real choice — six creatures give ~the same total energy either way, but a big squad protects its back row and makes bigger single plays.',
     'Support empowers its Vanguard: each back-row creature grants a formation aura (a defensive one adds Defense, an offensive one adds Attack), shown as a pip on the vanguard.',

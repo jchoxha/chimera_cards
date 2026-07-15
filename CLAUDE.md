@@ -20,8 +20,17 @@ only targeting + auto-promote) is now the point of TALL. (3) **Support contribut
 a `.bCaster` "Cast with" picker in BattleScreen. Units gained `baseStats` (`state.makeUnit`). **Balance
 harness** `npm run balance:formations` (`__balance__.mjs`, abstract focus-fire sim, mirrors ~50/50) drove
 the tuning: WIDE-vs-TALL now ~70/30 (was 100/0; a lower bound for tall — the bot undervalues protected
-casters/resilience). `test:formations` 14, all battle suites green. **NEXT:** per-creature kit decks (so
-support casts ITS cards), formation-synergy cards, smarter enemy AI, then re-tune with varied stats.
+casters/resilience). `test:formations` 14, all battle suites green.
+**OPTION A — OWNED CARDS, SHARED HAND (v3.158.0, Jeton):** cards are now OWNED by a creature
+(`battleStore` `inst(id, ownerId)`); a squad's deck = each member's `personalDeck` combined, drawn into
+ONE shared hand on shared energy, but a card is **cast by its owner** (`queueCard`/`enemyPlan`/`autoPlan`
+resolve owner → its stats apply, so a Support casts from the protected back row) and a **dead owner's
+cards are unplayable**. UI: `HandDock3D` tints each card by an owner-colour edge tab + greys fallen-owner
+cards; the "Cast with" picker is REMOVED (casting is automatic by owner) — the bottom `.bCaster` strip is
+now a read-only squad roster (members · vanguard aura · fallen). `PERSONAL_DECK` is still generic — the
+seam for real kit decks. **NEXT:** real per-creature KIT decks (`personalDeck(unit)` → biology/typing
+kit), reward creature-level card assignment (`grantCard` already takes an ownerId), formation-synergy
+cards, smarter enemy AI, then re-tune with varied stats.
 
 
 
