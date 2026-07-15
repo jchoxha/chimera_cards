@@ -18,6 +18,7 @@
     "balance:formations": "node src/engine/battle/__balance__.mjs",
     "test:turn": "node src/engine/combat/__turn__.mjs",
     "test:matchups": "node src/engine/content/__matchups__.mjs",
+    "test:typing": "node src/engine/content/__typing__.mjs",
     "test:cards": "node src/engine/cards/__cards__.mjs",
     "test:cardturn": "node src/engine/combat/__cardturn__.mjs",
     "test:reactions": "node src/engine/cards/__reactions__.mjs",

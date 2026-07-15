@@ -6,6 +6,10 @@
 
 /** @type {{version:string, date:string, notes:string[]}[]} newest first */
 export const CHANGELOG = [
+  { version: 'v3.161.0', date: '2026-07-15', notes: [
+    'Fleshed out the typing matrices: the three remaining affliction subtypes (Feral, Ancient, Swarm) now have full elemental weakness/resistance profiles, so every body type and subtype has a complete matchup — and a new check keeps them that way.',
+    'Confirmed the model: a Beast’s Family and an Aberration’s Manifestation are the kit axis (like a Humanoid’s Archetype) and don’t affect type matchups — only body type, subtypes and attunement do.',
+  ] },
   { version: 'v3.160.0', date: '2026-07-15', notes: [
     'A creature with two attunements now reads as its single fused TYPE name — Voltfang (Physical + Energy) shows “Kinetic”, a Fire + Water creature shows “Steam”, etc. — instead of listing two separate attunements.',
   ] },

@@ -6,6 +6,22 @@ a single-file Claude artifact now split into ES modules.
 
 ## ⚑ Project state — read this first (updated 2026-06-18)
 
+**🧬 TYPING MATRICES FLESHED OUT + GUARDED (v3.161.0, 2026-07-15, Jeton).** Audited every typing table
+and closed the one real gap. **Complete:** Class synthesis 28/28, Biology synthesis 36/36, Attunement
+synthesis 78/78 names; all 13 attunements have a matchup row (2 strong + 2 weak) + a signature status;
+all 3 body types + all 11 subtypes have a stat profile. **Filled:** the 3 backlog subtypes (Feral,
+Ancient, Swarm) were missing a Layer-2 CONSTITUTION — now added (`matchups.js BIOLOGY_ATTUNEMENT`), so
+constitution covers the whole IDENTITY axis (body type + subtypes). **Model confirmed (parity):** the KIT
+axis — Beast **Family** / Aberration **Manifestation** — is the archetype-equivalent and has **NO matchup
+or stat effect** (like Class), so a Humanoid/Beast or Humanoid/Aberration hybrid carries BOTH an Archetype
+AND a Family/Manifestation (kit only); matchup identity = body type + subtypes + attunement. **`Draconic`**
+is the sole stat-relevant family (bulk + fire constitution). New **`npm run test:typing`** (17 checks)
+guards completeness + the parity rule. Docs: `docs/synthesis-matrix-spec.md` §4.2/§4.3. *(Matchups are
+built + tested but still NOT wired into combat-v2 — round.js `matchup` defaults to ×1; wiring
+`computeMatchup` into the v2 resolver is the follow-up to make typing bite.)*
+
+
+
 **🛡️ FORMATIONS MADE REAL + BALANCE STARTED (v3.157.0, 2026-07-14, Jeton "flesh out combat" pass).**
 Before this, formations were a non-choice: flat 3 energy/squad + only the Vanguard casts → Support was
 dead weight and MORE squads = strictly more energy/cards (WIDE beat TALL 100% in the harness). Fixed with

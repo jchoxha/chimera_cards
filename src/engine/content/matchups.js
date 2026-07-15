@@ -51,8 +51,11 @@ export const ATTUNEMENT_MATCHUP = Object.freeze({
 
 // ── Layer 2: constitution → attunement (REVIEW v0, §4.2 + §9 re-key) ─────────
 // Which incoming ELEMENTS a defender is WEAK to (takes x1.25) or RESISTS (x0.8),
-// keyed by its BODY TYPE(s) + descriptive SUBTYPES + stat-relevant FAMILY
-// (Draconic). Legacy 9-biology names keep their rows so old saves still resolve.
+// keyed by the IDENTITY axis: its BODY TYPE(s) + descriptive SUBTYPES. The KIT axis
+// (Beast FAMILY / Aberration MANIFESTATION) is the archetype-equivalent and has NO
+// matchup effect — parity with Class — EXCEPT `Draconic`, the one stat-relevant family
+// (dragon bulk + fire constitution). Every body type + every subtype has a row
+// (guarded by test:typing). Legacy 9-biology names keep their rows so old saves resolve.
 export const BIOLOGY_ATTUNEMENT = Object.freeze({
   // body types (the FORM)
   Beast:      { weak: ['Fire', 'Mind'],      resist: ['Physical', 'Nature'] },
@@ -67,6 +70,9 @@ export const BIOLOGY_ATTUNEMENT = Object.freeze({
   Hallowed:   { weak: ['Shadow', 'Void'],    resist: ['Holy'] },
   Spectral:   { weak: ['Holy', 'Arcane'],    resist: ['Physical'] },
   Cursed:     { weak: ['Holy'],              resist: ['Shadow'] },
+  Feral:      { weak: ['Mind', 'Frost'],     resist: ['Physical', 'Nature'] }, // wild frenzy — tough but undisciplined
+  Ancient:    { weak: ['Void', 'Nature'],    resist: ['Arcane', 'Physical'] }, // primordial endurance, eroded by entropy/time
+  Swarm:      { weak: ['Fire', 'Air'],       resist: ['Physical', 'Shadow'] }, // burned/scattered by AoE; no single body to strike
   // stat-relevant family (Dragonkin fold-in) + legacy names
   Draconic:   { weak: ['Frost', 'Arcane'],   resist: ['Fire', 'Physical'] },
   Dragonkin:  { weak: ['Frost', 'Arcane'],   resist: ['Fire', 'Physical'] },

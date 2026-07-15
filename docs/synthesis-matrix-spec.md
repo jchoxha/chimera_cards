@@ -149,9 +149,21 @@ v0 — flavor sketch, not balanced:
 > e.g. Mechanical=poison/bleed-immune, Undead=poison-immune) — handled in the status
 > system, not this matchup layer.
 
-### 4.3 Class — **no matchup effect** (removed 2026-06-21, B5)
+**Constitution keys on the IDENTITY axis only** — the reworked model's **Body Type(s) + descriptive
+Subtypes**. Every body type (Humanoid/Beast/Aberration) and every subtype (Mechanical, Elemental,
+Giant, Demonic, Undead, Hallowed, Feral, Ancient, Swarm, Cursed, Spectral — the last three added
+2026-07-15) has a row. The legacy 9-biology rows above are kept so old saves still resolve.
 
-Class governs kit/AI only (§7.2/§7.3), not damage multipliers.
+### 4.3 Class **and** the KIT axis — **no matchup effect** (Class B5, 2026-06-21; kit-axis parity 2026-07-15)
+
+Class governs kit/AI only, not damage multipliers. By the same logic, the **kit axis for the other body
+types — a Beast's FAMILY and an Aberration's MANIFESTATION — is the archetype-equivalent and likewise has
+NO matchup (or stat) effect.** The single exception is **`Draconic`**, the one stat-relevant family (dragon
+bulk + a Fire/Physical-resist, Frost/Arcane-weak constitution). So a Humanoid/Beast or Humanoid/Aberration
+hybrid carries **both** an Archetype **and** a Family/Manifestation (kit only), while its matchup identity
+comes purely from body type + subtypes + attunement. **`npm run test:typing`** guards that every naming
+table is complete, every attunement has a matchup row + status, every body type + subtype has a constitution
++ stat profile, and no family/manifestation (except Draconic) leaks into the matchup layer.
 
 ## 5. Attunement statuses & reactions (`DEEP EXPLORATION PENDING`)
 
