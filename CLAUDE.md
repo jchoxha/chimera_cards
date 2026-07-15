@@ -6,6 +6,23 @@ a single-file Claude artifact now split into ES modules.
 
 ## ⚑ Project state — read this first (updated 2026-06-18)
 
+**🧭 BIOLOGY MODEL LOCKED + CARD-POOL COMPOSITION SPEC (2026-07-15, Jeton).** Design direction settled
+for the taxonomy's mechanical roles: **(1) matchups = ATTUNEMENT ONLY** (a creature's resist/weak comes
+from its own attunement — the Layer-2 biology/subtype "constitution" is being RETIRED); **(2) stats = KIT
++ FACTOR** (Archetype+Weapons / Family+Anatomy / Manifestation+Features — `BODY_PROFILE` stat identity
+retired, since body-type stats homogenized creatures); **(3) body type = ONLY the kit-axis selector +
+hybrid gate** (no direct stats/matchup); **(4) subtypes = wild-card PASSIVES** (bespoke build-defining
+effects, not stats/constitution). The **fundamental core value — how every matrix composes a creature's
+CARD POOL / deck builds — is now specced in `docs/card-pool-composition.md`** (pipeline, pool budget, the
+4 synergy planes, full kit/factor/attunement/subtype catalogs grounded in the real kit JSONs, 11 subtype
+wild-cards, worked emergent-archetype examples, open questions, build order). **NEXT (build order):**
+① matchups→attunement-only + stats→kit+factor (mechanical, self-contained); ② subtype wild-card engine
+(passive hooks in round.js + author the 11); ③ content-density pass per axis; ④ deck-build surfacing.
+*(This supersedes the biology constitution + BODY_PROFILE stat model — those tables stay until step ①
+rips them out.)*
+
+
+
 **🧬 TYPING MATRICES FLESHED OUT + GUARDED (v3.161.0, 2026-07-15, Jeton).** Audited every typing table
 and closed the one real gap. **Complete:** Class synthesis 28/28, Biology synthesis 36/36, Attunement
 synthesis 78/78 names; all 13 attunements have a matchup row (2 strong + 2 weak) + a signature status;
