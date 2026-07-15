@@ -330,49 +330,29 @@ mutation (Unidentified/Last Words), rest-site out-of-combat hooks (Gem socketing
 
 ## 6. "CHIMERA CARDS" / CardAugments — the same-named mod
 
-Steam Workshop id **2970981743** (**"Chimera Cards"** by MistressAlison/AutumnMooncat; repo
-**`AutumnMooncat/CardAugments`**, wiki `github.com/MistressAlison/CardAugments/wiki`). Amusingly it shares
-our project's name — and it's mechanically the closest existing precedent to **our own re-skin + factor +
-specificity + power-budget design**, so it's worth studying, not just noting.
+Steam Workshop id **2970981743** (**"Chimera Cards"** by MistressAlison/AutumnMooncat). Amusingly it
+shares our project's name. **Take the mod PAGE's *described concept* as the reference — NOT the repo
+internals** (the `CardAugments` code doesn't cleanly reflect the described mod, so the framework specifics
+below are illustrative, not authoritative). The valuable idea is the **card-variance system** it describes.
 
-### What it is
-A **card-MODIFIER** mod (NOT a character). It attaches **prefix + suffix augments** to cards — "instead of
-the same Cleave, you find a **Searing Cleave** (upgradeable any number of times) or a **Bludgeoning Cleave**
-(costs much more but deals proportionally more)." Ships **100+ modifiers** split by rarity; **Chimera Cards+**
-adds **~280 more**. A button on the card-preview screen lists every modifier that can roll on that card.
+### The described concept (this is the takeaway)
+A base card can appear as many **variants** via **prefix/suffix modifiers** that change how it works —
+"instead of the same Cleave every time, you find a **Searing Cleave** (adds fire, upgradeable any number of
+times) or a **Bludgeoning Cleave** (costs much more but deals proportionally more)." The mod page describes
+**100+ modifiers split by rarity**, which modifiers can roll varies **per base card**, and a preview button
+lists every modifier a given card can take. So one base card × its eligible modifiers = many *distinct-feeling*
+cards — a **content-multiplier** layered on top of the base card set.
 
-### How it works (the framework — directly analogous to ours)
-- Modifiers extend **`AbstractAugment`** (over BaseMod's CardModifier). Each overrides **`getModRarity()`**,
-  **`validCard()`** (eligibility), **`makeCopy()`**, and `identifier()`.
-- **Naming = prefix + suffix** (always define both; translations reorder). This is exactly our idea of a card
-  reading as "*Searing* Cleave" — a base card + an augment tag.
-- **Rarity tiers**: Common / Uncommon / Rare **spawn** in reward pools; **Special** modifiers don't spawn
-  (event/reward-only). Maps onto our specificity-ladder → rarity coupling (`card-pool-composition.md §10`).
-- **Eligibility (`validCard`)** — helper predicates: `cardCheck()` (searches all upgrade variants),
-  `isNormalCard()` (excludes Curse/Status), `doesntExhaust()`, `upgradesDamage()/Block()/Magic()`,
-  `characterCheck()`. **This is precisely our `require`/`eligible(card, creature)` idea, but keyed on the
-  base card's shape instead of the holder's typing** — a useful second axis (a modifier can gate on "attacks
-  that upgrade damage and don't Exhaust").
-- **Modification hooks**: `onUpgradeCheck()` (bump baseDamage/baseBlock/magicNumber), `atBattleStartPreDraw()`,
-  `onDamaged()`, `betterCanPlay()`. So an augment can change stats, add a keyword, change the upgrade curve,
-  or add a lifecycle trigger — the same op-space as our effect categories.
-- Modifiers **work across most mods' cards** (they roll onto arbitrary cards), and support crossover
-  registration + a ban-list.
+### Why the CONCEPT matters for us (developed in `card-pool-composition.md §12`)
+This "base card × a modifier layer" idea is essentially a generalization of what we already do (attunement
+**re-skin** recolors a kit card to an element) into a full **card-variance axis**: a card instance = a base +
+0–N modifiers, each a **power-budget delta**, each gated by eligibility (card-shape *and* holder typing). It
+multiplies content variety cheaply, gives a cost↔power lever, makes variants **collectible**, and plugs
+straight into our power-budget + specificity + generation model. **We're elevating this from a footnote to a
+real design consideration** — see `card-pool-composition.md §12`.
 
-### Why it matters for us
-1. **Validation of direction**: an independently-popular mod proves the "cards are a base × a modifier layer"
-   model is fun and generatively rich — which is essentially our **kit-card × attunement-reskin × factor**
-   composition, plus a per-card modifier tier we don't yet have.
-2. **A modifier TIER we could add**: beyond typing-driven composition, a **prefix/suffix augment** system
-   (Searing = +element/status; Bludgeoning = +cost/+dmg; etc.) is a clean way to add *intra-card* variety and
-   a cost↔power lever — and it plugs straight into the **power-budget model** (each augment has a point
-   delta) and the **specificity `require`** (an augment gates on card shape *and* could gate on holder
-   typing). Candidate for a later "card varieties" pass (`varieties-and-evolution.md`).
-3. **Eligibility on card-shape**: their `validCard` predicates (upgradesDamage/doesntExhaust/…) are a good
-   template for the *card-shape* half of our eligibility, complementing the *typing* half.
-
-*(No same-named StS2 concern for us mechanically — different game, different engine. The name collision is
-coincidental; our "Chimera" is the creature-fusion theme.)*
+*(The name collision is coincidental — different game, different engine; our "Chimera" is the creature-fusion
+theme. No mechanical concern.)*
 
 ---
 

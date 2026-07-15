@@ -27,10 +27,14 @@ with rich possibilities"); and the **modifier-manager + can-negate architecture*
 Every axis/effect is **tagged to an owning typing** (kit/factor/attunement/subtype) so generation stays
 coherent, and a **§9 coverage map** assigns each typing its axes + signatures. **Raw research preserved in
 `docs/research-sts-catalog.md`** (the five sweeps' full findings + provenance). Also checked the
-**same-named StS mod "Chimera Cards"** (`CardAugments`, id 2970981743) — it's a **card-prefix/suffix
-MODIFIER** mod (Searing/Bludgeoning Cleave…), mechanically the closest precedent to our re-skin + factor +
-specificity + power-budget model; flagged a possible future **card-augment variety tier**
-(`research-sts-catalog.md §6`, `card-pool-composition.md §11b`). This is the content of
+**same-named StS mod "Chimera Cards"** (`CardAugments`, id 2970981743) — take its **described concept**
+(the repo doesn't reflect it): a **card-variance system** (Searing/Bludgeoning Cleave…), the closest
+precedent to our re-skin + factor + specificity + power-budget model. Per Jeton ("a card variance system …
+which we could consider"), developed it into **`card-pool-composition.md §12`**: a card = **`base +
+modifiers[]`**, each a budgeted, `require`-gated delta, variance from (①) typing-intrinsic (attunement
+prefix + factor suffix — *replaces* ad-hoc `reskin.js`) and (②) rolled reward augments; recommendation
+**Option B** (A now, B when budget+reward land, player-crafting C deferred); variants are collectible.
+This is the content of
 `card-pool-composition.md` build-order **step ②** (the balance backbone). **NEXT (build):** ① op-registry
 refactor on the modifier-manager pattern + expand the v2 op set; ② status/hook engine in round.js;
 ③ power-budget module + validator; ④ axis→effect mapping tables; ⑤ resource-system engine; ⑥ the

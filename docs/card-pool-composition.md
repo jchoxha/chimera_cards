@@ -321,12 +321,102 @@ possible instead of aspirational.
   a gentle cost curve only.)
 - **Pool density targets:** how many authored cards per kit / factor / attunement to hit the §1 budget
   without bloat. Needs an authoring pass + `test:*` coverage.
-- **Card-augment tier? (defer):** the same-named StS mod "Chimera Cards" (`CardAugments`,
-  `research-sts-catalog.md §6`) proves a **prefix/suffix modifier** layer on top of base cards is fun and
-  generative — "*Searing* Cleave" (+element), "*Bludgeoning* Cleave" (+cost/+dmg). This is a natural *second*
-  variety axis beyond typing-composition: an augment gates on **card shape** (`upgradesDamage`, `doesntExhaust`)
-  *and* holder typing (our `require`), and each augment is a clean **power-budget delta**. Candidate for a
-  later "card varieties" pass (`varieties-and-evolution.md`) once the base composition + budget are built.
+- **Card VARIANCE (base × modifier layer):** now specced in **§12** — a card = `base + modifiers[]`, each a
+  budgeted, `require`-gated delta. Recommendation is **Option B** (typing-intrinsic variance replaces the
+  ad-hoc re-skin now; rolled reward augments layer on once budget + reward-targeting land; player crafting
+  deferred). Open sub-decision for Jeton: **which adoption tier (A/B/C)** and how aggressive the rolled-augment
+  rate should be.
+
+## 12. Card VARIANCE — the base × modifier layer (a design direction to consider)
+
+*Prompted by the same-named StS mod "Chimera Cards" (`research-sts-catalog.md §6`). Jeton: take the mod's
+**described concept**, not its repo — "a card variance system … which we could consider."* This section
+develops it as a real option for us, because it dovetails with everything above.
+
+### 12.1 The idea
+A card is not a fixed object — it's a **base card + a variance layer** (0–N *modifiers*). "Cleave" isn't one
+card; it's a family: a **Searing Cleave** (adds Fire + Burn), a **Bludgeoning Cleave** (costs more, hits
+proportionally harder), a **Rending Cleave** (adds Bleed). One base × its eligible modifiers = many
+*distinct-feeling* cards. This is a **content multiplier**, a **cost↔power lever**, and a **collection/chase
+dimension** — all on top of the base card set.
+
+We already do a *slice* of this: attunement **re-skin** recolors a kit card to the creature's element
+(`reskin.js`). Variance is the **generalization** of that one hard-coded transform into a first-class,
+budgeted, taggable axis.
+
+### 12.2 Where variance comes from — two sources
+1. **Typing-intrinsic (deterministic — the same base card feels different per creature).**
+   - **Attunement → element prefix** (Searing/Frostfire/Venomous…) — recolor + imbue status. *(= today's
+     re-skin, now explicit + budgeted.)*
+   - **Factor → a rider suffix** — Cleave on a **Claws** creature is *Rending* (+Bleed); on a **Shield**
+     creature it gains a small block rider. Factors already imply a cluster (§5); variance lets them also
+     *tint an existing base card*, not only add their own cards.
+   These are **not rolled** — they're how one base card reads differently on a Fire Warrior vs a Nature
+   Beast. Coherent by construction.
+2. **Rolled augments (stochastic — the chase/variety layer).** A **reward or shop card can arrive
+   pre-modified**: not just "Bite" but "**Searing Bite**" or "**Heavy Bite**." This is the variety/chase
+   dimension — and a natural fit for the reward flow we already have.
+
+### 12.3 The modifier vocabulary (each = a power-budget delta)
+Every modifier is a **signed value delta** the §8 budget model already knows how to cost — so a variant's
+`base + Σmodifiers` must still match its `cost × rarity`. Families:
+
+| Modifier family | Example | Effect | Budget sign |
+|---|---|---|---|
+| **Element prefix** | Searing / Frostfire / Venomous | set element + imbue that status | ~neutral (side-grade) |
+| **Magnitude suffix** | Bludgeoning (+cost +dmg) / Honed (+dmg −rider) / Swift (−cost −dmg) | slide the cost↔power curve | net-neutral by design |
+| **Rider augment** | Rending (+Bleed) / Guarding (+Block) / Draining (lifesteal) | bolt a small Category-1/3 effect | + (premium) |
+| **Scaling augment** | Growing (scaleBy a counter) / Echoing (replay) | add a Category-2 payoff | + (premium, rarer) |
+| **Scope augment** | Sweeping (splash) / Piercing (ignore-block/reach) | widen targeting | + (scope premium) |
+| **Keyword augment** | Fleeting / Persisting / Volatile / Innate | attach a §2 keyword | ± (up or downside) |
+
+**Naming** = `[Prefix] Base [of Suffix]`, **max ~2 tags** so it stays readable ("Searing Bite", not a soup).
+
+### 12.4 Eligibility — what can roll on what (TWO axes)
+A modifier declares a `require` on **both**:
+- **Card-shape** (new — the CardAugments `validCard` idea): only on attacks · only on damaging cards · not on
+  already-Exhaust cards · single-target only. Keeps modifiers sensible (no "Rending" on a pure block card).
+- **Holder typing** (our existing §10 `require`): Searing only on Fire-capable creatures · Rending only on
+  **Claws** creatures. Keeps variance **coherent with the creature** — a Fire Warrior can roll Searing, never
+  Frostfire.
+
+So variance reuses the **same `require`/`eligible()` backbone** as §10 — just adds a card-shape clause
+alongside the typing clause.
+
+### 12.5 How it plugs into the four pillars
+- **Balanced** — every modifier is a budget delta; the validator gates `base + modifiers`. Variance can't
+  open a balance hole. (Magnitude suffixes are net-neutral cost↔power slides; riders raise rarity.)
+- **Coherent** — source ① is deterministic; source ② is double-gated (card-shape ∧ typing). A creature's
+  variants always fit its identity.
+- **Interesting** — one base card yields many distinct plays; the cost↔power lever + riders create micro-build
+  decisions ("do I want the Heavy or the Swift Bite?").
+- **Compelling** — variants are **collectible** ("a Searing *and* a Venomous Bite") — a Pokémon-flavored chase
+  dimension layered onto deckbuilding, and cheap content the generator mints for free.
+
+### 12.6 Adoption options (the decision)
+- **Option A — Typing-intrinsic only (minimal).** Formalize what we have: attunement prefix + factor suffix as
+  the *only* variance, deterministic, no rolls. Lowest risk, no new UI. (Basically the current plan, just
+  data-modeled as base+modifiers.)
+- **Option B — + Rolled reward augments (moderate, RECOMMENDED).** Add source ②: reward/shop cards may arrive
+  with a rolled modifier (rarity-weighted, double-gated). Adds the chase/variety without a crafting UI. Reuses
+  the reward flow + budget + `require` we're already building.
+- **Option C — Full augment system + player crafting (maximal).** Players apply/reroll modifiers at a bench
+  (gem-socket-like, cf. Guardian Gems). Biggest scope; a late "Forge/anvil" feature.
+
+**Recommendation:** data-model a card as **`base + modifiers[]`** now (each modifier a budgeted, `require`-
+gated delta), power **typing-intrinsic variance (A)** with it first — this cleanly *replaces* the ad-hoc
+`reskin.js` — then layer **rolled reward augments (B)** once the power-budget + reward targeting land. Defer
+player crafting (C) to a later forge pass. Same pipeline (budget + `require`) the rest of the plan is built
+on, so variance is nearly free once those exist.
+
+### 12.7 Guardrails
+- **≤2 modifiers/card** (readability + budget sanity).
+- **Never break base identity** — a Bite stays a Bite; modifiers tint, they don't replace.
+- **Budget validator is mandatory** on the composed card (base + mods), same as any authored card.
+- **Collection groups variants under their base** so the codex/collection doesn't explode into hundreds of
+  near-duplicates — show "Bite ×3 variants," expandable.
+- **Build order:** slots into step ② (the base+modifier data model + typing-intrinsic variance rides the
+  op-registry + budget work) and step ⑦ (rolled reward augments ride the reward-targeting surfacing).
 
 ## Build order (proposed)
 
@@ -337,7 +427,8 @@ possible instead of aspirational.
    **→ Now specced in `effect-vocabulary.md`** (the deep StS + mods research: 6 effect categories, ~30
    statuses incl. the delayed-detonation family, ~25 hooks, ~50 scaling axes across 13 families, the
    resource-system layer, the modifier-manager + can-negate architecture, and a first-pass power-budget
-   point table).
+   point table). **Also model a card as `base + modifiers[]` here (§12)** so typing-intrinsic variance
+   replaces the ad-hoc `reskin.js` and rolled reward augments become a later add.
 3. **Card SPECIFICITY backbone** (§10) — `require` descriptor + `eligible(card, creature)`; migrate the
    `pools.js` builders and the reward flow to consume it. Load-bearing for pools/rewards/deckbuilding.
 4. **Axis→effect mapping tables** (the generative ruleset) + **subtype wild-card engine** — passive
@@ -347,4 +438,5 @@ possible instead of aspirational.
 6. **Generation validation harness** (`balance:generation`) — mint N creatures across the axis space,
    assert power bands + coherent identities; the proof autonomy stays balanced.
 7. **Deck-build surfacing** — potential pool grouped by tier; per-creature reward targeting; budget
-   builder.
+   builder. **+ rolled reward augments (§12 Option B)** ride the reward-targeting surface; collection groups
+   variants under their base.
