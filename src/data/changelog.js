@@ -6,6 +6,10 @@
 
 /** @type {{version:string, date:string, notes:string[]}[]} newest first */
 export const CHANGELOG = [
+  { version: 'v3.163.0', date: '2026-07-15', notes: [
+    'Type matchups are now purely about ATTUNEMENT. A creature’s resistances and weaknesses come from its own element(s) — a Fire attack is strong into Frost, a creature shrugs off its own element — and a target’s body type / subtype no longer changes incoming damage. Simpler to read: “what element am I, what element are they?”',
+    'This is groundwork for the new identity model, where a creature’s STATS (not its matchups) come from its kit + gear.',
+  ] },
   { version: 'v3.162.0', date: '2026-07-15', notes: [
     'TYPE EFFECTIVENESS is now live in combat! A card’s element matters: attacks that are strong against a target’s type or constitution hit harder (a ▲ and “effective”), weak ones hit softer (▼, “not very effective”). Fire burns a Beast for +25%; a Physical hit glances off a Humanoid; a Fire creature shrugs off Fire.',
     'The damage preview and combat log both account for effectiveness, so what you see forecast is what you get.',

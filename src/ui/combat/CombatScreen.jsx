@@ -580,7 +580,7 @@ export default function CombatScreen({ onMenu, onRestart, embedded, onCodex } = 
 
   let matchup = null;
   if (activeMon && featured) {
-    // the SAME engine the damage op uses (attunement layer × constitution layer),
+    // the SAME engine the damage op uses (attunement-only matchup),
     // so the banner never disagrees with the numbers that actually land.
     const m = computeMatchup(activeMon, featured);
     if (m.total > 1) matchup = { good: true, label: 'SUPER EFFECTIVE', atk: m.best ?? activeMon.element, def: featured.element };

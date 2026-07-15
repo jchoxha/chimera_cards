@@ -1,12 +1,13 @@
 // Completeness guard for the TYPING MATRICES — asserts every synthesis + matchup table is fully
-// fleshed out, and that the kit axis (Archetype / Family / Manifestation) stays OUT of the matchup
-// layer (parity with Class), with Draconic the sole documented exception. Run: test:typing
+// fleshed out. Matchups are ATTUNEMENT-ONLY (constitution retired 2026-07-15), so the only matchup
+// table to guard is the attunement ring; body/subtype/family have no matchup effect by construction.
+// Run: test:typing
 import {
   CLASS_BASES, BIOLOGY_BASES, ATTUNEMENT_BASES, BODY_TYPES, SUBTYPES,
   CLASS_SYNTHESIS, BIOLOGY_SYNTHESIS, ATTUNEMENT_SYNTHESIS, CLASS_ATTUNEMENT_RULES,
 } from '../../data/synthesis.js';
 import fs from 'node:fs';
-import { ATTUNEMENT_MATCHUP, BIOLOGY_ATTUNEMENT, ATTUNEMENT_STATUS } from './matchups.js';
+import { ATTUNEMENT_MATCHUP, ATTUNEMENT_STATUS } from './matchups.js';
 import { BODY_PROFILE, SUBTYPE_PROFILE } from './biology.js';
 // read the kit family/manifestation lists straight from the JSON (node ESM can't `import` .json
 // without an import attribute, and the pool modules do exactly that).
@@ -34,24 +35,17 @@ for (const [e, r] of Object.entries(ATTUNEMENT_MATCHUP)) for (const t of [...r.s
 ok(badRefs.length === 0, `matchup rows reference only valid attunements${badRefs.length ? ' (' + badRefs.join(',') + ')' : ''}`);
 ok(Object.values(ATTUNEMENT_MATCHUP).every((r) => r.strong.length === 2 && r.weak.length === 2), 'every matchup row has exactly 2 strong + 2 weak');
 
-console.log('Constitution (Layer 2) covers the whole IDENTITY axis (body types + ALL subtypes):');
-ok(missing(BODY_TYPES, BIOLOGY_ATTUNEMENT).length === 0, `all ${BODY_TYPES.length} body types have a constitution`);
-const subMiss = missing(SUBTYPES, BIOLOGY_ATTUNEMENT);
-ok(subMiss.length === 0, `all ${SUBTYPES.length} subtypes have a constitution${subMiss.length ? ' (missing: ' + subMiss.join(',') + ')' : ''}`);
-const conBad = [];
-for (const [k, r] of Object.entries(BIOLOGY_ATTUNEMENT)) for (const t of [...(r.weak || []), ...(r.resist || [])]) if (!ATT.has(t)) conBad.push(`${k}->${t}`);
-ok(conBad.length === 0, `constitution entries reference only valid attunements${conBad.length ? ' (' + conBad.join(',') + ')' : ''}`);
+console.log('Matchups are ATTUNEMENT-ONLY — no per-body/subtype/family matchup table exists:');
+// The retired constitution meant body/subtype/family names could never leak into a matchup table;
+// with the table gone, that invariant holds by construction. Assert the axes are still enumerated
+// so downstream systems (pools, specificity, stats) have their vocabulary.
+ok(BODY_TYPES.length === 3, `body types enumerated (${BODY_TYPES.join(', ')})`);
+ok(SUBTYPES.length >= 4, `subtypes enumerated (${SUBTYPES.length})`);
+ok(BEAST_FAMILIES.length >= 6 && ABERRATION_FAMILIES.length >= 6, `families (${BEAST_FAMILIES.length}) + manifestations (${ABERRATION_FAMILIES.length}) enumerated`);
 
-console.log('Stat profiles cover the whole IDENTITY axis:');
+console.log('Stat profiles cover the whole IDENTITY axis (interim — kit+factor stat model lands in step ①b):');
 ok(missing(BODY_TYPES, BODY_PROFILE).length === 0, 'all body types have a stat profile');
 ok(missing(SUBTYPES, SUBTYPE_PROFILE).length === 0, `all ${SUBTYPES.length} subtypes have a stat profile`);
-
-console.log('KIT axis (Family / Manifestation) stays OUT of the matchup + stat layers (parity with Class; Draconic excepted):');
-const famsInMatchup = BEAST_FAMILIES.filter((f) => f !== 'Draconic' && BIOLOGY_ATTUNEMENT[f]);
-const manifInMatchup = ABERRATION_FAMILIES.filter((m) => BIOLOGY_ATTUNEMENT[m]);
-ok(famsInMatchup.length === 0, `no non-Draconic beast FAMILY leaks into constitution${famsInMatchup.length ? ' (' + famsInMatchup.join(',') + ')' : ''}`);
-ok(manifInMatchup.length === 0, `no aberration MANIFESTATION leaks into constitution${manifInMatchup.length ? ' (' + manifInMatchup.join(',') + ')' : ''}`);
-ok(BEAST_FAMILIES.length >= 6 && ABERRATION_FAMILIES.length >= 6, `families (${BEAST_FAMILIES.length}) + manifestations (${ABERRATION_FAMILIES.length}) enumerated`);
 
 console.log('Class→attunement legality is defined for every class:');
 ok(CLASS_BASES.every((c) => Array.isArray(CLASS_ATTUNEMENT_RULES[c])), 'every class has an attunement legality rule');

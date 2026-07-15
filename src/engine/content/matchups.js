@@ -3,28 +3,26 @@
 // ║ 3-axis Synthesis taxonomy. SINGLE source of truth (consolidates the  ║
 // ║ old duplicated element matrices in systems/elements.jsx and          ║
 // ║ combat/VanguardManager.js). See docs/synthesis-matrix-spec.md §4.    ║
-// ║ UPDATE WHEN: matchup relationships, magnitudes, or the layering /     ║
-// ║ override rules change. Class has NO matchup effect (locked 2026-06-21).║
+// ║ UPDATE WHEN: matchup relationships, magnitudes, or the self-resist /  ║
+// ║ clamp rules change.                                                  ║
 // ╚══════════════════════════════════════════════════════════════════╝
 //
-// TWO layers, BOTH keyed on attunement (locked 2026-06-21):
+// ATTUNEMENT-ONLY matchups (locked 2026-07-15, Jeton — the biology "constitution"
+// Layer 2 is RETIRED). A creature's resistances/weaknesses/advantages come SOLELY
+// from its own attunement(s):
 //   1. Attunement → attunement: attacker's element vs the defender's element(s).
-//   2. Biology → attunement: the defender's biology is innately weak/resistant to
-//      certain incoming ELEMENTS (its "elemental constitution").
-//
-// OVERRIDE: if the defender is itself attuned to the incoming element, its biology
-// relationship to that element is cancelled (a Fire Beast is NOT weak to fire) and
-// attunement self-resist applies instead.
+//   2. Self-resist: a creature attuned to the incoming element resists it (×0.75).
+// Body type, subtype, and family (except via the KIT/FACTOR STAT model, not here)
+// have NO matchup effect. This keeps matchups readable ("what element am I, what
+// element are they") and moves identity-stats onto the kit+factor axis.
 //
 // Tables flagged REVIEW are provisional v0 (balance-tunable) — the ENGINE
-// (layering, override, self-resist, clamp) is locked; the NUMBERS are not.
+// (self-resist, best-of, clamp) is locked; the NUMBERS are not.
 
 // ── Magnitudes (locked B1) ───────────────────────────────────────────────────
 export const MAG = Object.freeze({
   ATTUNE_STRONG: 1.5,
   ATTUNE_WEAK: 0.66,
-  BIO_WEAK: 1.25,    // defender takes MORE from this element
-  BIO_RESIST: 0.8,   // defender takes LESS
   SELF_RESIST: 0.75, // attunement-only (B4): resist your own element
   CLAMP_MIN: 0.25,
   CLAMP_MAX: 4.0,
@@ -47,36 +45,6 @@ export const ATTUNEMENT_MATCHUP = Object.freeze({
   Holy:     { strong: ['Shadow', 'Void'],   weak: ['Physical', 'Mind'] },
   Void:     { strong: ['Holy', 'Energy'],   weak: ['Arcane', 'Mind'] },
   Mind:     { strong: ['Holy', 'Physical'], weak: ['Shadow', 'Arcane'] },
-});
-
-// ── Layer 2: constitution → attunement (REVIEW v0, §4.2 + §9 re-key) ─────────
-// Which incoming ELEMENTS a defender is WEAK to (takes x1.25) or RESISTS (x0.8),
-// keyed by the IDENTITY axis: its BODY TYPE(s) + descriptive SUBTYPES. The KIT axis
-// (Beast FAMILY / Aberration MANIFESTATION) is the archetype-equivalent and has NO
-// matchup effect — parity with Class — EXCEPT `Draconic`, the one stat-relevant family
-// (dragon bulk + fire constitution). Every body type + every subtype has a row
-// (guarded by test:typing). Legacy 9-biology names keep their rows so old saves resolve.
-export const BIOLOGY_ATTUNEMENT = Object.freeze({
-  // body types (the FORM)
-  Beast:      { weak: ['Fire', 'Mind'],      resist: ['Physical', 'Nature'] },
-  Humanoid:   { weak: ['Shadow', 'Mind'],    resist: ['Physical'] },
-  Aberration: { weak: ['Holy'],              resist: ['Void', 'Arcane'] },
-  // descriptive subtypes (composition/affliction) — also the legacy-name rows
-  Undead:     { weak: ['Holy', 'Fire'],      resist: ['Shadow', 'Void', 'Frost'] },
-  Elemental:  { weak: ['Void'],              resist: ['Physical'] },
-  Mechanical: { weak: ['Energy', 'Water'],   resist: ['Physical'] },
-  Giant:      { weak: ['Mind', 'Air'],       resist: ['Physical', 'Stone'] },
-  Demonic:    { weak: ['Holy'],              resist: ['Fire', 'Shadow'] },
-  Hallowed:   { weak: ['Shadow', 'Void'],    resist: ['Holy'] },
-  Spectral:   { weak: ['Holy', 'Arcane'],    resist: ['Physical'] },
-  Cursed:     { weak: ['Holy'],              resist: ['Shadow'] },
-  Feral:      { weak: ['Mind', 'Frost'],     resist: ['Physical', 'Nature'] }, // wild frenzy — tough but undisciplined
-  Ancient:    { weak: ['Void', 'Nature'],    resist: ['Arcane', 'Physical'] }, // primordial endurance, eroded by entropy/time
-  Swarm:      { weak: ['Fire', 'Air'],       resist: ['Physical', 'Shadow'] }, // burned/scattered by AoE; no single body to strike
-  // stat-relevant family (Dragonkin fold-in) + legacy names
-  Draconic:   { weak: ['Frost', 'Arcane'],   resist: ['Fire', 'Physical'] },
-  Dragonkin:  { weak: ['Frost', 'Arcane'],   resist: ['Fire', 'Physical'] },
-  Demon:      { weak: ['Holy'],              resist: ['Fire', 'Shadow'] },
 });
 
 // ── Attunement signature statuses (spec §5.1) — the "imbue" rider ─────────────
@@ -128,26 +96,18 @@ export function attunementsOf(f) {
   if (Array.isArray(f?.types)) return f.types.map((t) => t?.type ?? t).filter(Boolean);
   return [];
 }
-/** @param {any} f */
+/** Body type(s) of a unit/creature/snapshot. Retained as a general accessor (the
+ *  matchup layer no longer reads it, but pools/specificity/UI still do). @param {any} f */
 export function biologiesOf(f) {
   const v = Array.isArray(f?.biology) ? f.biology : f?.axes?.biology;
   return Array.isArray(v) ? v.filter(Boolean) : [];
-}
-/** All the keys a defender's CONSTITUTION reads from: body type(s) + descriptive
- *  subtypes + a stat-relevant family (Draconic). De-duped; reads Fighter,
- *  snapshot (`axes.*`), or creature shapes. @param {any} f */
-export function constitutionKeysOf(f) {
-  const rawSubs = Array.isArray(f?.subtypes) ? f.subtypes : f?.axes?.subtypes;
-  const subs = Array.isArray(rawSubs) ? rawSubs.filter(Boolean) : [];
-  const fam = f?.family ?? f?.axes?.family;
-  return [...new Set([...biologiesOf(f), ...subs, ...(fam ? [fam] : [])])];
 }
 /** @param {any} f */
 export function classesOf(f) {
   return Array.isArray(f?.class) ? f.class.filter(Boolean) : [];
 }
 
-// ── Per-element multiplier helpers ───────────────────────────────────────────
+// ── Per-element multiplier helper ────────────────────────────────────────────
 function attunePair(atk, def) {
   const e = ATTUNEMENT_MATCHUP[atk];
   if (!e) return 1;
@@ -155,56 +115,38 @@ function attunePair(atk, def) {
   if (e.weak.includes(def)) return MAG.ATTUNE_WEAK;
   return 1;
 }
-function bioVsElement(bio, atk) {
-  const b = BIOLOGY_ATTUNEMENT[bio];
-  if (!b) return 1;
-  if (b.weak.includes(atk)) return MAG.BIO_WEAK;
-  if (b.resist.includes(atk)) return MAG.BIO_RESIST;
-  return 1;
-}
 
 /**
  * Compute the combat damage multiplier of an attack against a defender, with a
- * full breakdown for the live UI readout (spec §9/B3).
+ * breakdown for the live UI readout (spec §9/B3). ATTUNEMENT-ONLY: the attacker's
+ * element vs the defender's element(s), plus self-resist.
  *
- * Convention: evaluate each of the attacker's attunements fully (attunement layer
- * × biology layer) and take the BEST (max), then clamp.
+ * Convention: evaluate each of the attacker's attunements and take the BEST (max),
+ * then clamp.
  *
  * @param {{ attunement?: string[], types?: any[] }} attacker
- * @param {{ attunement?: string[], types?: any[], biology?: string[] }} defender
- * @returns {{ total: number, best: string|null, attune: number, biology: number,
- *            selfResisted: boolean, overridden: string[], label: string }}
+ * @param {{ attunement?: string[], types?: any[] }} defender
+ * @returns {{ total: number, best: string|null, attune: number,
+ *            selfResisted: boolean, label: string }}
  */
 export function computeMatchup(attacker, defender) {
   const atkEls = attunementsOf(attacker);
   const defEls = attunementsOf(defender);
-  const defBios = constitutionKeysOf(defender);
 
   if (atkEls.length === 0) {
-    return { total: 1, best: null, attune: 1, biology: 1, selfResisted: false, overridden: [], label: '' };
+    return { total: 1, best: null, attune: 1, selfResisted: false, label: '' };
   }
 
-  let best = { total: -Infinity, el: null, attune: 1, biology: 1, selfResisted: false, overridden: [] };
+  let best = { total: -Infinity, el: null, attune: 1, selfResisted: false };
 
   for (const a of atkEls) {
-    // Layer 1 — attunement vs the defender's attunement(s) + self-resist.
+    // Attunement vs the defender's attunement(s) + self-resist.
     let mAtt = 1;
     for (const d of defEls) mAtt *= attunePair(a, d);
     const selfResisted = defEls.includes(a);
     if (selfResisted) mAtt *= MAG.SELF_RESIST;
 
-    // Layer 2 — biology constitution vs the incoming element, UNLESS the defender
-    // is itself attuned to this element (own-attunement override).
-    let mBio = 1;
-    const overridden = [];
-    if (!selfResisted) {
-      for (const b of defBios) mBio *= bioVsElement(b, a);
-    } else {
-      for (const b of defBios) if (bioVsElement(b, a) !== 1) overridden.push(b);
-    }
-
-    const total = mAtt * mBio;
-    if (total > best.total) best = { total, el: a, attune: mAtt, biology: mBio, selfResisted, overridden };
+    if (mAtt > best.total) best = { total: mAtt, el: a, attune: mAtt, selfResisted };
   }
 
   const clamped = Math.max(MAG.CLAMP_MIN, Math.min(MAG.CLAMP_MAX, best.total));
@@ -212,9 +154,7 @@ export function computeMatchup(attacker, defender) {
     total: clamped,
     best: best.el,
     attune: best.attune,
-    biology: best.biology,
     selfResisted: best.selfResisted,
-    overridden: best.overridden,
     label: effectivenessLabel(clamped),
   };
 }
