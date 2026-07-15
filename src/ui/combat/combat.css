@@ -602,6 +602,11 @@ html:has(.cmbt),body:has(.cmbt){height:100%;margin:0;overflow:hidden}
 .combat .axesLine .bioTok{ font:inherit; font-size:10px; color:#d8c79a; background:none; border:none; padding:0; cursor:pointer;
   text-transform:uppercase; letter-spacing:.6px; text-decoration:underline; text-underline-offset:2px; text-decoration-style:dotted; }
 .combat .axesLine .bioTok:hover{ color:#ffe6a0; }
+/* fused attunement (hybrid) name token, tinted by the primary element */
+.combat .axesLine .typeToks{ display:flex; align-items:center; gap:6px; min-width:0; }
+.combat .axesLine .attTok{ font:inherit; font-size:10px; color:var(--el,#d8c79a); background:none; border:none; padding:0; cursor:pointer;
+  text-transform:uppercase; letter-spacing:.6px; font-weight:700; }
+.combat .axesLine .attTok:hover{ filter:brightness(1.25); }
 .combat .axesLine .factorRow{ display:flex; align-items:center; gap:4px; }
 .combat .axesLine .factorIcon{ display:inline-flex; align-items:center; justify-content:center; width:22px; height:22px;
   color:#e7d6a8; background:linear-gradient(160deg,#241a10,#170f0a); border:1px solid #8a6a18aa; border-radius:6px;
@@ -702,6 +707,10 @@ html:has(.cmbt),body:has(.cmbt){height:100%;margin:0;overflow:hidden}
 .modalCardWrap .axesLine .bioTok{ font:inherit; font-size:10px; color:#d8c79a; background:none; border:none; padding:0; cursor:pointer;
   text-transform:uppercase; letter-spacing:.6px; text-decoration:underline; text-decoration-style:dotted; text-underline-offset:2px; }
 .modalCardWrap .axesLine .bioTok:hover{ color:#ffe6a0; }
+.modalCardWrap .axesLine .typeToks{ display:flex; align-items:center; gap:6px; min-width:0; }
+.modalCardWrap .axesLine .attTok{ font:inherit; font-size:10px; color:var(--el,#d8c79a); background:none; border:none; padding:0; cursor:pointer;
+  text-transform:uppercase; letter-spacing:.6px; font-weight:700; }
+.modalCardWrap .axesLine .attTok:hover{ filter:brightness(1.25); }
 .modalCardWrap .axesLine .factorRow{ display:flex; align-items:center; gap:4px; }
 .modalCardWrap .axesLine .factorIcon{ display:inline-flex; align-items:center; justify-content:center; width:22px; height:22px;
   color:#e7d6a8; background:linear-gradient(160deg,#241a10,#170f0a); border:1px solid #8a6a18aa; border-radius:6px;

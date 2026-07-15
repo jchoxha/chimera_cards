@@ -9,6 +9,7 @@ import React from 'react';
 import { frameStyle } from './frames.js';
 import { creatureIcon, creatureColor, ATTUNEMENT_ICON, ATTUNEMENT_COLOR, submatrixIcons, specialFactors } from '../../data/axisIcons.js';
 import { biologyDisplayName } from '../../data/biologyNaming.js';
+import { attunementDisplayName } from '../../data/synthesis.js';
 import { creatureArt } from '../../data/artPool.js';
 import { sizedPortrait } from '../../data/sizeArt.js';
 import { ELEMENT_COLOR, FORMS } from '../../systems/elements.jsx';
@@ -255,12 +256,23 @@ export function CardFace({ f, side, matchup, onEffect, onInfo, onName, extraClas
           const subs = Array.isArray(f.axes.subtypes) ? f.axes.subtypes : (f.axes.subtypes ? [f.axes.subtypes] : []);
           const fams = f.axes.family ? [f.axes.family] : [];
           const bioName = biologyDisplayName(bios, fams, subs);
+          // fused ATTUNEMENT name — a dual attunement reads as its single hybrid name (Kinetic,
+          // Steam, …) instead of two separate types. Shown only for hybrids (single = the badge).
+          const attArr = Array.isArray(f.axes.attunement) ? f.axes.attunement.filter(Boolean) : [];
+          const attName = attArr.length >= 2 ? attunementDisplayName(attArr) : null;
+          const attColor = ATTUNEMENT_COLOR[attArr[0]] || '#c9a66b';
           return (
             <div className="axesLine">
-              {bioName
-                ? <button className="bioTok" onClick={onInfo ? (e) => { e.stopPropagation(); axisInfo('biology'); } : undefined}
-                    title={bios.length > 1 ? bios.join(' + ') : undefined}>{bioName}</button>
-                : <span />}
+              <span className="typeToks">
+                {attName
+                  ? <button className="attTok" style={{ '--el': attColor }} title={attArr.join(' + ')}
+                      onClick={onInfo ? (e) => { e.stopPropagation(); axisInfo('attunement'); } : undefined}>{attName}</button>
+                  : null}
+                {bioName
+                  ? <button className="bioTok" onClick={onInfo ? (e) => { e.stopPropagation(); axisInfo('biology'); } : undefined}
+                      title={bios.length > 1 ? bios.join(' + ') : undefined}>{bioName}</button>
+                  : null}
+              </span>
               <span className="factorRow">
                 {factors.map((fac) => (
                   <button key={fac.key} className={`factorIcon${onInfo ? ' clickable' : ''}`}

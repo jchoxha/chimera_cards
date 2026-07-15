@@ -6,6 +6,9 @@
 
 /** @type {{version:string, date:string, notes:string[]}[]} newest first */
 export const CHANGELOG = [
+  { version: 'v3.160.0', date: '2026-07-15', notes: [
+    'A creature with two attunements now reads as its single fused TYPE name — Voltfang (Physical + Energy) shows “Kinetic”, a Fire + Water creature shows “Steam”, etc. — instead of listing two separate attunements.',
+  ] },
   { version: 'v3.159.0', date: '2026-07-15', notes: [
     'Creatures now fight with their OWN kit! Each creature’s deck is built from its biology, class and attunement — Nightveil throws Shadow daggers (Shiv, Backstab), Ironhide swings a warrior’s Cleave and Guard, a Nature beast festers Poison. No more identical generic decks.',
     'Because every card belongs to a creature and reflects its typing, WHICH creatures you group into a squad is now a real deckbuilding decision.',

@@ -230,6 +230,15 @@ export function synthName(axis, a, b) {
   return SYNTH_TABLES[axis]?.[x + '|' + y] ?? (a + '/' + b);
 }
 
+/** A creature's ATTUNEMENT display name: a single base uses its own name; a dual attunement
+ *  reads as its synthesized hybrid name (e.g. ["Physical","Energy"] → "Kinetic") so a character
+ *  presents as ONE fused type, not two separate ones. */
+export function attunementDisplayName(attunements = []) {
+  const a = (Array.isArray(attunements) ? attunements : [attunements]).filter(Boolean);
+  if (!a.length) return '';
+  return a.length >= 2 ? synthName('attunement', a[0], a[1]) : a[0];
+}
+
 /**
  * Legal base attunements for a class value (1-2 base classes): the UNION of
  * each base class's allowed set plus the universals.
