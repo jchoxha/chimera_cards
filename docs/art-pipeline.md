@@ -1,7 +1,30 @@
 # Chimera art pipeline (Phase 3)
 
-How generated art is produced, styled, stored, and loaded. Built around the
-`claude-image-gen` MCP (Google Gemini, `create_asset` tool) once installed.
+How generated art is produced, styled, stored, and loaded.
+
+## ⚠️ Two systems — read this before touching art code
+
+There are **two different things** in this doc, and conflating them is the easy mistake:
+
+1. **The dev BAKING tool** (System 1) — how *we, during development*, generate the fixed
+   roster's portraits and commit them as static PNGs under `public/art/gen/`. Today this
+   runs through an **MCP connector bridge** (AGY / codex image gen) driven from a Claude
+   Code session. It is **dev scaffolding**: connector-based, needs a live process on a
+   Windows box, rate-limited, and **entirely throwaway**. None of it ships in the game.
+   Everything under "Generating art from a CLOUD session", the connector/job-id/polling
+   flow, and the pacing warnings belongs to System 1.
+
+2. **The runtime API PIPELINE** (System 2) — the product feature, **still to be built**:
+   the game itself calls a real image API to make portraits for player-created
+   (Forge/Fusion) creatures at runtime, converging on the same look as the baked roster,
+   with caching + graceful fallback. See **§ Building the runtime API pipeline** below.
+
+**What bridges the two — and is the only durable asset — is the PORTABLE PROMPT LAYER**
+(`subject + size + style`, see § Prompting). It is plain JS/data, tool-independent, and is
+reused verbatim by BOTH systems. When System 1's connector dies or System 2 swaps its
+provider, the prompt layer is what survives. **Rule of thumb: if it mentions a connector,
+job id, poll, or the Windows box, it's disposable System-1 detail; if it's about the prompt
+text, the style, or the size phrasing, it's the part that matters long-term.**
 
 ## Decisions (locked 2026-06-14)
 
@@ -135,6 +158,49 @@ quality ~80. Target ~30–80 KB each. Write to `public/art/...`. Produce
   creations show the fallback. Honest, no broken images.
 - Converge the in-game `generateArt` onto the same Gemini style so runtime and
   baked art match (currently it asks Anthropic for SVG — different look).
+
+## Building the runtime API pipeline (System 2) — readiness & build order
+
+**Goal:** the game calls a real image API at runtime to portrait player-created
+(Forge/Fusion) creatures, in the committed roster's Variant-B look, cached + with an honest
+fallback. The dev baking tool (System 1) stays for authoring the fixed roster — it is NOT
+the product path, and this pipeline does not depend on it.
+
+**Already in place — REUSE, don't rebuild:**
+- **Portable prompt recipe** — `subject` (`forgeCreature.js` `artPromptBase`) + `size`
+  (`sizeArt.js` `formArtDesc`) + `style` (§ Prompting). Same strings both systems use.
+- **Per-size resolver + manifest** — `sizedPortrait()` + `creatureArtSizes.json`.
+- **A runtime seam already wired** — `src/ai/claude.js` `generateArt` (called by
+  `forgeCreature.js`). It exists but returns an Anthropic **SVG** today (the wrong look);
+  System 2 is largely *replacing this one function's body*, not adding a new call site.
+- **Honest fallback chain** — gen portrait → `creatureArt` → axis-icon silhouette; already
+  rendered everywhere. No-key builds (public Pages) already degrade gracefully.
+
+**Build order:**
+1. **Unify the style** — lift the canonical Variant-B `STYLE` into ONE shared JS constant
+   (e.g. `src/data/artStyle.js`) and have the image path use it instead of the divergent
+   `claude.js ART_STYLE`; keep `gen_roster.py STYLE` mirroring it. *(This is the one
+   behavior-changing decision flagged in § Prompting — forged-creature art shifts to
+   Variant-B. Do it deliberately, not by accident.)*
+2. **Provider-agnostic adapter** — one module `generateImage({ prompt, size }) → image
+   bytes/URL`, chosen provider behind it (Gemini / OpenAI images / …), key from env.
+   Swapping providers = editing one file. This replaces the SVG `generateArt` body.
+3. **Cache + persist** — store the result in the save (data-URI or bucket ref) keyed by
+   creature id + form, so each creature is generated once.
+4. **Fallback / no-key** — preserve the existing chain; public Pages with no key shows baked
+   roster art + silhouette for customs (no broken images).
+5. **(Optional) one code path** — point the same adapter at the roster to retire the System-1
+   MCP baking, so dev-baking and runtime share exactly one generator.
+
+**Readiness checklist — the blocking DECISIONS (not code) before step 1:**
+- [ ] **Provider + model** chosen, and where the key lives (env var; never committed — this
+      repo + its Pages site are public).
+- [ ] **Variant-B confirmed** as the single canonical style (collapses the two style strings).
+- [ ] **Cache medium** decided (save-embedded data-URI vs. external bucket + manifest).
+- [ ] **Cost/latency budget** for a live forge (one image per player creation) acceptable, or
+      gate runtime gen behind a key / feature flag.
+
+Once those four are answered, steps 1–4 are mechanical and self-contained.
 
 ## Generation plan (phased — avoids mass-producing a rejected style)
 
