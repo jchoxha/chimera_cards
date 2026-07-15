@@ -34,6 +34,14 @@ which we could consider"), developed it into **`card-pool-composition.md §12`**
 modifiers[]`**, each a budgeted, `require`-gated delta, variance from (①) typing-intrinsic (attunement
 prefix + factor suffix — *replaces* ad-hoc `reskin.js`) and (②) rolled reward augments; recommendation
 **Option B** (A now, B when budget+reward land, player-crafting C deferred); variants are collectible.
+**DECK MODEL + TWO CARD ORIGINS LOCKED (Jeton):** a squad's shared deck = **≤5 personal cards per creature**
+(GENERATED from the creature's feature combo — effectively infinite, power-budget-balanced) **+ ≤5 squad
+cards** (`card-pool-composition.md §13`: a **finite, AUTHORED "knowns" registry** — like relics-as-cards —
+each gated by a squad-scoped `require` = formation / size / member-trait, collectible + hand-tuned). Full
+trio ≈ 20 cards. **Sub-3 balance (§9.3)** is a *curation* task: author size-keyed solo/duo squad "knowns" +
+scale squad-slots to size (~1.5/member) + a lone-wolf self-aura replacing missing support auras + harness
+tuning → solo = a focused self-reliant striker (sidegrade to the deep protected trio). Specificity `require`
+gains a **squad-scoped `eligible(card, squad)`** variant.
 This is the content of
 `card-pool-composition.md` build-order **step ②** (the balance backbone). **NEXT (build):** ① op-registry
 refactor on the modifier-manager pattern + expand the v2 op set; ② status/hook engine in round.js;

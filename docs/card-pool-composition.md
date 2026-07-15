@@ -202,14 +202,42 @@ The proof the model works: distinct, recognizable decks fall out of the combinat
 
 ## 9. Deck construction & growth
 
-- **Starter** (`starterDeck`): 3 Strike + 3 Defend (kit/element-reskinned) + 2–4 kit/factor signatures →
-  ~10 cards, always playable.
-- **Growth (run):** rewards + shop draw from the creature's **potential pool** (rarity-weighted), so a
-  run *specializes* a creature down one of its latent archetypes.
-- **Open world (later):** the §14.6 budget deckbuilder — free construction against a rarity-point cap,
-  same potential pool.
-- **Cross-creature:** the squad's shared hand is the union; rewards can be assigned per-creature
-  (`grantCard(ownerId)`), so you sculpt *which* creature carries which reward.
+### 9.1 The squad deck structure (LOCKED — Jeton, 2026-07-15)
+A squad's shared deck has **two tiers**:
+- **Personal cards** — each creature carries **≤ 5** of its own *generated* move cards (from its potential
+  pool, §2). These are the emergent, per-creature layer.
+- **Squad cards** — the squad may hold **≤ 5** *authored* squad cards (§13), each satisfying a squad-level
+  `require` (formation / size / member-trait).
+- The **shared hand** draws from the union on shared energy (Option A). A fallen creature's **personal**
+  cards go dead; **squad** cards persist while the squad still satisfies their gate (cast on squad energy;
+  owner = any live member, or the vanguard — engine detail TBD).
+
+Full trio = 15 personal + 5 squad = **up to 20**; duo = up to 15; solo = up to 10 (fewer squad cards — see
+9.3). Energy stays ~constant per creature (`squadEnergyFor`, `formations-design.md`).
+
+### 9.2 Growth
+- **Starter** (`starterDeck`): ~3 Strike + 3 Defend (kit/element-reskinned) + 2–4 kit/factor signatures per
+  creature, always playable.
+- **Run growth:** rewards + shop draw from the creature's **potential pool** (rarity-weighted) → a run
+  *specializes* a creature; **squad cards** are earned/discovered from the authored registry and assigned to
+  eligible squads. Rewards can be assigned per-creature (`grantCard(ownerId)`).
+- **Open world (later):** the budget deckbuilder — free construction against a rarity-point cap.
+
+### 9.3 Balancing squads of < 3 creatures
+Small squads structurally lose (a) most **squad cards** (they need multi-member traits / a formation) and
+(b) **support auras + protection**; they gain **consistency** (thin deck), **board width / independence**,
+and **focus**. Because the squad-card library is *authored + finite* (§13), balancing this is a **curation
+task**, not an emergent-generation one. Levers:
+1. **Scale squad-card slots to size** (~1.5/member → solo 1–2, duo 3, trio 5) — the 5 is the *trio* cap, so
+   small squads aren't "missing" slots they can't fill.
+2. **Author size-keyed squad cards** — `require:{size:1}` "Lone Hunter" etc., so every size has strong
+   *knowns* available; solo becomes a distinct build, not a deprived trio.
+3. **Lone-wolf self-aura** — a solo/duo creature gets a built-in self-buff ≈ the support auras it lacks
+   (`applyFormationAuras` extension); one tunable knob.
+4. **Harness tuning** — add squad-size as a `balance:formations` dimension; converge solo/duo/trio win-rates.
+
+Net: a solo squad = a focused, self-reliant striker (thin consistent generated deck + its own solo-only
+squad cards) — a *sidegrade* to the deep, protected, synergy-rich trio.
 
 ## 10. Card SPECIFICITY — the availability backbone (LOCKED direction)
 
@@ -234,6 +262,10 @@ A `require` is a set of clauses across these dimensions (a missing dimension = n
 **Matching rule:** OR *within* a dimension (an array — `kit:['Warrior','Rogue']` = has either),
 AND *across* dimensions (`{attunement:['Fire'], factor:['Claws']}` = Fire **and** has Claws). A creature
 is **eligible** iff it satisfies every constrained dimension.
+
+**Squad-scoped dimensions** (for the authored squad cards, §13): `formation`, `size`, and cross-member
+`trait` — evaluated against the **whole squad** (its members + current formation), not one creature. Same
+OR-within/AND-across rule; a squad-scoped `eligible()` variant handles them.
 
 ### The specificity ladder (broad → narrow) couples to power/rarity
 The narrower a card's availability, the more build-defining it's *allowed* to be — a natural rarity
@@ -418,6 +450,50 @@ on, so variance is nearly free once those exist.
 - **Build order:** slots into step ② (the base+modifier data model + typing-intrinsic variance rides the
   op-registry + budget work) and step ⑦ (rolled reward augments ride the reward-targeting surfacing).
 
+## 13. Two card ORIGINS — generated movesets vs authored squad cards (LOCKED — Jeton, 2026-07-15)
+
+Every card in the game comes from one of **two fundamentally different origins**. This is a load-bearing
+distinction — it decides what's generated vs authored, what's balanced by formula vs by hand, and what the
+player *learns* vs *discovers emergently*.
+
+### 13.1 Move cards — GENERATED (the bulk)
+A creature's moveset is the **emergent result of its unique feature combination** (kit + factors +
+attunement + subtype), composed through the pool pipeline (§2) and the variance layer (§12). Effectively
+infinite, per-creature, procedurally **balanced by the power-budget** (§11). No two feature-combos need the
+same cards. This is the generative churn — breadth, per-creature identity, and the variance chase.
+
+### 13.2 Squad cards — AUTHORED "KNOWNS" (a finite, curated library)
+A **fixed, hand-designed catalog** — like the relic/artifact library, but expressed as cards. Properties:
+- **Finite & authored** — a known set the designer curates and hand-balances (still costed by the power
+  budget, but *chosen*, not rolled). Players *learn* them, chase them, and build teams around them.
+- **Squad-gated `require`** — each keys on a **formation**, a **squad size**, or **member traits**
+  (cross-member), evaluated against the **squad**, not one creature (extends the §10 dimensions).
+- **Collectible & assignable** — discovered/earned, then slotted into any squad that satisfies the gate
+  (≤5, scaled by size — §9.3).
+- **Build-defining team payoffs** — the reason to assemble a *specific* squad; the stable meta-vocabulary
+  sitting on top of the generative movesets.
+
+### 13.3 Why the split
+| | Generated movesets | Authored squad cards |
+|---|---|---|
+| Origin | composed from typing + variance | a finite hand-designed registry |
+| Count | effectively infinite | a known, curated set |
+| Balance | power-budget formula + harness | hand-tuned (still budget-checked) |
+| Player relationship | emergent per-creature identity | *learned* knowns, chased & collected |
+| Gate (`require`) | creature typing/factor/subtype | squad formation / size / member-trait |
+
+This mirrors StS's own split — generative-ish per-character card pools **+** a finite iconic **relic**
+library. Our squad cards are that iconic finite layer, as cards, over the generative churn. It gives *us* a
+curated lever for team-composition payoffs (which are risky to leave to generation) while keeping the
+per-creature content generative and effectively unlimited.
+
+### 13.4 Data-model note
+A single authored **squad-card registry** (like `data/artifacts` / relics): each entry = `{ id, name,
+effects[] (budgeted op-list), require (squad-level), rarity/discovery }`. The `eligible()` predicate (§10)
+gains a **squad-scoped** variant that evaluates a `require` against the *whole squad* (members' traits +
+current formation + size). Generated move cards keep the **creature-scoped** eligibility. Both flow through
+the one power-budget validator.
+
 ## Build order (proposed)
 
 1. **Matchups → attunement-only** (retire Layer-2 constitution) + **stats → kit+factor** (retire
@@ -429,8 +505,10 @@ on, so variance is nearly free once those exist.
    resource-system layer, the modifier-manager + can-negate architecture, and a first-pass power-budget
    point table). **Also model a card as `base + modifiers[]` here (§12)** so typing-intrinsic variance
    replaces the ad-hoc `reskin.js` and rolled reward augments become a later add.
-3. **Card SPECIFICITY backbone** (§10) — `require` descriptor + `eligible(card, creature)`; migrate the
-   `pools.js` builders and the reward flow to consume it. Load-bearing for pools/rewards/deckbuilding.
+3. **Card SPECIFICITY backbone** (§10) — `require` descriptor + `eligible(card, creature)` **+ a
+   squad-scoped `eligible(card, squad)`** (formation/size/member-trait, §13); migrate the `pools.js`
+   builders and the reward flow to consume it. Load-bearing for pools/rewards/deckbuilding.
+   Stand up the **authored squad-card registry** (§13.4) here as a data file (author content later).
 4. **Axis→effect mapping tables** (the generative ruleset) + **subtype wild-card engine** — passive
    hooks in `round.js` + author the 11 signatures (bespoke). Enables procedural card generation.
 5. **Content density pass** — flesh each kit/factor/attunement sub-pool to the §1 budget; `test:*`
