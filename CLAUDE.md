@@ -16,9 +16,15 @@ axis — Beast **Family** / Aberration **Manifestation** — is the archetype-eq
 or stat effect** (like Class), so a Humanoid/Beast or Humanoid/Aberration hybrid carries BOTH an Archetype
 AND a Family/Manifestation (kit only); matchup identity = body type + subtypes + attunement. **`Draconic`**
 is the sole stat-relevant family (bulk + fire constitution). New **`npm run test:typing`** (17 checks)
-guards completeness + the parity rule. Docs: `docs/synthesis-matrix-spec.md` §4.2/§4.3. *(Matchups are
-built + tested but still NOT wired into combat-v2 — round.js `matchup` defaults to ×1; wiring
-`computeMatchup` into the v2 resolver is the follow-up to make typing bite.)*
+guards completeness + the parity rule. Docs: `docs/synthesis-matrix-spec.md` §4.2/§4.3.
+
+**⚔️ TYPE EFFECTIVENESS NOW LIVE IN COMBAT-V2 (v3.162.0, 2026-07-15).** `round.js` damage op now calls
+`computeMatchup({attunement:[card.element]}, target.creature)` and folds the multiplier (× any authored
+`e.matchup`) into `attackDamage` — so a card's ELEMENT vs the target's attunement + constitution finally
+bites (Physical→Humanoid ×0.8, Shadow→Humanoid ×1.25, Fire→Fire self-resist ×0.75, etc.). The damage log
+event carries `mult`+`eff` ("effective"/"not very effective…"); `battleStore.predictIncoming` applies the
+SAME matchup so the red preview/forecast match reality; BattleScreen floats a ▲/▼ on the damage number and
+the log line notes the effectiveness. `test:battleround` +4 (14); all suites green.
 
 
 

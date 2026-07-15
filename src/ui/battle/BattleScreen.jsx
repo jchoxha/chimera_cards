@@ -514,7 +514,7 @@ export default function BattleScreen({ onFlee, onBattleEnd, initialScene, sceneB
       // while fast-forwarding through the current move we apply state but skip the floating FX
       // (they would all pile up at once); the arrived move animates its FX normally.
       if (!ff) {
-        if (e.type === 'damage') { const net = e.amount - (e.blocked || 0); spawnFx(e.targetId, net > 0 ? 'dmg' : 'blocked', net > 0 ? `-${net}` : '🛡', from); }
+        if (e.type === 'damage') { const net = e.amount - (e.blocked || 0); const eff = e.mult > 1 ? ' ▲' : (e.mult < 1 && e.mult > 0 ? ' ▼' : ''); spawnFx(e.targetId, net > 0 ? 'dmg' : 'blocked', net > 0 ? `-${net}${eff}` : '🛡', from); }
         else if (e.type === 'block') spawnFx(e.unitId, 'block', `+${e.amount}`);
         else if (e.type === 'heal' || e.type === 'regen') spawnFx(e.targetId ?? e.unitId, 'heal', `+${e.amount ?? ''}`, from);
         else if (e.type === 'miss') spawnFx(e.targetId, 'miss', 'MISS', from);

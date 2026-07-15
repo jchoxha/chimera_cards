@@ -12,6 +12,7 @@ import { create } from 'zustand';
 import { uid, shuffle } from '../utils.js';
 import { buildState, makeUnit, makeSquad, liveFrontUnit, isAlive } from '../engine/battle/state.js';
 import { battleStats, attackDamage } from '../engine/battle/stats.js';
+import { computeMatchup } from '../engine/content/matchups.js';
 import { resolveBattleRound, startRound, planCost } from '../engine/battle/battle.js';
 import { kitDeckFor } from '../engine/battle/kitDeck.js';
 import { creatureToFace } from '../ui/combat/creatureVisuals.jsx';
@@ -186,7 +187,11 @@ function predictIncoming(state, plans) {
       let targets = [tgt];
       if (scope === 'field' && tsq) targets = state.sides[tsq.side].flatMap((id) => state.squadsById[id].memberIds.map((m) => state.unitsById[m])).filter((u) => u && isAlive(u));
       else if (scope === 'squad' && tsq) targets = tsq.memberIds.map((m) => state.unitsById[m]).filter((u) => u && isAlive(u));
-      for (const t of targets) { let per = 0; for (const e of dmgEffs) per += attackDamage(e.value, owner.stats.attack, t.stats.defense); add(t.id, per); }
+      for (const t of targets) {
+        const mult = (card.element && t.creature) ? computeMatchup({ attunement: [card.element] }, t.creature).total : 1;
+        let per = 0; for (const e of dmgEffs) per += attackDamage(e.value, owner.stats.attack, t.stats.defense, mult);
+        add(t.id, per);
+      }
     }
   }
   return inc;
@@ -226,7 +231,7 @@ export function formatRoundLog(state, log, turn) {
       entries.push(cur);
     } else if (cur) {
       // "N Damage Taken" (what got past block) + ", X Blocked" for the absorbed portion.
-      if (e.type === 'damage') { const taken = (e.amount || 0) - (e.blocked || 0); cur.effects.push(`${taken} Damage Taken`); if (e.blocked > 0) cur.effects.push(`${e.blocked} Blocked`); }
+      if (e.type === 'damage') { const taken = (e.amount || 0) - (e.blocked || 0); cur.effects.push(`${taken} Damage Taken${e.eff ? ` (${e.eff})` : ''}`); if (e.blocked > 0) cur.effects.push(`${e.blocked} Blocked`); }
       // block / buffs read as "N ... Granted"
       else if (e.type === 'block') cur.effects.push(`${e.amount} Block Granted`);
       else if (e.type === 'heal') cur.effects.push(`${e.amount} Healed`);

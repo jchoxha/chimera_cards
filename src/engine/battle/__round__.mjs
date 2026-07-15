@@ -103,5 +103,25 @@ console.log('End-of-round ticks:');
   ok(U.hp === 37 && U.statuses.find((x) => x.id === 'poison').amount === 2, `poison ticks at end of round (hp ${U.hp})`);
 }
 
+console.log('Type effectiveness (card element vs target constitution):');
+{
+  // attacker untyped-stat, but the CARD is Fire; Beast is weak to Fire (×1.25), Aberration resists none of Fire.
+  const mk = (id, creature) => { const u = makeUnit({ id, side: id === 'ATK' ? 'p' : 'e', stats: stat({}), maxHp: 100 }); u.creature = creature; return u; };
+  const fire = card({ id: 'firebolt', element: 'Fire', effects: [{ op: 'damage', value: 20 }] });
+  // neutral defender (no typing) → ×1
+  { const A = mk('ATK', { attunement: ['Physical'] }), D = mk('D', null); const s = state([A, D]);
+    applyAction(s, { ownerId: 'ATK', targetId: 'D', card: fire }, mulberry32(3), []);
+    ok(D.hp === 80, `untyped defender takes base 20 (hp ${D.hp})`); }
+  // Beast is weak to Fire → ×1.25 → 25 damage
+  { const A = mk('ATK', { attunement: ['Physical'] }), D = mk('D', { biology: ['Beast'] }); const s = state([A, D]); const log = [];
+    applyAction(s, { ownerId: 'ATK', targetId: 'D', card: fire }, mulberry32(3), log);
+    ok(D.hp === 75, `Beast is weak to Fire → 25 dmg (hp ${D.hp})`);
+    ok(log.some((e) => e.type === 'damage' && e.mult === 1.25 && /effective/.test(e.eff || '')), 'damage log carries the effectiveness (×1.25, label)'); }
+  // a Fire creature resists Fire (self-resist ×0.75) → 15 damage, and its biology weakness is overridden
+  { const A = mk('ATK', { attunement: ['Physical'] }), D = mk('D', { attunement: ['Fire'], biology: ['Beast'] }); const s = state([A, D]);
+    applyAction(s, { ownerId: 'ATK', targetId: 'D', card: fire }, mulberry32(3), []);
+    ok(D.hp === 85, `Fire creature self-resists Fire, biology weakness overridden → 15 dmg (hp ${D.hp})`); }
+}
+
 console.log(`\nbattle/round: ${pass} passed, ${fail} failed`);
 process.exit(fail ? 1 : 0);

@@ -15,6 +15,15 @@
 // ╚══════════════════════════════════════════════════════════════════╝
 import { attackDamage, landChance, rollHit, buffMagnitude, debuffMagnitude } from './stats.js';
 import { unitSquad, liveFrontUnit, reachable, setFront, anyLiveEnemyFront, squadLiveMembers, liveUnits, makeUnit } from './state.js';
+import { computeMatchup } from '../content/matchups.js';
+
+/** Type-effectiveness multiplier of a card's element vs a target's typing (attunement +
+ *  constitution). Neutral (1) when either side is untyped. Also returns a UI label. */
+function cardMatchup(card, target) {
+  const els = card?.element ? [card.element] : [];
+  if (!els.length || !target?.creature) return { total: 1, label: '' };
+  return computeMatchup({ attunement: els }, target.creature);
+}
 
 export { makeUnit };   // re-export so callers can build units from one entry point
 
@@ -73,12 +82,12 @@ function friendlyTargets(state, action) {
 }
 
 /** Absorb `amount` into Block (temp HP) first, then HP. Block persists (no decay). */
-function dealDamage(target, amount, log) {
+function dealDamage(target, amount, log, extra) {
   const fromBlock = Math.min(target.block || 0, amount);
   target.block = (target.block || 0) - fromBlock;
   const toHp = amount - fromBlock;
   target.hp = Math.max(0, target.hp - toHp);
-  log.push({ type: 'damage', targetId: target.id, amount, blocked: fromBlock, hp: target.hp });
+  log.push({ type: 'damage', targetId: target.id, amount, blocked: fromBlock, hp: target.hp, ...(extra || {}) });
   if (target.hp <= 0) log.push({ type: 'death', unitId: target.id });
 }
 
@@ -127,7 +136,12 @@ export function applyAction(state, action, rng, log) {
       case 'damage': {
         for (const t of off) {
           if (!hit.has(t.id) || !live(t)) continue;
-          dealDamage(t, attackDamage(e.value, owner.stats.attack, t.stats.defense, e.matchup ?? 1), log);
+          // TYPE EFFECTIVENESS: the card's element vs the target's attunement + constitution
+          // (§4), stacked with any authored per-effect override.
+          const m = cardMatchup(card, t);
+          const mult = (e.matchup ?? 1) * m.total;
+          dealDamage(t, attackDamage(e.value, owner.stats.attack, t.stats.defense, mult), log,
+            m.total !== 1 ? { mult: Math.round(m.total * 100) / 100, eff: m.label } : undefined);
         }
         break;
       }

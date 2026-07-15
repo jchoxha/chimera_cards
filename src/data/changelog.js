@@ -6,6 +6,10 @@
 
 /** @type {{version:string, date:string, notes:string[]}[]} newest first */
 export const CHANGELOG = [
+  { version: 'v3.162.0', date: '2026-07-15', notes: [
+    'TYPE EFFECTIVENESS is now live in combat! A card’s element matters: attacks that are strong against a target’s type or constitution hit harder (a ▲ and “effective”), weak ones hit softer (▼, “not very effective”). Fire burns a Beast for +25%; a Physical hit glances off a Humanoid; a Fire creature shrugs off Fire.',
+    'The damage preview and combat log both account for effectiveness, so what you see forecast is what you get.',
+  ] },
   { version: 'v3.161.0', date: '2026-07-15', notes: [
     'Fleshed out the typing matrices: the three remaining affliction subtypes (Feral, Ancient, Swarm) now have full elemental weakness/resistance profiles, so every body type and subtype has a complete matchup — and a new check keeps them that way.',
     'Confirmed the model: a Beast’s Family and an Aberration’s Manifestation are the kit axis (like a Humanoid’s Archetype) and don’t affect type matchups — only body type, subtypes and attunement do.',
