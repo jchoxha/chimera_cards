@@ -268,7 +268,44 @@ specificity system **unifies these into one `require` descriptor** + an `eligibl
 predicate. Implementing it makes the pool builders, the reward flow, and (later) the budget builder all
 read from the same source of truth.
 
-## 11. Open questions / decisions
+## 11. The GENERATION CONTRACT — how autonomy stays balanced/coherent/compelling
+
+The whole point is a system that can **autonomously mint unique creatures + cards** that are *balanced,
+interesting, coherent, and compelling.* Each of those four words maps to a concrete mechanism we must
+build — this is the acceptance criteria for the generator.
+
+| Goal | The mechanism that guarantees it |
+|---|---|
+| **Balanced** | A bidirectional **power-budget model**: every card's effects sum to a *value*, and value ↔ (energy cost × rarity budget). No card ships (authored *or* generated) without passing it. A **generation harness** then sims N creatures and flags any outside the power band. |
+| **Coherent** | **Composition from validated axis primitives** + **axis→effect mapping tables**: a creature is assembled from its kit/factor/attunement/subtype pools (each card already `require`-tagged to fit), so output *can't* be off-identity. A Fire Warrior only rolls Fire/Warrior/its-factor cards. |
+| **Interesting** | A rich, fully-implemented **effect vocabulary** with **synergy hooks** — statuses that reactions detonate, count/HP/scaling/delayed/conditional mechanics — so generated cards can *do* things, not just "deal N." (Today the v2 engine runs only ~5 ops; this is the gap to close.) |
+| **Compelling** | A **clear archetype bias** (the kit is ~50% of the pool, so every creature reads as one build) + the **AI forge** layer for bespoke name/lore/signature flavor on top of the validated skeleton. |
+
+### The two-layer generation model (confirm)
+
+1. **Procedural composition = the balanced backbone.** `makeCreature(typing)` composes stats (kit+factor)
+   + pool (`require`-eligible cards) + a starter deck, deterministically and testably. This is what
+   scales to a big, safe bestiary.
+2. **AI forge = the flavor/novelty layer.** `forgeCreature(concept)` writes name/lore/art + 2–3 bespoke
+   **signature** CardSpecs, each pushed through the SAME power-budget + legality validators
+   (`sanitizeForgedCard`) so novelty can't break balance. Species-tier `require`.
+
+Everything a human authors and everything either generator produces flows through **one costing model +
+one validator + one `require` system** — that single pipeline is what makes "autonomous & balanced"
+possible instead of aspirational.
+
+### What this adds to the build
+
+- A **card power-budget module** (`value(effects)` ↔ `cost/rarity`) — the balance backbone. Effects each
+  carry a point value (damage/point, block/point, status/point, draw, energy, scaling multipliers…).
+- **Expand the v2 effect vocabulary** to the intended set (multi-hit, draw, energy, scaling, delayed,
+  conditional + all 13 attunement statuses live) — otherwise generated cards are bland.
+- **Axis→effect mapping tables** (the "generative ruleset", `synthesis-matrix-spec.md` §7): each
+  attunement/kit/factor/subtype → the effect motifs + number ranges it may roll.
+- A **generation validation harness** (`balance:generation`): mint N creatures across the axis space,
+  assert every card passes the budget, decks fall in a win-rate band, and identities read coherent.
+
+## 11b. Open questions / decisions
 
 - ✅ **Factors are SPECIES-FIXED** (set at generation, not player-swappable). This is a deliberate
   *diversity* lever: two otherwise-identical creatures (both Fire Mammalian beasts) can feel like
@@ -289,12 +326,15 @@ read from the same source of truth.
 
 1. **Matchups → attunement-only** (retire Layer-2 constitution) + **stats → kit+factor** (retire
    `BODY_PROFILE`). Mechanical, self-contained; unlocks the identity model above.
-2. **Card SPECIFICITY backbone** (§10) — add a `require` descriptor + `eligible(card, creature)`
-   predicate; migrate the `pools.js` builders and the reward flow to consume it (potential pool = eligible
-   cards; rewards target any eligible owned creature). This is the load-bearing piece for everything else.
-3. **Subtype wild-card engine** — passive-trigger hooks in `round.js` (turn-start / on-struck / on-death
-   / turn-end) + author the 11 signatures (bespoke, iterate by hand).
-4. **Content density pass** — flesh each kit/factor/attunement sub-pool to the §1 budget; wire subtype
-   packages; add `test:*` coverage of the specificity tiers + pool sizes.
-5. **Deck-build surfacing** — show a creature's potential pool grouped by specificity tier; let rewards
-   pick which eligible creature receives the card; later the budget builder.
+2. **Effect vocabulary + power-budget model** (§11) — expand the v2 engine's op set to the intended
+   vocabulary AND build `value(effects) ↔ cost/rarity`. The balance backbone; do it before mass content.
+3. **Card SPECIFICITY backbone** (§10) — `require` descriptor + `eligible(card, creature)`; migrate the
+   `pools.js` builders and the reward flow to consume it. Load-bearing for pools/rewards/deckbuilding.
+4. **Axis→effect mapping tables** (the generative ruleset) + **subtype wild-card engine** — passive
+   hooks in `round.js` + author the 11 signatures (bespoke). Enables procedural card generation.
+5. **Content density pass** — flesh each kit/factor/attunement sub-pool to the §1 budget; `test:*`
+   coverage of specificity tiers, pool sizes, and the power-budget.
+6. **Generation validation harness** (`balance:generation`) — mint N creatures across the axis space,
+   assert power bands + coherent identities; the proof autonomy stays balanced.
+7. **Deck-build surfacing** — potential pool grouped by tier; per-creature reward targeting; budget
+   builder.
