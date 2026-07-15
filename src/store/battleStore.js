@@ -13,6 +13,7 @@ import { uid, shuffle } from '../utils.js';
 import { buildState, makeUnit, makeSquad, liveFrontUnit, isAlive } from '../engine/battle/state.js';
 import { battleStats, attackDamage } from '../engine/battle/stats.js';
 import { resolveBattleRound, startRound, planCost } from '../engine/battle/battle.js';
+import { kitDeckFor } from '../engine/battle/kitDeck.js';
 import { creatureToFace } from '../ui/combat/creatureVisuals.jsx';
 
 const rng = () => Math.random();
@@ -33,13 +34,13 @@ export const DEMO_CARDS = {
 };
 // OPTION A — cards are OWNED by a creature and cast by it (from the safety of the back row for a
 // Support), but all of a squad's cards draw into ONE shared hand on shared squad energy. A card
-// whose owner is dead becomes unplayable. `PERSONAL_DECK` is a generic starter for now — the seam
-// where real per-creature KIT decks (from biology/typing) will slot in via personalDeck(unit).
-const PERSONAL_DECK = ['strike', 'strike', 'jab', 'guard', 'cleave', 'weaken'];
-const inst = (id, ownerId) => ({ ...DEMO_CARDS[id], iid: `${id}#${uid()}`, ownerId });
-const personalDeck = (ownerId) => PERSONAL_DECK.map((cid) => inst(cid, ownerId));
-/** A squad's combined deck = each member's personal deck (stamped with its owner), shuffled. */
-const squadDeckFor = (memberUnits) => shuffle(memberUnits.flatMap((u) => personalDeck(u.id)));
+// whose owner is dead becomes unplayable. A unit's deck comes from its real biology/typing KIT
+// (kitDeckFor → the v1 generator adapted to the v2 engine), so each creature's cards express its
+// identity (a Fire creature's strikes deal Fire, a Nature beast applies Poison, etc.).
+const inst = (def, ownerId) => ({ ...def, iid: `${def.id}#${uid()}`, ownerId });
+const personalDeck = (unit) => kitDeckFor(unit.creature).map((def) => inst(def, unit.id));
+/** A squad's combined deck = each member's kit deck (stamped with its owner), shuffled. */
+const squadDeckFor = (memberUnits) => shuffle(memberUnits.flatMap((u) => personalDeck(u)));
 
 /** REWARD POOL — cards a victory can add to a creature's deck. Every card here uses ONLY the
  *  mechanically-live effects (damage incl. multi-hit · block · heal · poison DoT · regen), so a

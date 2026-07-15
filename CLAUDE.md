@@ -27,10 +27,14 @@ ONE shared hand on shared energy, but a card is **cast by its owner** (`queueCar
 resolve owner → its stats apply, so a Support casts from the protected back row) and a **dead owner's
 cards are unplayable**. UI: `HandDock3D` tints each card by an owner-colour edge tab + greys fallen-owner
 cards; the "Cast with" picker is REMOVED (casting is automatic by owner) — the bottom `.bCaster` strip is
-now a read-only squad roster (members · vanguard aura · fallen). `PERSONAL_DECK` is still generic — the
-seam for real kit decks. **NEXT:** real per-creature KIT decks (`personalDeck(unit)` → biology/typing
-kit), reward creature-level card assignment (`grantCard` already takes an ownerId), formation-synergy
-cards, smarter enemy AI, then re-tune with varied stats.
+now a read-only squad roster (members · vanguard aura · fallen). **REAL KIT DECKS (v3.159.0):** `personalDeck(unit)` now builds from the creature's biology/typing KIT —
+`engine/battle/kitDeck.js` `kitDeckFor(creature)` runs the v1 generator (`pools.potentialPool` →
+`run.starterDeck`, reskinned to attunement) and ADAPTS each v1 CardSpec into a v2 card (keeps
+damage/block/heal/debuff/buff; drops draw/energy; infers scope/priority; generic element-flavoured
+fallback if no kit). Verified: Nightveil→Shadow daggers, Ironhide→warrior Cleave/Guard, Voltfang→beast
+Pursuit/Bite; full rounds resolve. **NEXT:** reward creature-level card assignment (`grantCard` takes an
+ownerId), bring draw/energy + inert statuses to life in the v2 engine (kit cards adapt-DOWN today),
+formation-synergy cards, smarter enemy AI, then re-tune with varied stats.
 
 
 

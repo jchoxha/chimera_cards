@@ -6,6 +6,10 @@
 
 /** @type {{version:string, date:string, notes:string[]}[]} newest first */
 export const CHANGELOG = [
+  { version: 'v3.159.0', date: '2026-07-15', notes: [
+    'Creatures now fight with their OWN kit! Each creature’s deck is built from its biology, class and attunement — Nightveil throws Shadow daggers (Shiv, Backstab), Ironhide swings a warrior’s Cleave and Guard, a Nature beast festers Poison. No more identical generic decks.',
+    'Because every card belongs to a creature and reflects its typing, WHICH creatures you group into a squad is now a real deckbuilding decision.',
+  ] },
   { version: 'v3.158.0', date: '2026-07-15', notes: [
     'Cards now belong to individual creatures. A squad still draws into ONE shared hand on shared energy, but each card is cast by its owner — a Support casts from the protected back row using its own stats, and a fallen creature’s cards can no longer be played.',
     'Every hand card is tinted by its owner (a coloured edge) so you can see whose it is at a glance; a fallen owner’s cards grey out.',

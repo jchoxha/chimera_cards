@@ -64,13 +64,25 @@ owner-colour tab + greys out when its creature falls; the old manual "Cast with"
 (casting is automatic by owner) and the bottom strip now shows the squad roster (members · vanguard
 aura · fallen). `PERSONAL_DECK` is still a generic starter — the seam for real kit decks below.
 
+## Update — real KIT decks shipped (v3.159.0)
+
+`personalDeck(unit)` now builds from the creature's real biology/typing KIT: `engine/battle/kitDeck.js`
+`kitDeckFor(creature)` runs the v1 generator (`pools.potentialPool` → `run.starterDeck`, reskinned to
+the creature's attunement) and ADAPTS each v1 CardSpec into a v2 card the round resolver understands
+(keeps damage/block/heal/debuff/buff; drops unsupported ops like draw/energy; infers scope/priority;
+falls back to a generic element-flavoured starter if a creature has no kit). Verified: Nightveil (Rogue/
+Shadow) draws Shiv/Dagger/Backstab/Dodge, Ironhide (Warrior/Physical) Cleave/Guard/Pommel Strike,
+Voltfang (Beast/Physical+Energy) Pursuit/Bite — and a full round resolves. So "which creatures do I
+group?" is now a genuine deckbuilding decision.
+
 ## Next steps
 
-- **Real per-creature KIT decks** — swap `personalDeck(unit)` from the generic starter to the
-  creature's biology/typing kit (the v1 generator already exists), so a creature's cards express its
-  identity. This is the payoff that makes "which creatures do I group?" a deckbuilding decision.
 - **Reward/creature-level card assignment** — `grantCard` accepts an `ownerId`; wire the reward
   overlay to pick which creature in the squad receives the card (defaults to the Vanguard today).
+- **Bring more kit ops to life in the v2 engine** — `draw`/`energy` (and inert statuses like
+  weak/strength/vulnerable) are currently dropped; implementing them would let kit cards land at full
+  fidelity instead of adapted-down.
+- **Formation-synergy cards** + smarter enemy AI, then re-tune the balance harness with varied stats.
 - **Formation-specific cards/synergies** (shared-element squad bonus, "phalanx" cards that scale with
   Support count, back-row-only cards).
 - **Smarter enemy AI** that also uses support-casting + formations, then re-run the harness with varied
