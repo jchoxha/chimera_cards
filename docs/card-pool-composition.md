@@ -321,6 +321,12 @@ possible instead of aspirational.
   a gentle cost curve only.)
 - **Pool density targets:** how many authored cards per kit / factor / attunement to hit the §1 budget
   without bloat. Needs an authoring pass + `test:*` coverage.
+- **Card-augment tier? (defer):** the same-named StS mod "Chimera Cards" (`CardAugments`,
+  `research-sts-catalog.md §6`) proves a **prefix/suffix modifier** layer on top of base cards is fun and
+  generative — "*Searing* Cleave" (+element), "*Bludgeoning* Cleave" (+cost/+dmg). This is a natural *second*
+  variety axis beyond typing-composition: an augment gates on **card shape** (`upgradesDamage`, `doesntExhaust`)
+  *and* holder typing (our `require`), and each augment is a clean **power-budget delta**. Candidate for a
+  later "card varieties" pass (`varieties-and-evolution.md`) once the base composition + budget are built.
 
 ## Build order (proposed)
 

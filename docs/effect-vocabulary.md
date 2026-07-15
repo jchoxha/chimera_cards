@@ -12,10 +12,11 @@ of the design has been deferring:
 
 Grounded in a research sweep of **StS1 base game** (all 4 characters, ~178 relics, the full status/keyword
 set) and the **modding scene** (StSLib shared keywords + power hooks; Downfall's 9 villain characters;
-custom-character mods: Necromancer, Runesmith, Tirion, Margaret, custom-orb packs). v1's engine is a
-*reference only* — this catalog is built from the source material, not ported from v1. Numbers are
-`REVIEW`; the **structure + coverage** is what we're locking. Companion to
-`card-pool-composition.md` (the pool budget) and `combat-v2-spec.md` (the engine).
+~40 custom-character mods). v1's engine is a *reference only* — this catalog is built from the source
+material, not ported from v1. **The raw research findings are archived in `research-sts-catalog.md`** (this
+doc is the *synthesized, typing-tagged* design catalog). Numbers are `REVIEW`; the **structure + coverage**
+is what we're locking. Companion to `card-pool-composition.md` (the pool budget) and `combat-v2-spec.md`
+(the engine).
 
 ---
 
