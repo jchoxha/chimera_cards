@@ -121,13 +121,31 @@ The AI forge (`forgeCreature.js`) already stamps a size-aware
 
 ## ✅ Generating art from a CLOUD session (AGY Image-Gen MCP — verified 2026-07-07)
 
-Image generation NO LONGER needs the Windows box. The **AGY Image Gen/Editing**
-connector exposes MCP tools that drive the same `agy` pipeline from a web/cloud
-Claude Code session. **Prereq: the connector must be ENABLED for the chat**
-(`ListConnectors` → if `enabledInChat:false`, turn it on in the chat's connector
-settings; the tools silently vanish otherwise). Load them with
-`ToolSearch("AGY_Image_Gen_Editing")`. The flow is async (a single call can exceed
-the ~60s cloud timeout, so it runs as a background job):
+Image generation NO LONGER needs the Windows box. The AGY connector exposes MCP
+tools that drive the same `agy` pipeline from a web/cloud Claude Code session.
+
+> ⚠️ **Connector name drifts.** It has appeared as **AGY Image Gen/Editing** and
+> (2026-07-15) **AGY & Codex Image Gen**, plus a sibling **Codex CLI Image Gen**.
+> Don't hard-code the namespace: run `ListConnectors` to find the current one and
+> `ToolSearch("agy codex image generate edit")` to load whatever the live tool
+> names are (`generate_image`/`edit_image`/`get_result`/… under the current prefix).
+
+**Prereq: the connector must be ENABLED for the chat** (`ListConnectors` → if
+`enabledInChat:false`, turn it on in the chat's connector settings; the tools
+silently vanish otherwise). It is also **backed by a live process on the user's
+Windows box** (the `agy`/codex bridge) — if `installState` reads `unknown` and the
+tools won't load, the bridge is down and only the user can restart it; no amount of
+retrying from the session fixes it.
+
+> ⚠️ **PACE THE JOBS — do NOT mass-fire.** (Learned 2026-07-15.) The codex image
+> backend is rate-limited and its host is not robust. A burst of parallel jobs (e.g.
+> fanning out subagents, one per image) trips a codex rate limit (`rc=1`) AND can
+> knock the whole bridge offline for hours. **Generate ONE creature/form at a time,
+> sequentially**: fire → poll → save → verify → next. This supersedes the older
+> "fire several, then poll, they run concurrently" advice below.
+
+The flow is async (a single call can exceed the ~60s cloud timeout, so it runs as a
+background job):
 
 1. `mcp__AGY_Image_Gen_Editing__generate_image({ prompt })` → returns a `job_id`
    immediately. (Optional `idle_seconds`, `hard_cap_seconds`.)
@@ -146,14 +164,18 @@ subject for the id>. <SIZE_DESC[form]>\n\nStyle: <STYLE>`.
 ### NEXT-SESSION PLAN — bake per-size portraits
 
 1. Confirm the connector is enabled in-chat; `ToolSearch("AGY_Image_Gen_Editing")`.
+   The size ladder is **`baby · young · regular · elite · boss`** (`Large` was
+   removed and `Small` renamed `Young`, 2026-07-15; `regular` = the base `<id>.png`,
+   so the four non-`regular` forms to bake are baby/young/elite/boss).
 2. Pick scope with the user:
-   - **Sanity set** (prove the loop): e.g. `ironhide-boss`, `emberwisp-baby`.
-   - **Full sweep**: 12 roster creatures × 5 non-`regular` forms = **60 images**.
-3. For each `(id, form)`: build the prompt from `gen_roster.py`
-   `CREATURES[id]` + `SIZE_DESC[form]` + `STYLE`; `generate_image`; keep the
-   `job_id`. (Fire several, then poll — they run concurrently.)
+   - **Sanity set** (prove the loop): e.g. `nightveil-elite`, `emberwisp-baby`.
+   - **Full sweep**: 12 roster creatures × 4 non-`regular` forms = **48 images**.
+3. Work **ONE `(id, form)` at a time, sequentially** (see the pacing warning above —
+   do not fan out): build the prompt from `gen_roster.py` `CREATURES[id]` +
+   `SIZE_DESC[form]` + `STYLE`; `generate_image` → keep the `job_id`.
 4. Poll `get_result` until done; `get_image_base64`; write
-   `public/art/gen/<id>-<form>.png` (downscale to ~384² PNG for parity).
+   `public/art/gen/<id>-<form>.png` (downscale to ~384² PNG for parity). Then move to
+   the next form — don't queue the next job until this one is saved + eyeballed.
 5. Add the baked forms to `src/data/creatureArtSizes.json`, e.g.
    `{ "ironhide": ["boss"], "emberwisp": ["baby"] }`.
 6. Verify in-browser (Playwright, `/app.html` → assemble → practice fight): a
@@ -166,24 +188,33 @@ The JS framework (resolver + manifest + size-aware prompts) is already shipped i
 v3.101.0, so once the PNGs + the manifest entries land, the game uses them with
 zero further code.
 
-## TODO — roster portraits to regenerate (updated 2026-07-07)
+## TODO — per-size portrait sweep (updated 2026-07-15)
 
 Regen runs via the AGY MCP in-session (above) or `scripts/gen_roster.py` on the
-Windows box. Use the FIXED prompts (full-bleed clause + composition-based size,
-in `gen_roster.py` since 2026-07-07). Queue:
+Windows box. Use the FIXED prompts (full-bleed clause + composition-based size).
+**Bake ONE creature/form at a time (pacing warning above).**
 
-- **ironhide** (base) — GLITCHED generation: an extra arm (flagged 2026-07-07).
-- **ironhide-boss** — first per-size sample came out looking like a BASE variant
-  with a white border (both prompt problems now fixed). It is currently PUBLISHED
-  in `creatureArtSizes.json` (`"ironhide": ["boss"]`) as the visible proof the
-  per-size swap works — REPLACE it with a clean regen (composition-based Boss +
-  full-bleed) when the image tool is available.
-- **tidecaller** — NO portrait at all (absent from `src/data/creatureArt.json`);
-  currently falls back to the attunement icon. Generate `public/art/gen/tidecaller.png`
-  and add `"tidecaller"` to `creatureArt.json`.
-- **frostmind** ("the thought" one) — portrait reads off; regenerate
-  `public/art/gen/frostmind.png`. *(Confirm this is the one meant — flagged as
-  "the thought".)*
+**DONE this session** (in `creatureArtSizes.json` + base fixes):
+- **ironhide** — arm-fixed base + full baby/young/elite/boss set.
+- **emberwisp** — full baby/young/elite/boss set.
+- **voltfang** — full baby/young/elite/boss set.
+- **nightveil** — baby + young (elite/boss still pending).
+- **tidecaller** — base portrait generated (earlier session).
+
+**REMAINING** — the image host went down mid-sweep (2026-07-15); resume here once
+the AGY bridge is reachable again. For each creature, bake baby/young/elite/boss:
+1. **nightveil** — elite + boss (baby/young already done).
+2. **frostmind** — base reads off, plus its 4 forms.
+3. **grimsoul**
+4. **dawnkeeper**
+5. **thornroot**
+6. **wildeye**
+7. **cogwright**
+8. **maw**
+
+After each creature: add its baked forms to `creatureArtSizes.json`, spot-check in
+`/app.html`, then commit that one creature before starting the next (per-milestone
+commits — a mid-sweep cutoff then loses at most one creature).
 
 Broader generation-model issues (size-neutral subject texts, per-size identity,
 evolution↔art) are collected in **`docs/creature-model-rework.md`**.
