@@ -1310,10 +1310,11 @@ the standalone editor. All deploy to GH Pages; the ROOT url now serves the hub.
 **🎨 Art generation — two systems, don't conflate them (`docs/art-pipeline.md`).** (1) The
 **dev BAKING tool** (an MCP connector bridge — AGY/codex — driven from a Claude session) is
 throwaway scaffolding for committing the fixed roster's PNGs; anything about connectors, job
-ids, polling, or the Windows box is disposable. (2) The **runtime API PIPELINE** (still to
-build) is the product: the game calling a real image API for player-created creatures — see
-`docs/art-pipeline.md` § "Building the runtime API pipeline" for the readiness checklist +
-build order. **The durable, tool-independent asset is the PROMPT LAYER** (`subject + size +
+ids, polling, or the Windows box is disposable. (2) The **generation PIPELINE** (still to
+build) is the product: ONE creature-generation pipeline (LLM concept + image art) where the
+in-game **Forge is just the player-facing entry point** and must mirror the backend by
+calling the same shared code — see `docs/art-pipeline.md` § "Building the generation
+pipeline" for the readiness checklist + build order. **The durable, tool-independent asset is the PROMPT LAYER** (`subject + size +
 style`; `forgeCreature.js` + `sizeArt.js FORM_ART_DESC` + the canonical Variant-B style),
 reused verbatim by both. Read the doc's top "Two systems" note before touching art code.
 

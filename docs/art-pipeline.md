@@ -14,10 +14,14 @@ There are **two different things** in this doc, and conflating them is the easy 
    Everything under "Generating art from a CLOUD session", the connector/job-id/polling
    flow, and the pacing warnings belongs to System 1.
 
-2. **The runtime API PIPELINE** (System 2) — the product feature, **still to be built**:
-   the game itself calls a real image API to make portraits for player-created
-   (Forge/Fusion) creatures at runtime, converging on the same look as the baked roster,
-   with caching + graceful fallback. See **§ Building the runtime API pipeline** below.
+2. **The generation PIPELINE** (System 2) — the product feature, **still to be built**.
+   The in-game **Forge is NOT a separate system — it is just the player-facing entry point
+   to this pipeline.** There is exactly ONE creature-generation pipeline (LLM concept
+   authoring + image art), and it must run **identically whether it's invoked from the
+   in-game Forge or from the backend** — same prompts, same style, same provider adapter,
+   ideally the same server endpoint. The Forge *mirrors the backend by construction* (they
+   call the same shared code), never by keeping two parallel copies in sync. See
+   **§ Building the generation pipeline** below.
 
 **What bridges the two — and is the only durable asset — is the PORTABLE PROMPT LAYER**
 (`subject + size + style`, see § Prompting). It is plain JS/data, tool-independent, and is
@@ -159,12 +163,20 @@ quality ~80. Target ~30–80 KB each. Write to `public/art/...`. Produce
 - Converge the in-game `generateArt` onto the same Gemini style so runtime and
   baked art match (currently it asks Anthropic for SVG — different look).
 
-## Building the runtime API pipeline (System 2) — readiness & build order
+## Building the generation pipeline (System 2) — readiness & build order
 
-**Goal:** the game calls a real image API at runtime to portrait player-created
-(Forge/Fusion) creatures, in the committed roster's Variant-B look, cached + with an honest
-fallback. The dev baking tool (System 1) stays for authoring the fixed roster — it is NOT
-the product path, and this pipeline does not depend on it.
+**Principle: one pipeline, two callers, zero divergence.** There is exactly ONE
+creature-generation pipeline (LLM concept authoring + image art). The in-game **Forge is
+just its player-facing entry point** — it must produce a creature the SAME way the backend
+does, by calling the same shared code (prompt layer + style constant + provider adapter),
+ideally the same server endpoint. **Do not build a client-side Forge that diverges from the
+backend; build one pipeline and call it from both.** The current split — the browser Forge
+(`forgeCreature.js` → `claude.js`, old SVG style) vs. the serverless `api/` forge vs. the
+roster tool (`gen_roster.py`, Variant-B) — is exactly the divergence to eliminate.
+
+The dev baking tool (System 1) is separate throwaway scaffolding for committing the fixed
+roster's PNGs — not part of this pipeline (though the roster bake can eventually run through
+the same adapter; see the optional final step).
 
 **Already in place — REUSE, don't rebuild:**
 - **Portable prompt recipe** — `subject` (`forgeCreature.js` `artPromptBase`) + `size`
@@ -185,12 +197,18 @@ the product path, and this pipeline does not depend on it.
 2. **Provider-agnostic adapter** — one module `generateImage({ prompt, size }) → image
    bytes/URL`, chosen provider behind it (Gemini / OpenAI images / …), key from env.
    Swapping providers = editing one file. This replaces the SVG `generateArt` body.
-3. **Cache + persist** — store the result in the save (data-URI or bucket ref) keyed by
+3. **One entry, two callers** — the Forge and the backend both generate through the same
+   code. Preferred shape for a public deploy: the Forge calls the serverless `api/` endpoint
+   that runs the pipeline, so the key stays server-side and the two literally *cannot*
+   diverge. (Local/dev with a key can call the adapter directly.) Retire the client-side SVG
+   `generateArt` path.
+4. **Cache + persist** — store the result in the save (data-URI or bucket ref) keyed by
    creature id + form, so each creature is generated once.
-4. **Fallback / no-key** — preserve the existing chain; public Pages with no key shows baked
+5. **Fallback / no-key** — preserve the existing chain; public Pages with no key shows baked
    roster art + silhouette for customs (no broken images).
-5. **(Optional) one code path** — point the same adapter at the roster to retire the System-1
-   MCP baking, so dev-baking and runtime share exactly one generator.
+6. **(Optional) fold in the roster bake** — point the same adapter at the fixed roster to
+   retire the System-1 MCP tool, so dev-baking, the Forge, and the backend share exactly one
+   generator.
 
 **Readiness checklist — the blocking DECISIONS (not code) before step 1:**
 - [ ] **Provider + model** chosen, and where the key lives (env var; never committed — this
