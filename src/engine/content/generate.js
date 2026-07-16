@@ -8,7 +8,7 @@
 // ║ UPDATE WHEN: the creature shape, stat derivation, or deck recipe change. ║
 // ╚══════════════════════════════════════════════════════════════════╝
 
-import { biologyStats } from './biology.js';
+import { statProfile } from './statProfile.js';
 import { reskinDeck } from '../cards/reskin.js';
 import { starterDeck } from '../run/state.js';
 import { formOf } from '../../data/forms.js';
@@ -37,10 +37,12 @@ export function makeCreature({ id, name, class: klass, biology, attunement, fami
   if (bio.length && !bio.includes('Humanoid')) cls = [];
 
   const subs = Array.isArray(subtypes) ? subtypes.filter(Boolean) : subtypes ? [subtypes] : [];
-  const { hpMult, stats } = biologyStats(bio, subs, family);
-  // Giant is a STAT/kit subtype (extra HP+Might via biologyStats), NOT a size gate —
-  // a Giant creature can still be Baby/Small/Regular (a baby giant is a fine thing).
-  // SIZE (form) scales HP and adds a flat Might bonus on top of biology.
+  // STATS = KIT + FACTOR (locked 2026-07-15): kit = archetype(s) ∪ family/manifestation;
+  // factor = weapons ∪ anatomy/features. Body type + subtype contribute NO stats
+  // (subtypes are wild-card passives). SIZE (form) still scales HP + adds a flat Might.
+  const kits = [...cls, ...(family ? [family] : [])];
+  const factors = [...(Array.isArray(weapons) ? weapons : []), ...(Array.isArray(anatomy) ? anatomy : [])];
+  const { hpMult, stats } = statProfile({ kits, factors });
   const form = formOf(size);
   const maxHp = Math.max(1, Math.round(baseHp * hpMult * form.hpMult));
   const statLine = { ...stats, might: Math.max(0, (stats.might ?? 1) + form.str) };

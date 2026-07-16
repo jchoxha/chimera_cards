@@ -8,7 +8,7 @@ import {
 } from '../../data/synthesis.js';
 import fs from 'node:fs';
 import { ATTUNEMENT_MATCHUP, ATTUNEMENT_STATUS } from './matchups.js';
-import { BODY_PROFILE, SUBTYPE_PROFILE } from './biology.js';
+import { KIT_PROFILE, FACTOR_PROFILE } from './statProfile.js';
 // read the kit family/manifestation lists straight from the JSON (node ESM can't `import` .json
 // without an import attribute, and the pool modules do exactly that).
 const readFamilies = (p) => Object.keys(JSON.parse(fs.readFileSync(new URL(p, import.meta.url))).families || {});
@@ -43,9 +43,16 @@ ok(BODY_TYPES.length === 3, `body types enumerated (${BODY_TYPES.join(', ')})`);
 ok(SUBTYPES.length >= 4, `subtypes enumerated (${SUBTYPES.length})`);
 ok(BEAST_FAMILIES.length >= 6 && ABERRATION_FAMILIES.length >= 6, `families (${BEAST_FAMILIES.length}) + manifestations (${ABERRATION_FAMILIES.length}) enumerated`);
 
-console.log('Stat profiles cover the whole IDENTITY axis (interim — kit+factor stat model lands in step ①b):');
-ok(missing(BODY_TYPES, BODY_PROFILE).length === 0, 'all body types have a stat profile');
-ok(missing(SUBTYPES, SUBTYPE_PROFILE).length === 0, `all ${SUBTYPES.length} subtypes have a stat profile`);
+console.log('Stats come from KIT + FACTOR (body/subtype give no stats):');
+// every kit (archetype ∪ family ∪ manifestation) has a stat profile
+const ALL_KITS = [...CLASS_BASES, ...BEAST_FAMILIES, ...ABERRATION_FAMILIES];
+ok(missing(ALL_KITS, KIT_PROFILE).length === 0, `all ${ALL_KITS.length} kits (archetype/family/manifestation) have a stat profile`);
+// every kit profile is well-formed (the multiplier keys + additive speed/eva)
+const KEYS = ['hp', 'might', 'guard', 'focus', 'resolve', 'speed', 'eva'];
+const badKit = Object.entries(KIT_PROFILE).filter(([, r]) => KEYS.some((k) => typeof r[k] !== 'number')).map(([k]) => k);
+ok(badKit.length === 0, `every kit profile has all ${KEYS.length} stat keys${badKit.length ? ' (bad: ' + badKit.join(',') + ')' : ''}`);
+// factor nudges are enumerated (weapons + anatomy + features)
+ok(Object.keys(FACTOR_PROFILE).length >= 30, `factor nudges enumerated (${Object.keys(FACTOR_PROFILE).length})`);
 
 console.log('Class→attunement legality is defined for every class:');
 ok(CLASS_BASES.every((c) => Array.isArray(CLASS_ATTUNEMENT_RULES[c])), 'every class has an attunement legality rule');

@@ -7,22 +7,33 @@ import {
 let pass = 0, fail = 0;
 const ok = (c, m) => (c ? (pass++, console.log('  ✓', m)) : (fail++, console.error('  ✗', m)));
 
-console.log('Stat derivation (raw, base 50):');
-{ const n = battleStats([]);
+console.log('Stat derivation from KIT + FACTOR (raw, base 50):');
+{ const n = battleStats({});
   ok(n.stats.attack === 50 && n.stats.defense === 50 && n.stats.focus === 50 && n.stats.resolve === 50,
-    `neutral → 50/50/50/50 (${n.stats.attack}/${n.stats.defense}/${n.stats.focus}/${n.stats.resolve})`);
+    `no kit → neutral 50/50/50/50 (${n.stats.attack}/${n.stats.defense}/${n.stats.focus}/${n.stats.resolve})`);
   ok(n.stats.accuracy === 100 && n.stats.evasion === 0 && n.stats.speed === 50,
-    `neutral → ACC 100, EVA 0, SPD 50 (${n.stats.accuracy}/${n.stats.evasion}/${n.stats.speed})`); }
-{ const mech = battleStats(['Humanoid'], ['Mechanical']);
-  ok(mech.stats.defense > 50, `Mechanical → high Defense (${mech.stats.defense})`);
-  ok(mech.stats.evasion < 1, `Mechanical → low/zero Evasion (${mech.stats.evasion})`); }
-{ const giant = battleStats(['Beast'], ['Giant']);
-  const plain = battleStats(['Beast']);
-  ok(giant.hpMult > 1.3 && giant.stats.speed < plain.stats.speed,
-    `Giant → bulkier + slower than a plain Beast (hp×${giant.hpMult}, spd ${giant.stats.speed} < ${plain.stats.speed})`);
-  ok(giant.stats.evasion === 0, `Giant → floored Evasion (${giant.stats.evasion})`); }
-{ const feral = battleStats(['Beast'], ['Feral']);
-  ok(feral.stats.evasion > 5, `Feral Beast → nimble (EVA ${feral.stats.evasion})`); }
+    `no kit → ACC 100, EVA 0, SPD 50 (${n.stats.accuracy}/${n.stats.evasion}/${n.stats.speed})`); }
+{ // KIT drives the shape: an Engineer archetype is a high-Defense, low-Evasion wall
+  const eng = battleStats({ class: ['Engineer'] });
+  ok(eng.stats.defense > 55, `Engineer kit → high Defense (${eng.stats.defense})`);
+  ok(eng.stats.evasion < 1, `Engineer kit → low/zero Evasion (${eng.stats.evasion})`); }
+{ // a Draconic family is bulky (big HP mult) and slower than a nimble family
+  const drac = battleStats({ family: 'Draconic' });
+  const mam = battleStats({ family: 'Mammalian' });
+  ok(drac.hpMult > 1.3 && drac.stats.speed < mam.stats.speed,
+    `Draconic → bulkier + slower than Mammalian (hp×${drac.hpMult}, spd ${drac.stats.speed} < ${mam.stats.speed})`); }
+{ // a Rogue archetype is nimble (high Evasion)
+  const rogue = battleStats({ class: ['Rogue'] });
+  ok(rogue.stats.evasion > 5, `Rogue kit → nimble (EVA ${rogue.stats.evasion})`); }
+{ // FACTOR nudges: a Shield weapon raises Defense over the same kit without it
+  const bare = battleStats({ class: ['Warrior'] });
+  const shielded = battleStats({ class: ['Warrior'], weapons: ['Shield'] });
+  ok(shielded.stats.defense > bare.stats.defense,
+    `Shield factor nudges Defense up (${bare.stats.defense} → ${shielded.stats.defense})`); }
+{ // body type + subtype contribute NO stats now — only kit + factor
+  const bodyOnly = battleStats({ biology: ['Beast'], subtypes: ['Giant'] });
+  ok(bodyOnly.stats.attack === 50 && bodyOnly.hpMult === 1,
+    `body type + subtype alone → neutral stats (ATK ${bodyOnly.stats.attack}, hp×${bodyOnly.hpMult})`); }
 
 console.log('Damage (damped Attack÷Defense ratio, parity = face value):');
 ok(attackDamage(10, BASE, BASE) === 10, `parity 50v50 → face value (${attackDamage(10, BASE, BASE)})`);

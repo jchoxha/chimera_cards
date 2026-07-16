@@ -6,6 +6,24 @@ a single-file Claude artifact now split into ES modules.
 
 ## ⚑ Project state — read this first (updated 2026-06-18)
 
+**🛠️ BUILD STEP ① DONE — matchups→attunement-only + stats→kit+factor (v3.163–3.164.0, 2026-07-16).**
+First code of the locked identity model (`card-pool-composition.md` build-order step ①). **①a (v3.163.0):**
+`computeMatchup` is now **attunement-only** — the biology "constitution" Layer 2 (`BIOLOGY_ATTUNEMENT`/
+`bioVsElement`/`constitutionKeysOf` + `MAG.BIO_*`) is **removed**; a creature's resist/weak comes solely
+from its own attunement(s) + self-resist. **①b (v3.164.0):** creature STATS now compose from **KIT +
+FACTOR**, not body type — new **`src/engine/content/statProfile.js`** (`KIT_PROFILE` for 8 archetypes +
+7 families + 6 manifestations = the base stat SHAPE, hybrids AVERAGE; `FACTOR_PROFILE` for 12 weapons +
+13 anatomy + 9 features = compounding nudges; `statProfile({kits,factors})` + `kitsOf`/`factorsOf`/
+`creatureStatProfile`). `stats.js battleStats(creature)` maps that shape to the 7-stat line (evasion now
+in the profile, not a separate overlay); `generate.js` + `battleStore.js` rewired. **`biology.js` DELETED**
+(BODY_PROFILE/SUBTYPE_PROFILE/FAMILY_PROFILE/biologyStats gone) — **body type contributes NO stats (just
+picks the kit), subtypes NO stats (wild-card passives)**. Verified: real roster creatures read as distinct
+builds (Ironhide tanky bruiser HP73/DEF65 · Nightveil fast assassin SPD66/EVA9 · Cogwright wall DEF69 ·
+Wildeye evasive skirmisher SPD66/EVA15 · Grizzlord aggressive Warrior+Mammalian hybrid ATK68). Tests
+updated (`test:matchups` 16, `test:typing` 15, `test:battle` 28, `test:generate` 15, `test:battleround`
+15) + all suites green (pre-existing `test:evolve` failures are unrelated/stale HP expectations); lint +
+build clean. **NEXT: step ② (effect vocabulary + power-budget) → ③ specificity `require` backbone.**
+
 **📚 EFFECT-VOCABULARY + SCALING-AXIS CATALOG — deep StS research (2026-07-15, Jeton).** Per Jeton
 ("deep research on Slay the Spire concepts AND StS mods to formulate a very deep collection of possible
 build attributes; the scaling axes need to go far deeper; v1 is a *reference only*, not the port source"),

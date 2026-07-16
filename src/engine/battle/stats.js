@@ -1,9 +1,9 @@
 // ╔══════════════════════════════════════════════════════════════════╗
 // ║ MODULE: engine/battle/stats — the COMBAT-V2 seven-stat model + the pure   ║
-// ║ combat formulas (docs/combat-v2-spec.md §2). Isolated from the v1 engine: ║
-// ║ v1's `content/biology.js biologyStats` (5-stat multiplier line) is left   ║
-// ║ untouched; this adds `battleStats()` beside it, reusing the SAME body/     ║
-// ║ subtype/family profiles so there is one source of the composition.        ║
+// ║ combat formulas (docs/combat-v2-spec.md §2). The stat SHAPE now composes   ║
+// ║ from a creature's KIT + FACTOR (content/statProfile.js) — body type and    ║
+// ║ subtype contribute no stats (locked 2026-07-15). `battleStats(creature)`   ║
+// ║ maps that shape to the raw seven-stat combat numbers.                      ║
 // ║                                                                            ║
 // ║ Stats are RAW Pokémon-style numbers centered on a neutral creature =       ║
 // ║ Attack/Defense/Focus/Resolve 50, Accuracy 100, Evasion 0, Speed 50, so at  ║
@@ -12,7 +12,7 @@
 // ║ and only RELATIVE stats matter. Pure + node-testable. Numbers tunable.     ║
 // ║ UPDATE WHEN: the v2 stat model or its formulas change.                     ║
 // ╚══════════════════════════════════════════════════════════════════╝
-import { biologyStats } from '../content/biology.js';
+import { creatureStatProfile } from '../content/statProfile.js';
 
 /** The seven combat-v2 stats, in display order. */
 export const BATTLE_STATS = Object.freeze(['attack', 'defense', 'focus', 'resolve', 'evasion', 'accuracy', 'speed']);
@@ -30,35 +30,19 @@ export const BASE_ACCURACY = 100;
 export const BASE_EVASION = 0;
 const MAX_EVASION = 95;         // even a dodge tank stays hittable by lock-on / accuracy buffs
 
-/** v2-only IDENTITY overlay: Evasion (points subtracted from an attacker's Accuracy).
- *  Not in the shared profiles (which have no evasion), so it lives here. Nimble bodies/
- *  subtypes dodge; bulky/mechanical ones don't. Provisional. */
-const BODY_EVASION = Object.freeze({ Humanoid: 0, Beast: 4, Aberration: 2 });
-const SUBTYPE_EVASION = Object.freeze({
-  Giant: -6, Mechanical: -4, Ancient: -4, Feral: 6, Swarm: 8, Spectral: 8,
-});
 const round = (n) => Math.round(n);
-const arr = (v) => (Array.isArray(v) ? v.filter(Boolean) : v ? [v] : []);
-
-function evasionOverlay(biology, subtypes) {
-  const bodies = arr(biology);
-  const bodyEva = bodies.length
-    ? bodies.reduce((s, b) => s + (BODY_EVASION[b] ?? 0), 0) / bodies.length
-    : 0;
-  const subEva = arr(subtypes).reduce((s, t) => s + (SUBTYPE_EVASION[t] ?? 0), 0);
-  return bodyEva + subEva;
-}
 
 /**
- * The combat-v2 stat line for a creature triple. Reuses `biologyStats` for the
- * Body×Subtype×Family composition (its might/guard/focus/resolve/speed factors),
- * then maps to raw seven-stat numbers.
+ * The combat-v2 stat line for a creature. Composes the might/guard/focus/resolve/
+ * speed/eva SHAPE from its KIT + FACTOR (content/statProfile.js), then maps to raw
+ * seven-stat numbers.
  *   attack  ← might factor · defense ← guard factor · focus/resolve ← same
- *   speed   ← base + speedFactor tempo · accuracy ← 100 · evasion ← identity overlay
+ *   speed   ← base + speedFactor tempo · accuracy ← 100 · evasion ← eva overlay
+ * @param {{ class?, family?, manifestation?, weapons?, anatomy?, features? }} creature
  * @returns {{ hpMult:number, stats:{attack,defense,focus,resolve,evasion,accuracy,speed} }}
  */
-export function battleStats(biology, subtypes = [], family = null) {
-  const { hpMult, stats } = biologyStats(biology, subtypes, family);   // v1 composition (factors)
+export function battleStats(creature) {
+  const { hpMult, stats } = creatureStatProfile(creature);   // kit + factor composition
   return {
     hpMult,
     stats: {
@@ -66,10 +50,10 @@ export function battleStats(biology, subtypes = [], family = null) {
       defense: round(BASE * stats.guard),
       focus: round(BASE * stats.focus),
       resolve: round(BASE * stats.resolve),
-      // biology.js speed is a small flat tempo (−1..+1 before size); widen it into a raw order stat.
+      // speed is a small flat tempo (−1..+1 before size); widen it into a raw order stat.
       speed: round(BASE + (stats.speed || 0) * 8),
       accuracy: BASE_ACCURACY,
-      evasion: Math.max(0, Math.min(MAX_EVASION, BASE_EVASION + evasionOverlay(biology, subtypes))),
+      evasion: Math.max(0, Math.min(MAX_EVASION, BASE_EVASION + (stats.eva || 0))),
     },
   };
 }

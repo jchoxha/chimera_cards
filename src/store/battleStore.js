@@ -106,7 +106,7 @@ function deckInspect(deck, seen) {
 
 /** creature → engine battle unit (7-stat line + hp); keeps the creature for the card face. */
 function creatureToUnit(creature, id) {
-  const { stats } = battleStats(creature.biology, creature.subtypes, creature.family || null);
+  const { stats } = battleStats(creature);   // kit + factor composition
   const maxHp = creature.maxHp || 40;
   const u = makeUnit({ id, stats, hp: maxHp, maxHp });
   u.creature = creature;

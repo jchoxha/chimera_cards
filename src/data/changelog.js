@@ -6,6 +6,10 @@
 
 /** @type {{version:string, date:string, notes:string[]}[]} newest first */
 export const CHANGELOG = [
+  { version: 'v3.164.0', date: '2026-07-16', notes: [
+    'Creature STATS now come from KIT + GEAR. A creature’s Attack/Defense/Focus/Resolve/Speed/Evasion are shaped by its archetype/family/manifestation (its “class”) plus its weapons/anatomy/features (its “equipment”): a Warrior with a Hammer & Shield is a tanky bruiser, a Rogue with daggers is fast and evasive, an Engineer is a wall, an Avian skirmisher darts and dodges.',
+    'Body type and subtype no longer set stats — body type just picks which kit a creature uses, and subtypes are wild-card passives. This makes two creatures of the same kit feel distinct through their gear.',
+  ] },
   { version: 'v3.163.0', date: '2026-07-15', notes: [
     'Type matchups are now purely about ATTUNEMENT. A creature’s resistances and weaknesses come from its own element(s) — a Fire attack is strong into Frost, a creature shrugs off its own element — and a target’s body type / subtype no longer changes incoming damage. Simpler to read: “what element am I, what element are they?”',
     'This is groundwork for the new identity model, where a creature’s STATS (not its matchups) come from its kit + gear.',
