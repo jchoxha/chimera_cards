@@ -6,8 +6,9 @@
 
 /** @type {{version:string, date:string, notes:string[]}[]} newest first */
 export const CHANGELOG = [
-  { version: 'v3.168.0', date: '2026-07-16', notes: [
-    'OTA test build — the version now shows on the main menu, and “check for updates” in Settings applies the over-the-air update directly. If your app updates itself from v3.167.0 to v3.168.0 without reinstalling, OTA works!',
+  { version: 'v3.169.0', date: '2026-07-16', notes: [
+    'OTA test build — the version now shows on the main menu, and “check for updates” in Settings applies the over-the-air update directly. If your app updates itself from v3.167.0 to v3.169.0 without reinstalling, OTA works!',
+    'The update check now uses native networking in the app, so it isn’t blocked by the WebView’s cross-origin limits.',
   ] },
   { version: 'v3.167.0', date: '2026-07-16', notes: [
     'The Android app now updates itself over-the-air: on launch it fetches the latest web build and applies it — no more downloading and reinstalling an APK for most changes. (Only deeper native changes still need a new APK.)',
