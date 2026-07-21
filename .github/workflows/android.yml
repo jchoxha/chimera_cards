@@ -43,6 +43,16 @@ jobs:
           npx cap add android
           npx cap sync android
 
+      - name: Bump compile/target SDK to 35
+        # The Capgo updater pulls in androidx.work, which requires compileSdk 35;
+        # Capacitor 6 defaults to 34. Bump it in the generated project and silence
+        # AGP's "above recommended" check.
+        run: |
+          sed -i 's/compileSdkVersion = 34/compileSdkVersion = 35/' android/variables.gradle
+          sed -i 's/targetSdkVersion = 34/targetSdkVersion = 35/' android/variables.gradle
+          echo "android.suppressUnsupportedCompileSdk=35" >> android/gradle.properties
+          cat android/variables.gradle
+
       - name: Assemble debug APK
         run: |
           cd android
