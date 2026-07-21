@@ -47,7 +47,23 @@ build emits **`dist/app-version.json`** (= APP_VERSION), `src/updateCheck.js` fe
 linking to the release APK (fails closed offline). The WEB dev hub (Pages) is unchanged.
 **KEY OPEN QUESTION:** does the Razr's Capacitor
 WebView expose WebGPU? If yes, the WebLLM path runs in-APK with NO native code (⑥ shrinks to "precache the
-model"); if no, ⑥ needs a native MediaPipe/MLC plugin. **NEXT:** ⑥ (gated on that answer) → ⑦ offline art.
+model"); if no, ⑥ needs a native MediaPipe/MLC plugin.
+**DEVICE TEST FINDINGS (Jeton, on the Razr):** (a) WebGPU IS available in-app (the model-download button is
+WebGPU-gated + he reached it), so on-device gen can run in the WebView with no native code. (b) The runtime
+model download from HuggingFace FAILS in the WebView — first a Cache API error (fixed: `cacheBackend:
+'indexeddb'` in `webllm.js`), then `TypeError: Failed to fetch` on the weight shards (WebView can't pull the
+1GB cross-origin download from HF; works in Chrome). (c) fullscreen/rotate button doesn't work (uses web
+Fullscreen/orientation APIs that no-op in a WebView → needs `@capacitor/screen-orientation`). (d) no way back
+to the menu from combat (FIXED v3.166.2: a native-shell "☰ Menu" button in `battle-v2/main.jsx` → index.html).
+**Decisions (Jeton):** set up OTA web updates (YES) + keep trying the runtime model download (not bundling).
+**OTA SHIPPED (v3.167.0):** `@capgo/capacitor-updater` (self-hosted) — `src/liveUpdate.js` `initLiveUpdate()`
+(called from `hub/main.jsx`): in the native shell it `notifyAppReady()` + compares the deployed version
+(`app-version.json`) and, if newer, natively downloads `web-bundle.zip` (bypassing WebView CORS) and swaps it
+in — so WEB changes reach the app with NO APK reinstall. New **`.github/workflows/ota.yml`** rebuilds the base-
+"/" bundle on EVERY push → publishes `web-bundle.zip` to a rolling **`web-latest`** release; `android.yml`
+(APK, manual) unchanged. `capacitor.config.json` gains the `CapacitorUpdater` plugin (autoUpdate:false).
+**One more APK install needed** (to get the Capgo plugin in), then web updates are OTA. **NEXT:** rebuild APK
+w/ plugin → fix the WebView HF fetch (the runtime download) → fullscreen/orientation plugin → ⑦ offline art.
 
 **🛠️ BUILD STEP ① DONE — matchups→attunement-only + stats→kit+factor (v3.163–3.164.0, 2026-07-16).**
 First code of the locked identity model (`card-pool-composition.md` build-order step ①). **①a (v3.163.0):**

@@ -6,6 +6,13 @@
 
 /** @type {{version:string, date:string, notes:string[]}[]} newest first */
 export const CHANGELOG = [
+  { version: 'v3.167.0', date: '2026-07-16', notes: [
+    'The Android app now updates itself over-the-air: on launch it fetches the latest web build and applies it — no more downloading and reinstalling an APK for most changes. (Only deeper native changes still need a new APK.)',
+    'Added a “☰ Menu” button in-game (Android) to get back to the main menu.',
+  ] },
+  { version: 'v3.166.2', date: '2026-07-16', notes: [
+    'Android: added a “☰ Menu” button in combat to return to the main menu.',
+  ] },
   { version: 'v3.166.1', date: '2026-07-16', notes: [
     'Fixed on-device model download failing with a “Cache.add() network error” — the model now caches via IndexedDB, which works reliably inside the app’s WebView.',
   ] },

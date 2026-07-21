@@ -1,0 +1,45 @@
+name: Publish OTA web bundle
+
+# Runs on every push to main: rebuilds the web app at base "/" (what Capacitor
+# serves) and republishes it as web-bundle.zip on the rolling "web-latest" release.
+# The Android app downloads this on launch (Capgo) to update its web content
+# WITHOUT reinstalling the APK. Only native/plugin changes need a new APK.
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: ota
+  cancel-in-progress: true
+
+jobs:
+  bundle:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - run: npm ci
+      # base "/" (default) — the OTA bundle must match the APK's webDir root,
+      # NOT the /<repo>/ base the Pages site uses.
+      - run: npm run build
+      - name: Zip the web bundle (dist contents at the zip root)
+        run: |
+          mkdir -p out
+          cd dist && zip -qr ../out/web-bundle.zip . && cd ..
+      - name: Publish to the rolling web-latest release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: web-latest
+          name: Chimera Cards — OTA web bundle (latest)
+          body: |
+            The latest web build, at base "/" for the Android app to self-update from
+            (Capgo OTA). Refreshed on every push to main. Built from ${{ github.sha }}.
+          files: out/web-bundle.zip
+          prerelease: true

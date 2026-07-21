@@ -63,5 +63,7 @@ jobs:
             Latest debug build of the Chimera Cards Android app (offline-capable).
             Unsigned debug APK — sideload it: enable "install unknown apps" for your
             browser/file manager, then open the .apk. Built from ${{ github.sha }}.
+            (Web content self-updates OTA from the web-latest release — no reinstall
+            needed for web changes.)
           files: out/chimera-cards.apk
           prerelease: true
