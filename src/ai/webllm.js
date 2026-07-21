@@ -54,8 +54,14 @@ export async function ensureEngine(onProgress) {
 
   _engineModelId = modelId;
   _loading = (async () => {
-    const { CreateMLCEngine } = await import('@mlc-ai/web-llm');
+    const { CreateMLCEngine, prebuiltAppConfig } = await import('@mlc-ai/web-llm');
+    // Use the IndexedDB cache backend, not the default Cache API: Cache.add() stores
+    // cross-origin (opaque) weight responses, which WebViews + some browsers reject
+    // with "Cache.add() encountered a network error". IndexedDB fetches + stores the
+    // bytes directly and is robust in the Capacitor WebView.
+    const appConfig = { ...prebuiltAppConfig, cacheBackend: 'indexeddb' };
     const engine = await CreateMLCEngine(modelId, {
+      appConfig,
       initProgressCallback: (r) => {
         try { onProgress?.({ progress: r.progress ?? 0, text: r.text || '' }); } catch { /* ignore */ }
       },
