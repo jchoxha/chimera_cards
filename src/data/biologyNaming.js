@@ -23,6 +23,7 @@ export const FAMILY_NOUN = Object.freeze({
   // Aberration families (kit TBD; nouns ready)
   Eldritch: 'Horror', Construct: 'Construct', Ooze: 'Ooze', Flora: 'Flora',
   Crystalline: 'Crystal', Formless: 'Wisp',
+  Parasitic: 'Parasite', Abyssal: 'Leviathan', Fungal: 'Fungus',
 });
 
 /** "<core noun>|<subtype>" → a fused name that REPLACES the noun and consumes the

@@ -6,6 +6,10 @@
 
 /** @type {{version:string, date:string, notes:string[]}[]} newest first */
 export const CHANGELOG = [
+  { version: 'v3.171.0', date: '2026-07-21', notes: [
+    'The Aberration branch grew wider: 3 new manifestations (Parasitic, Abyssal, Fungal) and 4 new aberrant features (Carapace, Membrane, Cilia, Ichor), each with their own cards, stat leanings, icons, and names — so eldritch creatures have far more distinct builds.',
+    'Cleaner Android game menu: the “update available” prompt is now a slim tap-chip and the version tucks into Settings, so the home screen reads more like a finished game.',
+  ] },
   { version: 'v3.170.0', date: '2026-07-16', notes: [
     'On-device model download in the app now routes through native networking, working around the WebView’s cross-origin block that was failing the HuggingFace download (“Failed to fetch”). Try Settings → On-device → Download again.',
   ] },

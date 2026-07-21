@@ -12,7 +12,7 @@ const ok = (c, m) => (c ? pass++ : (fail++, console.error('  ✗', m)));
 
 const families = Object.keys(KIT.families);
 const anatomy = Object.keys(KIT.anatomy);
-const NOUN_TAGS = ['Tentacle', 'Eye', 'Maw', 'Pseudopod', 'Spore', 'Shard', 'Miasma', 'Roots', 'Mandible'];
+const NOUN_TAGS = ['Tentacle', 'Eye', 'Maw', 'Pseudopod', 'Spore', 'Shard', 'Miasma', 'Roots', 'Mandible', 'Carapace', 'Membrane', 'Cilia', 'Ichor'];
 
 console.log('Families (the wide, exhaustive Aberration set):');
 ok(families.length >= 6, `expected ≥6 families, got ${families.length}`);

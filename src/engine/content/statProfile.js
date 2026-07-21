@@ -41,6 +41,9 @@ export const KIT_PROFILE = Object.freeze({
   Flora:       { hp: 1.10, might: 0.90, guard: 1.05, focus: 1.15, resolve: 1.05, speed: -1, eva: 0  },
   Crystalline: { hp: 0.90, might: 1.00, guard: 1.20, focus: 1.00, resolve: 1.15, speed: 0,  eva: -2 },
   Formless:    { hp: 0.90, might: 0.95, guard: 0.85, focus: 1.05, resolve: 1.00, speed: 1,  eva: 10 },
+  Parasitic:   { hp: 1.05, might: 1.00, guard: 0.95, focus: 1.10, resolve: 1.05, speed: 0,  eva: 2  },
+  Abyssal:     { hp: 1.15, might: 1.10, guard: 1.10, focus: 1.05, resolve: 1.00, speed: -1, eva: -2 },
+  Fungal:      { hp: 1.15, might: 0.90, guard: 1.00, focus: 1.15, resolve: 1.10, speed: -1, eva: 0  },
 });
 
 /** FACTOR stat nudges — the "equipment slots". Small multiplier deltas (default 1)
@@ -84,6 +87,10 @@ export const FACTOR_PROFILE = Object.freeze({
   Miasma:    { focus: 1.07 },
   Roots:     { guard: 1.08, speed: -1 },
   Mandible:  { might: 1.07 },
+  Carapace:  { hp: 1.04, guard: 1.10, eva: -2 },
+  Membrane:  { guard: 1.04, eva: 4 },
+  Cilia:     { focus: 1.03, speed: 1 },
+  Ichor:     { focus: 1.04, resolve: 1.05 },
 });
 
 const NEUTRAL = { hp: 1.0, might: 1.0, guard: 1.0, focus: 1.0, resolve: 1.0, speed: 0, eva: 0 };

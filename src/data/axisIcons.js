@@ -71,6 +71,9 @@ export const FAMILY_ICON = Object.freeze({
   Flora: 'game-icons:high-grass',
   Crystalline: 'game-icons:crystal-cluster',
   Formless: 'game-icons:dust-cloud',
+  Parasitic: 'game-icons:tick',
+  Abyssal: 'game-icons:deep-dive',
+  Fungal: 'game-icons:mushroom-gills',
 });
 
 /** Beast Anatomy noun-tags (a Beast's "special factors") → game-icons id. */
@@ -98,6 +101,10 @@ export const ANATOMY_ICON = Object.freeze({
   Miasma: 'game-icons:poison-gas',
   Roots: 'game-icons:root-tip',
   Mandible: 'game-icons:pincers',
+  Carapace: 'game-icons:abdominal-armor',
+  Membrane: 'game-icons:membrane',
+  Cilia: 'game-icons:hair-strands',
+  Ichor: 'game-icons:dripping-goo',
 });
 
 /** Descriptive Subtype → game-icons id (composition/affliction overlays, §9). */

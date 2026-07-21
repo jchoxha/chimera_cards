@@ -54,6 +54,33 @@
         { "id": "abr_fam_formless_permeate", "name": "Permeate", "attunement": "Physical", "type": "skill", "cost": 1, "rarity": "uncommon", "effects": [{ "op": "debuff", "status": "expose", "value": 2, "scope": "wholeEnemySide" }] },
         { "id": "abr_fam_formless_engulf", "name": "Enshroud", "attunement": "Physical", "imbue": 1, "type": "attack", "cost": 2, "rarity": "rare", "effects": [{ "op": "damage", "value": 7 }, { "op": "debuff", "status": "weak", "value": 1 }] }
       ]
+    },
+    "Parasitic": {
+      "theme": "Infesting organisms — latch on, drain vitality, and spread affliction.",
+      "anatomy": ["Tentacle", "Maw", "Ichor", "Membrane"],
+      "signatures": [
+        { "id": "abr_fam_parasitic_infest", "name": "Infest", "attunement": "Physical", "type": "skill", "cost": 1, "rarity": "common", "starter": true, "effects": [{ "op": "debuff", "status": "poison", "value": 2 }, { "op": "buff", "status": "regen", "value": 2 }] },
+        { "id": "abr_fam_parasitic_leech", "name": "Leech", "attunement": "Physical", "imbue": 1, "type": "attack", "cost": 2, "rarity": "uncommon", "effects": [{ "op": "damage", "value": 7 }, { "op": "heal", "value": 5 }] },
+        { "id": "abr_fam_parasitic_infestation", "name": "Infestation", "attunement": "Physical", "type": "power", "cost": 1, "rarity": "rare", "trigger": { "on": "turnStart", "effects": [{ "op": "debuff", "status": "poison", "value": 1, "scope": "wholeEnemySide" }] } }
+      ]
+    },
+    "Abyssal": {
+      "theme": "Deep-void horrors — crushing pressure, gravity, and dread.",
+      "anatomy": ["Maw", "Mandible", "Carapace", "Miasma"],
+      "signatures": [
+        { "id": "abr_fam_abyssal_pressure", "name": "Crushing Depths", "attunement": "Physical", "type": "skill", "cost": 1, "rarity": "common", "starter": true, "effects": [{ "op": "block", "value": 6 }, { "op": "debuff", "status": "weak", "value": 1 }] },
+        { "id": "abr_fam_abyssal_gravity", "name": "Gravity Well", "attunement": "Physical", "imbue": 1, "type": "attack", "cost": 2, "rarity": "uncommon", "effects": [{ "op": "damage", "value": 5, "scope": "wholeEnemySide" }, { "op": "debuff", "status": "vulnerable", "value": 1, "scope": "wholeEnemySide" }] },
+        { "id": "abr_fam_abyssal_horizon", "name": "Event Horizon", "attunement": "Physical", "imbue": 1, "type": "attack", "cost": 2, "rarity": "rare", "effects": [{ "op": "damage", "value": 10 }, { "op": "debuff", "status": "expose", "value": 2 }] }
+      ]
+    },
+    "Fungal": {
+      "theme": "Fungal networks — spores, necrotic decay, and relentless regrowth.",
+      "anatomy": ["Spore", "Roots", "Cilia", "Miasma"],
+      "signatures": [
+        { "id": "abr_fam_fungal_mycelium", "name": "Mycelium", "attunement": "Physical", "type": "skill", "cost": 1, "rarity": "common", "starter": true, "effects": [{ "op": "buff", "status": "regen", "value": 2 }, { "op": "block", "value": 3 }] },
+        { "id": "abr_fam_fungal_bloom", "name": "Necrotic Bloom", "attunement": "Physical", "imbue": 1, "type": "attack", "cost": 2, "rarity": "uncommon", "effects": [{ "op": "damage", "value": 4, "scope": "wholeEnemySide" }, { "op": "debuff", "status": "poison", "value": 2, "scope": "wholeEnemySide" }] },
+        { "id": "abr_fam_fungal_spread", "name": "Spread", "attunement": "Physical", "type": "power", "cost": 1, "rarity": "rare", "trigger": { "on": "turnStart", "effects": [{ "op": "debuff", "status": "poison", "value": 1, "scope": "wholeEnemySide" }, { "op": "buff", "status": "regen", "value": 1 }] } }
+      ]
     }
   },
   "anatomy": {
@@ -118,6 +145,34 @@
       "cards": [
         { "id": "abr_anat_mandible_pincer", "name": "Pincer", "attunement": "Physical", "imbue": 1, "type": "attack", "cost": 1, "rarity": "common", "effects": [{ "op": "damage", "value": 6 }, { "op": "debuff", "status": "bleed", "value": 2 }] },
         { "id": "abr_anat_mandible_crush", "name": "Crush", "attunement": "Physical", "imbue": 1, "type": "attack", "cost": 2, "rarity": "uncommon", "effects": [{ "op": "damage", "value": 11 }] }
+      ]
+    },
+    "Carapace": {
+      "theme": "Hardened shell — heavy plating that turns blows aside.",
+      "cards": [
+        { "id": "abr_anat_carapace_plate", "name": "Plate", "attunement": "Physical", "type": "skill", "cost": 1, "rarity": "common", "effects": [{ "op": "block", "value": 8, "brace": true }] },
+        { "id": "abr_anat_carapace_bulwark", "name": "Bulwark", "attunement": "Physical", "type": "skill", "cost": 1, "rarity": "uncommon", "effects": [{ "op": "block", "value": 6, "brace": true }, { "op": "buff", "status": "dexterity", "value": 1 }] }
+      ]
+    },
+    "Membrane": {
+      "theme": "Absorbing membrane — soak a blow and slip aside.",
+      "cards": [
+        { "id": "abr_anat_membrane_absorb", "name": "Absorbing Skin", "attunement": "Physical", "type": "skill", "cost": 1, "rarity": "common", "effects": [{ "op": "block", "value": 5 }, { "op": "heal", "value": 2 }] },
+        { "id": "abr_anat_membrane_phase", "name": "Phase Membrane", "attunement": "Physical", "type": "skill", "cost": 1, "rarity": "uncommon", "effects": [{ "op": "block", "value": 6 }, { "op": "draw", "value": 1 }] }
+      ]
+    },
+    "Cilia": {
+      "theme": "Sensory cilia — quick reflexes and flurrying strikes.",
+      "cards": [
+        { "id": "abr_anat_cilia_skitter", "name": "Skitter", "attunement": "Physical", "imbue": 1, "type": "attack", "cost": 1, "rarity": "common", "effects": [{ "op": "damage", "value": 3, "hits": 2 }] },
+        { "id": "abr_anat_cilia_overdrive", "name": "Overdrive", "attunement": "Physical", "type": "skill", "cost": 1, "rarity": "uncommon", "effects": [{ "op": "draw", "value": 2 }] }
+      ]
+    },
+    "Ichor": {
+      "theme": "Vital ichor — restorative fluids and caustic blood.",
+      "cards": [
+        { "id": "abr_anat_ichor_flow", "name": "Ichor Flow", "attunement": "Physical", "type": "skill", "cost": 1, "rarity": "common", "effects": [{ "op": "buff", "status": "regen", "value": 3 }] },
+        { "id": "abr_anat_ichor_caustic", "name": "Caustic Ichor", "attunement": "Physical", "imbue": 1, "type": "attack", "cost": 2, "rarity": "uncommon", "effects": [{ "op": "damage", "value": 5 }, { "op": "debuff", "status": "poison", "value": 2 }] }
       ]
     }
   }
