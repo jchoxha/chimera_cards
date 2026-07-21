@@ -87,9 +87,18 @@ const nativeProvider = {
 
 export const PROVIDERS = Object.freeze({ api: apiProvider, webllm: webllmProvider, native: nativeProvider });
 
-/** The default provider for the current environment: native inside the app, else API. */
+/** The default provider for the current environment. Inside the Android app (meant
+ *  to run offline) we prefer the on-device path: the in-WebView WebLLM model when the
+ *  WebView supports WebGPU (no native code needed), else the native plugin if present,
+ *  else the API. The web/desktop always defaults to the API (users opt into a big
+ *  local-model download explicitly). */
 export function defaultProviderId() {
-  return isNativeShell() ? 'native' : 'api';
+  if (isNativeShell()) {
+    if (typeof navigator !== 'undefined' && navigator.gpu) return 'webllm';
+    if (nativeProvider.isAvailable()) return 'native';
+    return 'api';
+  }
+  return 'api';
 }
 
 /** The user's selected provider id (persisted), falling back to the env default. */
