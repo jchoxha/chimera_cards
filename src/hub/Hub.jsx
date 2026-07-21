@@ -8,6 +8,7 @@
 // ╚══════════════════════════════════════════════════════════════════╝
 import React, { useEffect, useMemo, useState } from 'react';
 import { marked } from 'marked';
+import AiSettings from '../ai/AiSettings.jsx';
 import '../ui/theme.css';
 import './hub.css';
 
@@ -90,6 +91,9 @@ function Landing() {
         <div className="hubHeroNav">
           <a className="hubHeroTile" href="#/versions"><span>📚</span><b>Version History</b><em>Every build in one place</em></a>
           <a className="hubHeroTile" href="#/docs"><span>📖</span><b>Documentation</b><em>Design docs &amp; specs</em></a>
+        </div>
+        <div style={{ marginTop: 22, display: 'flex', justifyContent: 'center' }}>
+          <AiSettings />
         </div>
       </div>
       <footer className="hubFoot">The base URL for the Chimera Cards project · builds deploy here on every push to <code>main</code>.</footer>

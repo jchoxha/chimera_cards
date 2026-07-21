@@ -34,9 +34,13 @@ Qwen2.5-1.5B small + Llama-3.2-3B medium; `ensureEngine`/`webllmGenerate`, WebGP
 in-browser), the `webllm` provider dynamic-imports it, and a reusable **`src/ai/AiSettings.jsx`** panel
 (API ⁄ On-device radios + model picker + download-progress bar) is mounted in the Forge
 (`CreatureCreator.jsx`). The heavy runtime stays a lazy ~5.8MB chunk (NOT in any page entry; app bundle
-unchanged). Verified: build + lint clean, app serves 200, AiSettings bundled + reachable; actual on-device
-inference needs WebGPU hardware (the Razr) to fully exercise. **NEXT:** ⑥ native LLM plugin (bundle the small
-model + optional medium download; `native` provider default in-app) → ⑦ offline art.
+unchanged). **`AiSettings` is now self-styled (inline, portable) + has a "Test generation" button, and is
+mounted on the HUB LANDING (`Hub.jsx`) — the APK's first screen** — since the v1 creature-creator view is
+currently unreachable (no trigger). So the offline model is testable directly: open the app → hub home →
+"🧪 AI generation" panel (shows WebGPU availability) → On-device → Download → Test. Verified: build + lint
+clean, hub serves 200, panel bundled, WebLLM still lazy. **KEY OPEN QUESTION:** does the Razr's Capacitor
+WebView expose WebGPU? If yes, the WebLLM path runs in-APK with NO native code (⑥ shrinks to "precache the
+model"); if no, ⑥ needs a native MediaPipe/MLC plugin. **NEXT:** ⑥ (gated on that answer) → ⑦ offline art.
 
 **🛠️ BUILD STEP ① DONE — matchups→attunement-only + stats→kit+factor (v3.163–3.164.0, 2026-07-16).**
 First code of the locked identity model (`card-pool-composition.md` build-order step ①). **①a (v3.163.0):**
