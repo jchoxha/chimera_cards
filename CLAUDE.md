@@ -6,6 +6,24 @@ a single-file Claude artifact now split into ES modules.
 
 ## ⚑ Project state — read this first (updated 2026-06-18)
 
+**📱 OFFLINE ANDROID + LOCAL MODELS — initiative started (2026-07-16, Jeton).** Goal: ship Chimera as an
+**installable, fully-offline Android app** with **on-device creature/card generation**, WITHOUT porting to
+Godot (a rewrite orphans the JS combat engine/generators/validators; Godot gives no local-model advantage).
+Plan in **`docs/offline-android.md`**. **Decisions (Jeton):** device = a 2026 Razr Ultra (ample); model tier
+= **BOTH** (a small ~1–2B model *bundled* in the APK for out-of-box use + a medium ~3–4B *optional download*);
+Android build = **GitHub Actions → Releases** (CI builds+signs the APK, the site's download button links to
+the latest). **Two hard constraints:** GH Pages can't host the APK/models (they go on Releases/CDN,
+downloaded-on-first-use), and the APK is built in CI (no Android SDK in the dev container). **Key leverage:**
+generation is already TWO layers — **procedural composition** (`makeCreature` + power-budget) is pure JS with
+NO model → *already offline*; only the **AI-forge flavor layer** (name/lore/signature cards) needs a model,
+and a small one suffices (its output is clamped by the same `sanitizeForgedCard` validators, so a
+hallucination-prone small model is safe). **Wrapper = Capacitor** (same web build in a native WebView; three.js
+works). **BUILD STEP 1 DONE:** the pluggable inference **PROVIDER seam** — `src/ai/provider.js` (`api` /
+`webllm` / `native` providers, lazy; `getProvider`/`generateText` with API fallback); `claude.js callClaude`
+now routes through it (API path unchanged, verified). **NEXT:** ② Capacitor shell → ③ CI APK workflow → ④
+hub download button → ⑤ WebLLM web path (@mlc-ai/web-llm + settings toggle) → ⑥ native LLM plugin → ⑦ offline
+art. *(Refactor only — no gameplay change, no version bump.)*
+
 **🛠️ BUILD STEP ① DONE — matchups→attunement-only + stats→kit+factor (v3.163–3.164.0, 2026-07-16).**
 First code of the locked identity model (`card-pool-composition.md` build-order step ①). **①a (v3.163.0):**
 `computeMatchup` is now **attunement-only** — the biology "constitution" Layer 2 (`BIOLOGY_ATTUNEMENT`/

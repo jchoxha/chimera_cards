@@ -1,29 +1,11 @@
+import { generateText } from "./provider.js";
+
+// Text generation now routes through the pluggable PROVIDER seam (ai/provider.js):
+// Anthropic API on the web/dev, an in-browser local model (WebLLM), or an on-device
+// native model in the Android app — all behind one call, same prompts + validators.
+// See docs/offline-android.md.
 async function callClaude(prompt, maxTokens = 1200) {
-  const headers = { "Content-Type": "application/json" };
-  if (typeof window !== "undefined" && window.ANTHROPIC_API_KEY) {
-    headers["x-api-key"] = window.ANTHROPIC_API_KEY;
-    headers["anthropic-version"] = "2023-06-01";
-    headers["anthropic-dangerous-direct-browser-access"] = "true";
-  }
-  const res = await fetch("https://api.anthropic.com/v1/messages", {
-    method: "POST",
-    headers,
-    body: JSON.stringify({
-      model: "claude-sonnet-4-20250514",
-      max_tokens: maxTokens,
-      messages: [{ role: "user", content: prompt }],
-    }),
-  });
-  if (!res.ok) {
-    const body = await res.text().catch(() => "");
-    throw new Error(`API ${res.status}: ${body.slice(0, 200)}`);
-  }
-  const data = await res.json();
-  if (!data.content) throw new Error("No content in response");
-  return data.content
-    .filter((b) => b.type === "text")
-    .map((b) => b.text)
-    .join("\n");
+  return generateText(prompt, { maxTokens });
 }
 
 // Pull the first balanced {...} object out of arbitrary model text.
