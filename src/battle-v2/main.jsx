@@ -10,6 +10,9 @@ import BattleScreen from '../ui/battle/BattleScreen.jsx';
 import { useBattle, draftReward } from '../store/battleStore.js';
 import { useWorld, enemyFor } from '../store/worldStore.js';
 import { BIOMES } from '../ui/battle/SceneEnv.jsx';
+import { isNativeShell } from '../ai/provider.js';
+
+const MENU_URL = ((import.meta.env && import.meta.env.BASE_URL) || '/') + 'index.html';
 
 if (import.meta.env.DEV && typeof window !== 'undefined') { window.__battle = useBattle; window.__world = useWorld; }
 
@@ -111,6 +114,15 @@ function Shell() {
         onFlee={fleeBattle}
         onBattleEnd={(r) => (r === 'win' ? winBattle() : loseRun())} />
       {flash && <div style={{ position: 'fixed', inset: 0, zIndex: 9000, background: BIOMES[biome]?.fog || '#0c0805', pointerEvents: 'none', animation: 'shellFlash .38s ease-out forwards' }} />}
+      {/* In the Android app there's no browser chrome, so give the player a way back to the
+          game menu (index.html → GameMenu). Web users have the hub nav already. */}
+      {isNativeShell() && (
+        <button onClick={() => { if (confirm('Return to the main menu? Your current run will be left behind.')) window.location.href = MENU_URL; }}
+          title="Main menu"
+          style={{ position: 'fixed', top: 8, left: 8, zIndex: 9500, padding: '6px 10px', borderRadius: 8, border: '1px solid rgba(255,255,255,.25)', background: 'rgba(20,16,26,.72)', color: '#efe6d6', font: '13px system-ui', cursor: 'pointer' }}>
+          ☰ Menu
+        </button>
+      )}
       <style>{'@keyframes shellFlash{from{opacity:.7}to{opacity:0}}'}</style>
     </>
   );
