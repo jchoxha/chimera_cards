@@ -41,16 +41,18 @@ export default function GameMenu() {
       <div className="hubHero">
         <h1>CHIMERA<span>CARDS</span></h1>
         <p className="hubTagline">Capture monsters. Build decks. Descend.</p>
-        <div style={{ marginTop: -14, marginBottom: 20, fontSize: 12, opacity: 0.6 }}>v{APP_VERSION.replace(/^v/, '')}</div>
-
-        {upd?.updateAvailable && (
-          <button type="button" onClick={doUpdate} className="hubPlay"
-            style={{ display: 'block', marginBottom: 14, background: 'linear-gradient(#4caf50,#3a8f43)', boxShadow: '0 6px 0 #2c6b32', border: 'none', width: '100%' }}>
-            ⬇ Update available ({upd.latest}) — tap to update
-          </button>
-        )}
 
         <a className="hubPlay" href={`${BASE}battle.html`}>▶ Play</a>
+
+        {upd?.updateAvailable && (
+          <div style={{ marginTop: 14 }}>
+            <button type="button" onClick={doUpdate}
+              style={{ display: 'inline-block', background: 'rgba(76,175,80,0.16)', border: '1px solid rgba(76,175,80,0.5)',
+                color: '#8fe08f', borderRadius: 999, padding: '5px 14px', fontSize: 13, cursor: 'pointer' }}>
+              ⬇ Update available ({upd.latest})
+            </button>
+          </div>
+        )}
 
         <div style={{ marginTop: 26 }}>
           <button type="button" onClick={() => setSettings((s) => !s)}
