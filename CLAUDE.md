@@ -62,8 +62,15 @@ to the menu from combat (FIXED v3.166.2: a native-shell "☰ Menu" button in `ba
 in — so WEB changes reach the app with NO APK reinstall. New **`.github/workflows/ota.yml`** rebuilds the base-
 "/" bundle on EVERY push → publishes `web-bundle.zip` to a rolling **`web-latest`** release; `android.yml`
 (APK, manual) unchanged. `capacitor.config.json` gains the `CapacitorUpdater` plugin (autoUpdate:false).
-**One more APK install needed** (to get the Capgo plugin in), then web updates are OTA. **NEXT:** rebuild APK
-w/ plugin → fix the WebView HF fetch (the runtime download) → fullscreen/orientation plugin → ⑦ offline art.
+**One more APK install needed** (to get the Capgo plugin in), then web updates are OTA. **OTA VERIFIED
+(Jeton, on the Razr): v3.167.0 → v3.169.0 applied with NO reinstall.** Two gotchas fixed to get there:
+(1) the APK build needed compileSdk 35 + minSdk 23 (Capgo's androidx.work / play-services-tasks) — bumped in
+`android.yml`; (2) the OTA download silently failed on a plain `zip -r` bundle — the Capgo plugin only
+accepts a zip made by its own CLI, so `ota.yml` now zips with `npx @capgo/cli bundle zip` (this fix was in
+CI, not the app, so it repaired the already-installed v3.167.0 app with no reinstall). Also: the version
+check uses Capacitor **native HTTP** (`CapacitorHttp.get`) so the WebView's cross-origin block can't stop it.
+**NEXT (all deliverable via OTA now, except native bits):** fix the WebView HF model download (the runtime
+download — Jeton kept it) → fullscreen/orientation plugin (needs 1 APK) → ⑦ offline art.
 
 **🛠️ BUILD STEP ① DONE — matchups→attunement-only + stats→kit+factor (v3.163–3.164.0, 2026-07-16).**
 First code of the locked identity model (`card-pool-composition.md` build-order step ①). **①a (v3.163.0):**
