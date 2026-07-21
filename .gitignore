@@ -22,3 +22,6 @@ __pycache__/
 # Private design reference (StS dumps etc.) — never commit this folder
 AI context/
 .firecrawl/
+
+# Capacitor — the native android/ project is generated in CI (npx cap add android), not committed
+/android

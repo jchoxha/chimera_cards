@@ -1,0 +1,67 @@
+name: Build Android APK
+
+# Manual trigger (Actions tab → "Build Android APK" → Run workflow). Keeps APK
+# builds off every doc/code commit; run it when you want a fresh installable app.
+# Publishes an unsigned DEBUG apk to a rolling "android-latest" release so the
+# site's download button always points at the newest build. (Release signing for
+# the Play Store comes later — a debug apk sideloads fine for testing.)
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write   # create/update the release
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+
+      - uses: android-actions/setup-android@v3
+
+      - name: Install deps
+        run: npm ci
+
+      # Capacitor serves webDir at the WebView root, so the default base "/" is
+      # correct here (NOT the /<repo>/ base the Pages build uses).
+      - name: Build web bundle
+        run: npm run build
+
+      # The native android/ project is generated fresh in CI (it's gitignored).
+      - name: Scaffold + sync Capacitor Android project
+        run: |
+          npx cap add android
+          npx cap sync android
+
+      - name: Assemble debug APK
+        run: |
+          cd android
+          chmod +x ./gradlew
+          ./gradlew assembleDebug --no-daemon
+
+      - name: Stage APK
+        run: |
+          mkdir -p out
+          cp android/app/build/outputs/apk/debug/app-debug.apk out/chimera-cards.apk
+
+      - name: Publish to the rolling android-latest release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: android-latest
+          name: Chimera Cards — Android (latest)
+          body: |
+            Latest debug build of the Chimera Cards Android app (offline-capable).
+            Unsigned debug APK — sideload it: enable "install unknown apps" for your
+            browser/file manager, then open the .apk. Built from ${{ github.sha }}.
+          files: out/chimera-cards.apk
+          prerelease: true

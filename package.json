@@ -8,6 +8,7 @@
     "build": "vite build",
     "preview": "vite preview",
     "lint": "eslint src",
+    "cap:sync": "cap sync android",
     "test:engine": "node src/engine/__smoke__.mjs",
     "test:combat": "node src/engine/combat/__smoke__.mjs",
     "test:battle": "node src/engine/battle/__stats__.mjs",
@@ -44,6 +45,9 @@
     "test:kits": "node src/data/__kits__.mjs"
   },
   "dependencies": {
+    "@capacitor/android": "^6.2.1",
+    "@capacitor/cli": "^6.2.1",
+    "@capacitor/core": "^6.2.1",
     "@react-spring/web": "^9.7.5",
     "@react-three/drei": "^9.114.0",
     "@react-three/fiber": "^8.17.10",

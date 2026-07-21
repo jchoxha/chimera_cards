@@ -30,6 +30,11 @@ const VERSIONS = [
 const CURRENT = VERSIONS[0];                                   // battle.html — the current build
 const V1 = VERSIONS.find((v) => v.href === 'app.html');        // the v1 game
 
+// The offline-capable Android app, built by the "Build Android APK" workflow and
+// published to a rolling release (docs/offline-android.md). Direct APK link;
+// resolves once the first CI build has run.
+const ANDROID_APK = 'https://github.com/jchoxha/chimera_cards/releases/download/android-latest/chimera-cards.apk';
+
 // Bundle every doc as raw text at build time (docs/*.md + root-level *.md).
 const rawDocs = import.meta.glob(['../../docs/*.md', '../../*.md'], { query: '?raw', import: 'default', eager: true });
 const PIN = ['game-overview', 'combat-v2-spec', 'combat-engine-spec', 'mechanics', 'synthesis-matrix-spec', 'biology-kits', 'archetype-design', 'hybrid-design', 'CLAUDE', 'README'];
@@ -80,6 +85,7 @@ function Landing() {
         <a className="hubPlay" href={buildUrl(CURRENT.href)}>▶ Play Chimera</a>
         <div className="hubHeroSub">
           <a className="hubHeroChip" href={buildUrl(V1.href)}>🎴 Play the v1 game</a>
+          <a className="hubHeroChip" href={ANDROID_APK}>📥 Download for Android (offline)</a>
         </div>
         <div className="hubHeroNav">
           <a className="hubHeroTile" href="#/versions"><span>📚</span><b>Version History</b><em>Every build in one place</em></a>

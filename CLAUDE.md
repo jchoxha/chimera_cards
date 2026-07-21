@@ -20,9 +20,16 @@ and a small one suffices (its output is clamped by the same `sanitizeForgedCard`
 hallucination-prone small model is safe). **Wrapper = Capacitor** (same web build in a native WebView; three.js
 works). **BUILD STEP 1 DONE:** the pluggable inference **PROVIDER seam** — `src/ai/provider.js` (`api` /
 `webllm` / `native` providers, lazy; `getProvider`/`generateText` with API fallback); `claude.js callClaude`
-now routes through it (API path unchanged, verified). **NEXT:** ② Capacitor shell → ③ CI APK workflow → ④
-hub download button → ⑤ WebLLM web path (@mlc-ai/web-llm + settings toggle) → ⑥ native LLM plugin → ⑦ offline
-art. *(Refactor only — no gameplay change, no version bump.)*
+now routes through it (API path unchanged, verified). **STEPS 2–4 DONE:** Capacitor 6 wrapper
+(`capacitor.config.json`, appId `io.github.jchoxha.chimera`, webDir `dist`; the native `android/` project is
+GENERATED in CI, gitignored; `npm run cap:sync`); a **`Build Android APK` GitHub Actions workflow**
+(`.github/workflows/android.yml`, manual `workflow_dispatch` → installs JDK+SDK, `npm run build` at base "/"
+[Capacitor serves webDir at root, NOT the /<repo>/ Pages base], `cap add android` + `cap sync`, gradle
+`assembleDebug`, publishes an unsigned sideloadable APK to a rolling **`android-latest`** release); and a
+**"📥 Download for Android (offline)"** chip on the hub landing (`Hub.jsx`) linking to that release APK
+(resolves after the first CI run — trigger it from the Actions tab). **NEXT:** ⑤ WebLLM web path
+(@mlc-ai/web-llm + settings toggle) → ⑥ native LLM plugin (bundled small + optional medium model) → ⑦
+offline art. *(Infra only — no gameplay change, no version bump.)*
 
 **🛠️ BUILD STEP ① DONE — matchups→attunement-only + stats→kit+factor (v3.163–3.164.0, 2026-07-16).**
 First code of the locked identity model (`card-pool-composition.md` build-order step ①). **①a (v3.163.0):**

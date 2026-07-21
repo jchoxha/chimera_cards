@@ -1,0 +1,11 @@
+{
+  "appId": "io.github.jchoxha.chimera",
+  "appName": "Chimera Cards",
+  "webDir": "dist",
+  "android": {
+    "allowMixedContent": true
+  },
+  "server": {
+    "androidScheme": "https"
+  }
+}
