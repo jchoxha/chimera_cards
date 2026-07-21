@@ -27,9 +27,16 @@ GENERATED in CI, gitignored; `npm run cap:sync`); a **`Build Android APK` GitHub
 [Capacitor serves webDir at root, NOT the /<repo>/ Pages base], `cap add android` + `cap sync`, gradle
 `assembleDebug`, publishes an unsigned sideloadable APK to a rolling **`android-latest`** release); and a
 **"📥 Download for Android (offline)"** chip on the hub landing (`Hub.jsx`) linking to that release APK
-(resolves after the first CI run — trigger it from the Actions tab). **NEXT:** ⑤ WebLLM web path
-(@mlc-ai/web-llm + settings toggle) → ⑥ native LLM plugin (bundled small + optional medium model) → ⑦
-offline art. *(Infra only — no gameplay change, no version bump.)*
+(resolves after the first CI run). **VERIFIED:** the first CI build succeeded + published `chimera-cards.apk`
+(~15.7MB) to the `android-latest` release — the download button is live. **STEP 5 DONE (WebLLM web path,
+v3.165.0):** on-device generation in the browser — `src/ai/webllm.js` (lazy `@mlc-ai/web-llm`; `MODELS` =
+Qwen2.5-1.5B small + Llama-3.2-3B medium; `ensureEngine`/`webllmGenerate`, WebGPU-gated, weights cached
+in-browser), the `webllm` provider dynamic-imports it, and a reusable **`src/ai/AiSettings.jsx`** panel
+(API ⁄ On-device radios + model picker + download-progress bar) is mounted in the Forge
+(`CreatureCreator.jsx`). The heavy runtime stays a lazy ~5.8MB chunk (NOT in any page entry; app bundle
+unchanged). Verified: build + lint clean, app serves 200, AiSettings bundled + reachable; actual on-device
+inference needs WebGPU hardware (the Razr) to fully exercise. **NEXT:** ⑥ native LLM plugin (bundle the small
+model + optional medium download; `native` provider default in-app) → ⑦ offline art.
 
 **🛠️ BUILD STEP ① DONE — matchups→attunement-only + stats→kit+factor (v3.163–3.164.0, 2026-07-16).**
 First code of the locked identity model (`card-pool-composition.md` build-order step ①). **①a (v3.163.0):**

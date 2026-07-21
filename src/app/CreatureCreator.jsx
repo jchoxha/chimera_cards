@@ -9,6 +9,7 @@
 // ╚══════════════════════════════════════════════════════════════════╝
 import React, { useState } from 'react';
 import { forgeCreature } from '../data/forgeCreature.js';
+import AiSettings from '../ai/AiSettings.jsx';
 import { ARCHETYPE_ICON, BIOLOGY_ICON, ATTUNEMENT_ICON, ATTUNEMENT_COLOR, creatureIcon, creatureColor } from '../data/axisIcons.js';
 import './creator.css';
 
@@ -98,6 +99,8 @@ export default function CreatureCreator({ classes = [], biologies = [], attuneme
             <input type="checkbox" checked={aiTypings} onChange={(e) => setAiTypings(e.target.checked)} />
             <span><b>Forge with AI</b> — typings, bespoke signature moves, lore &amp; a portrait, all from whatever you write above (even just a name)</span>
           </label>
+
+          {aiTypings && <AiSettings />}
 
           {!aiTypings && (
             <div className="crAxes">

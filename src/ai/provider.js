@@ -48,18 +48,26 @@ const apiProvider = {
   },
 };
 
-// ── Provider: WebLLM (in-browser, WebGPU) — STUB until step 5 wires @mlc-ai/web-llm ──
-// isAvailable() gates on WebGPU; ensureReady() will trigger the first-run model
+// ── Provider: WebLLM (in-browser, WebGPU) ────────────────────────────────────
+// isAvailable() gates on WebGPU; ensureReady() triggers the first-run model
 // download (cached in the browser); generateText() runs a local chat completion.
+// The heavy runtime (./webllm.js → @mlc-ai/web-llm) is imported LAZILY so it only
+// loads when the user opts into on-device generation.
+let _webllmProgress = null;
 const webllmProvider = {
   id: 'webllm',
   label: 'On-device (browser · WebGPU)',
   isAvailable() { return typeof navigator !== 'undefined' && !!navigator.gpu; },
+  /** Optional progress sink the settings UI sets before triggering a load. */
+  onProgress(cb) { _webllmProgress = cb; },
   async ensureReady() {
-    throw new Error('WebLLM provider not wired yet (offline-android.md build step 5).');
+    const { ensureEngine } = await import('./webllm.js');
+    await ensureEngine(_webllmProgress || undefined);
+    return true;
   },
-  async generateText() {
-    throw new Error('WebLLM provider not wired yet (offline-android.md build step 5).');
+  async generateText(prompt, opts) {
+    const { webllmGenerate } = await import('./webllm.js');
+    return webllmGenerate(prompt, opts);
   },
 };
 

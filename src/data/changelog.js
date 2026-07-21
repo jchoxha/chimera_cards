@@ -6,6 +6,10 @@
 
 /** @type {{version:string, date:string, notes:string[]}[]} newest first */
 export const CHANGELOG = [
+  { version: 'v3.165.0', date: '2026-07-16', notes: [
+    'You can now forge creatures fully OFFLINE, on your own device. In the AI forge, pick “On-device” to download a small AI model that runs right in your browser (WebGPU) — no API key, no connection needed — or keep using the online Claude API. The model downloads once (~1GB) and is cached; after that, generation is completely offline.',
+    'Groundwork for the offline Android app: a “Download for Android” link now appears on the site.',
+  ] },
   { version: 'v3.164.0', date: '2026-07-16', notes: [
     'Creature STATS now come from KIT + GEAR. A creature’s Attack/Defense/Focus/Resolve/Speed/Evasion are shaped by its archetype/family/manifestation (its “class”) plus its weapons/anatomy/features (its “equipment”): a Warrior with a Hammer & Shield is a tanky bruiser, a Rogue with daggers is fast and evasive, an Engineer is a wall, an Avian skirmisher darts and dodges.',
     'Body type and subtype no longer set stats — body type just picks which kit a creature uses, and subtypes are wild-card passives. This makes two creatures of the same kit feel distinct through their gear.',
