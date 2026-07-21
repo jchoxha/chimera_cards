@@ -6,6 +6,10 @@
 
 /** @type {{version:string, date:string, notes:string[]}[]} newest first */
 export const CHANGELOG = [
+  { version: 'v3.166.0', date: '2026-07-16', notes: [
+    'The Android app now opens to a clean game menu — Play + Settings — instead of the developer hub. No more version lists or build links; it looks like a game.',
+    'Built-in updates: the app checks on launch and shows a one-tap “Update available” button when a newer build has shipped, so you can keep the sideloaded app current without hunting for a download.',
+  ] },
   { version: 'v3.165.0', date: '2026-07-16', notes: [
     'You can now forge creatures fully OFFLINE, on your own device. In the AI forge, pick “On-device” to download a small AI model that runs right in your browser (WebGPU) — no API key, no connection needed — or keep using the online Claude API. The model downloads once (~1GB) and is cached; after that, generation is completely offline.',
     'Groundwork for the offline Android app: a “Download for Android” link now appears on the site.',

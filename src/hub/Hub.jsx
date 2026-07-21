@@ -9,6 +9,8 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { marked } from 'marked';
 import AiSettings from '../ai/AiSettings.jsx';
+import GameMenu from './GameMenu.jsx';
+import { isNativeShell } from '../ai/provider.js';
 import '../ui/theme.css';
 import './hub.css';
 
@@ -163,6 +165,8 @@ export default function Hub() {
     window.addEventListener('hashchange', onHash);
     return () => window.removeEventListener('hashchange', onHash);
   }, []);
+  // The Android app shows a clean, game-only menu — never the dev hub (versions/docs/builds).
+  if (isNativeShell()) return <GameMenu />;
   if (route.view === 'versions') return <Versions />;
   if (route.view === 'docs') return <Docs param={route.param} />;
   return <Landing />;

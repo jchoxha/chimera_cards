@@ -38,7 +38,14 @@ unchanged). **`AiSettings` is now self-styled (inline, portable) + has a "Test g
 mounted on the HUB LANDING (`Hub.jsx`) — the APK's first screen** — since the v1 creature-creator view is
 currently unreachable (no trigger). So the offline model is testable directly: open the app → hub home →
 "🧪 AI generation" panel (shows WebGPU availability) → On-device → Download → Test. Verified: build + lint
-clean, hub serves 200, panel bundled, WebLLM still lazy. **KEY OPEN QUESTION:** does the Razr's Capacitor
+clean, hub serves 200, panel bundled, WebLLM still lazy.
+**CLEAN APP MENU + SELF-UPDATE (v3.166.0):** the Android shell no longer opens the dev hub — `Hub.jsx` renders
+a game-only **`src/hub/GameMenu.jsx`** when `isNativeShell()` (title + tagline + ▶ Play → battle.html + a
+Settings disclosure holding AiSettings + a version line; NO versions/docs/builds). **Self-update:** the Vite
+build emits **`dist/app-version.json`** (= APP_VERSION), `src/updateCheck.js` fetches the deployed Pages copy
++ compares (`compareVersions`), and GameMenu shows a one-tap "⬇ Update available → tap to install" banner
+linking to the release APK (fails closed offline). The WEB dev hub (Pages) is unchanged.
+**KEY OPEN QUESTION:** does the Razr's Capacitor
 WebView expose WebGPU? If yes, the WebLLM path runs in-APK with NO native code (⑥ shrinks to "precache the
 model"); if no, ⑥ needs a native MediaPipe/MLC plugin. **NEXT:** ⑥ (gated on that answer) → ⑦ offline art.
 
