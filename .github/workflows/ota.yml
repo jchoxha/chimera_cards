@@ -29,10 +29,14 @@ jobs:
       # base "/" (default) — the OTA bundle must match the APK's webDir root,
       # NOT the /<repo>/ base the Pages site uses.
       - run: npm run build
-      - name: Zip the web bundle (dist contents at the zip root)
+      - name: Zip the web bundle with the Capgo CLI
+        # IMPORTANT: use the Capgo CLI, not a plain `zip` — the updater plugin
+        # rejects zips it didn't make (the download silently fails otherwise).
         run: |
           mkdir -p out
-          cd dist && zip -qr ../out/web-bundle.zip . && cd ..
+          npx --yes @capgo/cli@latest bundle zip io.github.jchoxha.chimera \
+            --path dist --name web-bundle.zip --no-code-check
+          mv web-bundle.zip out/web-bundle.zip
       - name: Publish to the rolling web-latest release
         uses: softprops/action-gh-release@v2
         with:
