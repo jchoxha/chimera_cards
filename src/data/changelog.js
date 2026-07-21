@@ -6,6 +6,9 @@
 
 /** @type {{version:string, date:string, notes:string[]}[]} newest first */
 export const CHANGELOG = [
+  { version: 'v3.170.0', date: '2026-07-16', notes: [
+    'On-device model download in the app now routes through native networking, working around the WebView’s cross-origin block that was failing the HuggingFace download (“Failed to fetch”). Try Settings → On-device → Download again.',
+  ] },
   { version: 'v3.169.0', date: '2026-07-16', notes: [
     'OTA test build — the version now shows on the main menu, and “check for updates” in Settings applies the over-the-air update directly. If your app updates itself from v3.167.0 to v3.169.0 without reinstalling, OTA works!',
     'The update check now uses native networking in the app, so it isn’t blocked by the WebView’s cross-origin limits.',

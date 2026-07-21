@@ -54,6 +54,9 @@ export async function ensureEngine(onProgress) {
 
   _engineModelId = modelId;
   _loading = (async () => {
+    // Route the model download through native HTTP in the Android WebView (plain
+    // fetch() to HuggingFace fails cross-origin there). No-op on the web.
+    try { const { installModelFetchShim } = await import('./nativeFetch.js'); await installModelFetchShim(); } catch { /* ignore */ }
     const { CreateMLCEngine, prebuiltAppConfig } = await import('@mlc-ai/web-llm');
     // Use the IndexedDB cache backend, not the default Cache API: Cache.add() stores
     // cross-origin (opaque) weight responses, which WebViews + some browsers reject
