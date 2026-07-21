@@ -6,7 +6,8 @@
 // ╚══════════════════════════════════════════════════════════════════╝
 import { useState, useEffect } from 'react';
 import AiSettings from '../ai/AiSettings.jsx';
-import { checkForUpdate, APK_URL } from '../updateCheck.js';
+import { checkForUpdate } from '../updateCheck.js';
+import { runLiveUpdate } from '../liveUpdate.js';
 import { APP_VERSION } from '../version.js';
 
 const BASE = (import.meta.env && import.meta.env.BASE_URL) || '/';
@@ -16,20 +17,37 @@ export default function GameMenu() {
   const [settings, setSettings] = useState(false);
   const [upd, setUpd] = useState(null);
   const [checking, setChecking] = useState(false);
+  const [otaMsg, setOtaMsg] = useState('');
 
   const check = async () => { setChecking(true); try { setUpd(await checkForUpdate()); } finally { setChecking(false); } };
   useEffect(() => { check(); }, []);
+
+  // Trigger the OTA web-bundle update (native). On success it downloads + reloads
+  // into the new bundle; otherwise report status.
+  const doUpdate = async () => {
+    setChecking(true); setOtaMsg('Checking…');
+    try {
+      const r = await runLiveUpdate();
+      if (r.status === 'updating') setOtaMsg('Updating — the app will reload…');
+      else if (r.status === 'up-to-date') setOtaMsg('You’re on the latest version.');
+      else if (r.status === 'web') setOtaMsg('Updates apply only in the installed app.');
+      else if (r.status === 'error') setOtaMsg('Update failed: ' + (r.error || 'unknown'));
+      else setOtaMsg('');
+    } finally { setChecking(false); }
+  };
 
   return (
     <div className="hubLanding">
       <div className="hubHero">
         <h1>CHIMERA<span>CARDS</span></h1>
         <p className="hubTagline">Capture monsters. Build decks. Descend.</p>
+        <div style={{ marginTop: -14, marginBottom: 20, fontSize: 12, opacity: 0.6 }}>v{APP_VERSION.replace(/^v/, '')}</div>
 
         {upd?.updateAvailable && (
-          <a href={APK_URL} className="hubPlay" style={{ display: 'block', marginBottom: 14, background: 'linear-gradient(#4caf50,#3a8f43)', boxShadow: '0 6px 0 #2c6b32' }}>
-            ⬇ Update available ({upd.latest}) — tap to install
-          </a>
+          <button type="button" onClick={doUpdate} className="hubPlay"
+            style={{ display: 'block', marginBottom: 14, background: 'linear-gradient(#4caf50,#3a8f43)', boxShadow: '0 6px 0 #2c6b32', border: 'none', width: '100%' }}>
+            ⬇ Update available ({upd.latest}) — tap to update
+          </button>
         )}
 
         <a className="hubPlay" href={`${BASE}battle.html`}>▶ Play</a>
@@ -46,10 +64,10 @@ export default function GameMenu() {
             <AiSettings />
             <div style={{ fontSize: 12, opacity: 0.7 }}>
               Version {APP_VERSION}{' · '}
-              <button type="button" onClick={check} disabled={checking} style={linkBtn}>
+              <button type="button" onClick={doUpdate} disabled={checking} style={linkBtn}>
                 {checking ? 'checking…' : 'check for updates'}
               </button>
-              {upd && !upd.updateAvailable && upd.latest ? ' · up to date' : ''}
+              {otaMsg ? ` · ${otaMsg}` : ''}
             </div>
           </div>
         )}
