@@ -6,6 +6,11 @@
 
 /** @type {{version:string, date:string, notes:string[]}[]} newest first */
 export const CHANGELOG = [
+  { version: 'v3.173.0', date: '2026-08-05', notes: [
+    'AI CREATURE ART is live! In the Creature Lab, hit “Generate art” on any generated or fused creature and a real illustration is painted for it with FLUX — free, no account, no API key. Don’t like it? Re-roll for a different take.',
+    'Portraits are stable: the same creature always paints the same picture, so your collection looks consistent.',
+    'Art prompts are built from a creature’s own typing, so even a brand-new fusion can be drawn — its weapons, anatomy and element all show up in the picture.',
+  ] },
   { version: 'v3.172.0', date: '2026-08-05', notes: [
     'NEW — the Creature Lab (lab.html): spin wheels for a creature’s rarity, form and evolution line, describe it in plain text to set its identity, and generate a fully playable creature with real stats and a real deck.',
     'SEAMLESS FUSION is live in the Lab: fuse ANY two creatures into a new one — the name is a portmanteau (Ironhide + Voltfang = Ironfang), the typing merges, stats and deck combine, and each pairing grants a unique Fusion Power card. Order matters, and you can fuse a fusion again.',

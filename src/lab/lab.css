@@ -115,6 +115,22 @@
 .labFacts b, .labAxes b, .labStats b { color: var(--gold2, #d9b774); }
 .labStats { display: flex; gap: 12px; flex-wrap: wrap; font-size: 13px; opacity: .9; }
 
+/* ── art generation ── */
+.labArt { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; margin: 2px 0; }
+.labArtBtn {
+  background: rgba(150, 110, 220, .16); border: 1px solid rgba(170, 130, 240, .55);
+  color: #d3bcf5; padding: 8px 16px; border-radius: 10px; cursor: pointer; font: inherit;
+}
+.labArtBtn.ghost { background: none; opacity: .75; }
+.labArtBtn:disabled { opacity: .55; cursor: default; }
+.labArtNote { font-size: 12px; opacity: .65; font-style: italic; }
+.labArtErr { font-size: 12px; color: #e58b7b; }
+.labProv { display: flex; align-items: center; gap: 5px; }
+.labProv select {
+  background: rgba(0, 0, 0, .35); border: 1px solid var(--line, #3a2f22);
+  color: var(--ink, #f0e6d2); border-radius: 6px; padding: 3px 6px; font: inherit; font-size: 11px;
+}
+
 .labDeck { margin-top: 4px; }
 .labDeckHead { font-size: 11px; text-transform: uppercase; letter-spacing: .12em; opacity: .55; margin-bottom: 6px; }
 .labDeckCards { display: flex; gap: 5px; flex-wrap: wrap; }

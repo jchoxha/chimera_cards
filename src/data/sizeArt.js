@@ -11,20 +11,11 @@
 // ╚══════════════════════════════════════════════════════════════════╝
 import SIZE_MANIFEST from './creatureArtSizes.json';
 
-// Per-form phrase woven into art-generation prompts so each size is DRAWN
-// distinctly (rather than one image rescaled). 'regular' is the neutral baseline.
-// The phrasing must OVERRIDE size adjectives already in the subject text and put
-// the size in the COMPOSITION (camera angle + frame fill + environment scale cues)
-// — adjectives alone don't move the model. Mirrored in scripts/gen_roster.py
-// SIZE_DESC (the fuller pipeline wording).
-export const FORM_ART_DESC = {
-  baby: 'as a cute juvenile / baby version (this overrides any size words above) — rounded chunky proportions, an oversized head and big eyes, short stubby limbs — but still filling most of the frame like a normal portrait; a simple flat background at normal scale, NO oversized props, giant grass, or footprints (it reads as young from its proportions, not from being tiny in a huge world)',
-  young: 'as a YOUNG, half-grown adolescent (an in-between of baby and adult; this overrides any size words above) — leaner, more compact and a bit less developed than the adult, on a simple clean background; the whole creature clearly visible with margin',
-  regular: 'at its typical adult size — balanced, characteristic proportions',
-  elite: 'as a bigger, tougher ELITE veteran (this overrides any size words above) — clearly larger and more powerful than the adult, with only MINOR extra scars/heavier armor; keep the design essentially the same and plainer than a boss (do NOT out-ornament the boss). The ENTIRE creature stays within the frame with a margin — nothing cropped',
-  boss: 'as the ultimate BOSS — the biggest, most fearsome and most VISUALLY SPECTACULAR apex version (this overrides any size words above), with a grander, more elaborate design (more massive/ornate armor, spikes/horns, glowing elemental power, a crest); convey huge scale with a low camera angle and tiny environment details, BUT keep the ENTIRE creature fully within the frame with a margin — nothing cropped or overflowing the edges',
-};
-export function formArtDesc(form) { return FORM_ART_DESC[form] || FORM_ART_DESC.regular; }
+// The per-form PROMPT phrasing moved to data/artStyle.js (the single prompt
+// layer) — it is prompt text, not part of this module's baked-art manifest, and
+// keeping it here made sizeArt.js (which imports JSON) un-importable from node
+// tests. Re-exported so existing importers are unaffected.
+export { FORM_ART_DESC, formArtDesc } from './artStyle.js';
 
 // Does id-stem `stem` have a distinct baked image for `form`?
 const hasSized = (stem, form) => Array.isArray(SIZE_MANIFEST[stem]) && SIZE_MANIFEST[stem].includes(form);

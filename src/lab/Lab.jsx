@@ -17,6 +17,7 @@ import { fuseCreatures, fuseAxes } from '../engine/content/fuse.js';
 import { ROSTER, buildRosterCreature } from '../data/roster.js';
 import { rosterPool } from '../app/pools.js';
 import { CardFace, creatureToFace } from '../ui/combat/creatureVisuals.jsx';
+import { generateCreaturePortrait, PROVIDERS, getImageProviderId, setImageProviderId } from '../ai/imageProvider.js';
 import { ATTUNEMENT_COLOR } from '../data/axisIcons.js';
 import { biologyDisplayName } from '../data/biologyNaming.js';
 import { attunementDisplayName } from '../data/synthesis.js';
@@ -61,12 +62,46 @@ function DeckList({ deck = [], title = 'Starting deck' }) {
   );
 }
 
+/**
+ * The "paint this creature" control. Art generation is EXPLICIT (a button, never
+ * automatic): the free tier is rate-limited to roughly one request every 15s, so
+ * auto-generating on every spin would just queue up failures.
+ */
+function ArtButton({ c, onPainted }) {
+  const [state, setState] = useState({ status: 'idle' });
+  const paint = async (reroll = false) => {
+    setState({ status: 'loading' });
+    try {
+      // a re-roll asks for a different seed; otherwise a creature keeps its portrait
+      await generateCreaturePortrait(c, reroll ? { seed: Math.floor(Math.random() * 1e9) } : {});
+      setState({ status: 'done' });
+      onPainted?.();
+    } catch (e) {
+      setState({ status: 'error', msg: e?.message || 'failed' });
+    }
+  };
+  const busy = state.status === 'loading';
+  return (
+    <div className="labArt">
+      <button type="button" className="labArtBtn" onClick={() => paint(false)} disabled={busy}>
+        {busy ? '🎨 Painting…' : c.portrait ? '🎨 Regenerate art' : '🎨 Generate art'}
+      </button>
+      {c.portrait && !busy && (
+        <button type="button" className="labArtBtn ghost" onClick={() => paint(true)}>🎲 Re-roll</button>
+      )}
+      {busy && <span className="labArtNote">FLUX is drawing — this can take ~10–20s…</span>}
+      {state.status === 'error' && <span className="labArtErr">⚠ {state.msg} (free tier is ~1 image/15s — wait and retry)</span>}
+    </div>
+  );
+}
+
 /** A generated/fused creature preview: the real card + its numbers + its deck. */
 function CreaturePanel({ c, children }) {
+  const [nonce, setNonce] = useState(0);
   if (!c) return null;
   return (
     <div className="labResult">
-      <div className="labCardWrap"><CardFace f={creatureToFace(c)} side="ally" /></div>
+      <div className="labCardWrap"><CardFace key={nonce} f={creatureToFace(c)} side="ally" /></div>
       <div className="labMeta">
         <div className="labName">{c.name}</div>
         <div className="labType">{typeLine(c)}</div>
@@ -79,6 +114,7 @@ function CreaturePanel({ c, children }) {
           </div>
         )}
         <StatRow c={c} />
+        <ArtButton c={c} onPainted={() => setNonce((n) => n + 1)} />
         {children}
         <DeckList deck={c.deck} />
       </div>
@@ -269,6 +305,7 @@ function FuseTab({ stock, onKeep }) {
 export default function Lab() {
   const [tab, setTab] = useState('generate');
   const [stock, setStock] = useState([]);
+  const [provider, setProvider] = useState(getImageProviderId);
   const keep = (c) => setStock((s) => (s.some((x) => x.id === c.id) ? s : [...s, c]));
 
   return (
@@ -280,6 +317,12 @@ export default function Lab() {
           <button type="button" className={tab === 'fuse' ? 'on' : ''} onClick={() => setTab('fuse')}>🧬 Fuse</button>
         </div>
         <div className="labVer">
+          <label className="labProv" title="Which service paints the creature portraits">
+            🎨
+            <select value={provider} onChange={(e) => { setImageProviderId(e.target.value); setProvider(e.target.value); }}>
+              {Object.values(PROVIDERS).map((p) => <option key={p.id} value={p.id}>{p.label}</option>)}
+            </select>
+          </label>
           {stock.length > 0 && <span className="labStock">★ {stock.length} kept</span>}
           <a href="./index.html">← hub</a>
           <span>{APP_VERSION}</span>

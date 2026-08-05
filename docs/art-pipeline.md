@@ -351,3 +351,72 @@ commits — a mid-sweep cutoff then loses at most one creature).
 
 Broader generation-model issues (size-neutral subject texts, per-size identity,
 evolution↔art) are collected in **`docs/creature-model-rework.md`**.
+
+---
+
+## Live image providers (System 2 — BUILT 2026-08-05)
+
+The product pipeline now has a working first provider. Creature art can be
+generated **at runtime, from the app**, not only baked by the dev tooling.
+
+### The seam — `src/ai/imageProvider.js`
+Mirrors the text seam (`src/ai/provider.js`). Call sites never name a vendor:
+
+```js
+await generateCreaturePortrait(creature);   // sets creature.portrait + artPrompt + artSeed
+```
+
+`creatureImageRequest(creature)` composes the prompt and returns `{url, prompt, seed}`.
+The seed is an FNV-1a hash of the creature id, so **a creature keeps its portrait**
+across reloads; a "re-roll" just passes a random seed.
+
+### Default provider: Pollinations (free, FLUX, **no API key**)
+Chosen for a hard architectural reason, not convenience: Chimera ships as a
+**public static site** (GitHub Pages) and a sideloaded APK. There is no server to
+hide a secret in, and CLAUDE.md forbids committing or deploying a key. Pollinations
+needs **no key at all** — the generation request is a plain `GET` whose response
+body *is* the image — so there is nothing to leak and it works from a static page.
+
+Trade-offs, stated plainly:
+- **No SLA / no uptime guarantee.** Treat failure as normal; the UI degrades to the
+  existing placeholder chain and offers a retry.
+- **Rate limited** (~1 image / 15s for anonymous callers). So art generation is an
+  **explicit button, never automatic** — auto-painting every generated creature
+  would just queue failures. Bulk roster art still goes through the dev bake above.
+
+### Adding another provider
+Add an entry to `PROVIDERS` with the same `{id, label, needsKey, build()}` shape.
+Two rules:
+1. A keyed provider must read its key from `window`/`localStorage` **at call time**
+   — never bundled, never committed.
+2. A keyed provider must **not** be the default, so the out-of-box experience never
+   depends on a secret.
+
+### The prompt layer — `src/data/artStyle.js` (drift now closed)
+This doc previously flagged that the locked Variant-B style lived only in
+`scripts/gen_roster.py`, while the JS `ART_STYLE` in `ai/claude.js` was a different,
+**SVG-oriented** string (stroke widths, a 200×200 canvas) — meaningless to a raster
+model. `src/data/artStyle.js` is now the single source of truth:
+
+- `ART_STYLE_VARIANT_B` — the locked style, **verbatim** from `gen_roster.py`.
+  `npm run test:artprompt` asserts the two texts are identical, so they cannot drift again.
+- `FORM_ART_DESC` / `formArtDesc` — moved here from `sizeArt.js` (it is prompt text,
+  and keeping it beside a JSON import made it unreachable from node tests).
+  `sizeArt.js` re-exports both, so existing importers are unaffected.
+- `creatureArtSubject(c)` — describes a creature **from its taxonomy**, which is what
+  makes generated and fused creatures paintable with no authored lore: factor tags
+  become picture words (`Venom` → "dripping venom", `Hammer` → "a great warhammer").
+- `creatureArtPrompt(c, {form})` — the contract: **SUBJECT + SIZE + STYLE**. An
+  authored physical `description` (forged creatures have one) overrides the derived subject.
+
+Example built by the running app:
+
+> Subject: "Bramblescale", a Nature Reptile, with dripping venom, bared fangs and
+> vicious claws. / as a YOUNG, half-grown adolescent… / Style: Flat 2D hand-drawn…
+
+### Verification status
+`npm run test:artprompt` (36 checks) covers prompt composition, URL encoding/
+clamping, the style drift guard, provider shape, and seed determinism. The UI was
+driven in Chromium for both the success and failure paths. **The live network call
+has NOT been verified from the dev container** — its egress proxy blocks
+non-allowlisted hosts — so the first real image must be confirmed in a browser.
