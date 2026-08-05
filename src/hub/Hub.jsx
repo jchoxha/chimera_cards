@@ -23,6 +23,8 @@ const VERSIONS = [
     desc: 'The current build: a seamless open-world roguelike run — explore biomes, fight Pokémon-style simultaneous squad battles, earn card & gold rewards, capture creatures, shop in towns, and beat the boss to win the run.' },
   { href: 'app.html', icon: '🎴', name: 'Chimera v1', tag: 'v1', tone: 'info',
     desc: 'The v1 game: roguelike runs on the Vanguard/Peek combat engine, collection & team building, practice combat, the editor and codex.' },
+  { href: 'lab.html', icon: '🧬', name: 'Creature Lab', tag: 'tool', tone: 'good',
+    desc: 'Dynamic creature generation + seamless fusion testbed: spin the wheels for rarity/form/evolutions, describe a creature in plain text to set its identity, then fuse any two creatures into a new one (order matters).' },
   { href: 'editor.html', icon: '🛠️', name: 'Editor', tag: 'tool', tone: 'info',
     desc: 'Standalone card & creature editor (also reachable inside the game).' },
   { href: 'combat.html', icon: '🧪', name: 'Combat demo', tag: 'demo', tone: 'info',

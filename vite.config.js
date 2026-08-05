@@ -32,6 +32,7 @@ export default defineConfig({
         editor: "editor.html",
         app: "app.html",
         battle: "battle.html",
+        lab: "lab.html",
       },
     },
   },

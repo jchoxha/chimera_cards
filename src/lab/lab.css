@@ -1,0 +1,157 @@
+/* Creature Lab (lab.html) — the generation + fusion testbed.
+   Draws on the shared design tokens in ui/theme.css (loaded first in main.jsx).
+   NEVER redefine --ink here (see CLAUDE.md: theme.css owns it). */
+
+.lab {
+  min-height: 100vh;
+  background: var(--surface-0, #17120c);
+  color: var(--ink, #f0e6d2);
+  font-family: var(--font-body, Spectral, Georgia, serif);
+  padding: var(--s-3, 14px) var(--s-4, 20px) 60px;
+  box-sizing: border-box;
+}
+.lab * { box-sizing: border-box; }
+
+/* ── header ── */
+.labHead {
+  display: flex; align-items: center; gap: var(--s-4, 20px);
+  flex-wrap: wrap; margin-bottom: var(--s-4, 20px);
+  border-bottom: 1px solid var(--line, #3a2f22); padding-bottom: var(--s-3, 14px);
+}
+.labHead h1 {
+  font-family: var(--font-display, Cinzel, serif);
+  font-size: clamp(20px, 3vw, 30px); margin: 0; color: var(--gold2, #d9b774); letter-spacing: .04em;
+}
+.labTabs { display: flex; gap: 8px; }
+.labTabs button {
+  background: rgba(255, 255, 255, .04); border: 1px solid var(--line, #3a2f22);
+  color: var(--ink, #f0e6d2); padding: 7px 16px; border-radius: 999px;
+  cursor: pointer; font: inherit; font-size: 15px;
+}
+.labTabs button.on { background: var(--gold4, #6b5323); border-color: var(--gold2, #d9b774); color: #fff6dd; }
+.labVer { margin-left: auto; display: flex; align-items: center; gap: 12px; font-size: 12px; opacity: .7; }
+.labVer a { color: var(--gold2, #d9b774); }
+.labStock { color: var(--gold2, #d9b774); opacity: 1; }
+
+/* ── controls ── */
+.labTab { max-width: 1180px; margin: 0 auto; }
+.labControls { margin-bottom: var(--s-4, 20px); }
+.labModes { display: flex; gap: 8px; flex-wrap: wrap; }
+.labMode {
+  background: rgba(255, 255, 255, .04); border: 1px solid var(--line, #3a2f22);
+  color: var(--ink, #f0e6d2); padding: 8px 14px; border-radius: 8px; cursor: pointer; font: inherit;
+}
+.labMode.on { background: var(--gold4, #6b5323); border-color: var(--gold2, #d9b774); }
+.labHint { font-size: 13px; opacity: .65; margin: 8px 0 0; font-style: italic; }
+
+.labPrompt { margin-top: 12px; }
+.labPrompt textarea {
+  width: 100%; background: rgba(0, 0, 0, .3); border: 1px solid var(--line, #3a2f22);
+  color: var(--ink, #f0e6d2); border-radius: 8px; padding: 10px 12px; font: inherit; font-size: 15px; resize: vertical;
+}
+.labExamples { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 6px; }
+.labEx {
+  background: none; border: 1px dashed var(--line, #3a2f22); color: var(--ink, #f0e6d2);
+  opacity: .6; font-size: 11px; padding: 3px 8px; border-radius: 999px; cursor: pointer; font-family: inherit;
+}
+.labEx:hover { opacity: 1; border-style: solid; }
+
+/* ── wheels ── */
+.labWheels {
+  display: flex; gap: var(--s-4, 20px); flex-wrap: wrap; justify-content: center;
+  margin: var(--s-4, 20px) 0; padding: var(--s-3, 14px);
+  background: rgba(0, 0, 0, .2); border: 1px solid var(--line, #3a2f22); border-radius: 12px;
+}
+.lwWrap { display: flex; flex-direction: column; align-items: center; gap: 6px; }
+.lwTitle { font-size: 11px; text-transform: uppercase; letter-spacing: .14em; opacity: .6; }
+.lwStage { position: relative; }
+.lwSvg { display: block; filter: drop-shadow(0 4px 10px rgba(0, 0, 0, .5)); }
+.lwPointer {
+  position: absolute; top: -7px; left: 50%; transform: translateX(-50%);
+  width: 0; height: 0; z-index: 2;
+  border-left: 9px solid transparent; border-right: 9px solid transparent;
+  border-top: 16px solid var(--gold2, #d9b774);
+  filter: drop-shadow(0 2px 3px rgba(0, 0, 0, .6));
+}
+.lwLabel { font-size: 9px; fill: rgba(255, 255, 255, .92); font-family: var(--font-body, serif); pointer-events: none; }
+.lwResult { font-size: 13px; min-height: 20px; font-weight: 700; opacity: .55; }
+.lwResult.lwLanded { opacity: 1; color: var(--gold2, #d9b774); }
+
+/* ── actions ── */
+.labActions { display: flex; gap: 12px; justify-content: center; margin: var(--s-3, 14px) 0; flex-wrap: wrap; }
+.labGo {
+  background: linear-gradient(#c8a24e, #92702c); border: none; color: #241a08;
+  font-weight: 700; font-size: 16px; padding: 11px 28px; border-radius: 10px;
+  cursor: pointer; box-shadow: 0 4px 0 #5e4718; font-family: var(--font-display, Cinzel, serif); letter-spacing: .05em;
+}
+.labGo:disabled { opacity: .5; cursor: default; box-shadow: none; }
+.labKeep {
+  background: rgba(76, 175, 80, .15); border: 1px solid rgba(76, 175, 80, .5);
+  color: #8fe08f; padding: 9px 18px; border-radius: 10px; cursor: pointer; font: inherit;
+  align-self: flex-start;   /* inside the flex-column meta panel, don't stretch */
+}
+
+/* ── result panels ── */
+.labResult {
+  display: flex; gap: var(--s-4, 20px); flex-wrap: wrap;
+  background: rgba(0, 0, 0, .25); border: 1px solid var(--line, #3a2f22);
+  border-radius: 12px; padding: var(--s-4, 20px); margin-top: var(--s-3, 14px);
+}
+.labCardWrap { width: 210px; height: 380px; flex: none; }
+.labCardWrap.sm { width: 150px; height: 272px; }
+.labMeta { flex: 1; min-width: 260px; display: flex; flex-direction: column; gap: 8px; }
+.labName { font-family: var(--font-display, Cinzel, serif); font-size: 26px; color: var(--gold2, #d9b774); }
+.labType { font-size: 14px; opacity: .8; }
+.labRarity {
+  align-self: flex-start; background: color-mix(in srgb, var(--rc) 22%, transparent);
+  border: 1px solid var(--rc); color: var(--rc);
+  padding: 2px 12px; border-radius: 999px; font-size: 12px; text-transform: uppercase; letter-spacing: .1em;
+}
+.labFacts, .labAxes { display: flex; gap: 16px; flex-wrap: wrap; font-size: 13px; opacity: .8; }
+.labAxes {
+  background: rgba(0, 0, 0, .2); border: 1px solid var(--line, #3a2f22);
+  border-radius: 8px; padding: 10px 14px; margin-bottom: 12px;
+}
+.labFacts b, .labAxes b, .labStats b { color: var(--gold2, #d9b774); }
+.labStats { display: flex; gap: 12px; flex-wrap: wrap; font-size: 13px; opacity: .9; }
+
+.labDeck { margin-top: 4px; }
+.labDeckHead { font-size: 11px; text-transform: uppercase; letter-spacing: .12em; opacity: .55; margin-bottom: 6px; }
+.labDeckCards { display: flex; gap: 5px; flex-wrap: wrap; }
+.labChip {
+  background: rgba(255, 255, 255, .05); border: 1px solid var(--line, #3a2f22);
+  border-radius: 6px; padding: 3px 9px; font-size: 12px;
+}
+.labChip b { color: var(--gold2, #d9b774); margin-right: 4px; }
+.labChip.isPower { background: rgba(217, 183, 116, .18); border-color: var(--gold2, #d9b774); }
+
+/* ── fuse ── */
+.labFuseBar { display: flex; gap: 12px; align-items: flex-end; flex-wrap: wrap; margin-bottom: var(--s-3, 14px); }
+.labPick { display: flex; flex-direction: column; gap: 4px; font-size: 12px; opacity: .85; }
+.labPick select {
+  background: rgba(0, 0, 0, .35); border: 1px solid var(--line, #3a2f22);
+  color: var(--ink, #f0e6d2); padding: 8px 10px; border-radius: 8px; font: inherit; min-width: 210px;
+}
+.labSwap {
+  background: rgba(255, 255, 255, .06); border: 1px solid var(--line, #3a2f22);
+  color: var(--gold2, #d9b774); font-size: 20px; width: 42px; height: 40px; border-radius: 8px; cursor: pointer;
+}
+.labParents { display: flex; gap: var(--s-4, 20px); flex-wrap: wrap; }
+.labParent {
+  display: flex; flex-direction: column; gap: 6px; align-items: center;
+  background: rgba(0, 0, 0, .18); border: 1px solid var(--line, #3a2f22); border-radius: 10px; padding: 12px;
+}
+.labParentTag { font-size: 10px; letter-spacing: .16em; opacity: .55; }
+.labPower {
+  display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+  background: rgba(217, 183, 116, .12); border: 1px solid var(--gold2, #d9b774);
+  border-radius: 8px; padding: 8px 12px;
+}
+.labPowerTag { font-size: 10px; letter-spacing: .14em; color: var(--gold2, #d9b774); }
+.labPower b { font-size: 16px; }
+.labPowerMeta { font-size: 12px; opacity: .7; }
+
+@media (max-width: 640px) {
+  .labCardWrap { width: 170px; height: 308px; }
+  .labWheels { gap: 12px; }
+}

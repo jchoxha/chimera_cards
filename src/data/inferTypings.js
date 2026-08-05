@@ -54,10 +54,15 @@ const FAMILY_KW = {
   Mammalian: ['wolf', 'bear', 'cat', 'lion', 'tiger', 'fox', 'hound', 'boar', 'fur', 'mammal', 'stag', 'ram'],
   Eldritch: ['eldritch', 'tentacle', 'horror', 'cosmic', 'unspeakable', 'mad'],
   Ooze: ['ooze', 'slime', 'gel', 'blob', 'amorphous'],
-  Flora: ['plant', 'fungus', 'mushroom', 'tree', 'vine', 'flora', 'treant', 'moss'],
+  Flora: ['plant', 'tree', 'vine', 'flora', 'treant', 'moss', 'bramble'],
   Crystalline: ['crystal', 'gem', 'prism', 'mineral', 'quartz'],
   Construct: ['construct', 'golem', 'statue', 'animated'],
   Formless: ['formless', 'mist', 'cloud', 'gas', 'shadowy mass', 'wisp', 'energy being'],
+  // the manifestations added in v3.171.0 — without these, prompt-led generation
+  // could never reach them (fungus/mushroom used to fall through to Flora).
+  Fungal: ['fungal', 'fungus', 'mushroom', 'mycel', 'mold', 'toadstool', 'spore'],
+  Parasitic: ['parasite', 'parasitic', 'leech', 'tick', 'infest', 'host', 'brood'],
+  Abyssal: ['abyssal', 'abyss', 'deep-sea', 'trench', 'leviathan', 'fathom'],
 };
 const ANATOMY_KW = {
   Claws: ['claw', 'talon'], Teeth: ['teeth', 'fang', 'bite', 'jaw', 'maw'], Beak: ['beak'],
@@ -68,6 +73,9 @@ const ANATOMY_KW = {
   Tentacle: ['tentacle'], Eye: ['eye', 'gaze', 'stare'], Pseudopod: ['pseudopod'],
   Spore: ['spore'], Shard: ['shard', 'crystal'], Miasma: ['miasma', 'gas', 'fume'],
   Roots: ['root'], Mandible: ['mandible', 'pincer'],
+  // aberrant features added in v3.171.0
+  Carapace: ['carapace', 'chitin', 'plated'], Membrane: ['membrane', 'translucent', 'veil'],
+  Cilia: ['cilia', 'hairs', 'fronds'], Ichor: ['ichor', 'sap', 'fluid'],
 };
 const WEAPON_KW = {
   Sword: ['sword', 'blade'], Axe: ['axe'], Dagger: ['dagger', 'knife', 'knives'], Bow: ['bow', 'arrow', 'archer'],

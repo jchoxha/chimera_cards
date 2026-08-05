@@ -6,6 +6,11 @@
 
 /** @type {{version:string, date:string, notes:string[]}[]} newest first */
 export const CHANGELOG = [
+  { version: 'v3.172.0', date: '2026-08-05', notes: [
+    'NEW — the Creature Lab (lab.html): spin wheels for a creature’s rarity, form and evolution line, describe it in plain text to set its identity, and generate a fully playable creature with real stats and a real deck.',
+    'SEAMLESS FUSION is live in the Lab: fuse ANY two creatures into a new one — the name is a portmanteau (Ironhide + Voltfang = Ironfang), the typing merges, stats and deck combine, and each pairing grants a unique Fusion Power card. Order matters, and you can fuse a fusion again.',
+    'Prompt-driven generation now understands the newest Aberration manifestations (Fungal, Parasitic, Abyssal) and features (Carapace, Membrane, Cilia, Ichor).',
+  ] },
   { version: 'v3.171.0', date: '2026-07-21', notes: [
     'The Aberration branch grew wider: 3 new manifestations (Parasitic, Abyssal, Fungal) and 4 new aberrant features (Carapace, Membrane, Cilia, Ichor), each with their own cards, stat leanings, icons, and names — so eldritch creatures have far more distinct builds.',
     'Cleaner Android game menu: the “update available” prompt is now a slim tap-chip and the version tucks into Settings, so the home screen reads more like a finished game.',
