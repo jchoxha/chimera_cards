@@ -11,8 +11,9 @@
 // ╚══════════════════════════════════════════════════════════════════╝
 import React, { useMemo, useRef, useState } from 'react';
 import SpinWheel from './SpinWheel.jsx';
+import PartsStudio from './PartsStudio.jsx';
 import { generateCreature, poolForCreature } from './generate.js';
-import { WHEELS, spinWheel, rarityProfile } from '../engine/content/wheels.js';
+import { WHEELS, spinWheel } from '../engine/content/wheels.js';
 import { fuseCreatures, fuseAxes } from '../engine/content/fuse.js';
 import { ROSTER, buildRosterCreature } from '../data/roster.js';
 import { rosterPool } from '../app/pools.js';
@@ -323,6 +324,7 @@ export default function Lab() {
         <div className="labTabs">
           <button type="button" className={tab === 'generate' ? 'on' : ''} onClick={() => setTab('generate')}>🎲 Generate</button>
           <button type="button" className={tab === 'fuse' ? 'on' : ''} onClick={() => setTab('fuse')}>🧬 Fuse</button>
+          <button type="button" className={tab === 'parts' ? 'on' : ''} onClick={() => setTab('parts')}>🎨 Parts</button>
         </div>
         <div className="labVer">
           <label className="labProv" title="Which service paints the creature portraits">
@@ -336,7 +338,9 @@ export default function Lab() {
           <span>{APP_VERSION}</span>
         </div>
       </header>
-      {tab === 'generate' ? <GenerateTab onKeep={keep} /> : <FuseTab stock={stock} onKeep={keep} />}
+      {tab === 'generate' && <GenerateTab onKeep={keep} />}
+      {tab === 'fuse' && <FuseTab stock={stock} onKeep={keep} />}
+      {tab === 'parts' && <PartsStudio />}
     </div>
   );
 }

@@ -184,3 +184,57 @@
   font-size: 10px; text-transform: uppercase; letter-spacing: .1em; opacity: .5; text-align: center;
 }
 .partsPortrait { border-radius: 6px; overflow: hidden; }
+
+/* ── parts studio ── */
+.psTop { display: flex; gap: 10px; align-items: flex-end; flex-wrap: wrap; margin-bottom: 8px; }
+.psGrid { display: flex; align-items: center; gap: 5px; }
+.psGrid input {
+  width: 46px; background: rgba(0, 0, 0, .35); border: 1px solid var(--line, #3a2f22);
+  color: var(--ink, #f0e6d2); border-radius: 6px; padding: 7px; font: inherit;
+}
+.psHint { font-size: 12px; opacity: .6; font-style: italic; margin-bottom: 12px; }
+.psBusy { font-size: 13px; color: var(--gold2, #d9b774); margin: 6px 0; }
+.psGh {
+  display: flex; gap: 10px; flex-wrap: wrap; align-items: flex-end;
+  background: rgba(0, 0, 0, .25); border: 1px solid var(--line, #3a2f22);
+  border-radius: 8px; padding: 12px; margin-bottom: 12px;
+}
+.psGh label { display: flex; flex-direction: column; gap: 3px; font-size: 11px; opacity: .85; }
+.psGh input {
+  background: rgba(0, 0, 0, .4); border: 1px solid var(--line, #3a2f22);
+  color: var(--ink, #f0e6d2); border-radius: 6px; padding: 7px 9px; font: inherit; font-size: 13px; min-width: 150px;
+}
+.psGh p { flex-basis: 100%; margin: 0; font-size: 11px; opacity: .55; }
+
+.psWork { display: flex; gap: var(--s-4, 20px); flex-wrap: wrap; align-items: flex-start; }
+.psSheet { flex: 1 1 460px; min-width: 300px; }
+.psResult { flex: 0 0 300px; display: flex; flex-direction: column; gap: 8px; }
+.psSheetHead { font-size: 11px; text-transform: uppercase; letter-spacing: .12em; opacity: .55; }
+.psSheetWrap { position: relative; border: 1px solid var(--line, #3a2f22); border-radius: 8px; overflow: hidden; }
+.psSheetWrap img { display: block; width: 100%; }
+.psCells {
+  position: absolute; inset: 0;
+  display: grid; grid-template-columns: repeat(var(--cols), 1fr); grid-template-rows: repeat(var(--rows), 1fr);
+}
+.psCells button {
+  border: 1px dashed rgba(255, 255, 255, .25); background: rgba(0, 0, 0, 0);
+  cursor: pointer; transition: background .12s, border-color .12s;
+}
+.psCells button:hover { background: rgba(217, 183, 116, .22); border-color: var(--gold2, #d9b774); }
+.psEmpty {
+  border: 1px dashed var(--line, #3a2f22); border-radius: 10px; padding: 30px 20px;
+  text-align: center; opacity: .7; font-size: 13px;
+}
+.psEmpty p { margin: 4px 0; }
+.psSubject { font-style: italic; opacity: .8; max-width: 46ch; margin: 0 auto !important; }
+.psCut {
+  min-height: 150px; display: flex; align-items: center; justify-content: center;
+  border: 1px solid var(--line, #3a2f22); border-radius: 8px; padding: 8px;
+  background: repeating-conic-gradient(#2a2118 0% 25%, #221a12 0% 50%) 50% / 18px 18px;
+}
+.psCut img { max-width: 100%; max-height: 190px; }
+.psEmptyCut { font-size: 12px; opacity: .45; }
+.psQuality { font-size: 11px; opacity: .7; }
+.psQuality em { color: #e0b070; font-style: normal; }
+.psActions { display: flex; gap: 6px; flex-wrap: wrap; }
+.psActions button { font-size: 13px; padding: 7px 12px; }

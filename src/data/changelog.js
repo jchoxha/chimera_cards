@@ -6,6 +6,11 @@
 
 /** @type {{version:string, date:string, notes:string[]}[]} newest first */
 export const CHANGELOG = [
+  { version: 'v3.175.0', date: '2026-08-06', notes: [
+    'NEW — the Parts Studio (Creature Lab → 🎨 Parts): make creature art right in the browser, phone included. Pick a part, generate a sheet of variants (or upload your own art), click the version you like, and it’s cut out and fitted onto creatures instantly.',
+    'Cut parts apply immediately on your device, and can be published to the game for everyone with one tap.',
+    'Upload works with hand-drawn or commissioned art too — anything on a flat magenta background.',
+  ] },
   { version: 'v3.174.0', date: '2026-08-06', notes: [
     'Creatures are now BUILT FROM PARTS, Cassette-Beasts style: a body, a head, and one piece of art per weapon/anatomy/feature, layered and anchored automatically. A fusion takes its BODY from the first parent and its HEAD from the second, and wears the gear of both — so you can see both parents at a glance.',
     'Because parts are keyed to typings rather than to species, ~40 sprites cover every creature and every fusion — including ones that have never existed before.',

@@ -12,15 +12,19 @@
 import React, { useMemo } from 'react';
 import { composeCreature } from '../render/composeCreature.js';
 import { SHAPES } from '../render/partShapes.jsx';
-import BAKED from '../data/partsBaked.json';
+import { effectiveParts } from '../lab/partsStore.js';
 
 const BASE = (import.meta.env && import.meta.env.BASE_URL) || '/';
 
 /**
- * @param {{ creature: object, size?: number|string, background?: boolean, className?: string }} props
+ * @param {{ creature: object, size?: number|string, background?: boolean, className?: string,
+ *           bakedOverride?: Record<string,string>|null }} props
  */
-export default function PartsPortrait({ creature, size = '100%', background = true, className = '' }) {
-  const { layers, tint } = useMemo(() => composeCreature(creature, { baked: BAKED }), [creature]);
+export default function PartsPortrait({ creature, size = '100%', background = true, className = '', bakedOverride = null }) {
+  // committed manifest ∪ parts cut locally in the studio; the studio passes an
+  // explicit override so an uncommitted cut can be previewed in place.
+  const baked = bakedOverride ?? effectiveParts();
+  const { layers, tint } = useMemo(() => composeCreature(creature, { baked }), [creature, baked]);
 
   return (
     <svg
@@ -52,7 +56,7 @@ export default function PartsPortrait({ creature, size = '100%', background = tr
         return (
           <g key={l.id} transform={t} opacity={l.opacity}>
             {l.file
-              ? <image href={BASE + l.file} x="0" y="0" width="100" height="100" preserveAspectRatio="xMidYMid meet" />
+              ? <image href={l.file.startsWith('data:') ? l.file : BASE + l.file} x="0" y="0" width="100" height="100" preserveAspectRatio="xMidYMid meet" />
               : SHAPES[l.draw]?.(l.tint) ?? null}
           </g>
         );
