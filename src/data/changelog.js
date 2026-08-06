@@ -6,6 +6,11 @@
 
 /** @type {{version:string, date:string, notes:string[]}[]} newest first */
 export const CHANGELOG = [
+  { version: 'v3.174.0', date: '2026-08-06', notes: [
+    'Creatures are now BUILT FROM PARTS, Cassette-Beasts style: a body, a head, and one piece of art per weapon/anatomy/feature, layered and anchored automatically. A fusion takes its BODY from the first parent and its HEAD from the second, and wears the gear of both — so you can see both parents at a glance.',
+    'Because parts are keyed to typings rather than to species, ~40 sprites cover every creature and every fusion — including ones that have never existed before.',
+    'Portraits work with no downloads and no connection: every part has a built-in stand-in drawing, and real art can replace them one piece at a time.',
+  ] },
   { version: 'v3.173.0', date: '2026-08-05', notes: [
     'AI CREATURE ART is live! In the Creature Lab, hit “Generate art” on any generated or fused creature and a real illustration is painted for it with FLUX — free, no account, no API key. Don’t like it? Re-roll for a different take.',
     'Portraits are stable: the same creature always paints the same picture, so your collection looks consistent.',

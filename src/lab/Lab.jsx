@@ -17,6 +17,7 @@ import { fuseCreatures, fuseAxes } from '../engine/content/fuse.js';
 import { ROSTER, buildRosterCreature } from '../data/roster.js';
 import { rosterPool } from '../app/pools.js';
 import { CardFace, creatureToFace } from '../ui/combat/creatureVisuals.jsx';
+import PartsPortrait from '../ui/PartsPortrait.jsx';
 import { generateCreaturePortrait, PROVIDERS, getImageProviderId, setImageProviderId } from '../ai/imageProvider.js';
 import { ATTUNEMENT_COLOR } from '../data/axisIcons.js';
 import { biologyDisplayName } from '../data/biologyNaming.js';
@@ -101,7 +102,13 @@ function CreaturePanel({ c, children }) {
   if (!c) return null;
   return (
     <div className="labResult">
-      <div className="labCardWrap"><CardFace key={nonce} f={creatureToFace(c)} side="ally" /></div>
+      <div className="labVisuals">
+        <div className="labCardWrap"><CardFace key={nonce} f={creatureToFace(c)} side="ally" /></div>
+        <figure className="labParts">
+          <PartsPortrait creature={c} />
+          <figcaption>parts rig · composited</figcaption>
+        </figure>
+      </div>
       <div className="labMeta">
         <div className="labName">{c.name}</div>
         <div className="labType">{typeLine(c)}</div>
@@ -280,6 +287,7 @@ function FuseTab({ stock, onKeep }) {
           <div key={i} className="labParent">
             <div className="labParentTag">{i === 0 ? 'PRIMARY' : 'SECONDARY'}</div>
             <div className="labCardWrap sm"><CardFace f={creatureToFace(p)} side="ally" /></div>
+            <figure className="labParts sm"><PartsPortrait creature={p} /></figure>
             <div className="labType">{typeLine(p)}</div>
             <StatRow c={p} />
           </div>

@@ -302,6 +302,17 @@ export function fuseCreatures(primary, secondary, opts = {}) {
   // so statProfile/kitsOf and the UI can read it.
   if (axes.manifestation) c.manifestation = axes.manifestation;
 
+  // The parts rig follows Cassette Beasts' rule: the BODY always comes from the
+  // primary and never swaps, while the HEAD comes from the secondary — that swap
+  // is what makes a fusion read as "both parents" at a glance.
+  // (render/composeCreature reads this; harmless when no part art exists yet.)
+  const kitOf = (p) => arr(p?.class)[0] ?? p?.family ?? p?.manifestation ?? null;
+  c.parts = {
+    bodyFrom: arr(primary?.biology)[0] ?? null,
+    headFrom: kitOf(secondary),
+    headBody: arr(secondary?.biology)[0] ?? null,
+  };
+
   c.fusion = {
     primary: primary?.id ?? null,
     secondary: secondary?.id ?? null,

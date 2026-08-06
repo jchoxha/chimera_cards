@@ -171,3 +171,16 @@
   .labCardWrap { width: 170px; height: 308px; }
   .labWheels { gap: 12px; }
 }
+
+/* ── parts-rig portrait (the Cassette-Beasts-style composite) ── */
+.labVisuals { display: flex; gap: 14px; align-items: flex-start; flex: none; }
+.labParts {
+  margin: 0; width: 210px; flex: none;
+  background: rgba(0, 0, 0, .3); border: 1px solid var(--line, #3a2f22); border-radius: 10px;
+  padding: 6px; display: flex; flex-direction: column; gap: 4px;
+}
+.labParts.sm { width: 150px; }
+.labParts figcaption {
+  font-size: 10px; text-transform: uppercase; letter-spacing: .1em; opacity: .5; text-align: center;
+}
+.partsPortrait { border-radius: 6px; overflow: hidden; }

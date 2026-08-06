@@ -113,7 +113,7 @@ suffix (shape)**, where the suffix decides targeting/range/power. Deterministic 
 
 ---
 
-## 3. Art — the factor-sprite part library (DESIGNED, unbuilt)
+## 3. Art — the factor-sprite part library (RIG BUILT 2026-08-06, art unbaked)
 
 ### Why ours is cheaper than CB's
 CB needed **120 bespoke part rigs** because parts are per-species. Our parts are
@@ -169,3 +169,76 @@ the in-app forge, so a forged creature can ship bespoke parts.
 - **Collection identity** — a fused creature needs a stable species id; `fuse_<hash>` is
   deterministic per ordered pair, so the same pair always yields the same species.
 - **Balance** — `FUSION_HP_BONUS = 1.1` and the power's numbers are first-pass.
+
+
+---
+
+## 6. The parts rig (BUILT) — how it actually works
+
+Whole-creature AI generation was tried first (v3.173.0) and rejected: it is
+unreliable and, crucially, **incoherent** — every creature comes back in a
+different visual language. The parts rig replaces it.
+
+### Modules
+| file | role |
+|---|---|
+| `src/data/partsRig.js` | SLOTS (z-order) · BODY_ANCHORS per body type · the 46-part library. Plain JS so node tests can read it. |
+| `src/render/composeCreature.js` | PURE: creature → ordered, positioned layers. No art, no DOM. |
+| `src/render/partShapes.jsx` | Procedural stand-in art for every part — the rig runs with **zero assets**. |
+| `src/ui/PartsPortrait.jsx` | Renders a composition as one scalable SVG. |
+| `src/data/partsBaked.json` | `partId → file`. A baked PNG always beats the procedural shape. |
+| `scripts/gen_parts.py` | Bakes real part sprites. |
+
+### The rules it enforces
+- **Body from the primary, head from the secondary** — CB's fusion rule.
+  `fuseCreatures` records it as `creature.parts = {bodyFrom, headFrom, headBody}`.
+- Anything below the body's `z` paints **behind** it (wings, tail, aura).
+- `mirror: true` emits a reflected twin about the centre line (wings, claws, horns).
+- Geometry is normalised 0..1, so one composition renders at any size.
+- Unknown factor tags are skipped, never fatal.
+
+`npm run test:parts` — 315 checks (rig integrity, selection, placement, z-order,
+mirroring, determinism, the fusion body/head rule, coverage).
+
+### Incremental art adoption — the important property
+Every part renders procedurally **today**. Baking one part is: drop
+`public/art/parts/<id>.png`, add a line to `partsBaked.json`. No code change, and
+the portrait never looks broken mid-migration. `composeCreature().missingArt`
+reports exactly which parts are still procedural — i.e. the live bake queue.
+
+### Generating parts is a COHERENCE problem, not a prompting problem
+38 parts drawn in 38 separate calls will not share a palette, light direction, or
+line weight, and the composite looks like a ransom note. `scripts/gen_parts.py`
+attacks that three ways:
+
+1. **Sheet generation** — one request yields a *grid of variants of that part*.
+   Everything inside a single image is consistent by construction, so you pick
+   the best cell and its neighbours still match.
+2. **One shared style** — the Variant-B block is parsed out of `gen_roster.py`,
+   never retyped. (It is parsed as text, not imported, because `gen_roster`
+   depends on the Windows-only agy bridge.)
+3. **Flat chroma key + the proven cutout** — parts are drawn on uniform magenta
+   and keyed by `scripts/sprite_cutout.py`, already battle-tested on the HD-2D
+   environment sprites.
+
+**Anchors come for free:** after autocrop each sprite is tight to its own bounds,
+and the rig's pivot is expressed in those normalised bounds — so a wing cut from
+any sheet lands correctly with no hand-measuring.
+
+Parts are drawn **isolated and in a fixed orientation** (a wing points RIGHT, a
+claw points DOWN, a head faces LEFT, weapons stand upright with the grip at the
+bottom) because the rig owns placement and mirroring.
+
+```bash
+python3 scripts/gen_parts.py --list          # 46 parts, bake status each
+python3 scripts/gen_parts.py wings tail      # request sheets
+python3 scripts/sprite_cutout.py <sheet> public/art/parts/wings.png --size 512
+```
+
+### Open
+- **Palette unification.** Even sheet-generated parts drift between part types. A
+  post-pass quantising every part to one game palette is the likely fix.
+- **Per-part-type sheets still need a human to pick the cell.** Worth automating
+  (score cells by how cleanly they key out) once there is a corpus to judge.
+- The procedural stand-ins are deliberately crude. They exist to prove the rig and
+  to keep the game shippable offline — not as final art.
