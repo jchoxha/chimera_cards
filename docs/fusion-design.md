@@ -242,3 +242,56 @@ python3 scripts/sprite_cutout.py <sheet> public/art/parts/wings.png --size 512
   (score cells by how cleanly they key out) once there is a corpus to judge.
 - The procedural stand-ins are deliberately crude. They exist to prove the rig and
   to keep the game shippable offline — not as final art.
+
+---
+
+## 7. Retro Diffusion bake pipeline (BUILT 2026-08-06) — coherent parts, cheaply
+
+Whole-creature AI (v3.173.0) and blind Pollinations parts both fail on COHERENCE:
+independently generated parts share no palette, light, or line weight. Retro
+Diffusion (a pixel-art API) fixes this with three NATIVE features, so the fix is
+built into generation rather than bolted on after:
+
+- `reference_images` (RD Pro, up to 9) — generate the 3 bodies FIRST, then pass
+  them as references for every other part → one locked style across the set.
+- `remove_bg` — transparent PNG straight from the API. **Deletes the chroma-key
+  cutout step entirely** (sprite_cutout.py / the studio's cut UI become optional).
+- `input_palette` / custom user styles — palette lock, if we want it later.
+- `check_cost` — FREE dry run; the script prices every request before spending.
+
+### `scripts/bake_parts_rd.mjs` (zero-dep Node, runs on the dev's machine)
+The key lives in `RD_API_KEY`, never in the repo or the browser — RD is keyed, so
+it is a DEV tool, not a runtime path. (Runtime stays Pollinations/on-device, which
+are keyless; this matches the "two systems" split in docs/art-pipeline.md.)
+
+```
+RD_API_KEY=rdpk-… node scripts/bake_parts_rd.mjs --probe      # 2 imgs, ~$0.36
+RD_API_KEY=rdpk-… node scripts/bake_parts_rd.mjs --bodies     # the 3 bodies
+RD_API_KEY=rdpk-… node scripts/bake_parts_rd.mjs wings tail   # specific parts
+```
+
+**Spend safety** (a small prepaid balance is the norm): every request is priced
+with `check_cost` first; the summed price must fit BOTH `--budget` (default $0.40)
+and the account's real balance or the run aborts having spent nothing; PNGs +
+manifest are written after each part (crash-safe); RD auto-refunds failures.
+Verified offline with a stubbed fetch (7 logic checks + the abort path): bodies
+generate first with no refs, heads carry the body as a reference, `remove_bg` is
+always set, and a $0.54 plan under a $0.40 cap aborts with zero generations.
+
+### Cost (verified from RD's API spec, 2026-07)
+RD Pro $0.18/img (the one with references); RD Fast ~$0.02–0.03/img (no refs, so
+no cross-part coherence). Full 46-part library on Pro ≈ $8 one-time; a single
+re-bake ≈ 2–18¢. Prepaid pay-as-you-go, no subscription — cheaper than
+Scenario/PixelLab monthly for a bake-once library.
+
+### Style note
+RD is a PIXEL-ART engine, so parts come back as pixel art, not the smooth
+flat "Variant B" look. That is arguably more authentic (Cassette Beasts is pixel
+art) and composites better (hard edges, limited palette, native transparency),
+but it is a deliberate style change — the `--probe` run shows it on real creatures
+before committing more than ~$0.36.
+
+### Shared with the studio
+`src/data/partSubjects.js` (`PART_SUBJECT`) is the single source of truth for what
+each part depicts; both the browser studio and the bake script import it so they
+cannot drift.

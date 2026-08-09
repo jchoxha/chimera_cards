@@ -18,59 +18,10 @@ import { cellRect, cutCell, loadImage } from './cutout.js';
 import { effectiveParts, localParts, saveLocalPart, deleteLocalPart, loadGh, saveGh, publishPart } from './partsStore.js';
 import { pollinationsUrl } from '../ai/imageProvider.js';
 import { ART_STYLE_VARIANT_B } from '../data/artStyle.js';
+import { PART_SUBJECT } from '../data/partSubjects.js';
 import PartsPortrait from '../ui/PartsPortrait.jsx';
 
-/** What each part should look like ALONE, in the rig's expected orientation.
- *  Mirrors PART_SUBJECT in scripts/gen_parts.py — the rig owns placement and
- *  mirroring, so parts must never be drawn attached to a creature. */
-const SUBJECT = {
-  'body-humanoid': 'a HEADLESS humanoid torso with arms, standing, facing the viewer, NO head and NO neck',
-  'body-beast': 'a HEADLESS four-legged beast body seen from the side, facing left, NO head and NO neck',
-  'body-aberration': 'a HEADLESS amorphous eldritch body, bulbous and tapering, NO head',
-  'head-humanoid': 'a single humanoid head in profile facing left, no neck, no body',
-  'head-beast': 'a single snouted beast head in profile facing left, no neck, no body',
-  'head-aberration': 'a single bulbous eldritch head with several eyes, facing left, no neck',
-  'head-draconic': 'a single horned dragon head in profile facing left, no neck, no body',
-  'head-avian': 'a single sharp-beaked bird head in profile facing left, no neck',
-  wings: 'a single outspread wing, side view, pointing RIGHT, detached, just the one wing',
-  tail: 'a single long tapering tail, curving, detached, horizontal',
-  claws: 'a single curved claw / talon, pointing DOWN, detached',
-  horns: 'a single curved horn, pointing UP, detached',
-  teeth: 'a pair of sharp pointed fangs, detached, pointing down',
-  maw: 'a gaping open mouth full of teeth, front view, detached',
-  eye: 'a cluster of three staring eyeballs, detached',
-  beak: 'a single sharp hooked beak, pointing LEFT, detached',
-  quills: 'a row of sharp upright quills / spines, detached',
-  shell: 'a domed turtle-like shell carapace, front view, detached',
-  carapace: 'a segmented insect carapace plate, front view, detached',
-  tentacle: 'a single writhing tentacle, pointing DOWN, detached',
-  pseudopod: 'a single blobby ooze pseudopod limb, pointing DOWN, detached',
-  roots: 'a bundle of gnarled roots spreading downward, detached',
-  spore: 'a scattering of floating round spore puffs',
-  miasma: 'a soft cloud of drifting toxic miasma vapour',
-  shard: 'a single sharp crystal shard, pointing UP, detached',
-  mandible: 'a pair of curved insect mandibles / pincers, detached',
-  cilia: 'a row of fine waving cilia hairs, detached',
-  membrane: 'a single translucent webbed membrane fin, pointing RIGHT, detached',
-  ichor: 'several thick dripping droplets of glowing ichor',
-  venom: 'several dripping droplets of venom',
-  hide: 'a patch of thick armoured animal hide plating, front view',
-  hooves: 'a single hoof, pointing DOWN, detached',
-  roar: 'a wide roaring open maw, front view, detached',
-  breath: 'a cone of elemental breath billowing to the LEFT',
-  'w-sword': 'a single sword, blade pointing UP, vertical, detached',
-  'w-axe': 'a single battle axe, head at the top, vertical, detached',
-  'w-hammer': 'a single great warhammer, head at the top, vertical, detached',
-  'w-mace': 'a single spiked mace, head at the top, vertical, detached',
-  'w-spear': 'a single spear, point UP, vertical, detached',
-  'w-staff': 'a single wizard staff with a glowing orb on top, vertical, detached',
-  'w-wand': 'a single short magic wand, vertical, detached',
-  'w-dagger': 'a single dagger, blade pointing UP, vertical, detached',
-  'w-bow': 'a single longbow, strung, vertical, detached',
-  'w-crossbow': 'a single crossbow, front view, detached',
-  'w-shield': 'a single round shield, front view, detached',
-  'w-fist': 'a single clenched armoured gauntlet fist, detached',
-};
+const SUBJECT = PART_SUBJECT;   // single source of truth (shared with the RD bake script)
 
 const sheetClause = (n, cols, rows) =>
   `A reference SHEET of ${n} DIFFERENT design variations of the SAME subject, arranged in a neat `
