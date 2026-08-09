@@ -20,11 +20,14 @@ const BASE = (import.meta.env && import.meta.env.BASE_URL) || '/';
  * @param {{ creature: object, size?: number|string, background?: boolean, className?: string,
  *           bakedOverride?: Record<string,string>|null }} props
  */
-export default function PartsPortrait({ creature, size = '100%', background = true, className = '', bakedOverride = null }) {
+export default function PartsPortrait({ creature, size = '100%', background = true, className = '', bakedOverride = null, anchorOverride = null }) {
   // committed manifest ∪ parts cut locally in the studio; the studio passes an
   // explicit override so an uncommitted cut can be previewed in place.
   const baked = bakedOverride ?? effectiveParts();
-  const { layers, tint } = useMemo(() => composeCreature(creature, { baked }), [creature, baked]);
+  const { layers, tint } = useMemo(
+    () => composeCreature(creature, { baked, ...(anchorOverride ? { anchorOverride } : {}) }),
+    [creature, baked, anchorOverride],
+  );
 
   return (
     <svg

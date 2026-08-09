@@ -238,3 +238,41 @@
 .psQuality em { color: #e0b070; font-style: normal; }
 .psActions { display: flex; gap: 6px; flex-wrap: wrap; }
 .psActions button { font-size: 13px; padding: 7px 12px; }
+
+/* ── anchor editor ── */
+.aeTop { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; margin-bottom: 8px; }
+.aeHint { font-size: 12px; opacity: .65; margin-bottom: 12px; }
+.aeHint code { background: rgba(255,255,255,.08); padding: 1px 5px; border-radius: 4px; }
+.aeWork { display: flex; gap: var(--s-4, 20px); flex-wrap: wrap; align-items: flex-start; }
+.aeStage {
+  position: relative; width: 420px; max-width: 90vw; aspect-ratio: 1;
+  border: 1px solid var(--line, #3a2f22); border-radius: 10px; overflow: hidden;
+  background: repeating-conic-gradient(#241c14 0% 25%, #1e1710 0% 50%) 50% / 24px 24px;
+  touch-action: none;
+}
+.aeStage .partsPortrait { position: absolute; inset: 0; width: 100%; height: 100%; }
+.aeHandle {
+  position: absolute; transform: translate(-50%, -50%);
+  width: 15px; height: 15px; border-radius: 50%;
+  background: rgba(217,183,116,.35); border: 2px solid var(--gold2, #d9b774);
+  cursor: grab; padding: 0; touch-action: none;
+}
+.aeHandle:active { cursor: grabbing; }
+.aeHandle.on { background: var(--gold2, #d9b774); box-shadow: 0 0 0 4px rgba(217,183,116,.25); }
+.aeHandle span {
+  position: absolute; left: 50%; top: -18px; transform: translateX(-50%);
+  font-size: 9px; letter-spacing: .04em; color: var(--gold2, #d9b774);
+  background: rgba(0,0,0,.6); padding: 1px 4px; border-radius: 3px; white-space: nowrap; pointer-events: none;
+  opacity: 0; transition: opacity .1s;
+}
+.aeHandle:hover span, .aeHandle.on span { opacity: 1; }
+.aeSide { flex: 1; min-width: 240px; display: flex; flex-direction: column; gap: 8px; }
+.aeTable { border-collapse: collapse; font-size: 12px; width: 100%; max-width: 260px; }
+.aeTable td { padding: 2px 10px 2px 0; opacity: .8; }
+.aeTable td:first-child { color: var(--ink, #f0e6d2); opacity: 1; }
+.aeTable tr.on td { color: var(--gold2, #d9b774); opacity: 1; }
+.aeJson {
+  width: 100%; min-height: 180px; font-family: ui-monospace, monospace; font-size: 11px;
+  background: rgba(0,0,0,.4); border: 1px solid var(--line, #3a2f22); color: var(--ink, #f0e6d2);
+  border-radius: 8px; padding: 10px; resize: vertical;
+}

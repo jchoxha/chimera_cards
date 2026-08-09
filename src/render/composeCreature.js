@@ -92,7 +92,8 @@ function place(part, anchors) {
  * Compose a creature into ordered, positioned layers.
  *
  * @param {object} creature
- * @param {{parts?: object[], tint?: string|null, baked?: Record<string,string>}} [opts]
+ * @param {{parts?: object[], tint?: string|null, baked?: Record<string,string>,
+ *          anchorOverride?: Record<string, Record<string, [number,number]>>}} [opts]
  *   `baked` maps partId → a cut-out PNG path (src/data/partsBaked.json). A baked
  *   file always wins over the procedural shape, so real art phases in one part at
  *   a time with NO code change — drop the PNG, add the manifest entry, done.
@@ -103,7 +104,10 @@ function place(part, anchors) {
 export function composeCreature(creature, opts = {}) {
   const parts = opts.parts ?? PARTS;
   const { body, head, attachments, bodyType } = resolveParts(creature, parts);
-  const anchors = BODY_ANCHORS[bodyType] ?? BODY_ANCHORS.Beast;
+  // The anchor editor passes `anchorOverride` (a full BODY_ANCHORS-shaped map) so
+  // edits preview live; absent it, the committed defaults are used.
+  const anchorMap = opts.anchorOverride ?? BODY_ANCHORS;
+  const anchors = anchorMap[bodyType] ?? BODY_ANCHORS[bodyType] ?? BODY_ANCHORS.Beast;
   const tint = opts.tint ?? ATTUNEMENT_COLOR[list(creature?.attunement)[0]] ?? '#c9a66b';
 
   const layers = [];

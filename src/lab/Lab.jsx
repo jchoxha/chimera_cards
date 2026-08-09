@@ -12,6 +12,7 @@
 import React, { useMemo, useRef, useState } from 'react';
 import SpinWheel from './SpinWheel.jsx';
 import PartsStudio from './PartsStudio.jsx';
+import AnchorEditor from './AnchorEditor.jsx';
 import { generateCreature, poolForCreature } from './generate.js';
 import { WHEELS, spinWheel } from '../engine/content/wheels.js';
 import { fuseCreatures, fuseAxes } from '../engine/content/fuse.js';
@@ -325,6 +326,7 @@ export default function Lab() {
           <button type="button" className={tab === 'generate' ? 'on' : ''} onClick={() => setTab('generate')}>🎲 Generate</button>
           <button type="button" className={tab === 'fuse' ? 'on' : ''} onClick={() => setTab('fuse')}>🧬 Fuse</button>
           <button type="button" className={tab === 'parts' ? 'on' : ''} onClick={() => setTab('parts')}>🎨 Parts</button>
+          <button type="button" className={tab === 'anchors' ? 'on' : ''} onClick={() => setTab('anchors')}>📐 Anchors</button>
         </div>
         <div className="labVer">
           <label className="labProv" title="Which service paints the creature portraits">
@@ -341,6 +343,7 @@ export default function Lab() {
       {tab === 'generate' && <GenerateTab onKeep={keep} />}
       {tab === 'fuse' && <FuseTab stock={stock} onKeep={keep} />}
       {tab === 'parts' && <PartsStudio />}
+      {tab === 'anchors' && <AnchorEditor />}
     </div>
   );
 }
