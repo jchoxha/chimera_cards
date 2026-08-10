@@ -135,6 +135,23 @@ console.log('FUSION — body from the primary, head from the secondary (the CB r
   // anchors follow the BODY's type, not the head's
   const { bodyType } = composeCreature(fused);
   ok(bodyType === 'Humanoid', 'anchors keyed to the body donor');
+
+  // REGRESSION: the body part must be the ONE for bodyType, never whichever body
+  // part sorts first in the union of both fused body types. A Beast-primary fusion
+  // was picking body-humanoid (and so ignoring baked body-beast art).
+  const beastPrimary = {
+    id: 'f2', name: 'X', biology: ['Beast', 'Humanoid'], class: ['Warrior'], family: 'Mammalian',
+    attunement: ['Physical'], anatomy: ['Teeth'],
+    parts: { bodyFrom: 'Beast', headFrom: 'Warrior', headBody: 'Beast' },
+  };
+  const rp = resolveParts(beastPrimary);
+  ok(rp.body?.id === 'body-beast', `Beast-primary fusion uses the BEAST body (got ${rp.body?.id})`);
+  ok(rp.head?.id === 'head-beast', `head from the secondary's body (got ${rp.head?.id})`);
+  // and a baked body-beast file must actually attach
+  const baked = { 'body-beast': 'art/parts/body-beast.png' };
+  const composed = composeCreature(beastPrimary, { baked });
+  ok(composed.layers.some((l) => l.partId === 'body-beast' && l.file === 'art/parts/body-beast.png'),
+    'baked body art is applied to the fused body');
 }
 
 console.log('Coverage:');

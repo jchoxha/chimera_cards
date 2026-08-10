@@ -45,7 +45,9 @@ const flag = (name, def) => {
 };
 const BUDGET = Number(flag('--budget', 0.40));
 const STYLE = String(flag('--style', 'rd_pro__default'));
-const SIZE = Number(flag('--size', 128));           // 128px keeps cost + payload small
+// RD Pro is FLAT-priced ($0.18/img regardless of size), so 256px costs the same
+// as 128px — take the free resolution. (RD Pro caps at 256.)
+const SIZE = Number(flag('--size', 256));
 const PROBE = argv.includes('--probe');
 const BODIES_ONLY = argv.includes('--bodies');
 const positional = argv.filter((a) => !a.startsWith('--') && PART_SUBJECT[a]);
@@ -55,10 +57,13 @@ function plan() {
   if (PROBE) return ['body-beast', 'head-beast'];   // 2 imgs: a body + a head that refs it
   if (BODIES_ONLY) return [...BODY_PART_IDS];
   const want = positional.length ? positional : allRigParts();
-  const bodies = want.filter((p) => p.startsWith('body-'));
+  // Bake exactly what's asked for; bodies IN the request go first so a same-run
+  // body can be referenced by later parts. Bodies NOT requested are NOT added —
+  // any already on disk are picked up as references (cheap iteration), and a
+  // lone `head-beast` re-bake stays a single $0.18 image.
+  const bodies = BODY_PART_IDS.filter((b) => want.includes(b));
   const rest = want.filter((p) => !p.startsWith('body-'));
-  // ensure bodies come first even if not explicitly requested (so refs exist)
-  return [...new Set([...BODY_PART_IDS.filter((b) => want.includes(b) || rest.length), ...bodies, ...rest])];
+  return [...new Set([...bodies, ...rest])];
 }
 
 function allRigParts() {
@@ -71,10 +76,33 @@ const loadManifest = () => (existsSync(MANIFEST) ? JSON.parse(readFileSync(MANIF
 const saveManifest = (m) => writeFileSync(MANIFEST, `${JSON.stringify(m, null, 2)}\n`);
 
 // ── RD requests ────────────────────────────────────────────────────────────────
+// FRAMING — the fix for "cut off / not stampable". RD (pixel art) fills the
+// canvas by default, cropping the subject at the edges. Force the whole part to
+// sit SMALL and CENTERED with a wide transparent margin so nothing is clipped and
+// the autocrop finds clean bounds.
+const FRAMING = 'The subject is drawn SMALL and CENTERED with a wide empty margin of blank space '
+  + 'on ALL FOUR sides — the entire shape fully visible, zoomed out, NOT cropped, NOT touching any edge.';
+
+// Heads need a predictable seam so they stamp onto the body's neck: a short flat
+// neck stump at the bottom-centre.
+const isHead = (id) => id.startsWith('head-');
+const NECK = 'A short flat neck stump at the BOTTOM-CENTRE where it will attach to a body.';
+
+// When referencing the bodies, tell the model to MATCH them, not just be inspired.
+const MATCH = 'Use the EXACT same colour palette, shading and outline style as the reference image.';
+
 /** Build the /v1/inferences body for one part. `refs` = base64 body images. */
 function reqBody(partId, refs) {
+  const hasRefs = refs?.length && STYLE.startsWith('rd_pro');
+  const prompt = [
+    PART_SUBJECT[partId],
+    isHead(partId) ? NECK : '',
+    FRAMING,
+    hasRefs ? MATCH : '',
+  ].filter(Boolean).join(' ');
+
   const body = {
-    prompt: PART_SUBJECT[partId],
+    prompt,
     prompt_style: STYLE,
     width: SIZE, height: SIZE,
     num_images: 1,
@@ -82,7 +110,7 @@ function reqBody(partId, refs) {
     seed: 12345,              // stable so re-bakes are reproducible
   };
   // RD Pro styles accept up to 9 reference images; passing the bodies locks style.
-  if (refs?.length && STYLE.startsWith('rd_pro')) body.reference_images = refs.slice(0, 9);
+  if (hasRefs) body.reference_images = refs.slice(0, 9);
   return body;
 }
 
@@ -143,8 +171,17 @@ async function main() {
   // 2) generate, bodies first; collect body base64 to use as references.
   mkdirSync(OUT_DIR, { recursive: true });
   const manifest = loadManifest();
-  const bodyRefs = [];
   let spent = 0;
+
+  // Seed references from bodies ALREADY on disk, so you can re-bake just a head
+  // ($0.18) and it still matches the committed body — no need to re-pay for the
+  // body every iteration.
+  const bodyRefs = [];
+  for (const id of BODY_PART_IDS) {
+    const f = join(OUT_DIR, `${id}.png`);
+    if (existsSync(f) && !parts.includes(id)) bodyRefs.push(readFileSync(f).toString('base64'));
+  }
+  if (bodyRefs.length) console.log(`  (referencing ${bodyRefs.length} body sprite(s) already on disk)\n`);
 
   for (const p of parts) {
     process.stdout.write(`  bake   ${p.padEnd(16)} …`);

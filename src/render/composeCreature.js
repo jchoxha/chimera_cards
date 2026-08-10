@@ -54,15 +54,19 @@ export function resolveParts(creature, parts = PARTS) {
   const headKits = hint.headFrom ? [hint.headFrom] : kits;
   const headBodies = hint.headBody ? [hint.headBody] : bodies;
 
-  const ctx = { bodies: [bodyType, ...bodies], kits, factors };
+  // The BODY is pinned to the ONE body donor (bodyType), never the union of both
+  // fused body types — otherwise a Beast+Humanoid fusion could grab whichever body
+  // part sorts first (body-humanoid) instead of the primary's (body-beast). A
+  // kit-specific body (a Draconic body, say) wins within that body type.
+  const bodyCandidates = parts.filter((p) => p.slot === 'body' && p.match?.body === bodyType);
+  const body = bodyCandidates.find((p) => p.match?.kit && kits.includes(p.match.kit)) ?? bodyCandidates[0] ?? null;
 
-  const bodyCandidates = parts.filter((p) => p.slot === 'body' && matches(p, ctx));
-  // prefer a kit-specific body, else the body-type default
-  const body = bodyCandidates.find((p) => p.match?.kit) ?? bodyCandidates[0] ?? null;
-
-  const headCtx = { bodies: headBodies, kits: headKits, factors };
-  const headCandidates = parts.filter((p) => p.slot === 'head' && matches(p, headCtx));
-  const head = headCandidates.find((p) => p.match?.kit) ?? headCandidates[0] ?? null;
+  // The HEAD is pinned to its own single donor body (headBodies[0]); a kit-specific
+  // head (Draconic/Avian) for that donor's kits wins over the body-type default.
+  const headBody = headBodies[0] ?? bodyType;
+  const headCandidates = parts.filter((p) => p.slot === 'head'
+    && (p.match?.body === headBody || (p.match?.kit && headKits.includes(p.match.kit))));
+  const head = headCandidates.find((p) => p.match?.kit && headKits.includes(p.match.kit)) ?? headCandidates[0] ?? null;
 
   // one attachment per factor, in the creature's own factor order (stable)
   const attachments = [];
