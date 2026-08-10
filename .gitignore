@@ -11,6 +11,9 @@ dist-ssr
 __pycache__/
 *.pyc
 
+# Generated QA artifact from scripts/parts_contact_sheet.mjs
+parts-contact-sheet.png
+
 # Editor/OS
 .vscode/*
 !.vscode/extensions.json

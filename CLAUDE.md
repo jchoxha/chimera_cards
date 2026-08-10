@@ -6,6 +6,24 @@ a single-file Claude artifact now split into ES modules.
 
 ## ⚑ Project state — read this first (updated 2026-06-18)
 
+**🎨 ALL 46 PART SPRITES BAKED LOCALLY — the paid art API is retired (v3.176.0, 2026-08-10).** Creature
+part art is now generated **free and unlimited on this machine's iGPU** instead of through Retro Diffusion.
+New **`scripts/bake_parts_local.mjs`** mirrors `bake_parts_rd.mjs`'s CLI (`--probe` / `--bodies` / part ids)
+and output contract EXACTLY (`public/art/parts/<id>.png` + `src/data/partsBaked.json`), so the two are
+drop-in swappable; it imports `PART_SUBJECT`/`BODY_PART_IDS` and reuses `src/lab/cutout.js` rather than
+forking either. **Backend = ComfyUI on native ROCm 7.2.1 for Windows** (torch 2.9.1+rocm7.2.1, `gfx1151`
+detected natively, 37.6 GB of the unified pool as VRAM) — the "ROCm hangs on Strix Halo, use Vulkan" advice
+is dated and was **measured** before being discarded (7.1 TFLOPS fp16, no hang); Vulkan stays the documented
+fallback. **SDXL base + `nerijs/pixel-art-xl`@1.0**, dpmpp_2m/karras, 28 steps, CFG 7, seed 12345, 1024²
+→ ≤256², **~40 s/image** (~30 min for the full set, $0). The three cloud-only RD features are replaced by:
+**IP-Adapter** style locking (two-tier — the first body is the style ANCHOR the other bodies reference, then
+heads prefer their own body type), a **border FLOOD-FILL cutout** (topological, not chroma-key, so
+legitimately magenta parts like `tentacle`/`ichor` survive), and nothing at all for `check_cost` (it is free).
+**`scripts/png.mjs`** is a zero-dependency PNG codec on `node:zlib` so this adds NOTHING to `package.json`.
+⚠️ **Bodies still render WITH a head** (SDXL will not draw a headless quadruped — and the old RD art has the
+same trait; the rig's head anchor covers it). ⚠️ **Re-baking a body invalidates every head baked against it.**
+Full setup, measurements, prompt-engineering findings and Strix-Halo gotchas: **`docs/local-art-bake.md`**.
+
 **📱 OFFLINE ANDROID + LOCAL MODELS — initiative started (2026-07-16, Jeton).** Goal: ship Chimera as an
 **installable, fully-offline Android app** with **on-device creature/card generation**, WITHOUT porting to
 Godot (a rewrite orphans the JS combat engine/generators/validators; Godot gives no local-model advantage).

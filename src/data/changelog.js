@@ -6,6 +6,11 @@
 
 /** @type {{version:string, date:string, notes:string[]}[]} newest first */
 export const CHANGELOG = [
+  { version: 'v3.176.1', date: '2026-08-11', notes: [
+    'Every creature part now has real hand-styled pixel art — bodies, heads, wings, claws, horns, weapons and the rest, all 46 of them, drawn in one consistent 16-bit style so a fusion reads as a single creature instead of a collage.',
+    'Heads are colour-matched to the body they sit on, so a fused monster shares one palette from nose to tail.',
+    'The art is generated on this machine now rather than through a paid service, so re-rolling a part costs nothing and the set can keep growing.',
+  ] },
   { version: 'v3.176.0', date: '2026-08-06', notes: [
     'Creatures without a hand-painted portrait now render from COMPOSITED PARTS in the actual game — a body, head and gear layered from the shared part library — not just in the Lab. Right now that lights up the beasts that lack a portrait (Emberdrake, Grizzlord, Felhound); coverage grows automatically as more parts are baked.',
     'Creatures that already have a full portrait keep it — the parts composite only fills in where there was a generic placeholder before, so nothing looks worse.',
