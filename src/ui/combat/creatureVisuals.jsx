@@ -12,6 +12,9 @@ import { biologyDisplayName } from '../../data/biologyNaming.js';
 import { attunementDisplayName } from '../../data/synthesis.js';
 import { creatureArt } from '../../data/artPool.js';
 import { sizedPortrait } from '../../data/sizeArt.js';
+import PartsPortrait from '../PartsPortrait.jsx';
+import { bakedBodyPart } from '../../render/composeCreature.js';
+import BAKED_PARTS from '../../data/partsBaked.json';
 import { ELEMENT_COLOR, FORMS } from '../../systems/elements.jsx';
 
 export function Icon({ icon, ...rest }) {
@@ -100,7 +103,7 @@ export function sizeWord(form) { return FORMS[form]?.label || ''; }
 export function creatureToFace(c) {
   return {
     id: c.id, name: c.name, hp: c.maxHp, maxHp: c.maxHp, block: 0, statuses: [], powers: [],
-    axes: { class: c.class, biology: c.biology, attunement: c.attunement, family: c.family ?? null, anatomy: c.anatomy ?? null, weapons: c.weapons ?? null, subtypes: c.subtypes ?? null },
+    axes: { class: c.class, biology: c.biology, attunement: c.attunement, family: c.family ?? null, manifestation: c.manifestation ?? null, anatomy: c.anatomy ?? null, weapons: c.weapons ?? null, subtypes: c.subtypes ?? null, parts: c.parts ?? null },
     element: c.attunement?.[0] || null,
     types: (c.attunement || []).map((a) => ({ type: a, weight: 1 })),
     stats: c.stats, portrait: c.meta?.portrait ?? c.portrait ?? null,
@@ -233,7 +236,20 @@ export function CardFace({ f, side, matchup, onEffect, onInfo, onName, extraClas
       <div className="inner">
         <div className="art" onClick={seeCreature} title={seeCreature ? `${f.name} — tap for details` : undefined}>
           {(() => {
+            // 1. a hand-baked full portrait (roster / forged) always wins.
             if (portrait) return <img className="creature artImg gen" src={portrait} alt="" draggable={false} />;
+            // 2. the PARTS COMPOSITE — only when this creature has a baked BODY
+            //    part committed to the game (partsBaked.json, NOT a Studio's local
+            //    overrides), so it never downgrades a creature to placeholder blobs.
+            //    Coverage grows automatically as more parts are baked.
+            const pc = f.axes && {
+              id: f.id, biology: f.axes.biology, class: f.axes.class, family: f.axes.family,
+              manifestation: f.axes.manifestation, anatomy: f.axes.anatomy, weapons: f.axes.weapons,
+              subtypes: f.axes.subtypes, attunement: f.axes.attunement, parts: f.axes.parts,
+            };
+            if (pc && bakedBodyPart(pc, BAKED_PARTS)) {
+              return <div className="creature artParts"><PartsPortrait creature={pc} bakedOverride={BAKED_PARTS} background={false} /></div>;
+            }
             const bio = f.axes?.biology;
             const art = bio ? creatureArt({ id: f.id, biology: bio, family: f.axes?.family, subtypes: f.axes?.subtypes }) : null;
             if (art) return <img className="creature artImg" src={art} alt="" draggable={false} />;

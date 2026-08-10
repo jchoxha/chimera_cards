@@ -6,6 +6,10 @@
 
 /** @type {{version:string, date:string, notes:string[]}[]} newest first */
 export const CHANGELOG = [
+  { version: 'v3.176.0', date: '2026-08-06', notes: [
+    'Creatures without a hand-painted portrait now render from COMPOSITED PARTS in the actual game — a body, head and gear layered from the shared part library — not just in the Lab. Right now that lights up the beasts that lack a portrait (Emberdrake, Grizzlord, Felhound); coverage grows automatically as more parts are baked.',
+    'Creatures that already have a full portrait keep it — the parts composite only fills in where there was a generic placeholder before, so nothing looks worse.',
+  ] },
   { version: 'v3.175.0', date: '2026-08-06', notes: [
     'NEW — the Parts Studio (Creature Lab → 🎨 Parts): make creature art right in the browser, phone included. Pick a part, generate a sheet of variants (or upload your own art), click the version you like, and it’s cut out and fitted onto creatures instantly.',
     'Cut parts apply immediately on your device, and can be published to the game for everyone with one tap.',

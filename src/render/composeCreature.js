@@ -80,6 +80,18 @@ export function resolveParts(creature, parts = PARTS) {
 }
 
 /**
+ * Whether a creature has BAKED body art available in `baked` — the gate the game
+ * uses to decide "composite this creature from parts" vs "fall back to the old
+ * placeholder art". Keyed on the BODY specifically: a lone attachment isn't enough
+ * to read as a creature, but a real body is.
+ * @returns {string|null} the baked body part id, or null
+ */
+export function bakedBodyPart(creature, baked = {}) {
+  const { body } = resolveParts(creature);
+  return body && baked[body.id] ? body.id : null;
+}
+
+/**
  * Place one part against its slot's anchor on the body.
  * @returns {{x,y,w,h}} normalised box (x,y = top-left)
  */
