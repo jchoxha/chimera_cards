@@ -1,0 +1,80 @@
+name: Bake creature parts (Retro Diffusion)
+
+# Runs the Retro Diffusion part-sprite bake FROM THE BROWSER — no terminal, no
+# local Node. Trigger it under the repo's Actions tab (or the phone GitHub app):
+# Actions → "Bake creature parts (Retro Diffusion)" → Run workflow.
+#
+# The API key lives in a repo SECRET named RD_API_KEY (Settings → Secrets and
+# variables → Actions → New repository secret). It is never printed and never
+# committed. The script prices every request with a FREE check_cost first and
+# aborts before spending if the total exceeds the budget or the account balance,
+# so a bad run costs nothing.
+#
+# On success it commits the new PNGs (public/art/parts/) + the updated manifest
+# (src/data/partsBaked.json) straight to main, which deploys to Pages — so the
+# baked parts show up in the Lab a couple of minutes later with no further steps.
+
+on:
+  workflow_dispatch:
+    inputs:
+      args:
+        description: 'What to bake: "--probe" (2 imgs ~$0.36), "--bodies" (3 bodies), or space-separated part ids e.g. "wings tail claws"'
+        required: true
+        default: '--probe'
+      budget:
+        description: 'Hard spend cap in USD — the run aborts (spending nothing) if the projected total exceeds this'
+        required: true
+        default: '0.40'
+      style:
+        description: 'RD style. rd_pro__* supports reference-image coherence ($0.18/img); rd_fast__* is cheaper but no cross-part style lock'
+        required: true
+        default: 'rd_pro__default'
+
+permissions:
+  contents: write
+
+concurrency:
+  group: bake-parts
+  cancel-in-progress: false
+
+jobs:
+  bake:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Fail early if the key secret is missing
+        run: |
+          if [ -z "${RD_API_KEY}" ]; then
+            echo "::error::No RD_API_KEY secret set. Add it in Settings → Secrets and variables → Actions."
+            exit 1
+          fi
+        env:
+          RD_API_KEY: ${{ secrets.RD_API_KEY }}
+
+      - name: Bake parts
+        # Inputs are passed via env (never interpolated into the command line) so
+        # a value can't inject shell. $ARGS is intentionally unquoted so a
+        # multi-part input like "wings tail claws" word-splits into separate args.
+        run: node scripts/bake_parts_rd.mjs $ARGS --budget "$BUDGET" --style "$STYLE"
+        env:
+          RD_API_KEY: ${{ secrets.RD_API_KEY }}
+          ARGS: ${{ github.event.inputs.args }}
+          BUDGET: ${{ github.event.inputs.budget }}
+          STYLE: ${{ github.event.inputs.style }}
+
+      - name: Commit baked parts (if any changed)
+        run: |
+          git config user.name "chimera-bake-bot"
+          git config user.email "actions@github.com"
+          if git status --porcelain public/art/parts src/data/partsBaked.json | grep -q .; then
+            git add public/art/parts src/data/partsBaked.json
+            git commit -m "Bake creature parts via RD: ${{ github.event.inputs.args }}"
+            git push
+            echo "✓ committed baked parts — Pages will redeploy shortly."
+          else
+            echo "No new parts were produced (check the Bake step log above for the reason)."
+          fi
