@@ -1,182 +1,176 @@
 // ╔══════════════════════════════════════════════════════════════════╗
 // ║ scripts/gen_parts_procedural.mjs — draw creature parts as PIXEL ART in code ║
-// ║ (raster, not SVG), à la the Pillow/Fable approach: limited palette, base +  ║
-// ║ shadow + highlight ramp, hard 1px outline, a touch of dither. Immune to the ║
-// ║ AI failure modes (a beak is exactly the pixels drawn — never a whole bird,  ║
-// ║ never mis-cropped), free, offline, instant, and coherent across the set.    ║
-// ║                                                                            ║
-// ║ PROBE build: a representative slice (organic bodies/heads + the parts the AI ║
-// ║ got wrong + a geometric weapon/crystal) rendered to /tmp for review, plus   ║
-// ║ one rig-accurate composed creature (placement via composeCreature).         ║
-// ║   node scripts/gen_parts_procedural.mjs                                     ║
+// ║ (raster, not SVG). Each part: (1) draw a clean SILHOUETTE in flat base      ║
+// ║ colour (+ any distinct-material subshapes), (2) formShade() lights it as a  ║
+// ║ rounded volume from one global sun, (3) crisp DETAIL on top (eyes, teeth,   ║
+// ║ facets), (4) rim highlight, (5) dark outline. Immune to the AI failure      ║
+// ║ modes, free, offline, coherent across the whole set.                        ║
+// ║   node scripts/gen_parts_procedural.mjs   → previews in /tmp                 ║
 // ╚══════════════════════════════════════════════════════════════════╝
 
 import { writeFileSync } from 'fs';
-import { canvas, px, disc, ellipse, rect, line, poly, ramp, dither, outline, shade } from './pixelart.mjs';
+import { canvas, px, disc, ellipse, rect, line, poly, ramp, formShade, rim, outline } from './pixelart.mjs';
 import { encodePNG } from './png.mjs';
 import { composeCreature } from '../src/render/composeCreature.js';
 
-const S = 96;                       // native pixel-art canvas
-const P = { Physical: '#c9c4b0', Fire: '#e0663a', Energy: '#e6c34a', Void: '#6b57a6', Nature: '#6ab24a' };
+const S = 112;
+const P = { Physical: '#b8b2a0', Fire: '#c85a34', Energy: '#d8b23e', Void: '#6b57a6', Nature: '#5ea63f', Steel: '#8f9bb0', Bone: '#e6ddc4', Wood: '#7a5330' };
 
-// ── part draw functions (id → (canvas, ramp) => void) ───────────────────────
-// Each draws INSIDE its own S×S box, centered with margin, in the rig's fixed
-// orientation (head faces left, wing points right, etc.). shade()+outline() run
-// after, so functions mostly plot the BASE colour and a few detail pixels.
-
-const DRAW = {
-  'body-beast': (c, r) => {
-    // four-legged torso, side view facing left. Chunky haunches + legs.
-    ellipse(c, 50, 46, 34, 22, r.base);          // barrel
-    ellipse(c, 26, 44, 16, 18, r.base);          // shoulder
-    ellipse(c, 72, 46, 18, 18, r.base);          // haunch
-    for (const lx of [30, 44, 62, 78]) rect(c, lx, 60, 7, 26, r.base);  // legs
-    for (const lx of [30, 44, 62, 78]) rect(c, lx - 1, 84, 9, 5, r.shadow); // paws
-    shade(c, r, 40, 30);
-    // belly shadow + spine highlight
-    for (let x = 22; x < 82; x++) { px(c, x, 66, r.shadow); if (x % 2) px(c, x, 24 + Math.round(Math.sin(x / 6) * 2), r.hi); }
-    dither(c, 60, 34, 26, 22, r.shadow, 0.35);   // flank texture
+// Each entry: { base, round, blur, draw(c,R), detail?(c,R) }
+// R is the ramp for `base`. draw() lays the flat silhouette; detail() runs AFTER
+// shading so eyes/teeth/facets stay crisp.
+const PARTS = {
+  'body-beast': {
+    base: P.Fire, round: 0.08, blur: 12,
+    draw(c, R) {
+      ellipse(c, 56, 50, 32, 22, R.base);            // barrel
+      ellipse(c, 32, 46, 17, 19, R.base);            // chest/shoulder
+      ellipse(c, 82, 50, 18, 18, R.base);            // haunch
+      poly(c, [[20, 40], [34, 30], [40, 46], [24, 50]], R.base);  // neck stub (head attaches here)
+      for (const lx of [30, 46, 66, 82]) { rect(c, lx, 62, 8, 24, R.base); ellipse(c, lx + 4, 88, 6, 4, R.base); } // legs+paws
+    },
+    detail(c, R) { for (let x = 24; x < 88; x++) if ((x + 1) % 5 < 2) px(c, x, 30 + Math.round(Math.sin(x / 7) * 2), R.hi, 120); }, // spine glints
   },
-  'body-humanoid': (c, r) => {
-    poly(c, [[42, 18], [58, 18], [64, 40], [60, 70], [64, 88], [36, 88], [40, 70], [36, 40]], r.base); // torso
-    rect(c, 24, 30, 8, 34, r.base); rect(c, 68, 30, 8, 34, r.base);   // arms
-    shade(c, r, 42, 24);
-    rect(c, 46, 30, 8, 40, r.shadow);            // centre seam
-    dither(c, 40, 22, 20, 14, r.hi, 0.4);        // chest light
+  'body-humanoid': {
+    base: P.Fire, round: 0.1, blur: 11,
+    draw(c, R) {
+      poly(c, [[44, 22], [68, 22], [72, 44], [66, 72], [70, 90], [42, 90], [46, 72], [40, 44]], R.base);
+      rect(c, 26, 34, 9, 36, R.base); rect(c, 77, 34, 9, 36, R.base);   // arms
+      ellipse(c, 56, 26, 16, 8, R.base);             // shoulders/neck stub
+    },
   },
-  'body-aberration': (c, r) => {
-    // bulbous mass + drooping tendrils
-    ellipse(c, 50, 44, 32, 30, r.base);
-    for (const tx of [30, 44, 58, 72]) { for (let y = 0; y < 30; y++) px(c, tx + Math.round(Math.sin(y / 4 + tx) * 3), 66 + y, r.base); }
-    shade(c, r, 40, 28);
-    dither(c, 30, 26, 40, 30, r.shadow, 0.3);
-    for (const [ex, ey] of [[42, 40], [58, 46]]) { disc(c, ex, ey, 4, r.hi); disc(c, ex, ey, 2, [20, 14, 30]); }
+  'body-aberration': {
+    base: P.Void, round: 0.06, blur: 13,
+    draw(c, R) {
+      ellipse(c, 56, 48, 32, 30, R.base);
+      for (const tx of [34, 48, 64, 78]) for (let y = 0; y < 30; y++) disc(c, tx + Math.round(Math.sin(y / 4 + tx) * 3), 70 + y, Math.max(2, 5 - y / 8), R.base);
+    },
+    detail(c, R) { for (const [ex, ey] of [[46, 44], [64, 50], [56, 36]]) { disc(c, ex, ey, 4, R.hi); disc(c, ex, ey, 2, [235, 240, 245]); px(c, ex, ey, [20, 14, 30]); } },
   },
-  'head-beast': (c, r) => {
-    // snouted head in profile facing LEFT, neck stump at bottom.
-    poly(c, [[18, 46], [40, 30], [70, 30], [78, 48], [64, 64], [30, 62]], r.base);   // skull+snout
-    poly(c, [[18, 46], [30, 40], [30, 52]], r.base);   // nose
-    rect(c, 44, 60, 16, 14, r.base);             // neck stump
-    poly(c, [[44, 30], [52, 14], [58, 30]], r.base);   // ear
-    shade(c, r, 34, 26);
-    disc(c, 40, 42, 3, [20, 14, 30]);            // eye
-    for (let x = 22; x < 34; x++) px(c, x, 50, r.shadow);  // mouth
-    px(c, 24, 46, [255, 250, 235]); px(c, 27, 46, [255, 250, 235]); // teeth glint
+  'head-beast': {
+    base: P.Fire, round: 0.09, blur: 8,
+    draw(c, R) {
+      poly(c, [[16, 52], [34, 30], [66, 28], [80, 46], [72, 62], [40, 66], [26, 58]], R.base);  // skull
+      poly(c, [[16, 52], [30, 44], [28, 56]], R.base);          // snout tip
+      poly(c, [[44, 30], [50, 12], [60, 30]], R.base);          // ear
+      rect(c, 48, 60, 18, 16, R.base);                          // neck stub
+    },
+    detail(c, R) {
+      disc(c, 44, 44, 3, [24, 16, 34]); px(c, 43, 43, [255, 240, 200]);   // eye + glint
+      px(c, 20, 50, [30, 20, 34]);                                        // nostril
+      for (let x = 20; x < 34; x++) px(c, x, 55, R.shadow);               // mouth line
+      poly(c, [[22, 55], [25, 62], [28, 55]], [246, 240, 224]);           // fang
+    },
   },
-  'head-draconic': (c, r) => {
-    poly(c, [[14, 44], [38, 28], [72, 26], [80, 44], [66, 62], [34, 60]], r.base);  // long snout
-    poly(c, [[60, 28], [72, 10], [78, 30]], r.base);    // back horn
-    poly(c, [[48, 28], [56, 12], [60, 28]], r.base);    // horn 2
-    rect(c, 44, 58, 16, 14, r.base);             // neck stump
-    shade(c, r, 30, 22);
-    disc(c, 42, 40, 3, [230, 60, 40]);           // fiery eye
-    for (let x = 18; x < 30; x++) px(c, x, 48, r.shadow);
-    for (let x = 20; x < 30; x += 3) { px(c, x, 44, [255, 250, 235]); px(c, x, 50, [255, 250, 235]); } // teeth
+  'head-draconic': {
+    base: P.Fire, round: 0.08, blur: 8,
+    draw(c, R) {
+      poly(c, [[12, 50], [40, 30], [72, 26], [82, 44], [70, 60], [34, 64], [22, 58]], R.base);  // long snout
+      poly(c, [[60, 28], [70, 8], [76, 30]], P.Bone && R.base);   // brow horn (shaded as body)
+      poly(c, [[48, 28], [55, 12], [60, 28]], R.base);
+      rect(c, 48, 58, 18, 16, R.base);                            // neck stub
+    },
+    detail(c, R) {
+      disc(c, 46, 42, 3, [240, 70, 40]); px(c, 45, 41, [255, 220, 160]);
+      for (let x = 16; x < 30; x += 3) { poly(c, [[x, 52], [x + 1, 60], [x + 3, 52]], [246, 240, 224]); }  // teeth row
+      for (let x = 24; x < 60; x++) if (x % 6 < 1) px(c, x, 34 + Math.round(Math.sin(x / 8) * 3), R.hi);   // scale glints
+    },
   },
-  'head-avian': (c, r) => {
-    disc(c, 52, 44, 24, r.base);                 // head
-    poly(c, [[30, 40], [8, 48], [30, 54]], [230, 170, 40]); // beak (own colour)
-    rect(c, 46, 62, 14, 12, r.base);             // neck stump
-    shade(c, r, 40, 26);
-    disc(c, 46, 40, 3, [20, 14, 30]);            // eye
+  'head-avian': {
+    base: P.Physical, round: 0.09, blur: 8,
+    draw(c, R) { disc(c, 56, 46, 24, R.base); rect(c, 50, 64, 16, 12, R.base); poly(c, [[34, 42], [8, 48], [34, 56]], [225, 165, 45]); },
+    detail(c, R) { disc(c, 48, 42, 3, [24, 16, 34]); px(c, 47, 41, [255, 240, 200]); px(c, 18, 50, [140, 90, 20]); },
   },
-  wings: (c, r) => {
-    // one wing, pointing RIGHT (rig mirrors it). Feathered fan.
-    poly(c, [[10, 50], [86, 20], [90, 40], [70, 48], [88, 60], [64, 66], [80, 80], [20, 66]], r.base);
-    shade(c, r, 20, 30);
-    for (let i = 0; i < 5; i++) line(c, 20, 54, 84 - i * 4, 26 + i * 12, r.shadow, 1);  // feather ribs
+  wings: {
+    base: P.Physical, round: 0.11, blur: 7,
+    draw(c, R) {
+      poly(c, [[8, 54], [40, 22], [58, 30], [46, 40], [70, 34], [58, 50], [84, 46], [70, 62], [90, 62], [40, 74], [16, 66]], R.base);
+    },
+    detail(c, R) { for (let i = 0; i < 5; i++) line(c, 22, 58, 82 - i * 6, 34 + i * 9, R.shadow, 1, 150); },  // feather ribs
   },
-  tail: (c, r) => {
-    for (let t = 0; t <= 60; t++) {              // tapering curl
-      const x = 12 + t, y = 50 + Math.round(Math.sin(t / 14) * 22), w = Math.max(2, 10 - t / 8);
-      disc(c, x, y, w, r.base);
-    }
-    shade(c, r, 20, 30);
+  tail: {
+    base: P.Fire, round: 0.12, blur: 6,
+    draw(c, R) { for (let t = 0; t <= 64; t++) disc(c, 14 + t, 52 + Math.round(Math.sin(t / 15) * 22), Math.max(2, 11 - t / 7), R.base); },
+    detail(c, R) { poly(c, [[74, 34], [90, 40], [74, 50]], R.hi); },   // tuft tip
   },
-  horns: (c, r) => {                              // ONE curved horn, pointing UP
-    for (let t = 0; t <= 70; t++) {
-      const x = 50 + Math.round(Math.sin(t / 22) * 14), y = 88 - t, w = Math.max(1.5, 8 - t / 10);
-      disc(c, x, y, w, r.base);
-    }
-    shade(c, r, 42, 20);
-    for (let y = 30; y < 80; y += 6) line(c, 40, y, 60, y, r.shadow, 1);  // ridges
+  horns: {
+    base: P.Bone, round: 0.14, blur: 5,
+    draw(c, R) { for (let t = 0; t <= 74; t++) disc(c, 50 + Math.round(Math.sin(t / 26) * 15), 90 - t, Math.max(1.5, 9 - t / 9), R.base); },
+    detail(c, R) { for (let y = 34; y < 84; y += 7) line(c, 40, y, 60, y - 2, R.shadow, 1, 150); },  // ridges
   },
-  teeth: (c, r) => {                              // a PAIR of fangs (not a face!)
-    poly(c, [[30, 20], [40, 74], [50, 20]], [245, 240, 225]);
-    poly(c, [[54, 20], [64, 74], [74, 20]], [245, 240, 225]);
-    outline(c, r.outline);
+  teeth: {
+    base: P.Bone, round: 0.16, blur: 3,
+    draw(c) { poly(c, [[30, 22], [40, 78], [50, 22]], [246, 240, 224]); poly(c, [[56, 22], [66, 78], [76, 22]], [246, 240, 224]); },
   },
-  claws: (c, r) => {                              // ONE curved talon, pointing DOWN
-    poly(c, [[40, 12], [58, 20], [54, 60], [46, 88], [42, 60], [34, 30]], r.base);
-    shade(c, r, 40, 20);
-    line(c, 46, 20, 48, 80, r.shadow, 1);
+  claws: {
+    base: P.Bone, round: 0.13, blur: 5,
+    draw(c, R) { poly(c, [[42, 12], [60, 22], [55, 58], [47, 90], [42, 58], [34, 30]], R.base); },
+    detail(c, R) { line(c, 47, 22, 49, 84, R.shadow, 1, 160); },
   },
-  shard: (c, r) => {                              // crystal, pointing UP
-    poly(c, [[50, 8], [66, 46], [50, 92], [34, 46]], r.base);
-    shade(c, r, 40, 24);
-    line(c, 50, 10, 50, 90, r.hi, 1);            // facet ridge
-    poly(c, [[50, 8], [66, 46], [50, 46]], r.shadow, 90); // dark facet
+  shard: {
+    base: P.Energy, round: 0.17, blur: 4,
+    draw(c, R) { poly(c, [[54, 8], [72, 48], [54, 96], [36, 48]], R.base); poly(c, [[54, 8], [72, 48], [54, 48]], R.shadow); },
+    detail(c, R) { line(c, 54, 12, 54, 92, R.hi, 1); px(c, 46, 30, [255, 255, 245]); px(c, 45, 34, [255, 255, 245]); },  // facet ridge + sparkle
   },
-  'w-sword': (c, r) => {
-    poly(c, [[44, 6], [56, 6], [54, 66], [46, 66]], [200, 208, 220]);  // blade
-    line(c, 50, 8, 50, 64, [245, 248, 255], 1);  // fuller shine
-    rect(c, 34, 66, 32, 6, [120, 88, 46]);       // guard
-    rect(c, 46, 72, 8, 18, [120, 88, 46]);       // grip
-    disc(c, 50, 92, 4, [180, 150, 80]);          // pommel
-    outline(c, r.outline);
+  'w-sword': {
+    base: P.Steel, round: 0.15, blur: 6,
+    draw(c, R) {
+      poly(c, [[46, 6], [58, 6], [56, 66], [46, 66]], R.base);   // blade
+      rect(c, 34, 66, 34, 6, [110, 82, 42]);                     // guard
+      rect(c, 47, 72, 10, 18, [110, 82, 42]);                    // grip
+      disc(c, 52, 92, 5, [190, 158, 84]);                        // pommel
+    },
+    detail(c) { line(c, 52, 10, 52, 62, [250, 252, 255], 1); },  // fuller shine
   },
 };
 
-// ── render ───────────────────────────────────────────────────────────────────
-const PROBE = Object.keys(DRAW);
-const RMP = ramp(P.Physical);
+// ── render pipeline ──────────────────────────────────────────────────────────
 const parts = {};
-for (const id of PROBE) {
+for (const [id, spec] of Object.entries(PARTS)) {
   const c = canvas(S);
-  const tint = id.startsWith('body') ? ramp(P.Fire) : id === 'head-draconic' ? ramp(P.Fire) : id === 'shard' ? ramp(P.Energy) : RMP;
-  DRAW[id](c, tint);
-  outline(c, tint.outline);
+  const R = ramp(spec.base);
+  spec.draw(c, R);
+  formShade(c, { roundness: spec.round, blur: spec.blur });
+  spec.detail?.(c, R);
+  rim(c, R.hi);
+  outline(c, R.outline);
   parts[id] = c;
   writeFileSync(`/tmp/proc-${id}.png`, encodePNG(c));
 }
 
-// contact sheet (checkerboard so transparency shows)
-const COLS = 5, CELL = S + 8, rows = Math.ceil(PROBE.length / COLS);
-const sheet = canvas(1); sheet.width = COLS * CELL; sheet.height = rows * CELL;
+// contact sheet on a checkerboard
+const ids = Object.keys(PARTS), COLS = 5, CELL = S + 8, rows = Math.ceil(ids.length / COLS);
+const sheet = { width: COLS * CELL, height: rows * CELL };
 sheet.data = new Uint8ClampedArray(sheet.width * sheet.height * 4);
 for (let y = 0; y < sheet.height; y++) for (let x = 0; x < sheet.width; x++) {
-  const chk = ((x >> 3) + (y >> 3)) & 1 ? 52 : 40;
-  const i = (y * sheet.width + x) * 4; sheet.data[i] = sheet.data[i + 1] = sheet.data[i + 2] = chk; sheet.data[i + 3] = 255;
+  const chk = ((x >> 3) + (y >> 3)) & 1 ? 52 : 40, i = (y * sheet.width + x) * 4;
+  sheet.data[i] = sheet.data[i + 1] = sheet.data[i + 2] = chk; sheet.data[i + 3] = 255;
 }
-PROBE.forEach((id, k) => {
+ids.forEach((id, k) => {
   const ox = (k % COLS) * CELL + 4, oy = Math.floor(k / COLS) * CELL + 4, c = parts[id];
   for (let y = 0; y < S; y++) for (let x = 0; x < S; x++) {
     const a = c.data[(y * S + x) * 4 + 3]; if (!a) continue;
-    const i = (y * S + x) * 4, j = ((oy + y) * sheet.width + (ox + x)) * 4;
-    for (let ch = 0; ch < 3; ch++) sheet.data[j + ch] = c.data[i + ch]; sheet.data[j + 3] = 255;
+    const j = ((oy + y) * sheet.width + (ox + x)) * 4, si = (y * S + x) * 4;
+    for (let ch = 0; ch < 3; ch++) sheet.data[j + ch] = c.data[si + ch]; sheet.data[j + 3] = 255;
   }
 });
 writeFileSync('/tmp/proc-sheet.png', encodePNG(sheet));
 
-// ── one rig-accurate composed creature ──────────────────────────────────────
+// one rig-accurate composed creature
 const beast = { id: 'pv', name: 'Probe', biology: ['Beast'], family: 'Draconic', attunement: ['Fire'], anatomy: ['Wings', 'Tail', 'Horns', 'Teeth'] };
-const baked = Object.fromEntries(PROBE.map((id) => [id, id]));   // mark present so composeCreature emits file layers
+const baked = Object.fromEntries(ids.map((id) => [id, id]));
 const { layers } = composeCreature(beast, { baked });
-const W = 320, comp = canvas(1); comp.width = W; comp.height = W; comp.data = new Uint8ClampedArray(W * W * 4);
-for (let i = 0; i < W * W; i++) { comp.data[i * 4] = 30; comp.data[i * 4 + 1] = 24; comp.data[i * 4 + 2] = 18; comp.data[i * 4 + 3] = 255; }
+const W = 320, comp = { width: W, height: W, data: new Uint8ClampedArray(W * W * 4) };
+for (let i = 0; i < W * W; i++) { comp.data[i * 4] = 28; comp.data[i * 4 + 1] = 22; comp.data[i * 4 + 2] = 18; comp.data[i * 4 + 3] = 255; }
 for (const l of layers) {
-  const src = parts[l.partId]; if (!src) continue;   // skip parts not in the probe (fall through)
+  const src = parts[l.partId]; if (!src) continue;
   const bx = l.x * W, by = l.y * W, bw = l.w * W, bh = l.h * W;
   for (let dy = 0; dy < bh; dy++) for (let dx = 0; dx < bw; dx++) {
-    const sxRaw = (l.flip ? (bw - 1 - dx) : dx) / bw * S, sy = dy / bh * S;
-    const a = src.data[((sy | 0) * S + (sxRaw | 0)) * 4 + 3]; if (a < 40) continue;
-    const si = ((sy | 0) * S + (sxRaw | 0)) * 4, di = (((by + dy) | 0) * W + ((bx + dx) | 0)) * 4;
+    const sx = ((l.flip ? bw - 1 - dx : dx) / bw * S) | 0, sy = (dy / bh * S) | 0;
+    const a = src.data[(sy * S + sx) * 4 + 3]; if (a < 40) continue;
+    const si = (sy * S + sx) * 4, di = (((by + dy) | 0) * W + ((bx + dx) | 0)) * 4;
     for (let ch = 0; ch < 3; ch++) comp.data[di + ch] = src.data[si + ch]; comp.data[di + 3] = 255;
   }
 }
 writeFileSync('/tmp/proc-creature.png', encodePNG(comp));
-
-console.log(`Rendered ${PROBE.length} procedural pixel-art parts.`);
-console.log('  /tmp/proc-sheet.png     — all parts on a checkerboard');
-console.log('  /tmp/proc-creature.png  — a rig-composed beast using them');
-console.log('  parts composed:', layers.filter((l) => parts[l.partId]).map((l) => l.partId).join(', '));
+console.log(`Rendered ${ids.length} parts → /tmp/proc-sheet.png + /tmp/proc-creature.png`);

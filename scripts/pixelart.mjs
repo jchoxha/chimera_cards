@@ -101,11 +101,7 @@ export function dither(c, x0, y0, w, h, rgb, t) {
   for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) if (BAYER[y & 3][x & 3] < thr) px(c, x0 + x, y0 + y, rgb);
 }
 
-/**
- * Trace a 1px dark OUTLINE around every opaque pixel that borders transparency,
- * and add a soft top-left rim highlight. Called last — this is 80% of why it
- * stops looking like a flat blob.
- */
+/** Trace a 1px dark OUTLINE around every opaque pixel that borders transparency. */
 export function outline(c, rgb) {
   const snap = new Uint8ClampedArray(c.data); // read original alpha while writing
   const op = (x, y) => (x < 0 || y < 0 || x >= c.width || y >= c.height ? 0 : snap[(y * c.width + x) * 4 + 3]);
@@ -115,18 +111,62 @@ export function outline(c, rgb) {
   }
 }
 
-/** Apply a top-left→bottom-right light gradient over already-filled pixels: the
- *  lit half gets `hi`, the shadowed corner gets `shadow`, keeping the base between.
- *  A cheap, consistent light direction across the whole part set. */
-export function shade(c, rmp, cx, cy) {
+// One global light (top-left-front) shared by every part so a composited creature
+// reads as lit by a single sun.
+const LIGHT = (() => { const v = [-0.5, -0.62, 0.61]; const m = Math.hypot(...v); return v.map((n) => n / m); })();
+const QUANT = [0.46, 0.66, 0.86, 1.0, 1.12, 1.28];   // brightness bands (pixel-art stepping)
+
+/**
+ * VOLUMETRIC form shading — the big quality lever. Treats the sprite's silhouette
+ * as a HEIGHT FIELD (blurred alpha → a smooth dome), derives a surface NORMAL per
+ * pixel, lights it with the one global sun, and quantises the brightness into a
+ * few bands so any flat-filled shape reads as a rounded, lit volume — not a blob.
+ * Material-agnostic: it MODULATES whatever colour is already there, so a steel
+ * blade and a wood grip in one part each light correctly.
+ * @param {{roundness?:number, blur?:number, ambient?:number}} o
+ *   roundness: lower = rounder/softer (0.05 puffy … 0.2 flat) · blur: form scale.
+ */
+export function formShade(c, { roundness = 0.09, blur = 10, ambient = 0.36 } = {}) {
+  const { width: w, height: h, data } = c;
+  let H = new Float32Array(w * h);
+  for (let i = 0; i < w * h; i++) H[i] = data[i * 4 + 3] > 60 ? 1 : 0;
+  for (let pass = 0; pass < blur; pass++) {
+    const t = new Float32Array(w * h);
+    for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) {
+      let s = 0, n = 0;
+      for (let dy = -1; dy <= 1; dy++) for (let dx = -1; dx <= 1; dx++) {
+        const xx = x + dx, yy = y + dy;
+        if (xx < 0 || yy < 0 || xx >= w || yy >= h) continue;
+        s += H[yy * w + xx]; n++;
+      }
+      t[y * w + x] = s / n;
+    }
+    H = t;
+  }
+  const at = (x, y) => (x < 0 || y < 0 || x >= w || y >= h ? 0 : H[y * w + x]);
+  for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) {
+    const i = (y * w + x) * 4;
+    if (data[i + 3] < 200) continue;
+    const gx = at(x + 1, y) - at(x - 1, y), gy = at(x, y + 1) - at(x, y - 1);
+    const nx = -gx, ny = -gy, nz = roundness;
+    const len = Math.hypot(nx, ny, nz) || 1;
+    let b = (nx * LIGHT[0] + ny * LIGHT[1] + nz * LIGHT[2]) / len;
+    b = ambient + (1 - ambient) * Math.max(0, b) + 0.16 * at(x, y);
+    const f = QUANT[Math.max(0, Math.min(QUANT.length - 1, Math.round(b * (QUANT.length - 1))))];
+    data[i] = Math.min(255, data[i] * f);
+    data[i + 1] = Math.min(255, data[i + 1] * f);
+    data[i + 2] = Math.min(255, data[i + 2] * f);
+  }
+}
+
+/** A crisp 1px RIM highlight on the top-left lit edge. Run after formShade,
+ *  before outline — reads as a hard light catching the form. */
+export function rim(c, rgb) {
+  const snap = new Uint8ClampedArray(c.data);
+  const op = (x, y) => (x < 0 || y < 0 || x >= c.width || y >= c.height ? 0 : snap[(y * c.width + x) * 4 + 3]);
   for (let y = 0; y < c.height; y++) for (let x = 0; x < c.width; x++) {
-    const i = (y * c.width + x) * 4;
-    if (c.data[i + 3] < 200) continue;
-    // only recolour pixels currently at the base colour (leave detail pixels alone)
-    if (c.data[i] !== rmp.base[0] || c.data[i + 1] !== rmp.base[1] || c.data[i + 2] !== rmp.base[2]) continue;
-    const d = ((x - cx) + (y - cy)) / (c.width);        // -~1 (top-left) .. +~1 (bottom-right)
-    const col = d < -0.18 ? rmp.hi : d > 0.30 ? rmp.shadow : d > 0.12 ? rmp.mid : rmp.base;
-    px(c, x, y, col);
+    if (op(x, y) < 200) continue;
+    if (op(x - 1, y) < 60 || op(x, y - 1) < 60) px(c, x, y, rgb);
   }
 }
 
