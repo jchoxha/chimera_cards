@@ -6,6 +6,9 @@
 
 /** @type {{version:string, date:string, notes:string[]}[]} newest first */
 export const CHANGELOG = [
+  { version: 'v3.176.2', date: '2026-08-11', notes: [
+    'Polished the new part art: a handful of parts that didn’t read correctly (a beak drawn as a whole bird, a hammer as a figure) now fall back to clean placeholder shapes until they’re redrawn, so nothing looks broken. The 37 good parts stay.',
+  ] },
   { version: 'v3.176.1', date: '2026-08-11', notes: [
     'Every creature part now has real hand-styled pixel art — bodies, heads, wings, claws, horns, weapons and the rest, all 46 of them, drawn in one consistent 16-bit style so a fusion reads as a single creature instead of a collage.',
     'Heads are colour-matched to the body they sit on, so a fused monster shares one palette from nose to tail.',

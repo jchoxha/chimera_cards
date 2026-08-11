@@ -28,15 +28,6 @@ function factorsOf(c) {
   return [...list(c?.weapons), ...list(c?.anatomy), ...list(c?.features)];
 }
 
-/** Does this part's `match` apply to the creature? */
-function matches(part, { bodies, kits, factors }) {
-  const m = part.match ?? {};
-  if (m.body && !bodies.includes(m.body)) return false;
-  if (m.kit && !kits.includes(m.kit)) return false;
-  if (m.factor && !factors.includes(m.factor)) return false;
-  return true;
-}
-
 /**
  * Choose the parts that make up a creature.
  * - exactly ONE body and ONE head (a kit-specific match beats the body-type default)

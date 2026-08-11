@@ -225,3 +225,31 @@ bake tool adds **no dependency** to `package.json`, matching the RD script.
   has landed on sage-green and on grey-stone across builds. It is **coherence**
   that is pinned here, not a specific hue. If a particular palette is wanted, art-
   direct it explicitly in `STYLE` rather than hoping the anchor lands there.
+
+---
+
+## Re-bake queue (curated 2026-08-11, review pass on origin/main)
+
+After the full 46-part bake landed, a review-pass contact sheet showed 9 parts that
+are stylistically on-model but render the WRONG SUBJECT — a whole organism/object
+instead of the isolated part. They have been **removed from `src/data/partsBaked.json`**
+(the PNGs stay on disk, and the 1024px raws are in `%TEMP%\chimera-bake-raw`), so
+each falls back to its clean procedural shape in-game until re-baked. Re-bake these by
+name with a fresh `--seed`, tightening the subject/negative so the model draws only the
+part:
+
+| part | baked as | want |
+|---|---|---|
+| `teeth` | a red demon head | a pair of isolated fangs |
+| `beak` | a whole bird | a single hooked beak |
+| `horns` | a whole antelope skull | a single curved horn |
+| `claws` | a winged weapon | a single curved talon |
+| `hooves` | a rolled scroll/tube | a single hoof |
+| `mandible` | a whole stag beetle | a pair of insect pincers |
+| `carapace` | a whole beetle | a segmented shell plate |
+| `roots` | a whole tree | a bundle of roots |
+| `w-hammer` | a viking warrior figure | a warhammer |
+
+The other 37 parts are committed and live. Loose-but-acceptable fx/surface parts
+(`cilia`, `ichor`, `venom`, `breath`, `w-bow`) were kept — they read as abstract
+textures rather than broken, and re-baking them is optional.
