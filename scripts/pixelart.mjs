@@ -77,20 +77,30 @@ export function poly(c, pts, rgb, a = 255) {
   }
 }
 
+// ── The two "light colours" every part shares ────────────────────────────────
+// The single most important pixel-art colour rule: shadows aren't just darker,
+// they shift toward a COOL hue; highlights shift toward a WARM one. Ramps and the
+// shader both blend toward these instead of pure black/white, so nothing looks
+// muddy/plastic and the whole set reads as lit by one warm sun in cool ambient.
+const COOL = [46, 44, 92];     // deep desaturated blue-violet (shadow tint)
+const WARM = [255, 240, 202];  // warm cream (highlight tint)
+const INK = [24, 18, 34];      // near-black used only as a floor for outlines
+
 /**
- * A shading RAMP built from one base hex: [outline, shadow, base, mid, highlight].
- * This single relationship is what makes every part read as the same material set.
+ * A hue-shifted shading RAMP from one base hex: {outline, shadow, base, mid, hi}.
+ * shadow → toward COOL, mid/hi → toward WARM. This single relationship is what
+ * makes every part read as the same material lit the same way.
  */
 export function ramp(baseHex) {
   const [r, g, b] = hex(baseHex);
-  const mix = (t, to) => [r + (to[0] - r) * t, g + (to[1] - g) * t, b + (to[2] - b) * t].map(Math.round);
-  const BLACK = [26, 18, 40], WHITE = [255, 250, 235];
+  const base = [r, g, b];
+  const mix = (to, t) => [r + (to[0] - r) * t, g + (to[1] - g) * t, b + (to[2] - b) * t].map(Math.round);
   return {
-    outline: mix(0.72, BLACK),
-    shadow: mix(0.34, BLACK),
-    base: [r, g, b],
-    mid: mix(0.22, WHITE),
-    hi: mix(0.5, WHITE),
+    outline: mix(INK, 0.66),     // colored-dark, not pure black (selective outline reuses this only as a floor)
+    shadow: mix(COOL, 0.30),
+    base,
+    mid: mix(WARM, 0.20),
+    hi: mix(WARM, 0.44),
   };
 }
 
@@ -101,35 +111,57 @@ export function dither(c, x0, y0, w, h, rgb, t) {
   for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) if (BAYER[y & 3][x & 3] < thr) px(c, x0 + x, y0 + y, rgb);
 }
 
-/** Trace a 1px dark OUTLINE around every opaque pixel that borders transparency. */
-export function outline(c, rgb) {
-  const snap = new Uint8ClampedArray(c.data); // read original alpha while writing
+const lum = (r, g, b) => 0.299 * r + 0.587 * g + 0.114 * b;
+const mixTo = (rgb, to, t) => [rgb[0] + (to[0] - rgb[0]) * t, rgb[1] + (to[1] - rgb[1]) * t, rgb[2] + (to[2] - rgb[2]) * t];
+
+/**
+ * SELECTIVE OUTLINE (selout). Not a flat black keyline: each border pixel takes a
+ * darkened+cooled version of the INTERIOR colour it hugs, so the outline belongs
+ * to the form instead of caging it — and the top-left LIT edges are skipped
+ * (light "opens" the outline there, where rim() puts a highlight instead).
+ */
+export function outline(c) {
+  const snap = new Uint8ClampedArray(c.data);
   const op = (x, y) => (x < 0 || y < 0 || x >= c.width || y >= c.height ? 0 : snap[(y * c.width + x) * 4 + 3]);
+  const col = (x, y) => { const j = (y * c.width + x) * 4; return [snap[j], snap[j + 1], snap[j + 2]]; };
   for (let y = 0; y < c.height; y++) for (let x = 0; x < c.width; x++) {
     if (op(x, y) > 32) continue;
-    if (op(x - 1, y) > 32 || op(x + 1, y) > 32 || op(x, y - 1) > 32 || op(x, y + 1) > 32) px(c, x, y, rgb);
+    // find the opaque interior neighbour (prefer a cardinal one) and where it sits
+    let nx = 0, ny = 0, found = false;
+    for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) if (op(x + dx, y + dy) > 32) { nx = x + dx; ny = y + dy; found = true; break; }
+    if (!found) continue;
+    // lit (top-left) edge? the interior lies down-right of us → skip so light bleeds out
+    const litEdge = (nx > x || ny > y) && lum(...col(nx, ny)) > 150;
+    if (litEdge) continue;
+    const base = col(nx, ny);
+    px(c, x, y, mixTo(base, INK, 0.62).map(Math.round));
   }
 }
 
 // One global light (top-left-front) shared by every part so a composited creature
-// reads as lit by a single sun.
+// reads as lit by a single sun. 2D component drives the DIRECTIONAL term below.
 const LIGHT = (() => { const v = [-0.5, -0.62, 0.61]; const m = Math.hypot(...v); return v.map((n) => n / m); })();
-const QUANT = [0.46, 0.66, 0.86, 1.0, 1.12, 1.28];   // brightness bands (pixel-art stepping)
 
 /**
- * VOLUMETRIC form shading — the big quality lever. Treats the sprite's silhouette
- * as a HEIGHT FIELD (blurred alpha → a smooth dome), derives a surface NORMAL per
- * pixel, lights it with the one global sun, and quantises the brightness into a
- * few bands so any flat-filled shape reads as a rounded, lit volume — not a blob.
- * Material-agnostic: it MODULATES whatever colour is already there, so a steel
- * blade and a wood grip in one part each light correctly.
+ * DIRECTIONAL CLUSTER shading — the big quality lever, and the OPPOSITE of the
+ * pillow-shading it replaces. Pillow-shading lights the blurred-silhouette normal,
+ * which always ramps toward the form's centre → a flat, radial, "puffy" look.
+ * Instead this lights each pixel by BOTH a little form-normal AND a global
+ * DIRECTIONAL gradient (bright on the sun side, dark on the far side), then
+ * SNAPS the result into 4 hard tone CLUSTERS (deepShadow/shadow/base/hi) with the
+ * base cluster widest. Cluster boundaries are ORDERED-DITHERED so value edges
+ * stipple instead of forming banding lines parallel to the silhouette. Tones are
+ * hue-shifted (shadows→COOL, highlights→WARM). Material-agnostic: it recolours
+ * whatever is already there, so a steel blade and a wood grip both light right.
  * @param {{roundness?:number, blur?:number, ambient?:number}} o
- *   roundness: lower = rounder/softer (0.05 puffy … 0.2 flat) · blur: form scale.
  */
-export function formShade(c, { roundness = 0.09, blur = 10, ambient = 0.36 } = {}) {
+export function formShade(c, { roundness = 0.5, blur = 8, ambient = 0.34 } = {}) {
   const { width: w, height: h, data } = c;
   let H = new Float32Array(w * h);
-  for (let i = 0; i < w * h; i++) H[i] = data[i * 4 + 3] > 60 ? 1 : 0;
+  let minx = w, maxx = 0, miny = h, maxy = 0;
+  for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) {
+    if (data[(y * w + x) * 4 + 3] > 60) { H[y * w + x] = 1; if (x < minx) minx = x; if (x > maxx) maxx = x; if (y < miny) miny = y; if (y > maxy) maxy = y; }
+  }
   for (let pass = 0; pass < blur; pass++) {
     const t = new Float32Array(w * h);
     for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) {
@@ -144,18 +176,29 @@ export function formShade(c, { roundness = 0.09, blur = 10, ambient = 0.36 } = {
     H = t;
   }
   const at = (x, y) => (x < 0 || y < 0 || x >= w || y >= h ? 0 : H[y * w + x]);
+  const spanX = Math.max(1, maxx - minx), spanY = Math.max(1, maxy - miny);
   for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) {
     const i = (y * w + x) * 4;
     if (data[i + 3] < 200) continue;
+    // form-normal term (small weight — just enough to feel round, not to dominate)
     const gx = at(x + 1, y) - at(x - 1, y), gy = at(x, y + 1) - at(x, y - 1);
-    const nx = -gx, ny = -gy, nz = roundness;
-    const len = Math.hypot(nx, ny, nz) || 1;
-    let b = (nx * LIGHT[0] + ny * LIGHT[1] + nz * LIGHT[2]) / len;
-    b = ambient + (1 - ambient) * Math.max(0, b) + 0.16 * at(x, y);
-    const f = QUANT[Math.max(0, Math.min(QUANT.length - 1, Math.round(b * (QUANT.length - 1))))];
-    data[i] = Math.min(255, data[i] * f);
-    data[i + 1] = Math.min(255, data[i + 1] * f);
-    data[i + 2] = Math.min(255, data[i + 2] * f);
+    const nz = roundness, len = Math.hypot(-gx, -gy, nz) || 1;
+    const nl = Math.max(0, (-gx * LIGHT[0] + -gy * LIGHT[1] + nz * LIGHT[2]) / len);
+    // DIRECTIONAL term: 1 on the sun (top-left) side of the bbox, 0 on the far side
+    const g = Math.max(0, Math.min(1, ((maxx - x) / spanX * 0.5 + (maxy - y) / spanY * 0.62) / 1.12));
+    let L = ambient + 0.34 * nl + 0.42 * g;
+    L = Math.max(0, Math.min(1, L));
+    // CLEAN snap into 5 hard tone clusters — no dither (a smooth gradient dithered
+    // everywhere is just noise). Base clusters are widest; the terminator falls on a
+    // diagonal so it reads as directional light, not contour-hugging pillow banding.
+    const lvl = L < 0.30 ? 0 : L < 0.46 ? 1 : L < 0.74 ? 2 : L < 0.88 ? 3 : 4;
+    const rgb = [data[i], data[i + 1], data[i + 2]];
+    let out = rgb;
+    if (lvl === 0) out = mixTo(rgb, COOL, 0.46);
+    else if (lvl === 1) out = mixTo(rgb, COOL, 0.22);
+    else if (lvl === 3) out = mixTo(rgb, WARM, 0.24);
+    else if (lvl === 4) out = mixTo(rgb, WARM, 0.48);
+    data[i] = out[0]; data[i + 1] = out[1]; data[i + 2] = out[2];
   }
 }
 

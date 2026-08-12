@@ -130,10 +130,10 @@ for (const [id, spec] of Object.entries(PARTS)) {
   const c = canvas(S);
   const R = ramp(spec.base);
   spec.draw(c, R);
-  formShade(c, { roundness: spec.round, blur: spec.blur });
+  formShade(c, { roundness: 0.5, blur: spec.blur });
   spec.detail?.(c, R);
   rim(c, R.hi);
-  outline(c, R.outline);
+  outline(c);
   parts[id] = c;
   writeFileSync(`/tmp/proc-${id}.png`, encodePNG(c));
 }
