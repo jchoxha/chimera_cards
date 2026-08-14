@@ -33,14 +33,20 @@ function voltfang() {
   // NECK + HEAD (forward, head slightly lowered, prowling)
   m.push(...capsule([0, 1.4, 0.75], [0, 1.72, 1.15], 0.42, 0.36, FUR, 4));
   m.push(sphere([0, 1.8, 1.28], 0.44, FUR));             // skull
-  // EARS — pointed, up-and-back (quads)
-  m.push(quad([[-0.34, 2.05, 1.15], [-0.18, 2.55, 1.0], [-0.05, 2.1, 1.15], [-0.22, 2.0, 1.2]], FUR));
-  m.push(quad([[0.34, 2.05, 1.15], [0.18, 2.55, 1.0], [0.05, 2.1, 1.15], [0.22, 2.0, 1.2]], FUR));
-  // MUZZLE — snarling: upper snout + open lower jaw with teeth
+  // EARS — crisp pointed triangles (outer fur + dark inner), swept up
+  for (const sx of [-1, 1]) {
+    m.push(quad([[0.4 * sx, 1.98, 1.02], [0.26 * sx, 2.72, 0.86], [0.1 * sx, 2.04, 1.1]], FUR));
+    m.push(quad([[0.33 * sx, 2.04, 1.05], [0.26 * sx, 2.52, 0.93], [0.17 * sx, 2.08, 1.09]], DARK));
+  }
+  // MUZZLE — snarling: upper snout + open lower jaw with sharp fangs
   m.push(...capsule([0, 1.72, 1.4], [0, 1.66, 1.92], 0.3, 0.19, FUR, 5));
   m.push(sphere([0, 1.62, 2.0], 0.16, DARK));            // nose
   m.push(...capsule([0, 1.5, 1.5], [0, 1.4, 1.85], 0.22, 0.14, DARK, 4)); // open lower jaw (dark maw)
-  for (const tz of [1.6, 1.74, 1.88]) { m.push(sphere([-0.11, 1.58, tz], 0.05, TOOTH)); m.push(sphere([0.11, 1.58, tz], 0.05, TOOTH)); } // fangs
+  for (const sx of [-1, 1]) {
+    m.push(...capsule([0.12 * sx, 1.62, 1.68], [0.12 * sx, 1.4, 1.7], 0.06, 0.004, TOOTH, 3));  // upper fang
+    m.push(...capsule([0.08 * sx, 1.6, 1.84], [0.08 * sx, 1.44, 1.85], 0.05, 0.004, TOOTH, 3)); // upper fang 2
+    m.push(...capsule([0.09 * sx, 1.44, 1.7], [0.09 * sx, 1.58, 1.72], 0.045, 0.004, TOOTH, 3));// lower fang
+  }
   // EYES — glowing cyan, angry (set into the skull front)
   m.push(sphere([-0.22, 1.9, 1.55], 0.13, CYAN));
   m.push(sphere([0.22, 1.9, 1.55], 0.13, CYAN));

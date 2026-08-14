@@ -39,8 +39,42 @@ export function capsule(a, b, ra, rb, color, n = 8) {
   for (let i = 0; i <= n; i++) { const u = i / n; out.push(sphere([a[0] + (b[0] - a[0]) * u, a[1] + (b[1] - a[1]) * u, a[2] + (b[2] - a[2]) * u], ra + (rb - ra) * u, color)); }
   return out;
 }
-/** A flat quad (4 corners in model space) — blades, fins, wings, shields. */
-export const quad = (pts, color, dark = 0.12) => ({ t: 'quad', pts, color, dark });
+/** A flat convex FACE of N corners (model space) — blades, fins, wings, membranes. */
+export const quad = (pts, color) => ({ t: 'face', pts, color });
+export const face = (pts, color) => ({ t: 'face', pts, color });
+
+const sub = (a, b) => [a[0] - b[0], a[1] - b[1], a[2] - b[2]];
+const cross = (a, b) => [a[1] * b[2] - a[2] * b[1], a[2] * b[0] - a[0] * b[2], a[0] * b[1] - a[1] * b[0]];
+const normv = (a) => { const m = Math.hypot(...a) || 1; return [a[0] / m, a[1] / m, a[2] / m]; };
+
+/** A crisp axis-aligned BOX (center + half-extents) — armour plates, blocky heads,
+ *  hammer heads, crates. Emitted as 6 flat faces so every side lights distinctly. */
+export function box(c, h, color) {
+  const V = (sx, sy, sz) => [c[0] + sx * h[0], c[1] + sy * h[1], c[2] + sz * h[2]];
+  const f = (a, b, d, e) => ({ t: 'face', pts: [a, b, d, e], color });
+  return [
+    f(V(1, -1, -1), V(1, 1, -1), V(1, 1, 1), V(1, -1, 1)),      // +X
+    f(V(-1, -1, 1), V(-1, 1, 1), V(-1, 1, -1), V(-1, -1, -1)),  // -X
+    f(V(-1, 1, -1), V(-1, 1, 1), V(1, 1, 1), V(1, 1, -1)),      // +Y
+    f(V(-1, -1, 1), V(-1, -1, -1), V(1, -1, -1), V(1, -1, 1)),  // -Y
+    f(V(-1, -1, 1), V(1, -1, 1), V(1, 1, 1), V(-1, 1, 1)),      // +Z
+    f(V(1, -1, -1), V(-1, -1, -1), V(-1, 1, -1), V(1, 1, -1)),  // -Z
+  ];
+}
+
+/** A flat filled DISC (center, facing normal, radius) — round shields, coins,
+ *  eyes, gem faces, spots. seg = smoothness. */
+export function disc(c, normal, r, color, seg = 16) {
+  const n = normv(normal);
+  const a = Math.abs(n[0]) < 0.9 ? [1, 0, 0] : [0, 1, 0];
+  const u = normv(cross(n, a)), v = normv(cross(n, u));
+  const pts = [];
+  for (let i = 0; i < seg; i++) {
+    const t = (i / seg) * Math.PI * 2, ct = Math.cos(t) * r, st = Math.sin(t) * r;
+    pts.push([c[0] + u[0] * ct + v[0] * st, c[1] + u[1] * ct + v[1] * st, c[2] + u[2] * ct + v[2] * st]);
+  }
+  return { t: 'face', pts, color };
+}
 
 // ── transforms ───────────────────────────────────────────────────────────────
 function rot(theta, tilt) {
@@ -70,7 +104,7 @@ export function render(prims, { size = 64, theta = 0, tilt = 0.5, scale = 16, cx
   // baked drop shadow: flatten every primitive centre onto the ground (y=0) plane
   if (shadow) {
     let sxs = [], minx = 1e9, maxx = -1e9, sumx = 0, k = 0;
-    for (const p of prims) { const cc = R(p.t === 'quad' ? p.pts[0] : p.c); const s = toScreen([cc[0], 0, cc[2]]); sxs.push(s[0]); minx = Math.min(minx, s[0]); maxx = Math.max(maxx, s[0]); sumx += s[0]; k++; }
+    for (const p of prims) { const cc = R(p.pts ? p.pts[0] : p.c); const s = toScreen([cc[0], 0, cc[2]]); sxs.push(s[0]); minx = Math.min(minx, s[0]); maxx = Math.max(maxx, s[0]); sumx += s[0]; k++; }
     void sxs;
     const gx = sumx / (k || 1), gw = Math.max(8, (maxx - minx) / 2 + 6), gh = gw * 0.34, gy = oy + 2;
     for (let y = -gh; y <= gh; y++) for (let x = -gw; x <= gw; x++) {
@@ -96,19 +130,17 @@ export function render(prims, { size = 64, theta = 0, tilt = 0.5, scale = 16, cx
         const nx = dx / rr, ny = -dy / rr, nz = Math.sqrt(Math.max(0, 1 - nx * nx - ny * ny));
         put(sx + dx, sy + dy, cc[2] + nz * p.r, shadeNormal(col, nx, ny, nz));
       }
-    } else if (p.t === 'quad') {
-      const cs = p.pts.map(R), ss = cs.map(toScreen);
-      // face normal (camera space) for flat shading
-      const u = [cs[1][0] - cs[0][0], cs[1][1] - cs[0][1], cs[1][2] - cs[0][2]];
-      const v = [cs[2][0] - cs[0][0], cs[2][1] - cs[0][1], cs[2][2] - cs[0][2]];
-      let nrm = [u[1] * v[2] - u[2] * v[1], u[2] * v[0] - u[0] * v[2], u[0] * v[1] - u[1] * v[0]];
+    } else if (p.t === 'face') {
+      const cs = p.pts.map(R), ss = cs.map(toScreen), N = cs.length;
+      // face normal (camera space) for flat shading — from the first 3 corners
+      let nrm = cross([cs[1][0] - cs[0][0], cs[1][1] - cs[0][1], cs[1][2] - cs[0][2]], [cs[2][0] - cs[0][0], cs[2][1] - cs[0][1], cs[2][2] - cs[0][2]]);
       const nl = Math.hypot(...nrm) || 1; nrm = nrm.map((n) => n / nl); if (nrm[2] < 0) nrm = nrm.map((n) => -n);
       const rgb = shadeNormal(rgbOf(p.color), nrm[0], nrm[1], nrm[2]);
-      const zc = (cs[0][2] + cs[1][2] + cs[2][2] + cs[3][2]) / 4;
+      let zc = 0; for (const cc of cs) zc += cc[2]; zc /= N;
       let minY = 1e9, maxY = -1e9; for (const s of ss) { minY = Math.min(minY, s[1]); maxY = Math.max(maxY, s[1]); }
       for (let y = Math.floor(minY); y <= Math.ceil(maxY); y++) {
         const xs = [];
-        for (let i = 0; i < 4; i++) { const a = ss[i], b = ss[(i + 1) % 4]; if ((a[1] <= y && b[1] > y) || (b[1] <= y && a[1] > y)) xs.push(a[0] + ((y - a[1]) / (b[1] - a[1])) * (b[0] - a[0])); }
+        for (let i = 0; i < N; i++) { const a = ss[i], b = ss[(i + 1) % N]; if ((a[1] <= y && b[1] > y) || (b[1] <= y && a[1] > y)) xs.push(a[0] + ((y - a[1]) / (b[1] - a[1])) * (b[0] - a[0])); }
         xs.sort((m, n) => m - n);
         for (let j = 0; j + 1 < xs.length; j += 2) for (let x = Math.round(xs[j]); x <= Math.round(xs[j + 1]); x++) put(x, y, zc, rgb);
       }
