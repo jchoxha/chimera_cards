@@ -9,6 +9,8 @@
     "preview": "vite preview",
     "lint": "eslint src",
     "cap:sync": "cap sync android",
+    "bake:pixellab": "node scripts/bake_roster_pixellab.mjs",
+    "bake:pixellab:sample": "node scripts/bake_roster_pixellab.mjs voltfang ironhide emberdrake",
     "test:engine": "node src/engine/__smoke__.mjs",
     "test:combat": "node src/engine/combat/__smoke__.mjs",
     "test:battle": "node src/engine/battle/__stats__.mjs",
