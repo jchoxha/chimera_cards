@@ -26,6 +26,10 @@ on:
         description: 'Sprite size in px (square). Max 200 on free tier, 400 on paid.'
         required: true
         default: '128'
+      style:
+        description: 'Style-match strength 0-100 (BitForge): renders each creature in the style of its original illustration in art-refs/. Leave EMPTY for plain text-only PixFlux.'
+        required: false
+        default: ''
       extra:
         description: 'Extra flags — use underscores for spaces in values, e.g. "--shading=medium_shading --view=side --outline=selective_outline"'
         required: false
@@ -60,11 +64,12 @@ jobs:
         # Inputs pass via env (never interpolated into the command line) so a value
         # can't inject shell. $IDS / $EXTRA are intentionally unquoted so a
         # multi-id / multi-flag input word-splits into separate args.
-        run: node scripts/bake_roster_pixellab.mjs $IDS --size=$SIZE $EXTRA
+        run: node scripts/bake_roster_pixellab.mjs $IDS --size=$SIZE ${STYLE:+--style=$STYLE} $EXTRA
         env:
           PIXELLAB_API_KEY: ${{ secrets.PIXELLAB_API_KEY }}
           IDS: ${{ github.event.inputs.ids }}
           SIZE: ${{ github.event.inputs.size }}
+          STYLE: ${{ github.event.inputs.style }}
           EXTRA: ${{ github.event.inputs.extra }}
 
       - name: Commit baked portraits (if any changed)

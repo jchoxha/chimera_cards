@@ -18,10 +18,12 @@
 // ║   PIXELLAB_API_KEY=sk-... node scripts/bake_roster_pixellab.mjs            # all║
 // ║   node scripts/bake_roster_pixellab.mjs voltfang ironhide emberdrake  # subset ║
 // ║   node scripts/bake_roster_pixellab.mjs --dry            # print prompts, no net║
-// ║   flags: --size=128 --out=public/art/gen --view=side --shading='detailed shading'║
+// ║   node scripts/bake_roster_pixellab.mjs --style=55  # BitForge: match the       ║
+// ║        original illustration in art-refs/<id>.png (palette/shading/mood)         ║
+// ║   flags: --size=128 --out=public/art/gen --view=side --shading=detailed_shading  ║
 // ╚══════════════════════════════════════════════════════════════════╝
 
-import { writeFileSync, readFileSync, mkdirSync } from 'fs';
+import { writeFileSync, readFileSync, mkdirSync, existsSync } from 'fs';
 
 try { process.loadEnvFile('.env'); } catch { /* no .env — env vars may still be set */ }
 
@@ -54,9 +56,21 @@ const VIEW = norm(flags.view) || null;        // 'side' | 'low top-down' | 'high
 const DIRECTION = norm(flags.direction) || null; // 'south' faces the viewer, etc.
 const DELAY_MS = +(flags.delay || 800);
 
+// ── STYLE-MATCH (BitForge) — pass --style=N (0..100) to render each creature via
+// the BitForge model using its ORIGINAL illustration (art-refs/<id>.png) as the
+// style anchor, so the pixel art inherits the original's palette/shading/mood.
+// Without --style it uses PixFlux (text-only). Creatures with no own ref borrow a
+// thematically-close sibling's.
+const STYLE_STRENGTH = flags.style !== undefined ? Math.max(0, Math.min(100, +flags.style || 0)) : null;
+const STYLE_GUIDE = Math.max(0, Math.min(20, +(flags.styleguide || 6)));   // extra_guidance_scale
+const TEXT_GUIDE = +(flags.textguide || (STYLE_STRENGTH !== null ? 4 : 8)); // text_guidance_scale
+const REF_DIR = (flags.refs || 'art-refs').replace(/\/$/, '');
+const REF_FALLBACK = { emberdrake: 'emberwisp', grizzlord: 'voltfang', felhound: 'nightveil' };
+const refFor = (id) => [id, REF_FALLBACK[id]].filter(Boolean).map((c) => `${REF_DIR}/${c}.png`).find((p) => existsSync(p)) || null;
+
 // Shared style clause — keeps the whole set cohesive (PixelLab already draws pixel
 // art, so this describes SUBJECT + composition, not the medium).
-const STYLE = ', full body, single character, centered, clean readable silhouette, cohesive fantasy monster-collector creature design, vibrant colors, dynamic pose';
+const STYLE_SUFFIX = ', full body, single character, centered, clean readable silhouette, cohesive fantasy monster-collector creature design, vibrant colors, dynamic pose';
 
 // Per-creature art prompts — the durable asset. Vivid, subject-first descriptions.
 const PROMPTS = {
@@ -98,17 +112,27 @@ if (!DRY) mkdirSync(OUT, { recursive: true });
 
 async function bake(id) {
   const body = {
-    description: PROMPTS[id] + STYLE,
+    description: PROMPTS[id] + STYLE_SUFFIX,
     image_size: { width: SIZE, height: SIZE },
     no_background: true,
     outline: OUTLINE, shading: SHADING, detail: DETAIL,
-    text_guidance_scale: 8,
+    text_guidance_scale: TEXT_GUIDE,
     seed: seedOf(id),
     ...(VIEW ? { view: VIEW } : {}),
     ...(DIRECTION ? { direction: DIRECTION } : {}),
   };
-  if (DRY) { console.log(`\n[${id}]\n${body.description}`); return true; }
-  const res = await fetch(`${BASE}/generate-image-pixflux`, {
+  // BitForge (style-matched) when --style is set AND a reference exists; else PixFlux.
+  const ref = STYLE_STRENGTH !== null ? refFor(id) : null;
+  const endpoint = ref ? 'generate-image-bitforge' : 'generate-image-pixflux';
+  if (ref) {
+    body.style_image = { type: 'base64', base64: readFileSync(ref).toString('base64'), format: 'png' };
+    body.style_strength = STYLE_STRENGTH;
+    body.extra_guidance_scale = STYLE_GUIDE;
+  } else if (STYLE_STRENGTH !== null) {
+    console.warn(`  (no style ref for ${id} in ${REF_DIR}/ — using PixFlux)`);
+  }
+  if (DRY) { console.log(`\n[${id}] (${ref ? `BitForge · style ${STYLE_STRENGTH} · ref ${ref}` : 'PixFlux'})\n${body.description}`); return true; }
+  const res = await fetch(`${BASE}/${endpoint}`, {
     method: 'POST',
     headers: { Authorization: `Bearer ${KEY}`, 'Content-Type': 'application/json' },
     body: JSON.stringify(body),
@@ -125,7 +149,7 @@ async function bake(id) {
 
 let total = 0;
 const baked = [];
-console.log(`${DRY ? 'DRY-RUN — ' : ''}PixelLab bake · ${list.length} creature(s) · ${SIZE}² · ${BASE}`);
+console.log(`${DRY ? 'DRY-RUN — ' : ''}PixelLab bake · ${list.length} creature(s) · ${SIZE}² · ${STYLE_STRENGTH !== null ? `BitForge (style-match ${STYLE_STRENGTH}, refs ${REF_DIR}/)` : 'PixFlux (text)'} · ${BASE}`);
 for (const id of list) {
   if (await bake(id)) baked.push(id);
   if (!DRY && DELAY_MS && id !== list[list.length - 1]) await new Promise((r) => setTimeout(r, DELAY_MS));
