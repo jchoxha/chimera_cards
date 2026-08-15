@@ -1,0 +1,81 @@
+name: Bake creature portraits (PixelLab)
+
+# Runs the PixelLab roster-portrait bake FROM THE BROWSER — no terminal, no local
+# Node. Trigger it under the repo's Actions tab (or the phone GitHub app):
+# Actions → "Bake creature portraits (PixelLab)" → Run workflow.
+#
+# The API key lives in a repo SECRET named PIXELLAB_API_KEY (Settings → Secrets and
+# variables → Actions → New repository secret). It is never printed and never
+# committed. (Secrets are also unavailable to fork pull-requests, so a public repo
+# is safe.)
+#
+# On success it commits the new PNGs (public/art/gen/) + the updated manifest
+# (src/data/creatureArt.json) straight to main, which deploys to Pages — so the
+# portraits show up in-game a couple of minutes later with no further steps.
+# Start with the default sample (3 creatures) to eyeball quality/cost, then run
+# again with an empty "ids" field to bake the whole roster.
+
+on:
+  workflow_dispatch:
+    inputs:
+      ids:
+        description: 'Which creatures — space-separated ids (e.g. "voltfang ironhide emberdrake"). Leave EMPTY to bake the whole roster.'
+        required: false
+        default: 'voltfang ironhide emberdrake'
+      size:
+        description: 'Sprite size in px (square). Max 200 on free tier, 400 on paid.'
+        required: true
+        default: '128'
+      extra:
+        description: 'Extra flags, e.g. "--shading=''medium shading'' --view=side --outline=''selective outline''"'
+        required: false
+        default: ''
+
+permissions:
+  contents: write
+
+concurrency:
+  group: bake-art
+  cancel-in-progress: false
+
+jobs:
+  bake:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Fail early if the key secret is missing
+        run: |
+          if [ -z "${PIXELLAB_API_KEY}" ]; then
+            echo "::error::No PIXELLAB_API_KEY secret set. Add it in Settings → Secrets and variables → Actions."
+            exit 1
+          fi
+        env:
+          PIXELLAB_API_KEY: ${{ secrets.PIXELLAB_API_KEY }}
+
+      - name: Bake portraits
+        # Inputs pass via env (never interpolated into the command line) so a value
+        # can't inject shell. $IDS / $EXTRA are intentionally unquoted so a
+        # multi-id / multi-flag input word-splits into separate args.
+        run: node scripts/bake_roster_pixellab.mjs $IDS --size "$SIZE" $EXTRA
+        env:
+          PIXELLAB_API_KEY: ${{ secrets.PIXELLAB_API_KEY }}
+          IDS: ${{ github.event.inputs.ids }}
+          SIZE: ${{ github.event.inputs.size }}
+          EXTRA: ${{ github.event.inputs.extra }}
+
+      - name: Commit baked portraits (if any changed)
+        run: |
+          git config user.name "chimera-bake-bot"
+          git config user.email "actions@github.com"
+          if git status --porcelain public/art/gen src/data/creatureArt.json | grep -q .; then
+            git add public/art/gen src/data/creatureArt.json
+            git commit -m "Bake creature portraits via PixelLab: ${{ github.event.inputs.ids || 'all' }}"
+            git push
+            echo "✓ committed baked portraits — Pages will redeploy shortly."
+          else
+            echo "No new portraits were produced (check the Bake step log above for the reason)."
+          fi

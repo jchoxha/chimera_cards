@@ -21,7 +21,7 @@
 // ║   flags: --size=128 --out=public/art/gen --view=side --shading='detailed shading'║
 // ╚══════════════════════════════════════════════════════════════════╝
 
-import { writeFileSync, mkdirSync } from 'fs';
+import { writeFileSync, readFileSync, mkdirSync } from 'fs';
 
 try { process.loadEnvFile('.env'); } catch { /* no .env — env vars may still be set */ }
 
@@ -97,26 +97,37 @@ async function bake(id) {
     ...(VIEW ? { view: VIEW } : {}),
     ...(DIRECTION ? { direction: DIRECTION } : {}),
   };
-  if (DRY) { console.log(`\n[${id}]\n${body.description}`); return 0; }
+  if (DRY) { console.log(`\n[${id}]\n${body.description}`); return true; }
   const res = await fetch(`${BASE}/generate-image-pixflux`, {
     method: 'POST',
     headers: { Authorization: `Bearer ${KEY}`, 'Content-Type': 'application/json' },
     body: JSON.stringify(body),
   });
-  if (!res.ok) { console.error(`✗ ${id}: HTTP ${res.status} ${(await res.text()).slice(0, 300)}`); return 0; }
+  if (!res.ok) { console.error(`✗ ${id}: HTTP ${res.status} ${(await res.text()).slice(0, 300)}`); return false; }
   const json = await res.json();
   const b64 = extractB64(json.image);
-  if (!b64) { console.error(`✗ ${id}: no image in response (${Object.keys(json).join(', ')})`); return 0; }
+  if (!b64) { console.error(`✗ ${id}: no image in response (${Object.keys(json).join(', ')})`); return false; }
   writeFileSync(`${OUT}/${id}.png`, Buffer.from(b64, 'base64'));
-  const cost = json.usage?.usd ?? 0;
+  const cost = json.usage?.usd ?? 0; total += cost;
   console.log(`✓ ${id} → ${OUT}/${id}.png  (${SIZE}²${cost ? `, $${cost.toFixed(4)}` : ''})`);
-  return cost;
+  return true;
 }
 
 let total = 0;
+const baked = [];
 console.log(`${DRY ? 'DRY-RUN — ' : ''}PixelLab bake · ${list.length} creature(s) · ${SIZE}² · ${BASE}`);
 for (const id of list) {
-  total += await bake(id);
+  if (await bake(id)) baked.push(id);
   if (!DRY && DELAY_MS && id !== list[list.length - 1]) await new Promise((r) => setTimeout(r, DELAY_MS));
 }
-if (!DRY) console.log(`\nDone — ${list.length} baked${total ? `, total ≈ $${total.toFixed(4)}` : ''}. Review in public/art/gen/, then commit.`);
+
+// Keep the art manifest in sync so baked portraits actually render in-game.
+if (!DRY && !flags['no-manifest'] && baked.length && OUT.endsWith('art/gen')) {
+  try {
+    const MAN = 'src/data/creatureArt.json';
+    const cur = JSON.parse(readFileSync(MAN, 'utf8'));
+    const merged = [...new Set([...cur, ...baked])];
+    if (merged.length !== cur.length) { writeFileSync(MAN, JSON.stringify(merged) + '\n'); console.log(`+ ${MAN}: +${merged.length - cur.length} id(s)`); }
+  } catch (e) { console.warn(`⚠ could not update creatureArt.json: ${e.message}`); }
+}
+if (!DRY) console.log(`\nDone — ${baked.length}/${list.length} baked${total ? `, total ≈ $${total.toFixed(4)}` : ''}. Review public/art/gen/, then commit.`);
