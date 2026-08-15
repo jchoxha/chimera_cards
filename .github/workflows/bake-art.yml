@@ -27,7 +27,7 @@ on:
         required: true
         default: '128'
       extra:
-        description: 'Extra flags, e.g. "--shading=''medium shading'' --view=side --outline=''selective outline''"'
+        description: 'Extra flags — use underscores for spaces in values, e.g. "--shading=medium_shading --view=side --outline=selective_outline"'
         required: false
         default: ''
 

@@ -29,19 +29,29 @@ const KEY = process.env.PIXELLAB_API_KEY || process.env.PIXELLAB_SECRET || '';
 const BASE = (process.env.PIXELLAB_API_BASE_URL || 'https://api.pixellab.ai/v1').replace(/\/$/, '');
 
 // ── CLI ──────────────────────────────────────────────────────────────────────
+// Accepts BOTH `--key=value` and `--key value`; bare `--flag` is a boolean.
+// Multi-word values can use underscores (`medium_shading`) so they survive the CI
+// workflow's word-splitting — underscores are turned back into spaces below.
+const BOOL = new Set(['dry', 'sample', 'no-manifest']);
 const flags = {}; const idArgs = [];
-for (const a of process.argv.slice(2)) {
-  if (a.startsWith('--')) { const [k, v] = a.slice(2).split('='); flags[k] = v === undefined ? true : v; }
-  else idArgs.push(a);
+const argv = process.argv.slice(2);
+for (let i = 0; i < argv.length; i++) {
+  const a = argv[i];
+  if (a.startsWith('--')) {
+    const eq = a.indexOf('=');
+    if (eq >= 0) flags[a.slice(2, eq)] = a.slice(eq + 1);
+    else { const key = a.slice(2); flags[key] = (!BOOL.has(key) && i + 1 < argv.length && !argv[i + 1].startsWith('--')) ? argv[++i] : true; }
+  } else idArgs.push(a);
 }
-const SIZE = +(flags.size || 128);
+const norm = (v) => (typeof v === 'string' ? v.replace(/_/g, ' ') : v);
+const SIZE = Math.max(16, Math.min(400, Math.round(+(flags.size || 128)) || 128)); // API accepts 16..400
 const OUT = (flags.out || 'public/art/gen').replace(/\/$/, '');
 const DRY = !!flags.dry;
-const OUTLINE = flags.outline || 'single color black outline';
-const SHADING = flags.shading || 'detailed shading';
-const DETAIL = flags.detail || 'highly detailed';
-const VIEW = flags.view || null;              // 'side' | 'low top-down' | 'high top-down'
-const DIRECTION = flags.direction || null;    // 'south' faces the viewer, etc.
+const OUTLINE = norm(flags.outline) || 'single color black outline';
+const SHADING = norm(flags.shading) || 'detailed shading';
+const DETAIL = norm(flags.detail) || 'highly detailed';
+const VIEW = norm(flags.view) || null;        // 'side' | 'low top-down' | 'high top-down'
+const DIRECTION = norm(flags.direction) || null; // 'south' faces the viewer, etc.
 const DELAY_MS = +(flags.delay || 800);
 
 // Shared style clause — keeps the whole set cohesive (PixelLab already draws pixel
