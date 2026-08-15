@@ -60,7 +60,7 @@ jobs:
         # Inputs pass via env (never interpolated into the command line) so a value
         # can't inject shell. $IDS / $EXTRA are intentionally unquoted so a
         # multi-id / multi-flag input word-splits into separate args.
-        run: node scripts/bake_roster_pixellab.mjs $IDS --size "$SIZE" $EXTRA
+        run: node scripts/bake_roster_pixellab.mjs $IDS --size=$SIZE $EXTRA
         env:
           PIXELLAB_API_KEY: ${{ secrets.PIXELLAB_API_KEY }}
           IDS: ${{ github.event.inputs.ids }}
