@@ -24,6 +24,7 @@
 // ╚══════════════════════════════════════════════════════════════════╝
 
 import { writeFileSync, readFileSync, mkdirSync, existsSync } from 'fs';
+import { decodePNG, resizeRGBA, encodePNG } from './png.mjs';
 
 try { process.loadEnvFile('.env'); } catch { /* no .env — env vars may still be set */ }
 
@@ -67,6 +68,12 @@ const TEXT_GUIDE = +(flags.textguide || (STYLE_STRENGTH !== null ? 4 : 8)); // t
 const REF_DIR = (flags.refs || 'art-refs').replace(/\/$/, '');
 const REF_FALLBACK = { emberdrake: 'emberwisp', grizzlord: 'voltfang', felhound: 'nightveil' };
 const refFor = (id) => [id, REF_FALLBACK[id]].filter(Boolean).map((c) => `${REF_DIR}/${c}.png`).find((p) => existsSync(p)) || null;
+// BitForge requires style_image to match the requested output size — downscale the ref.
+const styleImageB64 = (refPath, size) => {
+  const raw = decodePNG(readFileSync(refPath));
+  const fit = raw.width === size && raw.height === size ? raw : resizeRGBA(raw, size, size);
+  return Buffer.from(encodePNG(fit)).toString('base64');
+};
 
 // Shared style clause — keeps the whole set cohesive (PixelLab already draws pixel
 // art, so this describes SUBJECT + composition, not the medium).
@@ -123,15 +130,21 @@ async function bake(id) {
   };
   // BitForge (style-matched) when --style is set AND a reference exists; else PixFlux.
   const ref = STYLE_STRENGTH !== null ? refFor(id) : null;
-  const endpoint = ref ? 'generate-image-bitforge' : 'generate-image-pixflux';
-  if (ref) {
-    body.style_image = { type: 'base64', base64: readFileSync(ref).toString('base64'), format: 'png' };
+  let styleB64 = null;
+  if (ref && !DRY) {
+    try { styleB64 = styleImageB64(ref, SIZE); }
+    catch (e) { console.warn(`  (couldn't read style ref ${ref}: ${e.message} — using PixFlux)`); }
+  }
+  const useBitforge = ref && (DRY || styleB64);
+  const endpoint = useBitforge ? 'generate-image-bitforge' : 'generate-image-pixflux';
+  if (useBitforge && styleB64) {
+    body.style_image = { type: 'base64', base64: styleB64, format: 'png' };
     body.style_strength = STYLE_STRENGTH;
     body.extra_guidance_scale = STYLE_GUIDE;
-  } else if (STYLE_STRENGTH !== null) {
+  } else if (STYLE_STRENGTH !== null && !ref) {
     console.warn(`  (no style ref for ${id} in ${REF_DIR}/ — using PixFlux)`);
   }
-  if (DRY) { console.log(`\n[${id}] (${ref ? `BitForge · style ${STYLE_STRENGTH} · ref ${ref}` : 'PixFlux'})\n${body.description}`); return true; }
+  if (DRY) { console.log(`\n[${id}] (${useBitforge ? `BitForge · style ${STYLE_STRENGTH} · ref ${ref} → ${SIZE}²` : 'PixFlux'})\n${body.description}`); return true; }
   const res = await fetch(`${BASE}/${endpoint}`, {
     method: 'POST',
     headers: { Authorization: `Bearer ${KEY}`, 'Content-Type': 'application/json' },
