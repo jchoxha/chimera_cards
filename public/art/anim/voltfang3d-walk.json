@@ -1,0 +1,19 @@
+{
+  "id": "voltfang3d",
+  "action": "walk",
+  "view": "3d low top-down",
+  "size": 64,
+  "frames": 6,
+  "directions": [
+    "south",
+    "south-east",
+    "east",
+    "north-east",
+    "north",
+    "north-west",
+    "west",
+    "south-west"
+  ],
+  "layout": "row per direction, column per frame",
+  "sheet": "voltfang3d-walk.png"
+}

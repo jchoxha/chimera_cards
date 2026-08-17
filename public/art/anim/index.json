@@ -1,5 +1,22 @@
 [
   {
+    "id": "voltfang3d",
+    "action": "walk",
+    "sheet": "voltfang3d-walk.png",
+    "size": 64,
+    "frames": 6,
+    "directions": [
+      "south",
+      "south-east",
+      "east",
+      "north-east",
+      "north",
+      "north-west",
+      "west",
+      "south-west"
+    ]
+  },
+  {
     "id": "voltfang",
     "action": "walk",
     "sheet": "voltfang-walk.png",
