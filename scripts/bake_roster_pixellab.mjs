@@ -56,6 +56,7 @@ const DETAIL = norm(flags.detail) || 'highly detailed';
 const VIEW = norm(flags.view) || null;        // 'side' | 'low top-down' | 'high top-down'
 const DIRECTION = norm(flags.direction) || null; // 'south' faces the viewer, etc.
 const DELAY_MS = +(flags.delay || 800);
+const REROLL = Math.round(+(flags.reroll || 0)) || 0;   // offset seeds to reroll a bad result
 
 // ── STYLE-MATCH (BitForge) — pass --style=N (0..100) to render each creature via
 // the BitForge model using its ORIGINAL illustration (art-refs/<id>.png) as the
@@ -82,7 +83,7 @@ const STYLE_SUFFIX = ', full body, single character, centered, clean readable si
 
 // Per-creature art prompts — the durable asset. Vivid, subject-first descriptions.
 const PROMPTS = {
-  ironhide: 'a towering armored golem brawler in weathered olive-green and bronze plate armor, glowing red eyes behind a horned helmet, hefting a massive stone maul over one shoulder, a round shield on the other arm, hulking and immovable',
+  ironhide: 'a towering armored golem brawler in weathered olive-green and bronze plate armor, glowing red eyes behind a horned helmet, swinging a massive two-handed stone warhammer overhead mid-swing in a wide battle stance, a round shield on the off arm, hulking and furious, motion and impact',
   voltfang: 'a feral lightning wolf with shaggy grey-blue fur, crackling cyan electricity arcing across its back, glowing electric-blue eyes and bared fangs, prowling on all fours',
   nightveil: 'a hooded shadow-assassin, slender in a dark violet cloak, wielding twin curved daggers, face hidden in shadow with faint glowing eyes, wisps of darkness trailing behind',
   emberwisp: 'a small living-flame elemental, a floating wisp of translucent orange-yellow fire with a single glowing eye at its molten core, trailing embers',
@@ -94,7 +95,7 @@ const PROMPTS = {
   wildeye: 'a fierce hunter raptor-bird with brown-and-green plumage, a sharp hooked beak, spread wings, taloned claws, piercing alert eyes',
   cogwright: 'a mechanical engineer construct with a boxy bronze-and-steel riveted body, glowing gauge eyes, a wrench-arm and a bolted shield, steampunk',
   maw: 'an eldritch void horror, a dark writhing mass of tentacles around a huge fanged maw, many glowing eyes, purple-black and otherworldly',
-  emberdrake: 'a young fire dragon, a chunky red-orange scaled drake with small horns, leathery wings, a fanged snout breathing embers, clawed feet, glowing amber eyes',
+  emberdrake: 'a fierce young fire dragon, red-orange scaled, rearing up with leathery wings spread wide, breathing a burst of flame, small curved horns, raking clawed talons, glowing amber eyes, menacing and dynamic',
   grizzlord: 'a bear-warrior chimera, a massive brown grizzly standing upright in berserker armor, swinging a battle-axe, roaring with claws and teeth bared',
   felhound: 'a demonic hound, a sleek black-furred beast etched with glowing red cursed runes, burning red eyes, bared fangs, wisps of hellfire, sinister',
 };
@@ -125,7 +126,7 @@ async function bake(id) {
     no_background: true,
     outline: OUTLINE, shading: SHADING, detail: DETAIL,
     text_guidance_scale: TEXT_GUIDE,
-    seed: seedOf(id),
+    seed: (seedOf(id) + REROLL) % 2147483647,
     ...(VIEW ? { view: VIEW } : {}),
     ...(DIRECTION ? { direction: DIRECTION } : {}),
   };
