@@ -51,7 +51,7 @@ const SIZE = Math.max(16, Math.min(400, Math.round(+(flags.size || 128)) || 128)
 const OUT = (flags.out || 'public/art/gen').replace(/\/$/, '');
 const DRY = !!flags.dry;
 const OUTLINE = norm(flags.outline) || 'single color black outline';
-const SHADING = norm(flags.shading) || 'detailed shading';
+const SHADING = norm(flags.shading) || 'highly detailed shading';
 const DETAIL = norm(flags.detail) || 'highly detailed';
 const VIEW = norm(flags.view) || null;        // 'side' | 'low top-down' | 'high top-down'
 const DIRECTION = norm(flags.direction) || null; // 'south' faces the viewer, etc.
@@ -75,9 +75,10 @@ const styleImageB64 = (refPath, size) => {
   return Buffer.from(encodePNG(fit)).toString('base64');
 };
 
-// Shared style clause — keeps the whole set cohesive (PixelLab already draws pixel
-// art, so this describes SUBJECT + composition, not the medium).
-const STYLE_SUFFIX = ', full body, single character, centered, clean readable silhouette, cohesive fantasy monster-collector creature design, vibrant colors, dynamic pose';
+// Shared style clause — keeps the whole set cohesive AND steers PixFlux toward the
+// original illustrations' DNA (bold outlines, dramatic light, saturated, moody),
+// since BitForge style-transfer from those painterly refs just produced mud.
+const STYLE_SUFFIX = ', full body, single character, centered, clean readable silhouette, bold black outline, dramatic rim lighting, richly shaded, deep saturated colors, epic dark-fantasy monster-collector creature art, dynamic heroic pose';
 
 // Per-creature art prompts — the durable asset. Vivid, subject-first descriptions.
 const PROMPTS = {
