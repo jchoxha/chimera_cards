@@ -52,6 +52,26 @@ const DIR8 = ['south', 'south-east', 'east', 'north-east', 'north', 'north-west'
 const DIRS = NDIRS === 8 ? DIR8 : ['south', 'east', 'north', 'west'];
 
 const list = idArgs.length ? idArgs : ['voltfang'];
+
+// /animate-with-text requires a `description` of the subject (identity comes from
+// the reference_image; this tells it WHAT it's animating). Neutral, pose-free.
+const DESCS = {
+  voltfang: 'a feral lightning wolf with shaggy grey-blue fur and crackling cyan electricity, glowing electric-blue eyes, bared fangs',
+  ironhide: 'a towering armored golem brawler in weathered olive-green and bronze plate armor, a horned helmet and glowing red eyes, carrying a warhammer',
+  emberdrake: 'a young red-orange fire dragon with small curved horns and leathery wings, glowing amber eyes',
+  nightveil: 'a hooded shadow assassin in a dark violet cloak wielding twin curved daggers',
+  emberwisp: 'a small living-flame elemental, a wisp of orange-yellow fire with a single glowing eye',
+  frostmind: 'a frost-mage in pale blue frost-rimed robes holding an icy crystal staff',
+  grimsoul: 'an undead warlock in tattered dark robes with a gaunt skull face and a bone staff',
+  dawnkeeper: 'a holy paladin in gleaming golden-and-white plate armor with a mace and shield',
+  thornroot: 'a mossy green reptilian spirit-beast wrapped in thorny vines, glowing amber eyes',
+  tidecaller: 'a water-shaman in flowing blue-green robes holding a coral staff',
+  wildeye: 'a fierce raptor-bird with brown-and-green plumage, a hooked beak and taloned claws',
+  cogwright: 'a boxy bronze-and-steel mechanical construct with glowing gauge eyes',
+  maw: 'an eldritch void horror of dark writhing tentacles around a fanged maw with many glowing eyes',
+  grizzlord: 'a massive brown grizzly bear-warrior in berserker armor wielding a battle-axe',
+  felhound: 'a sleek black demonic hound etched with glowing red runes and burning red eyes',
+};
 const seedOf = (s) => { let h = 2166136261; for (let i = 0; i < s.length; i++) { h ^= s.charCodeAt(i); h = Math.imul(h, 16777619); } return (h >>> 0) % 2147483647; };
 const extractB64 = (img) => { if (!img) return null; const s = typeof img === 'string' ? img : (img.base64 || img.data || img.b64_json || ''); return s.replace(/^data:image\/\w+;base64,/, ''); };
 const refB64 = (path) => { const raw = decodePNG(readFileSync(path)); const fit = raw.width === SIZE && raw.height === SIZE ? raw : resizeRGBA(raw, SIZE, SIZE); return Buffer.from(encodePNG(fit)).toString('base64'); };
@@ -67,6 +87,7 @@ async function animateDir(id, refImage, direction) {
   // "just copy the reference", more actual motion).
   const body = {
     image_size: { width: SIZE, height: SIZE },
+    description: norm(flags.desc) || DESCS[id] || `a ${id} fantasy creature`,
     action: ACTION,
     reference_image: { type: 'base64', base64: refImage, format: 'png' },
     view: VIEW,
