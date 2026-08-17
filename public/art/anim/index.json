@@ -1,0 +1,15 @@
+[
+  {
+    "id": "voltfang",
+    "action": "walk",
+    "sheet": "voltfang-walk.png",
+    "size": 64,
+    "frames": 4,
+    "directions": [
+      "south",
+      "east",
+      "north",
+      "west"
+    ]
+  }
+]

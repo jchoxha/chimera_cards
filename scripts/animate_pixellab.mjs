@@ -16,7 +16,7 @@
 // ║   node scripts/animate_pixellab.mjs voltfang --dry             # plan, no net  ║
 // ╚══════════════════════════════════════════════════════════════════╝
 
-import { writeFileSync, readFileSync, mkdirSync, existsSync } from 'fs';
+import { writeFileSync, readFileSync, mkdirSync, existsSync, readdirSync } from 'fs';
 import { decodePNG, resizeRGBA, encodePNG } from './png.mjs';
 
 try { process.loadEnvFile('.env'); } catch { /* env vars may still be set */ }
@@ -156,6 +156,19 @@ async function animate(id) {
   console.log(`  → ${OUT}/${id}-${ACTION}.png  (${sheet.width}×${sheet.height}) · ${ok}/${DIRS.length} dirs ok · individual frames in ${OUT}/${id}/`);
 }
 
+// Rebuild art/anim/index.json from every committed manifest so the persistent
+// viewer (public/anim-preview.html) auto-lists all animations.
+function rebuildIndex() {
+  try {
+    const entries = readdirSync(OUT)
+      .filter((f) => f.endsWith('.json') && f !== 'index.json')
+      .map((f) => { const m = JSON.parse(readFileSync(`${OUT}/${f}`, 'utf8')); return { id: m.id, action: m.action, sheet: m.sheet, size: m.size, frames: m.frames, directions: m.directions }; })
+      .sort((a, b) => (a.id + a.action).localeCompare(b.id + b.action));
+    writeFileSync(`${OUT}/index.json`, JSON.stringify(entries, null, 2) + '\n');
+    console.log(`+ ${OUT}/index.json (${entries.length} animation(s))`);
+  } catch (e) { console.warn(`⚠ could not rebuild index.json: ${e.message}`); }
+}
+
 console.log(`${DRY ? 'DRY-RUN — ' : ''}PixelLab animate · ${list.length} creature(s) · ${BASE}`);
 for (const id of list) await animate(id);
-if (!DRY) console.log(`\nDone${total ? `, total ≈ $${total.toFixed(4)}` : ''}. Review ${OUT}/, then commit.`);
+if (!DRY) { rebuildIndex(); console.log(`\nDone${total ? `, total ≈ $${total.toFixed(4)}` : ''}. Review ${OUT}/ + the viewer at /anim-preview.html, then commit.`); }

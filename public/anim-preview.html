@@ -1,0 +1,131 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Chimera — Animation Viewer</title>
+<style>
+  :root { color-scheme: dark; }
+  body { margin:0; background:#14121a; color:#e8e4f0; font:15px/1.5 system-ui,sans-serif; padding:24px; display:flex; flex-direction:column; gap:22px; align-items:center; }
+  h1 { font-size:20px; margin:0; font-weight:650; }
+  h2 { font-size:13px; text-transform:uppercase; letter-spacing:.08em; color:#9b93b4; margin:0 0 10px; }
+  canvas { image-rendering:pixelated; background:#0d0b12; border-radius:8px; }
+  .row { display:flex; gap:18px; flex-wrap:wrap; justify-content:center; }
+  .cell { display:flex; flex-direction:column; align-items:center; gap:6px; }
+  .cell span { font-size:12px; color:#9b93b4; }
+  .panel { background:#1d1a26; border:1px solid #2c2838; border-radius:12px; padding:18px 20px; }
+  .hint { font-size:13px; color:#9b93b4; text-align:center; max-width:520px; }
+  .field { background:#0d0b12; border-radius:10px; touch-action:none; }
+  input[type=range] { width:180px; vertical-align:middle; }
+  .ctl { display:flex; gap:16px; align-items:center; font-size:13px; color:#c7c1d8; flex-wrap:wrap; justify-content:center; }
+  select { background:#26222f; color:#e8e4f0; border:1px solid #3a3448; border-radius:8px; padding:8px 12px; font-size:14px; }
+  b { color:#7fe3ff; }
+  #empty { color:#9b93b4; text-align:center; }
+</style>
+</head>
+<body>
+<h1>Animation Viewer</h1>
+<div class="ctl">
+  <label>Animation <select id="pick"></select></label>
+  <label>Speed <input id="fps" type="range" min="1" max="14" value="7"></label>
+  <span id="fpsv">7 fps</span>
+</div>
+
+<div id="empty">Loading…</div>
+
+<div class="panel" id="stripPanel" hidden>
+  <h2>All directions (looping)</h2>
+  <div class="row" id="strip"></div>
+</div>
+
+<div class="panel" id="fieldPanel" hidden>
+  <h2>Walk around — arrow keys / WASD (or drag on touch)</h2>
+  <canvas class="field" id="field" width="480" height="300" tabindex="0"></canvas>
+  <div class="hint">Click the field first, then hold an arrow key. The sprite faces where it walks and idles when still.</div>
+</div>
+
+<script>
+const SCALE = 4;
+let MAN = null, SHEET = null, S = 64, N = 4, DIRS = [], rowOf = {}, fps = 7, raf = 0;
+
+const $ = (id) => document.getElementById(id);
+const fpsEl = $('fps'), fpsv = $('fpsv');
+fpsEl.oninput = () => { fps = +fpsEl.value; fpsv.textContent = fps + ' fps'; };
+
+function drawCell(ctx, dx, dy, dir, frame) {
+  const r = rowOf[dir] ?? 0;
+  ctx.imageSmoothingEnabled = false;
+  ctx.drawImage(SHEET, frame * S, r * S, S, S, dx, dy, S * SCALE, S * SCALE);
+}
+
+let cells = [];
+function buildStrip() {
+  const strip = $('strip'); strip.innerHTML = '';
+  cells = DIRS.map((d) => {
+    const wrap = document.createElement('div'); wrap.className = 'cell';
+    const c = document.createElement('canvas'); c.width = S * SCALE; c.height = S * SCALE;
+    const lbl = document.createElement('span'); lbl.textContent = d;
+    wrap.append(c, lbl); strip.append(wrap);
+    return { dir: d, ctx: c.getContext('2d') };
+  });
+}
+
+// field state
+const field = $('field'), fctx = field.getContext('2d');
+const keys = {}; let px = 240, py = 150, facing = 'south';
+const K = { ArrowUp:'north', ArrowDown:'south', ArrowLeft:'west', ArrowRight:'east', w:'north', s:'south', a:'west', d:'east' };
+addEventListener('keydown', (e) => { if (K[e.key]) { keys[K[e.key]] = 1; e.preventDefault(); } });
+addEventListener('keyup', (e) => { if (K[e.key]) keys[K[e.key]] = 0; });
+let touch = null;
+field.addEventListener('pointerdown', (e) => { touch = { x: e.offsetX, y: e.offsetY }; field.focus(); });
+addEventListener('pointerup', () => touch = null);
+field.addEventListener('pointermove', (e) => { if (touch) touch = { x: e.offsetX, y: e.offsetY }; });
+
+let t0 = performance.now();
+function loop(now) {
+  const dt = (now - t0) / 1000; t0 = now;
+  const frame = Math.floor(now / 1000 * fps) % N;
+  cells.forEach((c) => { c.ctx.clearRect(0, 0, S * SCALE, S * SCALE); drawCell(c.ctx, 0, 0, c.dir, frame); });
+  let vx = 0, vy = 0;
+  if (keys.north) vy -= 1; if (keys.south) vy += 1; if (keys.west) vx -= 1; if (keys.east) vx += 1;
+  if (touch) { const dx = touch.x - px, dy = touch.y - py; if (Math.hypot(dx, dy) > 6) { vx = dx; vy = dy; } }
+  const moving = vx || vy;
+  if (moving) {
+    const len = Math.hypot(vx, vy) || 1, spd = 90 * dt;
+    px = Math.max(24, Math.min(field.width - 24, px + vx / len * spd));
+    py = Math.max(24, Math.min(field.height - 24, py + vy / len * spd));
+    const f = DIRS.includes(Math.abs(vx) > Math.abs(vy) ? (vx > 0 ? 'east' : 'west') : (vy > 0 ? 'south' : 'north'));
+    facing = f ? (Math.abs(vx) > Math.abs(vy) ? (vx > 0 ? 'east' : 'west') : (vy > 0 ? 'south' : 'north')) : facing;
+  }
+  fctx.clearRect(0, 0, field.width, field.height);
+  fctx.strokeStyle = '#1c1926'; fctx.lineWidth = 1;
+  for (let x = 0; x < field.width; x += 30) { fctx.beginPath(); fctx.moveTo(x, 0); fctx.lineTo(x, field.height); fctx.stroke(); }
+  for (let y = 0; y < field.height; y += 30) { fctx.beginPath(); fctx.moveTo(0, y); fctx.lineTo(field.width, y); fctx.stroke(); }
+  drawCell(fctx, px - S * SCALE / 2, py - S * SCALE / 2, facing, moving ? frame : 0);
+  raf = requestAnimationFrame(loop);
+}
+
+function loadAnim(entry) {
+  cancelAnimationFrame(raf);
+  MAN = entry; S = entry.size; N = entry.frames; DIRS = entry.directions;
+  rowOf = {}; DIRS.forEach((d, i) => rowOf[d] = i);
+  if (!DIRS.includes(facing)) facing = DIRS[0];
+  const img = new Image();
+  img.onload = () => { SHEET = img; buildStrip(); $('stripPanel').hidden = false; $('fieldPanel').hidden = false; t0 = performance.now(); raf = requestAnimationFrame(loop); };
+  img.src = 'art/anim/' + entry.sheet;
+}
+
+fetch('art/anim/index.json')
+  .then((r) => r.ok ? r.json() : [])
+  .then((list) => {
+    if (!list.length) { $('empty').textContent = 'No animations yet. Run the Animate workflow, then reload.'; return; }
+    $('empty').hidden = true;
+    const pick = $('pick');
+    list.forEach((e, i) => { const o = document.createElement('option'); o.value = i; o.textContent = `${e.id} — ${e.action} (${e.directions.length}-dir)`; pick.append(o); });
+    pick.onchange = () => loadAnim(list[+pick.value]);
+    loadAnim(list[0]);
+  })
+  .catch(() => { $('empty').textContent = 'Could not load art/anim/index.json.'; });
+</script>
+</body>
+</html>
