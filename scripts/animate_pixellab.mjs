@@ -62,33 +62,43 @@ if (!DRY) mkdirSync(OUT, { recursive: true });
 let total = 0;
 
 async function animateDir(id, refImage, direction) {
+  // Payload mirrors the official client's defaults so we don't trip a 422 on a
+  // missing field, and exposes the guidance knobs (lower image guidance = less
+  // "just copy the reference", more actual motion).
   const body = {
     image_size: { width: SIZE, height: SIZE },
     action: ACTION,
     reference_image: { type: 'base64', base64: refImage, format: 'png' },
     view: VIEW,
     direction,
+    negative_description: '',
+    text_guidance_scale: +(flags.textguide || 7.5),
+    image_guidance_scale: +(flags.imgguide || 1.4),
     n_frames: FRAMES,
+    start_frame_index: 0,
+    init_image_strength: 300,
     seed: seedOf(id + direction),
   };
   const res = await fetch(`${BASE}/animate-with-text`, {
     method: 'POST', headers: { Authorization: `Bearer ${KEY}`, 'Content-Type': 'application/json' }, body: JSON.stringify(body),
   });
-  if (!res.ok) { console.error(`  ✗ ${id} ${direction}: HTTP ${res.status} ${(await res.text()).slice(0, 240)}`); return null; }
+  if (!res.ok) { console.error(`  ✗ ${direction}: HTTP ${res.status} — ${(await res.text()).slice(0, 400)}`); return null; }
   const json = await res.json();
   total += json.usage?.usd ?? 0;
-  const frames = (json.images || []).map((im) => decodePNG(Buffer.from(extractB64(im), 'base64')));
-  if (!frames.length) { console.error(`  ✗ ${id} ${direction}: no frames returned`); return null; }
+  const raw = json.images || json.frames || [];
+  const frames = raw.map((im) => decodePNG(Buffer.from(extractB64(im), 'base64')));
+  if (!frames.length) { console.error(`  ✗ ${direction}: 200 OK but no frames (response keys: ${Object.keys(json).join(', ')})`); return null; }
   return frames;
 }
 
-// tile [dir][frame] RGBA cells into one sheet, row per direction.
+const blankCell = () => ({ width: SIZE, height: SIZE, data: new Uint8ClampedArray(SIZE * SIZE * 4) });
+// tile rows[{dir,frames|null}] into one sheet, row per direction (blank if failed).
 function buildSheet(rows) {
   const W = FRAMES * SIZE, H = rows.length * SIZE;
   const data = new Uint8ClampedArray(W * H * 4);
-  rows.forEach((frames, r) => {
+  rows.forEach((row, r) => {
     for (let f = 0; f < FRAMES; f++) {
-      const cell = frames[Math.min(f, frames.length - 1)];
+      const cell = row.frames ? row.frames[Math.min(f, row.frames.length - 1)] : blankCell();
       const ox = f * SIZE, oy = r * SIZE;
       for (let y = 0; y < SIZE; y++) for (let x = 0; x < SIZE; x++) {
         const s = (y * cell.width + x) * 4, d = ((oy + y) * W + (ox + x)) * 4;
@@ -105,13 +115,16 @@ async function animate(id) {
   console.log(`\n${id}: ${ACTION} · ${NDIRS} dirs · ${FRAMES} frames · ${VIEW} · ${SIZE}²`);
   if (DRY) { console.log(`  would POST /animate-with-text ×${DIRS.length} (${DIRS.join(', ')})`); return; }
   const ref = refB64(src);
-  const rows = [];
+  const rows = []; let ok = 0;
+  mkdirSync(`${OUT}/${id}`, { recursive: true });
   for (const dir of DIRS) {
     const frames = await animateDir(id, ref, dir);
-    rows.push(frames || Array(FRAMES).fill(decodePNG(readFileSync(src))));   // fallback: static base
+    if (frames) { ok++; frames.forEach((fr, fi) => writeFileSync(`${OUT}/${id}/${ACTION}-${dir}-${fi}.png`, encodePNG(fr))); }
+    rows.push({ dir, frames });
     console.log(`  ${frames ? '✓' : '·'} ${dir} (${(frames || []).length} frames)`);
     if (dir !== DIRS[DIRS.length - 1]) await new Promise((r) => setTimeout(r, DELAY_MS));
   }
+  if (!ok) { console.error(`✗ ${id}: all ${DIRS.length} directions FAILED (see errors above). No sheet written — nothing to disguise.`); return; }
   const sheet = buildSheet(rows);
   writeFileSync(`${OUT}/${id}-${ACTION}.png`, encodePNG(sheet));
   writeFileSync(`${OUT}/${id}-${ACTION}.json`, JSON.stringify({
@@ -119,7 +132,7 @@ async function animate(id) {
     directions: DIRS, layout: 'row per direction, column per frame',
     sheet: `${id}-${ACTION}.png`,
   }, null, 2) + '\n');
-  console.log(`  → ${OUT}/${id}-${ACTION}.png  (${sheet.width}×${sheet.height})`);
+  console.log(`  → ${OUT}/${id}-${ACTION}.png  (${sheet.width}×${sheet.height}) · ${ok}/${DIRS.length} dirs ok · individual frames in ${OUT}/${id}/`);
 }
 
 console.log(`${DRY ? 'DRY-RUN — ' : ''}PixelLab animate · ${list.length} creature(s) · ${BASE}`);
