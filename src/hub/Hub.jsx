@@ -17,28 +17,31 @@ import './hub.css';
 const BASE = (import.meta.env && import.meta.env.BASE_URL) || '/';
 const buildUrl = (href) => `${BASE}${href}`;
 
-/** The deployed builds/versions, newest-direction first. VERSIONS[0] = the "current" build. */
+/** The deployed builds/pages, newest-direction first. VERSIONS[0] = the "current" build. */
 const VERSIONS = [
-  { href: 'battle.html', icon: '⚔️', name: 'Chimera — the game', tag: 'current', tone: 'good',
+  { href: 'battle.html', icon: '⚔️', name: 'Chimera — the game', tag: 'current', tone: 'good', sub: 'The current build',
     desc: 'The current build: a seamless open-world roguelike run — explore biomes, fight Pokémon-style simultaneous squad battles, earn card & gold rewards, capture creatures, shop in towns, and beat the boss to win the run.' },
-  { href: 'app.html', icon: '🎴', name: 'Chimera v1', tag: 'v1', tone: 'info',
+  { href: 'app.html', icon: '🎴', name: 'Chimera v1', tag: 'v1', tone: 'info', sub: 'The v1 game',
     desc: 'The v1 game: roguelike runs on the Vanguard/Peek combat engine, collection & team building, practice combat, the editor and codex.' },
-  { href: 'lab.html', icon: '🧬', name: 'Creature Lab', tag: 'tool', tone: 'good',
+  { href: 'lab.html', icon: '🧬', name: 'Creature Lab', tag: 'tool', tone: 'good', sub: 'Generation & fusion testbed',
     desc: 'Dynamic creature generation + seamless fusion testbed: spin the wheels for rarity/form/evolutions, describe a creature in plain text to set its identity, then fuse any two creatures into a new one (order matters).' },
-  { href: 'editor.html', icon: '🛠️', name: 'Editor', tag: 'tool', tone: 'info',
+  { href: 'anim-preview.html', icon: '🎬', name: 'Animation Viewer', tag: 'tool', tone: 'good', sub: 'Preview creature animations',
+    desc: 'Preview generated creature animation sheets — loop every direction and drive the sprite around a field with the arrow keys / WASD. New animations appear automatically as they are baked.' },
+  { href: 'editor.html', icon: '🛠️', name: 'Editor', tag: 'tool', tone: 'info', sub: 'Cards & creatures',
     desc: 'Standalone card & creature editor (also reachable inside the game).' },
-  { href: 'combat.html', icon: '🧪', name: 'Combat demo', tag: 'demo', tone: 'info',
+  { href: 'combat.html', icon: '🧪', name: 'Combat demo', tag: 'demo', tone: 'info', sub: 'v1 engine sandbox',
     desc: 'The v1 engine combat screen as a standalone sandbox.' },
-  { href: 'prototype.html', icon: '📜', name: 'Original prototype', tag: 'legacy', tone: 'muted',
+  { href: 'prototype.html', icon: '📜', name: 'Original prototype', tag: 'legacy', tone: 'muted', sub: 'The original artifact',
     desc: 'The original single-file Claude-artifact game that started it all.' },
 ];
 const CURRENT = VERSIONS[0];                                   // battle.html — the current build
-const V1 = VERSIONS.find((v) => v.href === 'app.html');        // the v1 game
 
-// The offline-capable Android app, built by the "Build Android APK" workflow and
-// published to a rolling release (docs/offline-android.md). Direct APK link;
-// resolves once the first CI build has run.
-const ANDROID_APK = 'https://github.com/jchoxha/chimera_cards/releases/download/android-latest/chimera-cards.apk';
+// Hash-routed hub views + the offline Android build, shown as tiles alongside the pages.
+const ANDROID_APK_TILE = { href: 'https://github.com/jchoxha/chimera_cards/releases/download/android-latest/chimera-cards.apk', icon: '📥', name: 'Android APK', sub: 'Offline build', external: true };
+const HUB_TILES = [
+  { hash: '#/versions', icon: '📚', name: 'Version History', sub: 'Every build in one place' },
+  { hash: '#/docs', icon: '📖', name: 'Documentation', sub: 'Design docs & specs' },
+];
 
 // Bundle every doc as raw text at build time (docs/*.md + root-level *.md).
 const rawDocs = import.meta.glob(['../../docs/*.md', '../../*.md'], { query: '?raw', import: 'default', eager: true });
@@ -84,19 +87,21 @@ function HubNav({ view }) {
 function Landing() {
   return (
     <div className="hubLanding">
-      <div className="hubHero">
+      <div className="hubHero hubHome">
         <h1>CHIMERA<span>CARDS</span></h1>
         <p className="hubTagline">A Pokémon × Slay-the-Spire creature deckbuilder.</p>
-        <a className="hubPlay" href={buildUrl(CURRENT.href)}>▶ Play Chimera</a>
-        <div className="hubHeroSub">
-          <a className="hubHeroChip" href={buildUrl(V1.href)}>🎴 Play the v1 game</a>
-          <a className="hubHeroChip" href={ANDROID_APK}>📥 Download for Android (offline)</a>
-        </div>
-        <div className="hubHeroNav">
-          <a className="hubHeroTile" href="#/versions"><span>📚</span><b>Version History</b><em>Every build in one place</em></a>
-          <a className="hubHeroTile" href="#/docs"><span>📖</span><b>Documentation</b><em>Design docs &amp; specs</em></a>
-        </div>
-        <div style={{ marginTop: 22, display: 'flex', justifyContent: 'center' }}>
+        <nav className="hubHeroNav hubHomeGrid">
+          {VERSIONS.map((v) => (
+            <a key={v.href} className={`hubHeroTile${v.tag === 'current' ? ' on' : ''}`} href={buildUrl(v.href)}>
+              <span>{v.icon}</span><b>{v.name}</b><em>{v.sub}</em>
+            </a>
+          ))}
+          {HUB_TILES.map((t) => (
+            <a key={t.hash} className="hubHeroTile" href={t.hash}><span>{t.icon}</span><b>{t.name}</b><em>{t.sub}</em></a>
+          ))}
+          <a className="hubHeroTile" href={ANDROID_APK_TILE.href}><span>{ANDROID_APK_TILE.icon}</span><b>{ANDROID_APK_TILE.name}</b><em>{ANDROID_APK_TILE.sub}</em></a>
+        </nav>
+        <div style={{ marginTop: 26, display: 'flex', justifyContent: 'center' }}>
           <AiSettings />
         </div>
       </div>

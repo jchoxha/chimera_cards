@@ -24,9 +24,13 @@
   color: var(--gold-bright); background: var(--surface-1); border: 1px solid var(--gold-deep); border-radius: var(--r-pill); padding: 7px 16px; }
 .hubHeroChip:hover { border-color: var(--gold); background: var(--surface-2); }
 .hubHeroNav { display: flex; gap: 14px; justify-content: center; flex-wrap: wrap; }
+/* Landing = a grid of page tiles (wider than the 640px hero column). */
+.hubHome { max-width: 860px; }
+.hubHomeGrid { margin-top: 30px; }
 .hubHeroTile { display: flex; flex-direction: column; align-items: center; gap: 3px; width: 190px; text-decoration: none;
   color: inherit; background: var(--surface-1); border: 1px solid var(--line); border-radius: var(--r-lg); padding: 16px; transition: transform .12s, border-color .12s; }
 .hubHeroTile:hover { transform: translateY(-3px); border-color: var(--gold); }
+.hubHeroTile.on { border-color: var(--gold); box-shadow: inset 0 0 0 1px var(--gold), 0 6px 18px #0007; }
 .hubHeroTile span { font-size: 26px; }
 .hubHeroTile b { font-family: var(--font-display); color: var(--gold-bright); font-size: 15px; }
 .hubHeroTile em { font-style: normal; font-size: 11px; color: var(--ink-dim); }
