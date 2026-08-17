@@ -35,9 +35,9 @@ on:
         required: true
         default: 'low_top-down'
       size:
-        description: 'Sprite size in px (square). Max 200 free / 400 paid.'
+        description: 'Sprite size in px (square). /animate-with-text caps at 64 — anything higher is clamped.'
         required: true
-        default: '128'
+        default: '64'
 
 permissions:
   contents: write

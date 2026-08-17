@@ -37,7 +37,7 @@ for (let i = 0; i < argv.length; i++) {
   } else idArgs.push(a);
 }
 const norm = (v) => (typeof v === 'string' ? v.replace(/_/g, ' ') : v);
-const SIZE = Math.max(16, Math.min(400, Math.round(+(flags.size || 128)) || 128));
+const SIZE = Math.max(16, Math.min(64, Math.round(+(flags.size || 64)) || 64)); // /animate-with-text caps image_size at 64
 const ACTION = norm(flags.action) || 'walk';
 const VIEW = norm(flags.view) || 'low top-down';      // overworld-ish; 'side' for platformer
 const FRAMES = Math.max(1, Math.min(20, Math.round(+(flags.frames || 4)) || 4));
