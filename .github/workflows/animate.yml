@@ -34,6 +34,10 @@ on:
         description: 'Camera: low_top-down (overworld) or side (platformer). Underscores become spaces.'
         required: true
         default: 'low_top-down'
+      from:
+        description: 'Which way the BASE sprite faces (rotate source). Most side portraits face right = east.'
+        required: true
+        default: 'east'
       size:
         description: 'Sprite size in px (square). /animate-with-text caps at 64 — anything higher is clamped.'
         required: true
@@ -65,7 +69,7 @@ jobs:
           PIXELLAB_API_KEY: ${{ secrets.PIXELLAB_API_KEY }}
 
       - name: Animate
-        run: node scripts/animate_pixellab.mjs $IDS --action=$ACTION --dirs=$DIRS --frames=$FRAMES --view=$VIEW --size=$SIZE
+        run: node scripts/animate_pixellab.mjs $IDS --action=$ACTION --dirs=$DIRS --frames=$FRAMES --view=$VIEW --size=$SIZE --from=$FROM
         env:
           PIXELLAB_API_KEY: ${{ secrets.PIXELLAB_API_KEY }}
           IDS: ${{ github.event.inputs.ids }}
@@ -74,6 +78,7 @@ jobs:
           FRAMES: ${{ github.event.inputs.frames }}
           VIEW: ${{ github.event.inputs.view }}
           SIZE: ${{ github.event.inputs.size }}
+          FROM: ${{ github.event.inputs.from }}
 
       - name: Commit animation sheets (if any changed)
         run: |

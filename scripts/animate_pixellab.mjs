@@ -46,6 +46,11 @@ const SRC = (flags.src || 'public/art/gen').replace(/\/$/, '');
 const OUT = (flags.out || 'public/art/anim').replace(/\/$/, '');
 const DRY = !!flags.dry;
 const DELAY_MS = +(flags.delay || 1200);
+// Two-step directional flow: first /rotate the base into each true facing, THEN
+// animate that rotated sprite — otherwise animate-with-text clings to the base's
+// facing and every direction comes out the same way. FROM = the base's facing.
+const ROTATE = flags.rotate === undefined ? true : (flags.rotate !== 'false' && flags.rotate !== false);
+const FROM = norm(flags.from) || 'east';   // most baked side-view sprites face right (east)
 
 // PixelLab Direction enum. 4-dir = cardinal (down/right/up/left).
 const DIR8 = ['south', 'south-east', 'east', 'north-east', 'north', 'north-west', 'west', 'south-west'];
@@ -112,6 +117,26 @@ async function animateDir(id, refImage, direction) {
   return frames;
 }
 
+// Rotate the base sprite from FROM facing to `toDir`. Returns the rotated sprite
+// as base64 (to feed animate-with-text as its reference), or null on failure.
+async function rotateTo(id, baseRef, toDir) {
+  const body = {
+    image_size: { width: SIZE, height: SIZE },
+    from_image: { type: 'base64', base64: baseRef, format: 'png' },
+    from_direction: FROM,
+    to_direction: toDir,
+    image_guidance_scale: +(flags.rotguide || 3),
+    seed: seedOf(id + toDir + 'rot'),
+  };
+  const res = await fetch(`${BASE}/rotate`, {
+    method: 'POST', headers: { Authorization: `Bearer ${KEY}`, 'Content-Type': 'application/json' }, body: JSON.stringify(body),
+  });
+  if (!res.ok) { console.error(`  ✗ rotate ${FROM}→${toDir}: HTTP ${res.status} — ${(await res.text()).slice(0, 300)}`); return null; }
+  const json = await res.json();
+  total += json.usage?.usd ?? 0;
+  return extractB64(json.image);
+}
+
 const blankCell = () => ({ width: SIZE, height: SIZE, data: new Uint8ClampedArray(SIZE * SIZE * 4) });
 // tile rows[{dir,frames|null}] into one sheet, row per direction (blank if failed).
 function buildSheet(rows) {
@@ -133,16 +158,22 @@ function buildSheet(rows) {
 async function animate(id) {
   const src = `${SRC}/${id}.png`;
   if (!existsSync(src)) { console.error(`✗ ${id}: no base sprite at ${src} — bake it first.`); return; }
-  console.log(`\n${id}: ${ACTION} · ${NDIRS} dirs · ${FRAMES} frames · ${VIEW} · ${SIZE}²`);
-  if (DRY) { console.log(`  would POST /animate-with-text ×${DIRS.length} (${DIRS.join(', ')})`); return; }
+  console.log(`\n${id}: ${ACTION} · ${NDIRS} dirs · ${FRAMES} frames · ${VIEW} · ${SIZE}²${ROTATE ? ` · rotate from ${FROM}` : ''}`);
+  if (DRY) { console.log(`  would ${ROTATE ? 'rotate + ' : ''}animate ×${DIRS.length} (${DIRS.join(', ')})`); return; }
   const ref = refB64(src);
   const rows = []; let ok = 0;
   mkdirSync(`${OUT}/${id}`, { recursive: true });
   for (const dir of DIRS) {
-    const frames = await animateDir(id, ref, dir);
+    // 1) rotate the base to this facing (skip the base's own facing), 2) animate it.
+    let dirRef = ref;
+    if (ROTATE && dir !== FROM) {
+      dirRef = await rotateTo(id, ref, dir);
+      if (dirRef) { writeFileSync(`${OUT}/${id}/facing-${dir}.png`, Buffer.from(dirRef, 'base64')); await new Promise((r) => setTimeout(r, DELAY_MS)); }
+    }
+    const frames = dirRef ? await animateDir(id, dirRef, dir) : null;
     if (frames) { ok++; frames.forEach((fr, fi) => writeFileSync(`${OUT}/${id}/${ACTION}-${dir}-${fi}.png`, encodePNG(fr))); }
     rows.push({ dir, frames });
-    console.log(`  ${frames ? '✓' : '·'} ${dir} (${(frames || []).length} frames)`);
+    console.log(`  ${frames ? '✓' : '·'} ${dir} (${(frames || []).length} frames)${ROTATE && dir !== FROM ? (dirRef ? ' [rotated]' : ' [rotate FAILED]') : ''}`);
     if (dir !== DIRS[DIRS.length - 1]) await new Promise((r) => setTimeout(r, DELAY_MS));
   }
   if (!ok) { console.error(`✗ ${id}: all ${DIRS.length} directions FAILED (see errors above). No sheet written — nothing to disguise.`); return; }
