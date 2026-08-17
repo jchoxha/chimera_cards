@@ -2,7 +2,7 @@
   "id": "voltfang",
   "action": "walk",
   "view": "low top-down",
-  "size": 128,
+  "size": 64,
   "frames": 4,
   "directions": [
     "south",
