@@ -1,0 +1,89 @@
+name: Animate creature sprites (PixelLab)
+
+# Turns baked creature portraits into walking, all-directions animated sprite
+# sheets via PixelLab's /animate-with-text. Trigger under Actions → "Animate
+# creature sprites (PixelLab)" → Run workflow.
+#
+# Needs the PIXELLAB_API_KEY repo secret (same one the bake workflow uses). It is
+# never printed or committed. On success it commits the sheets + manifests under
+# public/art/anim/ to main (Pages redeploys).
+#
+# Start with one creature (voltfang) at 4 directions / 4 frames to eyeball
+# quality + cost, then widen (--dirs=8, more frames, more ids).
+
+on:
+  workflow_dispatch:
+    inputs:
+      ids:
+        description: 'Creature ids (space-separated). They must already have a baked portrait in public/art/gen/.'
+        required: true
+        default: 'voltfang'
+      action:
+        description: 'Motion to animate (walk, run, idle, attack, ...).'
+        required: true
+        default: 'walk'
+      dirs:
+        description: 'Facings: 4 (cardinal) or 8.'
+        required: true
+        default: '4'
+      frames:
+        description: 'Frames per direction (1-20).'
+        required: true
+        default: '4'
+      view:
+        description: 'Camera: low_top-down (overworld) or side (platformer). Underscores become spaces.'
+        required: true
+        default: 'low_top-down'
+      size:
+        description: 'Sprite size in px (square). Max 200 free / 400 paid.'
+        required: true
+        default: '128'
+
+permissions:
+  contents: write
+
+concurrency:
+  group: animate
+  cancel-in-progress: false
+
+jobs:
+  animate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Fail early if the key secret is missing
+        run: |
+          if [ -z "${PIXELLAB_API_KEY}" ]; then
+            echo "::error::No PIXELLAB_API_KEY secret set. Add it in Settings → Secrets and variables → Actions."
+            exit 1
+          fi
+        env:
+          PIXELLAB_API_KEY: ${{ secrets.PIXELLAB_API_KEY }}
+
+      - name: Animate
+        run: node scripts/animate_pixellab.mjs $IDS --action=$ACTION --dirs=$DIRS --frames=$FRAMES --view=$VIEW --size=$SIZE
+        env:
+          PIXELLAB_API_KEY: ${{ secrets.PIXELLAB_API_KEY }}
+          IDS: ${{ github.event.inputs.ids }}
+          ACTION: ${{ github.event.inputs.action }}
+          DIRS: ${{ github.event.inputs.dirs }}
+          FRAMES: ${{ github.event.inputs.frames }}
+          VIEW: ${{ github.event.inputs.view }}
+          SIZE: ${{ github.event.inputs.size }}
+
+      - name: Commit animation sheets (if any changed)
+        run: |
+          git config user.name "chimera-bake-bot"
+          git config user.email "actions@github.com"
+          if git status --porcelain public/art/anim | grep -q .; then
+            git add public/art/anim
+            git commit -m "Animate ${{ github.event.inputs.ids }} (${{ github.event.inputs.action }}, ${{ github.event.inputs.dirs }}-dir) via PixelLab"
+            git push
+            echo "✓ committed animation sheets."
+          else
+            echo "No animation sheets were produced (check the Animate step log above)."
+          fi
