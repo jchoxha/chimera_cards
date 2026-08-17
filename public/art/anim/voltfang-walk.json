@@ -1,0 +1,15 @@
+{
+  "id": "voltfang",
+  "action": "walk",
+  "view": "low top-down",
+  "size": 128,
+  "frames": 4,
+  "directions": [
+    "south",
+    "east",
+    "north",
+    "west"
+  ],
+  "layout": "row per direction, column per frame",
+  "sheet": "voltfang-walk.png"
+}
